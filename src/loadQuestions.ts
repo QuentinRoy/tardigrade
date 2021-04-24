@@ -2,14 +2,14 @@ import { promises as fs } from "fs";
 import yaml from "js-yaml";
 import path from "path";
 
-export type GridItem = {
+export type Rubric = {
   label: string;
-  mark: number;
+  marks: number;
 };
 
 export type Question = {
   label?: string;
-  grid: GridItem[];
+  rubrics: Rubric[];
 };
 
 export type Grid = {

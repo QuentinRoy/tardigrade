@@ -17,8 +17,8 @@ import React, { useRef } from "react";
 
 import Link from "../../src/Link";
 import type {
-  GridItem as QuestionGridItem,
   Question as QuestionProps,
+  Rubric as QuestionRubric,
 } from "../../src/loadQuestions";
 import loadQuestions from "../../src/loadQuestions";
 
@@ -34,7 +34,7 @@ const useStyles = makeStyles((theme) => ({
 type Grading = "passed" | "failed";
 
 type State = {
-  items: (QuestionGridItem & { grading?: Grading })[];
+  rubrics: (QuestionRubric & { grading?: Grading })[];
   clipboardFeedback: {
     isShown: boolean;
     wasSuccessful: boolean;
@@ -53,14 +53,14 @@ function reducer(state: State, action: Action) {
   return produce(state, (draftState) => {
     switch (action.type) {
       case "grade":
-        if (action.itemNumber >= draftState.items.length) {
+        if (action.itemNumber >= draftState.rubrics.length) {
           throw new Error(`Invalid item numer: ${action.itemNumber}`);
         }
-        draftState.items[action.itemNumber].grading = action.grading;
+        draftState.rubrics[action.itemNumber].grading = action.grading;
         break;
       case "clear":
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        draftState.items = draftState.items.map(({ grading, ...i }) => i);
+        draftState.rubrics = draftState.rubrics.map(({ grading, ...i }) => i);
         break;
       case "clipboard success":
         draftState.clipboardFeedback.isShown = true;
@@ -80,27 +80,27 @@ function reducer(state: State, action: Action) {
 
 export default function Question({
   label,
-  grid,
+  rubrics: initRubrics,
 }: QuestionProps): React.ReactElement {
   const classes = useStyles();
   const resultRef = useRef<HTMLSpanElement>();
-  const [{ items, clipboardFeedback }, dispatch] = React.useReducer(reducer, {
-    items: grid,
+  const [{ rubrics, clipboardFeedback }, dispatch] = React.useReducer(reducer, {
+    rubrics: initRubrics,
     clipboardFeedback: { isShown: false, wasSuccessful: true },
   });
 
   let marks = 0;
   let maxMarks = 0;
-  let totalQuestionLeft = 0;
+  let totalRubricsLeft = 0;
   let isCompleted = true;
-  items.forEach(({ grading, mark }) => {
+  rubrics.forEach(({ grading, marks: rubricMarks }) => {
     if (grading === "passed") {
-      marks += mark;
+      marks += rubricMarks;
     }
     if (grading != null) {
-      maxMarks += mark;
+      maxMarks += rubricMarks;
     } else {
-      totalQuestionLeft += 1;
+      totalRubricsLeft += 1;
       isCompleted = false;
     }
   });
@@ -141,11 +141,11 @@ export default function Question({
           alignItems="center"
           className={classes.grid}
         >
-          {items.map(({ label, mark, grading }, i) => (
-            <GridItem
+          {rubrics.map(({ label, marks, grading }, i) => (
+            <Rubric
               key={i}
               label={label}
-              mark={mark}
+              marks={marks}
               grading={grading}
               number={i}
               dispatch={dispatch}
@@ -162,7 +162,9 @@ export default function Question({
           <Box textAlign="center">
             {isCompleted
               ? "(completed)"
-              : `(${totalQuestionLeft} questions left)`}
+              : `(${totalRubricsLeft} rubric${
+                  totalRubricsLeft !== 1 ? "s" : ""
+                } left)`}
           </Box>
         </Box>
         <Box className={classes.controls}>
@@ -175,7 +177,7 @@ export default function Question({
             Copy Mark
           </Button>
           <Button
-            disabled={totalQuestionLeft === items.length}
+            disabled={totalRubricsLeft === rubrics.length}
             variant="contained"
             onClick={() => dispatch({ type: "clear" })}
           >
@@ -208,12 +210,12 @@ export default function Question({
 
 type GridItemProps = {
   label: string;
-  mark: number;
+  marks: number;
   grading: Grading;
   number: number;
   dispatch: (action: Action) => void;
 };
-function GridItem({ label, mark, grading, number, dispatch }: GridItemProps) {
+function Rubric({ label, marks, grading, number, dispatch }: GridItemProps) {
   return (
     <React.Fragment>
       <Grid item xs={2}>
@@ -226,10 +228,10 @@ function GridItem({ label, mark, grading, number, dispatch }: GridItemProps) {
           aria-label="text alignment"
         >
           <ToggleButton size="small" value="passed" aria-label="passed">
-            <CheckIcon />
+            <CheckIcon color={grading === "passed" ? "primary" : undefined} />
           </ToggleButton>
           <ToggleButton size="small" value="failed" aria-label="failed">
-            <CrossIcon />
+            <CrossIcon color={grading === "failed" ? "error" : undefined} />
           </ToggleButton>
         </ToggleButtonGroup>
       </Grid>
@@ -237,7 +239,7 @@ function GridItem({ label, mark, grading, number, dispatch }: GridItemProps) {
         {label}
       </Grid>
       <Grid item xs={1}>
-        <Typography variant="body2">({mark})</Typography>
+        <Typography variant="body2">({marks})</Typography>
       </Grid>
     </React.Fragment>
   );

@@ -1,22 +1,20 @@
 Q21:
   label: Question 21
-  grid:
-    - label: "Draw a circle of the correct color"
-      mark: 1
-    - label: "The circle is animated"
-      mark: 0.5
-    - label: "Background is properly set up to clear previous draw"
-      mark: 0.5
+  rubrics:
+    - label: "Draw a circle of the correct color, and approximately at the center"
+      marks: 1
+    - label: "The circle is animated, with background properly set up to clear previous draw"
+      marks: 1
     - label: "Circle gets bigger then smaller, then bigger, etc"
-      mark: 1
+      marks: 1
     - label: "Circle does not exceed maxSize, and don't get smaller than minSize"
-      mark: 1
+      marks: 1
     - label: "At least one pre-defined variable is used, and no value is hardcoded when a pre-defined variable could have been used"
-      mark: 1
+      marks: 1
 Q22:
   label: Question 22
-  grid:
+  rubrics:
     - label: TODO 1
-      mark: 2
+      marks: 2
     - label: TODO 2
-      mark: 1
+      marks: 1
