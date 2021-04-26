@@ -15,6 +15,7 @@ import produce from "immer";
 import { GetStaticPaths, GetStaticProps } from "next";
 import React, { useRef } from "react";
 
+import CodeSnippet from "../src/CodeSnippet";
 import Link from "../src/Link";
 import type {
   Question as QuestionProps,
@@ -81,6 +82,7 @@ function reducer(state: State, action: Action) {
 export default function Question({
   label,
   rubrics: initRubrics,
+  solution,
 }: QuestionProps): React.ReactElement {
   const classes = useStyles();
   const resultRef = useRef<HTMLSpanElement>();
@@ -134,6 +136,11 @@ export default function Question({
         <Typography variant="h4" component="h1" gutterBottom>
           {label}
         </Typography>
+        {solution && (
+          <div>
+            <CodeSnippet>{solution}</CodeSnippet>
+          </div>
+        )}
         <Grid
           container
           spacing={3}
