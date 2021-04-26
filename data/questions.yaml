@@ -30,21 +30,12 @@ q22:
 q23:
   label: Question 23
   rubrics:
-    - label: Load image pixels
-      marks: 0.5
-    - label: Iterates through every pixels
-      marks: 0.5
-    - label: Fetch the right pixel values (i = (x + y * img.width) * 4)
-      marks: 0.5
+    - label: Iterates through every pixels, and fetch the right pixel values
+      marks: 1
     - label: Make the right color test
-      marks: 1
-    - label: Choose the right new pixel values
-      marks: 1
-    - label: Properly write back every pixels
-      marks: 1
-    - label: Update image pixels
-      marks: 0.5
-
+      marks: 2
+    - label: Choose the right new pixel values and properly write it back
+      marks: 2
 q24:
   label: Question 24
   rubrics:
