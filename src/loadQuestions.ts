@@ -33,7 +33,7 @@ export default async function loadQuestions(): Promise<Grid> {
         grid[questionId].solution = solutionFile.toString();
       } catch (err) {
         // ENOENT errors happens when the file could not be found, which
-        // is expected.
+        // would happen if there is no provided solution.
         if (err?.code !== "ENOENT") throw err;
       }
     }),
