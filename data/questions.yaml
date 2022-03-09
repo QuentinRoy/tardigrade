@@ -50,3 +50,17 @@ q24:
     - label: Leftmost ellipses are pure black, and rightmost ellipses are pure white
       marks: 1
 
+
+ihmRendu1:
+  label: IHM MIASH Rendu 1
+  rubrics:
+    - label: Le problème décrit de manière concise un problème réel vécu par des personnes réelles.
+      marks: 5
+    - label: Description claire des caractéristiques de l'utilisateur pertinentes pour le problème rencontré
+      marks: 5
+    - label: L'idée est présenté de manière convaincante, et a une réelle chance d'aider les gens à résoudre le problème.
+      marks: 5
+    - label: Le plan d'empathie est bon, fonctionne bien et les idées sont réfléchies.
+      marks: 5
+    - label: Le problème ou l'idée est intéressante et unique (bonus).
+      marks: 2
