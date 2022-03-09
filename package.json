@@ -8,8 +8,8 @@
     "start": "next start"
   },
   "dependencies": {
-    "@fontsource/anonymous-pro": "^4.2.2",
-    "@fontsource/roboto": "^4.2.3",
+    "@fontsource/anonymous-pro": "^4.5.2",
+    "@fontsource/roboto": "^4.5.3",
     "@material-ui/core": "^4.11.3",
     "@material-ui/icons": "^4.11.2",
     "@material-ui/lab": "^4.0.0-alpha.57",
