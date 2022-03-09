@@ -1,38 +1,33 @@
-import "@fontsource/roboto";
-
-import CssBaseline from "@material-ui/core/CssBaseline";
-import { ThemeProvider } from "@material-ui/core/styles";
+import { CacheProvider, EmotionCache } from "@emotion/react";
+import CssBaseline from "@mui/material/CssBaseline";
+import { ThemeProvider } from "@mui/material/styles";
 import { AppProps } from "next/app";
 import Head from "next/head";
-import React from "react";
+import * as React from "react";
 
+import createEmotionCache from "../src/createEmotionCache";
 import theme from "../src/theme";
 
-export default function MyApp(props: AppProps): React.ReactElement {
-  const { Component, pageProps } = props;
+// Client-side cache, shared for the whole session of the user in the browser.
+const clientSideEmotionCache = createEmotionCache();
 
-  React.useEffect(() => {
-    // Remove the server-side injected CSS.
-    const jssStyles = document.querySelector("#jss-server-side");
-    if (jssStyles?.parentElement != null) {
-      jssStyles.parentElement.removeChild(jssStyles);
-    }
-  }, []);
+interface MyAppProps extends AppProps {
+  emotionCache?: EmotionCache;
+}
 
+// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
+export default function MyApp(props: MyAppProps) {
+  const { Component, emotionCache = clientSideEmotionCache, pageProps } = props;
   return (
-    <React.Fragment>
+    <CacheProvider value={emotionCache}>
       <Head>
-        <title>Grading Rubrics</title>
-        <meta
-          name="viewport"
-          content="minimum-scale=1, initial-scale=1, width=device-width"
-        />
+        <meta name="viewport" content="initial-scale=1, width=device-width" />
       </Head>
       <ThemeProvider theme={theme}>
         {/* CssBaseline kickstart an elegant, consistent, and simple baseline to build upon. */}
         <CssBaseline />
         <Component {...pageProps} />
       </ThemeProvider>
-    </React.Fragment>
+    </CacheProvider>
   );
 }

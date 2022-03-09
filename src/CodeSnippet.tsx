@@ -1,6 +1,6 @@
 import "@fontsource/anonymous-pro";
 
-import { useTheme } from "@material-ui/core/styles";
+import { useTheme } from "@mui/material/styles";
 import React from "react";
 import SyntaxHighlighter from "react-syntax-highlighter";
 import codeStyle from "react-syntax-highlighter/dist/cjs/styles/hljs/atom-one-light";

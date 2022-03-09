@@ -1,16 +1,16 @@
-import Box from "@material-ui/core/Box";
-import Breadcrumbs from "@material-ui/core/Breadcrumbs";
-import Button from "@material-ui/core/Button";
-import Container from "@material-ui/core/Container";
-import Grid from "@material-ui/core/Grid";
-import Snackbar from "@material-ui/core/Snackbar";
-import { makeStyles } from "@material-ui/core/styles";
-import Typography from "@material-ui/core/Typography";
-import CheckIcon from "@material-ui/icons/Check";
-import CrossIcon from "@material-ui/icons/Clear";
-import MuiAlert, { AlertProps } from "@material-ui/lab/Alert";
-import ToggleButton from "@material-ui/lab/ToggleButton";
-import ToggleButtonGroup from "@material-ui/lab/ToggleButtonGroup";
+import CheckIcon from "@mui/icons-material/Check";
+import CrossIcon from "@mui/icons-material/Clear";
+import MuiAlert, { AlertProps } from "@mui/material/Alert";
+import Box from "@mui/material/Box";
+import Breadcrumbs from "@mui/material/Breadcrumbs";
+import Button from "@mui/material/Button";
+import Container from "@mui/material/Container";
+import Grid from "@mui/material/Grid";
+import Snackbar from "@mui/material/Snackbar";
+import ToggleButton from "@mui/material/ToggleButton";
+import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
+import Typography from "@mui/material/Typography";
+import makeStyles from "@mui/styles/makeStyles";
 import produce from "immer";
 import { GetStaticPaths, GetStaticProps } from "next";
 import React, { useRef } from "react";
@@ -123,7 +123,7 @@ export default function Question({
   }
 
   return (
-    <Container maxWidth="sm" className={classes.root}>
+    <Container maxWidth="md" className={classes.root}>
       <Box component="header" className={classes.header}>
         <Breadcrumbs aria-label="breadcrumb">
           <Link color="inherit" href="/">
@@ -144,7 +144,7 @@ export default function Question({
         <Grid
           container
           spacing={3}
-          justify="center"
+          justifyContent="center"
           alignItems="center"
           className={classes.grid}
         >
