@@ -1,8 +1,7 @@
-import { notFound } from "next/navigation";
-
+import { notFound, redirect } from "next/navigation";
+import loadPapers from "../../src/loadPapers";
 import type { Question } from "../../src/loadQuestions";
 import loadQuestions from "../../src/loadQuestions";
-import QuestionClientPage from "../../src/QuestionClientPage";
 
 type PageParams = {
   questionId: string;
@@ -20,11 +19,16 @@ export async function generateStaticParams() {
 export default async function QuestionPage({ params }: QuestionPageProps) {
   const { questionId } = await params;
   const grid = await loadQuestions();
+  const papers = await loadPapers();
   const question = grid[questionId] as Question | undefined;
 
   if (question == null) {
     notFound();
   }
 
-  return <QuestionClientPage questionId={questionId} question={question} />;
+  if (papers.length === 0) {
+    notFound();
+  }
+
+  return redirect(`/${questionId}/${papers[0].id}`);
 }
