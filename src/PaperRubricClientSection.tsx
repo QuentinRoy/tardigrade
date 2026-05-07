@@ -9,8 +9,16 @@ import Grid from "@mui/material/Grid";
 import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Typography from "@mui/material/Typography";
+import { produce } from "immer";
 import NextLink from "next/link";
-import React from "react";
+import {
+  Fragment,
+  type ReactElement,
+  startTransition,
+  useMemo,
+  useOptimistic,
+  useReducer,
+} from "react";
 import type { Paper } from "./loadPapers";
 import type { Rubric as QuestionRubric } from "./loadQuestions";
 import { useSaveErrors } from "./SaveErrorsContext";
@@ -24,13 +32,23 @@ type GradingUpdate = { index: number; grading: Grading };
 
 type State = {
   savedRubrics: RubricItem[];
+  pendingByIndex: Record<number, number>;
 };
 
-type Action = {
-  type: "save-success";
-  index: number;
-  grading: Grading;
-};
+type Action =
+  | {
+      type: "save-start";
+      index: number;
+    }
+  | {
+      type: "save-success";
+      index: number;
+      grading: Grading;
+    }
+  | {
+      type: "save-failure";
+      index: number;
+    };
 
 type PaperRubricClientSectionProps = {
   questionId: string;
@@ -46,30 +64,35 @@ export default function PaperRubricClientSection({
   rubrics: initialRubrics,
   papers,
   currentPaperId,
-}: PaperRubricClientSectionProps): React.ReactElement {
+}: PaperRubricClientSectionProps): ReactElement {
   const { addError } = useSaveErrors();
 
-  const [{ savedRubrics }, dispatch] = React.useReducer(reducer, {
+  const [{ savedRubrics, pendingByIndex }, dispatch] = useReducer(reducer, {
     savedRubrics: initialRubrics,
+    pendingByIndex: {},
   });
 
-  const [optimisticRubrics, addOptimisticUpdate] = React.useOptimistic(
+  const [optimisticRubrics, addOptimisticUpdate] = useOptimistic(
     savedRubrics,
     (current: RubricItem[], { index, grading }: GradingUpdate) =>
       current.map((r, i) => (i === index ? { ...r, grading } : r)),
   );
 
-  const currentPaperIndex = papers.findIndex(
-    (paper) => paper.id === currentPaperId,
-  );
-  const currentPaper =
-    currentPaperIndex === -1 ? undefined : papers[currentPaperIndex];
-  const previousPaper =
-    currentPaperIndex > 0 ? papers[currentPaperIndex - 1] : undefined;
-  const nextPaper =
-    currentPaperIndex >= 0 && currentPaperIndex < papers.length - 1
-      ? papers[currentPaperIndex + 1]
-      : undefined;
+  const { currentPaperIndex, currentPaper, previousPaper, nextPaper } =
+    useMemo(() => {
+      const currentPaperIndex = papers.findIndex(
+        (paper) => paper.id === currentPaperId,
+      );
+      const currentPaper =
+        currentPaperIndex === -1 ? undefined : papers[currentPaperIndex];
+      const previousPaper =
+        currentPaperIndex > 0 ? papers[currentPaperIndex - 1] : undefined;
+      const nextPaper =
+        currentPaperIndex >= 0 && currentPaperIndex < papers.length - 1
+          ? papers[currentPaperIndex + 1]
+          : undefined;
+      return { currentPaperIndex, currentPaper, previousPaper, nextPaper };
+    }, [papers, currentPaperId]);
 
   let marks = 0;
   let maxMarks = 0;
@@ -91,11 +114,14 @@ export default function PaperRubricClientSection({
 
   function handleGrade(index: number, grading: Grading) {
     const rubric = savedRubrics[index];
-    if (rubric == null || rubric.grading === grading) {
+    const currentGrading = optimisticRubrics[index]?.grading;
+    if (rubric == null || currentGrading === grading) {
       return;
     }
 
-    React.startTransition(async () => {
+    dispatch({ type: "save-start", index });
+
+    startTransition(async () => {
       addOptimisticUpdate({ index, grading });
       const result = await saveRubricGrading({
         paperId: currentPaperId,
@@ -106,6 +132,7 @@ export default function PaperRubricClientSection({
       if (result.success) {
         dispatch({ type: "save-success", index, grading });
       } else {
+        dispatch({ type: "save-failure", index });
         addError({
           questionId,
           paperId: currentPaperId,
@@ -148,6 +175,7 @@ export default function PaperRubricClientSection({
               component={NextLink}
               href={`/${questionId}/${previousPaper?.id ?? currentPaperId}`}
               variant="outlined"
+              color={isCompleted ? "primary" : "secondary"}
               disabled={previousPaper == null}
             >
               Previous paper
@@ -156,6 +184,7 @@ export default function PaperRubricClientSection({
               component={NextLink}
               href={`/${questionId}/${nextPaper?.id ?? currentPaperId}`}
               variant="outlined"
+              color={isCompleted ? "primary" : "secondary"}
               disabled={nextPaper == null}
             >
               Next paper
@@ -170,9 +199,9 @@ export default function PaperRubricClientSection({
       <Grid container spacing={2} sx={{ mb: 4, alignItems: "center" }}>
         {optimisticRubrics.map(
           ({ label, marks: rubricMarks, grading }, index) => {
-            const isPending = grading !== savedRubrics[index]?.grading;
+            const isPending = (pendingByIndex[index] ?? 0) > 0;
             return (
-              <React.Fragment key={index}>
+              <Fragment key={index}>
                 <Grid size={{ xs: 12, sm: 3 }}>
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                     <ToggleButtonGroup
@@ -184,12 +213,13 @@ export default function PaperRubricClientSection({
                         }
                       }}
                       aria-label={`Rubric ${index + 1} grading`}
-                      disabled={currentPaper == null || isPending}
+                      disabled={currentPaper == null}
                     >
                       <ToggleButton
                         size="small"
                         value="passed"
                         aria-label="passed"
+                        color="primary"
                       >
                         <CheckIcon
                           color={grading === "passed" ? "primary" : "inherit"}
@@ -198,6 +228,7 @@ export default function PaperRubricClientSection({
                       <ToggleButton
                         size="small"
                         value="failed"
+                        color="error"
                         aria-label="failed"
                       >
                         <CrossIcon
@@ -224,7 +255,7 @@ export default function PaperRubricClientSection({
                 <Grid size={{ xs: 12, sm: 1 }}>
                   <Typography variant="body2">({rubricMarks})</Typography>
                 </Grid>
-              </React.Fragment>
+              </Fragment>
             );
           },
         )}
@@ -249,15 +280,34 @@ export default function PaperRubricClientSection({
 }
 
 function reducer(state: State, action: Action): State {
-  switch (action.type) {
-    case "save-success":
-      return {
-        ...state,
-        savedRubrics: state.savedRubrics.map((rubric, index) =>
-          index === action.index ? { ...rubric, grading: action.grading } : rubric,
-        ),
-      };
-    default:
-      return state;
-  }
+  return produce(state, (draft) => {
+    switch (action.type) {
+      case "save-start": {
+        const current = draft.pendingByIndex[action.index] ?? 0;
+        draft.pendingByIndex[action.index] = current + 1;
+        break;
+      }
+      case "save-success": {
+        const nextPending = Math.max(
+          0,
+          (draft.pendingByIndex[action.index] ?? 0) - 1,
+        );
+        draft.pendingByIndex[action.index] = nextPending;
+        if (draft.savedRubrics[action.index] != null) {
+          draft.savedRubrics[action.index].grading = action.grading;
+        }
+        break;
+      }
+      case "save-failure": {
+        const nextPending = Math.max(
+          0,
+          (draft.pendingByIndex[action.index] ?? 0) - 1,
+        );
+        draft.pendingByIndex[action.index] = nextPending;
+        break;
+      }
+      default:
+        break;
+    }
+  });
 }
