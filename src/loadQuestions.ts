@@ -101,7 +101,10 @@ async function loadQuestionsFromDb(): Promise<QuestionRow[]> {
             select: {
               values: {
                 select: { label: true, score: true },
-                orderBy: { label: "asc" as const },
+                orderBy: [
+                  { score: "desc" as const },
+                  { label: "asc" as const },
+                ],
               },
             },
           },

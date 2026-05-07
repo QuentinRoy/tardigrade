@@ -36,6 +36,7 @@ export default function OrdinalRubricControl({
           size="small"
           value={valueLabel}
           aria-label={valueLabel}
+          color="primary"
         >
           {valueLabel} ({valueScore})
         </ToggleButton>
