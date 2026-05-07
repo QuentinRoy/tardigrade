@@ -1,18 +1,11 @@
 "use client";
 
-import CheckIcon from "@mui/icons-material/Check";
-import CrossIcon from "@mui/icons-material/Clear";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import CircularProgress from "@mui/material/CircularProgress";
-import Grid from "@mui/material/Grid";
-import ToggleButton from "@mui/material/ToggleButton";
-import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Typography from "@mui/material/Typography";
 import { produce } from "immer";
 import NextLink from "next/link";
 import {
-  Fragment,
   type ReactElement,
   startTransition,
   useMemo,
@@ -21,6 +14,7 @@ import {
 } from "react";
 import type { Paper } from "./loadPapers";
 import type { Rubric as QuestionRubric } from "./loadQuestions";
+import RubricGradingSection from "./RubricGradingSection";
 import { useSaveErrors } from "./SaveErrorsContext";
 import { saveRubricGrading } from "./saveRubricGrading";
 
@@ -196,70 +190,12 @@ export default function PaperRubricClientSection({
         </>
       )}
 
-      <Grid container spacing={2} sx={{ mb: 4, alignItems: "center" }}>
-        {optimisticRubrics.map(
-          ({ label, marks: rubricMarks, grading }, index) => {
-            const isPending = (pendingByIndex[index] ?? 0) > 0;
-            return (
-              <Fragment key={index}>
-                <Grid size={{ xs: 12, sm: 3 }}>
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                    <ToggleButtonGroup
-                      value={grading ?? null}
-                      exclusive
-                      onChange={(_, value: Grading | null) => {
-                        if (value != null) {
-                          handleGrade(index, value);
-                        }
-                      }}
-                      aria-label={`Rubric ${index + 1} grading`}
-                      disabled={currentPaper == null}
-                    >
-                      <ToggleButton
-                        size="small"
-                        value="passed"
-                        aria-label="passed"
-                        color="primary"
-                      >
-                        <CheckIcon
-                          color={grading === "passed" ? "primary" : "inherit"}
-                        />
-                      </ToggleButton>
-                      <ToggleButton
-                        size="small"
-                        value="failed"
-                        color="error"
-                        aria-label="failed"
-                      >
-                        <CrossIcon
-                          color={grading === "failed" ? "error" : "inherit"}
-                        />
-                      </ToggleButton>
-                    </ToggleButtonGroup>
-                    <Box
-                      sx={{
-                        width: 16,
-                        height: 16,
-                        display: "inline-flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      {isPending ? (
-                        <CircularProgress size={12} thickness={6} />
-                      ) : null}
-                    </Box>
-                  </Box>
-                </Grid>
-                <Grid size={{ xs: 12, sm: 8 }}>{label}</Grid>
-                <Grid size={{ xs: 12, sm: 1 }}>
-                  <Typography variant="body2">({rubricMarks})</Typography>
-                </Grid>
-              </Fragment>
-            );
-          },
-        )}
-      </Grid>
+      <RubricGradingSection
+        rubrics={optimisticRubrics}
+        pendingByIndex={pendingByIndex}
+        disabled={currentPaper == null}
+        onGrade={handleGrade}
+      />
 
       <Box sx={{ mb: 2 }}>
         <Box sx={{ textAlign: "center" }}>
