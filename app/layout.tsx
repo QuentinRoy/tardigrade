@@ -2,6 +2,8 @@ import React from "react";
 
 import "../styles/globals.css";
 import { AppRouterCacheProvider } from "@mui/material-nextjs/v16-appRouter";
+import { SaveErrorsProvider } from "../src/SaveErrorsContext";
+import { SaveErrorsDisplay } from "../src/SaveErrorsDisplay";
 
 export const metadata = {
   title: "Grading Grid",
@@ -16,7 +18,12 @@ export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="en">
       <body>
-        <AppRouterCacheProvider>{children}</AppRouterCacheProvider>
+        <AppRouterCacheProvider>
+          <SaveErrorsProvider>
+            {children}
+            <SaveErrorsDisplay />
+          </SaveErrorsProvider>
+        </AppRouterCacheProvider>
       </body>
     </html>
   );

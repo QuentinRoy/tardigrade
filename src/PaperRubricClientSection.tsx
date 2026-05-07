@@ -2,81 +2,62 @@
 
 import CheckIcon from "@mui/icons-material/Check";
 import CrossIcon from "@mui/icons-material/Clear";
-import MuiAlert, { type AlertProps } from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import CircularProgress from "@mui/material/CircularProgress";
 import Grid from "@mui/material/Grid";
-import Link from "@mui/material/Link";
-import Snackbar from "@mui/material/Snackbar";
 import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Typography from "@mui/material/Typography";
-import { produce } from "immer";
 import NextLink from "next/link";
 import React from "react";
 import type { Paper } from "./loadPapers";
 import type { Rubric as QuestionRubric } from "./loadQuestions";
+import { useSaveErrors } from "./SaveErrorsContext";
+import { saveRubricGrading } from "./saveRubricGrading";
 
 type Grading = "passed" | "failed";
 
+type RubricItem = QuestionRubric & { grading?: Grading };
+
+type GradingUpdate = { index: number; grading: Grading };
+
 type State = {
-  rubrics: (QuestionRubric & { grading?: Grading })[];
-  clipboardFeedback: {
-    isShown: boolean;
-    wasSuccessful: boolean;
-    value?: number;
-  };
+  savedRubrics: RubricItem[];
 };
 
-type Action =
-  | { type: "grade"; grading: Grading; itemNumber: number }
-  | { type: "clipboard success"; value: number }
-  | { type: "clipboard failed" }
-  | { type: "hide clipboard" };
-
-function reducer(state: State, action: Action) {
-  return produce(state, (draftState) => {
-    switch (action.type) {
-      case "grade":
-        if (action.itemNumber >= draftState.rubrics.length) {
-          throw new Error(`Invalid item number: ${action.itemNumber}`);
-        }
-        draftState.rubrics[action.itemNumber].grading = action.grading;
-        break;
-      case "clipboard success":
-        draftState.clipboardFeedback.isShown = true;
-        draftState.clipboardFeedback.value = action.value;
-        draftState.clipboardFeedback.wasSuccessful = true;
-        break;
-      case "clipboard failed":
-        draftState.clipboardFeedback.isShown = true;
-        draftState.clipboardFeedback.wasSuccessful = false;
-        break;
-      case "hide clipboard":
-        draftState.clipboardFeedback.isShown = false;
-        break;
-    }
-  });
-}
+type Action = {
+  type: "save-success";
+  index: number;
+  grading: Grading;
+};
 
 type PaperRubricClientSectionProps = {
   questionId: string;
-  rubrics: QuestionRubric[];
+  questionLabel?: string;
+  rubrics: RubricItem[];
   papers: Paper[];
   currentPaperId: string;
 };
 
 export default function PaperRubricClientSection({
   questionId,
+  questionLabel,
   rubrics: initialRubrics,
   papers,
   currentPaperId,
 }: PaperRubricClientSectionProps): React.ReactElement {
-  const resultRef = React.useRef<HTMLSpanElement>(null);
-  const [{ rubrics, clipboardFeedback }, dispatch] = React.useReducer(reducer, {
-    rubrics: initialRubrics,
-    clipboardFeedback: { isShown: false, wasSuccessful: true },
+  const { addError } = useSaveErrors();
+
+  const [{ savedRubrics }, dispatch] = React.useReducer(reducer, {
+    savedRubrics: initialRubrics,
   });
+
+  const [optimisticRubrics, addOptimisticUpdate] = React.useOptimistic(
+    savedRubrics,
+    (current: RubricItem[], { index, grading }: GradingUpdate) =>
+      current.map((r, i) => (i === index ? { ...r, grading } : r)),
+  );
 
   const currentPaperIndex = papers.findIndex(
     (paper) => paper.id === currentPaperId,
@@ -95,7 +76,7 @@ export default function PaperRubricClientSection({
   let totalRubricsLeft = 0;
   let isCompleted = true;
 
-  rubrics.forEach(({ grading, marks: rubricMarks }) => {
+  optimisticRubrics.forEach(({ grading, marks: rubricMarks }) => {
     if (grading === "passed") {
       marks += rubricMarks;
     }
@@ -108,13 +89,32 @@ export default function PaperRubricClientSection({
     }
   });
 
-  async function copyMark() {
-    try {
-      await navigator.clipboard.writeText(String(marks));
-      dispatch({ type: "clipboard success", value: marks });
-    } catch {
-      dispatch({ type: "clipboard failed" });
+  function handleGrade(index: number, grading: Grading) {
+    const rubric = savedRubrics[index];
+    if (rubric == null || rubric.grading === grading) {
+      return;
     }
+
+    React.startTransition(async () => {
+      addOptimisticUpdate({ index, grading });
+      const result = await saveRubricGrading({
+        paperId: currentPaperId,
+        questionId,
+        rubricId: rubric.id,
+        score: grading === "passed" ? 1 : 0,
+      });
+      if (result.success) {
+        dispatch({ type: "save-success", index, grading });
+      } else {
+        addError({
+          questionId,
+          paperId: currentPaperId,
+          questionLabel,
+          paperLabel: currentPaper?.label,
+          message: result.error,
+        });
+      }
+    });
   }
 
   return (
@@ -168,50 +168,72 @@ export default function PaperRubricClientSection({
       )}
 
       <Grid container spacing={2} sx={{ mb: 4, alignItems: "center" }}>
-        {rubrics.map(({ label, marks: rubricMarks, grading }, index) => {
-          return (
-            <React.Fragment key={index}>
-              <Grid size={{ xs: 12, sm: 3 }}>
-                <ToggleButtonGroup
-                  value={grading ?? null}
-                  exclusive
-                  onChange={(_, value: Grading | null) => {
-                    if (value != null) {
-                      dispatch({
-                        type: "grade",
-                        itemNumber: index,
-                        grading: value,
-                      });
-                    }
-                  }}
-                  aria-label={`Rubric ${index + 1} grading`}
-                  disabled={currentPaper == null}
-                >
-                  <ToggleButton size="small" value="passed" aria-label="passed">
-                    <CheckIcon
-                      color={grading === "passed" ? "primary" : "inherit"}
-                    />
-                  </ToggleButton>
-                  <ToggleButton size="small" value="failed" aria-label="failed">
-                    <CrossIcon
-                      color={grading === "failed" ? "error" : "inherit"}
-                    />
-                  </ToggleButton>
-                </ToggleButtonGroup>
-              </Grid>
-              <Grid size={{ xs: 12, sm: 8 }}>{label}</Grid>
-              <Grid size={{ xs: 12, sm: 1 }}>
-                <Typography variant="body2">({rubricMarks})</Typography>
-              </Grid>
-            </React.Fragment>
-          );
-        })}
+        {optimisticRubrics.map(
+          ({ label, marks: rubricMarks, grading }, index) => {
+            const isPending = grading !== savedRubrics[index]?.grading;
+            return (
+              <React.Fragment key={index}>
+                <Grid size={{ xs: 12, sm: 3 }}>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <ToggleButtonGroup
+                      value={grading ?? null}
+                      exclusive
+                      onChange={(_, value: Grading | null) => {
+                        if (value != null) {
+                          handleGrade(index, value);
+                        }
+                      }}
+                      aria-label={`Rubric ${index + 1} grading`}
+                      disabled={currentPaper == null || isPending}
+                    >
+                      <ToggleButton
+                        size="small"
+                        value="passed"
+                        aria-label="passed"
+                      >
+                        <CheckIcon
+                          color={grading === "passed" ? "primary" : "inherit"}
+                        />
+                      </ToggleButton>
+                      <ToggleButton
+                        size="small"
+                        value="failed"
+                        aria-label="failed"
+                      >
+                        <CrossIcon
+                          color={grading === "failed" ? "error" : "inherit"}
+                        />
+                      </ToggleButton>
+                    </ToggleButtonGroup>
+                    <Box
+                      sx={{
+                        width: 16,
+                        height: 16,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      {isPending ? (
+                        <CircularProgress size={12} thickness={6} />
+                      ) : null}
+                    </Box>
+                  </Box>
+                </Grid>
+                <Grid size={{ xs: 12, sm: 8 }}>{label}</Grid>
+                <Grid size={{ xs: 12, sm: 1 }}>
+                  <Typography variant="body2">({rubricMarks})</Typography>
+                </Grid>
+              </React.Fragment>
+            );
+          },
+        )}
       </Grid>
 
       <Box sx={{ mb: 2 }}>
         <Box sx={{ textAlign: "center" }}>
           <Typography variant="subtitle1">
-            <span ref={resultRef}>{marks}</span>&nbsp;/&nbsp;{maxMarks}
+            <span>{marks}</span>&nbsp;/&nbsp;{maxMarks}
           </Typography>
         </Box>
         <Box sx={{ textAlign: "center" }}>
@@ -222,33 +244,20 @@ export default function PaperRubricClientSection({
           </Typography>
         </Box>
       </Box>
-
-      <Box sx={{ mb: 2 }}>
-        <Button variant="contained" disabled={!isCompleted} onClick={copyMark}>
-          Copy Mark
-        </Button>
-      </Box>
-
-      <Snackbar
-        anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
-        open={clipboardFeedback.isShown}
-        autoHideDuration={3000}
-        onClose={() => {
-          dispatch({ type: "hide clipboard" });
-        }}
-      >
-        {clipboardFeedback.wasSuccessful ? (
-          <Alert severity="success">
-            {clipboardFeedback.value} copied to clipboard.
-          </Alert>
-        ) : (
-          <Alert severity="error">Could not update clipboard.</Alert>
-        )}
-      </Snackbar>
     </>
   );
 }
 
-function Alert(props: AlertProps): React.ReactElement {
-  return <MuiAlert elevation={6} variant="filled" {...props} />;
+function reducer(state: State, action: Action): State {
+  switch (action.type) {
+    case "save-success":
+      return {
+        ...state,
+        savedRubrics: state.savedRubrics.map((rubric, index) =>
+          index === action.index ? { ...rubric, grading: action.grading } : rubric,
+        ),
+      };
+    default:
+      return state;
+  }
 }

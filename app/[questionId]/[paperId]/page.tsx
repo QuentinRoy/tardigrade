@@ -8,6 +8,7 @@ import { cacheTag } from "next/cache";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import CodeSnippet from "../../../src/CodeSnippet";
+import { loadAssessment } from "../../../src/loadAssessment";
 import loadPapers from "../../../src/loadPapers";
 import { loadQuestion } from "../../../src/loadQuestions";
 import MuiNextLink from "../../../src/MuiNextLink";
@@ -91,9 +92,10 @@ async function PaperRubricSection({
   questionId: string;
   paperId: string;
 }) {
-  const [question, papers] = await Promise.all([
+  const [question, papers, gradings] = await Promise.all([
     loadQuestion(questionId),
     loadPapers(),
+    loadAssessment(paperId, questionId),
   ]);
   const hasPaper = papers.some((paper) => paper.id === paperId);
 
@@ -101,10 +103,17 @@ async function PaperRubricSection({
     notFound();
   }
 
+  const rubricsWithGradings = question.rubrics.map((rubric) => ({
+    ...rubric,
+    grading: gradings.get(rubric.id),
+  }));
+
   return (
     <PaperRubricClientSection
+      key={`${questionId}-${paperId}`}
       questionId={questionId}
-      rubrics={question.rubrics}
+      questionLabel={question.label}
+      rubrics={rubricsWithGradings}
       papers={papers}
       currentPaperId={paperId}
     />

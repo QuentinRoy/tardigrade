@@ -5,17 +5,20 @@ import { prisma } from "./prisma";
 
 export type Rubric =
   | {
+      id: string;
       label: string;
       marks: number;
       type: "boolean";
     }
   | {
+      id: string;
       label: string;
       marks: number;
       type: "ordinal";
       values: (string | number)[];
     }
   | {
+      id: string;
       label: string;
       marks: number;
       type: "numerical";
@@ -35,6 +38,7 @@ type DbQuestion = {
   externalId: string;
   label: string;
   rubrics: {
+    id: string;
     kind: RubricKind;
     label: string;
     maxMarks: number;
@@ -56,6 +60,7 @@ function toNumber(value: Prisma.Decimal | number): number {
 }
 
 function toRubric(rubric: {
+  id: string;
   kind: RubricKind;
   label: string;
   maxMarks: number;
@@ -72,6 +77,7 @@ function toRubric(rubric: {
         )
       : [];
     return {
+      id: rubric.id,
       label: rubric.label,
       marks,
       type: "ordinal",
@@ -81,6 +87,7 @@ function toRubric(rubric: {
 
   if (rubric.kind === RubricKind.NUMERICAL) {
     return {
+      id: rubric.id,
       label: rubric.label,
       marks,
       type: "numerical",
@@ -88,6 +95,7 @@ function toRubric(rubric: {
   }
 
   return {
+    id: rubric.id,
     label: rubric.label,
     marks,
     type: "boolean",
@@ -114,6 +122,7 @@ async function loadQuestionsFromDb(): Promise<DbQuestion[]> {
     externalId: q.externalId,
     label: q.label,
     rubrics: q.rubrics.map((r) => ({
+      id: r.id,
       kind: r.kind,
       label: r.label,
       maxMarks: toNumber(r.maxMarks),

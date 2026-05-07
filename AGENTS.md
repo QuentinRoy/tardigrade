@@ -8,4 +8,4 @@
 
 ## Code Style
 
-- Use biome for code formatting. Run `pnpm run format --fix` to format all files once you've made all your edits.
+- Use biome for code formatting. Run `pnpm run check --fix` to format all files once you've made all your edits.
