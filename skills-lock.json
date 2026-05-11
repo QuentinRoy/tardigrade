@@ -30,6 +30,30 @@
       "sourceType": "github",
       "skillPath": "prisma-postgres/SKILL.md",
       "computedHash": "d090d1206fb6a2dd9f7b9f658d851ccd653132512c53c6e0a164110d9ee80005"
+    },
+    "storybook-args-controls": {
+      "source": "thebushidocollective/han",
+      "sourceType": "github",
+      "skillPath": "plugins/tools/storybook/skills/storybook-args-controls/SKILL.md",
+      "computedHash": "36c18845e10b4c9d0dacf21986634674e57043a6c15958a8218ef3535a0f94c3"
+    },
+    "storybook-component-documentation": {
+      "source": "thebushidocollective/han",
+      "sourceType": "github",
+      "skillPath": "plugins/tools/storybook/skills/storybook-component-documentation/SKILL.md",
+      "computedHash": "a5ca610f6d46c35e32e8ce81e4a3d518e4ebf2969866e80c4784a8d3595431fd"
+    },
+    "storybook-play-functions": {
+      "source": "thebushidocollective/han",
+      "sourceType": "github",
+      "skillPath": "plugins/tools/storybook/skills/storybook-play-functions/SKILL.md",
+      "computedHash": "3bb96746a0c87fca20efa4f677974950fd7190d6a1563edb877d5bab32249b86"
+    },
+    "storybook-story-writing": {
+      "source": "thebushidocollective/han",
+      "sourceType": "github",
+      "skillPath": "plugins/tools/storybook/skills/storybook-story-writing/SKILL.md",
+      "computedHash": "1b0b4120563b8e6fd97334504148cee1dac45043d42acba528679c735a22fb75"
     }
   }
 }

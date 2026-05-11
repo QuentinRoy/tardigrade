@@ -9,7 +9,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "storybook": "storybook dev -p 6006",
+    "storybook:build": "storybook build",
     "check": "biome check",
+    "check-types": "tsc --noEmit",
     "prisma:generate": "dotenvx run -- prisma generate",
     "prisma:migrate:deploy": "dotenvx run -- prisma migrate deploy",
     "prisma:migrate:dev": "dotenvx run -- prisma migrate dev",
@@ -41,10 +44,12 @@
   "devDependencies": {
     "@biomejs/biome": "2.4.15",
     "@dotenvx/dotenvx": "^1.65.0",
+    "@storybook/nextjs": "^10.3.6",
     "@types/node": "^24.12.2",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
-    "prisma": "^7.8.0"
+    "prisma": "^7.8.0",
+    "storybook": "^10.3.6"
   },
   "packageManager": "pnpm@11.0.9"
 }
