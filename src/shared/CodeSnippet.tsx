@@ -1,24 +1,42 @@
-import "@fontsource/anonymous-pro";
+import "@fontsource/monaspace-neon";
 
+import Box from "@mui/material/Box";
 import React from "react";
-import SyntaxHighlighter from "react-syntax-highlighter";
-import codeStyle from "react-syntax-highlighter/dist/cjs/styles/hljs/atom-one-light";
+import { getHighlighter } from "./shiki-setup";
 
-type CodeSnippetProps = { children: string };
-export default function CodeSnippet({
+type CodeSnippetProps = {
+  children: string;
+  language?: string;
+};
+
+export default async function CodeSnippet({
   children,
-}: CodeSnippetProps): React.ReactElement {
+  language = "javascript",
+}: CodeSnippetProps): Promise<React.ReactElement> {
+  const highlighter = await getHighlighter();
+  const code = children.trim();
+
+  const html = await highlighter.codeToHtml(code, {
+    lang: language,
+    themes: { light: "night-owl-light", dark: "night-owl" },
+  });
+
   return (
-    <SyntaxHighlighter
-      language="javascript"
-      style={codeStyle}
-      customStyle={{
-        fontFamily: "Anonymous Pro",
-        padding: "16px",
-        borderRadius: "8px",
+    <Box
+      sx={{
+        borderRadius: 1,
+        overflow: "hidden",
+        "& pre": {
+          margin: 0,
+          padding: 2,
+          fontFamily: "'Monaspace Neon', monospace",
+        },
+        "& code": {
+          fontFamily: "'Monaspace Neon', monospace",
+        },
       }}
     >
-      {children.trim()}
-    </SyntaxHighlighter>
+      <Box className="code" dangerouslySetInnerHTML={{ __html: html }} />
+    </Box>
   );
 }
