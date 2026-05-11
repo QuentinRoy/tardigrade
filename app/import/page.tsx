@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 
-import ImportForm from "../../src/import/ImportForm";
+import ImportForm from "@/import/ImportForm";
 
 export default function ImportPage() {
   return (

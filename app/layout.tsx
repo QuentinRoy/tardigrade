@@ -2,8 +2,8 @@ import React from "react";
 
 import "../styles/globals.css";
 import { AppRouterCacheProvider } from "@mui/material-nextjs/v16-appRouter";
-import { SaveErrorsDisplay } from "../src/shared/SaveErrorsDisplay";
-import { SaveErrorsProvider } from "../src/shared/SaveErrorsProvider";
+import { SaveErrorsDisplay } from "@/shared/SaveErrorsDisplay";
+import { SaveErrorsProvider } from "@/shared/SaveErrorsProvider";
 
 export const metadata = {
   title: "Grading",

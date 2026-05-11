@@ -1,7 +1,7 @@
 import { Button, Container, Typography } from "@mui/material";
 import { Suspense } from "react";
-import GlobalGradingSummary from "../src/grading/GlobalGradingSummary";
-import loadGlobalProgress from "../src/grading/loadGlobalProgress";
+import GlobalGradingSummary from "@/grading/GlobalGradingSummary";
+import loadGlobalProgress from "@/grading/loadGlobalProgress";
 
 export default function HomePage() {
   return (

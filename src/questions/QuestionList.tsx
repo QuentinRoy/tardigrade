@@ -6,6 +6,7 @@ import Link from "next/link";
 type Question = {
   id: string;
   label: string;
+  href: string;
 };
 
 export default function QuestionList({ questions }: { questions: Question[] }) {
@@ -15,7 +16,7 @@ export default function QuestionList({ questions }: { questions: Question[] }) {
         <ListItemButton
           key={question.id}
           component={Link}
-          href={`/grading/questions/${question.id}`}
+          href={question.href}
         >
           <ListItemText primary={question.label} />
         </ListItemButton>
