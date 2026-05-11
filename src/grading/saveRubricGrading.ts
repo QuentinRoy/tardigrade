@@ -88,21 +88,22 @@ export async function saveRubricGrading({
     if (typeof grading !== "boolean") {
       return { success: false, error: "Invalid boolean value." };
     }
-
-    await prisma.booleanRubricScore.upsert({
-      where: { rubricScoreId: rubricScore.id },
-      create: {
-        rubricScoreId: rubricScore.id,
-        passed: grading,
-      },
-      update: { passed: grading },
-    });
-    await prisma.ordinalRubricScore.deleteMany({
-      where: { rubricScoreId: rubricScore.id },
-    });
-    await prisma.numericalRubricScore.deleteMany({
-      where: { rubricScoreId: rubricScore.id },
-    });
+    await Promise.all([
+      prisma.booleanRubricScore.upsert({
+        where: { rubricScoreId: rubricScore.id },
+        create: {
+          rubricScoreId: rubricScore.id,
+          passed: grading,
+        },
+        update: { passed: grading },
+      }),
+      prisma.ordinalRubricScore.deleteMany({
+        where: { rubricScoreId: rubricScore.id },
+      }),
+      prisma.numericalRubricScore.deleteMany({
+        where: { rubricScoreId: rubricScore.id },
+      }),
+    ]);
   } else if (rubric.type === RubricType.ORDINAL) {
     if (typeof grading !== "string") {
       return { success: false, error: "Invalid ordinal value." };
@@ -115,20 +116,22 @@ export async function saveRubricGrading({
       return { success: false, error: "Invalid ordinal value." };
     }
 
-    await prisma.ordinalRubricScore.upsert({
-      where: { rubricScoreId: rubricScore.id },
-      create: {
-        rubricScoreId: rubricScore.id,
-        selectedLabel: grading,
-      },
-      update: { selectedLabel: grading },
-    });
-    await prisma.booleanRubricScore.deleteMany({
-      where: { rubricScoreId: rubricScore.id },
-    });
-    await prisma.numericalRubricScore.deleteMany({
-      where: { rubricScoreId: rubricScore.id },
-    });
+    await Promise.all([
+      prisma.ordinalRubricScore.upsert({
+        where: { rubricScoreId: rubricScore.id },
+        create: {
+          rubricScoreId: rubricScore.id,
+          selectedLabel: grading,
+        },
+        update: { selectedLabel: grading },
+      }),
+      prisma.booleanRubricScore.deleteMany({
+        where: { rubricScoreId: rubricScore.id },
+      }),
+      prisma.numericalRubricScore.deleteMany({
+        where: { rubricScoreId: rubricScore.id },
+      }),
+    ]);
   } else {
     if (typeof grading !== "number") {
       return { success: false, error: "Invalid numerical value." };
@@ -160,17 +163,19 @@ export async function saveRubricGrading({
       return { success: false, error: "Numerical rubric bounds are invalid." };
     }
 
-    await prisma.numericalRubricScore.upsert({
-      where: { rubricScoreId: rubricScore.id },
-      create: { rubricScoreId: rubricScore.id, score: parsed },
-      update: { score: parsed },
-    });
-    await prisma.booleanRubricScore.deleteMany({
-      where: { rubricScoreId: rubricScore.id },
-    });
-    await prisma.ordinalRubricScore.deleteMany({
-      where: { rubricScoreId: rubricScore.id },
-    });
+    await Promise.all([
+      prisma.numericalRubricScore.upsert({
+        where: { rubricScoreId: rubricScore.id },
+        create: { rubricScoreId: rubricScore.id, score: parsed },
+        update: { score: parsed },
+      }),
+      prisma.booleanRubricScore.deleteMany({
+        where: { rubricScoreId: rubricScore.id },
+      }),
+      prisma.ordinalRubricScore.deleteMany({
+        where: { rubricScoreId: rubricScore.id },
+      }),
+    ]);
   }
 
   updateTag(`assessments:${paperId}:${questionId}`);

@@ -1,11 +1,7 @@
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
 
-const globalForPrisma = globalThis as typeof globalThis & {
-  prisma?: PrismaClient;
-};
-
-function createPrismaClient(): PrismaClient {
+function createPrismaClient() {
   const connectionString = process.env.DATABASE_URL;
 
   if (connectionString == null || connectionString.length === 0) {
@@ -15,6 +11,12 @@ function createPrismaClient(): PrismaClient {
   const adapter = new PrismaPg({ connectionString });
   return new PrismaClient({ adapter });
 }
+
+type AppPrismaClient = ReturnType<typeof createPrismaClient>;
+
+const globalForPrisma = globalThis as typeof globalThis & {
+  prisma?: AppPrismaClient;
+};
 
 export const prisma = globalForPrisma.prisma ?? createPrismaClient();
 

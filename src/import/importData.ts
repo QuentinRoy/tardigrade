@@ -1,3 +1,4 @@
+import { parse as parseCSV } from "csv-parse/sync";
 import yaml from "js-yaml";
 import { z } from "zod";
 
@@ -8,11 +9,12 @@ const baseRubricSchema = z.object({
   id: nonEmptyString,
   description: nonEmptyString.optional(),
   label: nonEmptyString.optional(),
-  marks: numericValue.nonnegative(),
+  type: z.string(),
 });
 
 const booleanRubricSchema = baseRubricSchema.extend({
-  type: z.undefined().optional(),
+  type: z.literal("boolean"),
+  marks: numericValue.nonnegative(),
 });
 
 const ordinalValuesSchema = z
@@ -21,19 +23,13 @@ const ordinalValuesSchema = z
     message: "Ordinal rubric must have at least 2 values",
   });
 
-const ordinalRubricSchema = z.object({
-  id: nonEmptyString,
-  description: nonEmptyString.optional(),
-  label: nonEmptyString.optional(),
+const ordinalRubricSchema = baseRubricSchema.extend({
   type: z.literal("ordinal"),
   values: ordinalValuesSchema,
 });
 
-const numericalRubricSchema = z
-  .object({
-    id: nonEmptyString,
-    description: nonEmptyString.optional(),
-    label: nonEmptyString.optional(),
+const numericalRubricSchema = baseRubricSchema
+  .extend({
     type: z.literal("numerical"),
     min: numericValue,
     max: numericValue,
@@ -42,28 +38,11 @@ const numericalRubricSchema = z
     message: "min must be less than max",
   });
 
-const rubricSchema = z
-  .union([booleanRubricSchema, ordinalRubricSchema, numericalRubricSchema])
-  .transform((rubric) => {
-    if (rubric.type === "ordinal") {
-      return {
-        ...rubric,
-        type: "ordinal" as const,
-        marks: Math.max(...Object.values(rubric.values)),
-      };
-    }
-
-    if (rubric.type === "numerical") {
-      return {
-        ...rubric,
-        type: "numerical" as const,
-        min: rubric.min,
-        max: rubric.max,
-      };
-    }
-
-    return { ...rubric, type: "boolean" as const };
-  });
+const rubricSchema = z.discriminatedUnion("type", [
+  booleanRubricSchema,
+  ordinalRubricSchema,
+  numericalRubricSchema,
+]);
 
 const questionSchema = z.object({
   id: nonEmptyString,
@@ -86,24 +65,30 @@ const questionsSchema = z.object({
     ),
 });
 
-const studentRowSchema = z.object({
-  family_name: nonEmptyString,
-  first_name: nonEmptyString,
-  id: nonEmptyString,
-  team: z.string().trim().default(""),
-});
+const studentRowSchema = z
+  .object({
+    family_name: nonEmptyString,
+    first_name: nonEmptyString,
+    id: nonEmptyString,
+    team: z
+      .string()
+      .trim()
+      .optional()
+      .transform((value) => (value === "" ? undefined : value)),
+  })
+  .transform((row) => ({
+    familyName: row.family_name,
+    firstName: row.first_name,
+    id: row.id,
+    ...("team" in row && row.team != null ? { team: row.team } : {}),
+  }));
 
 const studentRowsSchema = z.array(studentRowSchema);
 
 export type ImportedRubric = z.output<typeof rubricSchema>;
 export type ImportedQuestion = z.output<typeof questionSchema>;
 export type ImportedQuestions = z.output<typeof questionsSchema>["questions"];
-export type ImportedStudent = {
-  familyName: string;
-  firstName: string;
-  id: string;
-  team?: string;
-};
+export type ImportedStudent = z.output<typeof studentRowSchema>;
 export type ImportedPaper = {
   id: string;
   label: string;
@@ -126,30 +111,11 @@ export function parseQuestionsYaml(content: string): ImportedQuestions {
 }
 
 export function parseStudentsCsv(content: string): ImportedStudent[] {
-  const lines = content
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter((line) => line.length > 0);
-
-  if (lines.length < 2) {
-    return [];
-  }
-
-  const [headerLine, ...rowLines] = lines;
-  const headers = headerLine.split(",");
-  const rows = rowLines.map((rowLine) => {
-    const values = rowLine.split(",");
-    return Object.fromEntries(
-      headers.map((header, index) => [header, values[index] ?? ""]),
-    );
+  const rows = parseCSV(content, {
+    columns: true,
+    skip_empty_lines: true,
   });
-
-  return studentRowsSchema.parse(rows).map((row) => ({
-    familyName: row.family_name,
-    firstName: row.first_name,
-    id: row.id,
-    team: row.team.length > 0 ? row.team : undefined,
-  }));
+  return studentRowsSchema.parse(rows);
 }
 
 export function buildPapersFromStudents(
@@ -157,17 +123,17 @@ export function buildPapersFromStudents(
 ): ImportedPaper[] {
   const groupedByPaper = new Map<string, ImportedStudent[]>();
 
-  students.forEach((student) => {
+  for (const student of students) {
     const key =
       student.team == null ? `student:${student.id}` : `team:${student.team}`;
     const currentStudents = groupedByPaper.get(key) ?? [];
     currentStudents.push(student);
     groupedByPaper.set(key, currentStudents);
-  });
+  }
 
   const usedIds = new Set<string>();
 
-  return Array.from(groupedByPaper.values()).map((groupedStudents) => {
+  return Array.from(groupedByPaper.values(), (groupedStudents) => {
     const firstStudent = groupedStudents[0];
 
     if (firstStudent.team != null) {
@@ -200,12 +166,5 @@ export function buildPapersFromStudents(
       label: `${firstStudent.familyName} ${firstStudent.firstName}`.trim(),
       students: groupedStudents,
     };
-  });
-}
-
-export function formatZodIssues(issues: z.ZodIssue[]): string[] {
-  return issues.map((issue) => {
-    const path = issue.path.length > 0 ? issue.path.join(".") : "root";
-    return `${path}: ${issue.message}`;
   });
 }

@@ -12,6 +12,23 @@ enum RubricType {
   NUMERICAL
 }
 
+/// IMPORTANT MAINTAINER NOTE
+///
+/// Type compatibility between `Rubric.type` and typed rubric tables
+/// (`BooleanRubric`, `OrdinalRubric`, `NumericalRubric`) is enforced at the
+/// database layer with PostgreSQL triggers, not with Prisma relations alone.
+///
+/// See migration:
+/// prisma/migrations/20260511113000_enforce_rubric_type_typed_tables/migration.sql
+///
+/// If you add a new value to RubricType (for example `TEXT`), you MUST:
+/// 1. Add the new typed model (for example `TextRubric`) with `rubricId @unique`.
+/// 2. Add trigger function + trigger in a new migration so inserts/updates into
+///    that typed table require matching `Rubric.type`.
+/// 3. Keep the `Rubric.type` immutability trigger updated so `Rubric.type`
+///    cannot be changed after creation.
+/// 4. Update import logic in src/import/importDataAction.ts accordingly.
+
 model Paper {
   id          String       @id
   label       String

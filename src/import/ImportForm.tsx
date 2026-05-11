@@ -27,25 +27,27 @@ const YAML_PLACEHOLDER = `questions:
     label: "Question 1"
     rubrics:
       - id: correct-answer
+        type: boolean
         description: "The answer is correct"
         label: "Correct answer"
         marks: 2
       - id: showed-work
+        type: boolean
         marks: 1
 
   - id: question-2
     rubrics:
       - id: performance
-        description: "Overall performance"
         type: ordinal
+        description: "Overall performance"
         values:
           bad: 0
           medium: 2
           good: 4
       - id: numerical-score
+        type: numerical
         min: -1
-        max: 3
-        type: numerical`;
+        max: 3`;
 
 const CSV_PLACEHOLDER = `family_name,first_name,id,team
 Smith,Alice,s1001,
@@ -81,7 +83,7 @@ function HelpDialog({ open, onClose }: HelpDialogProps): React.ReactElement {
               Rubric types:
             </Typography>
             <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", mb: 2 }}>
-              <Chip size="small" label="boolean (default)" variant="outlined" />
+              <Chip size="small" label="boolean" variant="outlined" />
               <Chip
                 size="small"
                 label="ordinal — label: grade map, no marks"
