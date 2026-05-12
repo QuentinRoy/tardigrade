@@ -4,7 +4,7 @@ import Box from "@mui/material/Box";
 import CircularProgress from "@mui/material/CircularProgress";
 import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
-import { Fragment, type ReactElement } from "react";
+import { type ReactElement } from "react";
 import type { GradedRubric } from "../grading/grading";
 import BooleanGradeControl from "./BooleanGradeControl";
 import NumericalGradeControl from "./NumericalGradeControl";
@@ -60,7 +60,7 @@ export default function RubricGradeRow({
   }
 
   return (
-    <Fragment>
+    <>
       <Grid size={{ xs: 12, sm: 3 }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           {control}
@@ -81,6 +81,6 @@ export default function RubricGradeRow({
       <Grid size={{ xs: 12, sm: 1 }}>
         <Typography variant="body2">({rubricMarks})</Typography>
       </Grid>
-    </Fragment>
+    </>
   );
 }

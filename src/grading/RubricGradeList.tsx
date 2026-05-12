@@ -21,7 +21,7 @@ export default function RubricGradeList({
   const handleGrade = (index: number, value: Grading) => onGrade(index, value);
 
   return (
-    <Grid container spacing={2} sx={{ mb: 4, alignItems: "center" }}>
+    <Grid container spacing={2} sx={{ mb: 2, alignItems: "center" }}>
       {rubrics.map((rubric, index) => {
         const isPending = (pendingByIndex[index] ?? 0) > 0;
 
