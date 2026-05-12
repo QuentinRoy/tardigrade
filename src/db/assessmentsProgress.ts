@@ -9,8 +9,8 @@ async function loadGlobalAssessmentProgressFromDb(): Promise<GlobalAssessmentPro
   cacheTag("assessments");
   cacheLife({ revalidate: 60 });
 
-  const [papers, questions, assessments, rubricAssessmentsCount] = await Promise.all(
-    [
+  const [papers, questions, assessments, rubricAssessmentsCount] =
+    await Promise.all([
       prisma.paper.findMany({ select: { id: true } }),
       prisma.question.findMany({
         select: {
@@ -26,8 +26,7 @@ async function loadGlobalAssessmentProgressFromDb(): Promise<GlobalAssessmentPro
         },
       }),
       prisma.rubricAssessment.count(),
-    ],
-  );
+    ]);
 
   const totalPapers = papers.length;
   const totalQuestions = questions.length;

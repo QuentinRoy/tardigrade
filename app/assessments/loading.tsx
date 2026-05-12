@@ -14,14 +14,24 @@ export default function Loading() {
       <Box sx={{ mb: 4 }}>
         <Skeleton width={170} height={38} sx={{ mb: 1 }} />
         {[0, 1, 2].map((id) => (
-          <Skeleton key={`paper-${id}`} width="100%" height={42} sx={{ mb: 1 }} />
+          <Skeleton
+            key={`paper-${id}`}
+            width="100%"
+            height={42}
+            sx={{ mb: 1 }}
+          />
         ))}
       </Box>
 
       <Box sx={{ mb: 4 }}>
         <Skeleton width={190} height={38} sx={{ mb: 1 }} />
         {[0, 1, 2, 3].map((id) => (
-          <Skeleton key={`question-${id}`} width="100%" height={42} sx={{ mb: 1 }} />
+          <Skeleton
+            key={`question-${id}`}
+            width="100%"
+            height={42}
+            sx={{ mb: 1 }}
+          />
         ))}
       </Box>
     </Container>

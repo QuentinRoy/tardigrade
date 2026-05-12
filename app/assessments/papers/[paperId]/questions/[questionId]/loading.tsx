@@ -32,7 +32,10 @@ export default function Loading() {
       </Box>
 
       {[0, 1, 2].map((id) => (
-        <Box key={id} sx={{ mb: 2, display: "flex", gap: 2, alignItems: "center" }}>
+        <Box
+          key={id}
+          sx={{ mb: 2, display: "flex", gap: 2, alignItems: "center" }}
+        >
           <Skeleton variant="rounded" width={88} height={40} />
           <Skeleton width="78%" height={22} />
           <Skeleton width={24} height={20} />

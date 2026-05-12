@@ -13,11 +13,7 @@ export default function QuestionList({ questions }: { questions: Question[] }) {
   return (
     <List component="nav" aria-label="Question list">
       {questions.map((question) => (
-        <ListItemButton
-          key={question.id}
-          component={Link}
-          href={question.href}
-        >
+        <ListItemButton key={question.id} component={Link} href={question.href}>
           <ListItemText primary={question.label} />
         </ListItemButton>
       ))}
