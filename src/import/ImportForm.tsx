@@ -23,19 +23,19 @@ import { importDataAction } from "./importDataAction";
 import { initialImportState } from "./importState";
 
 const YAML_PLACEHOLDER = `questions:
-  - id: question-1
+  - id: question_1
     label: "Question 1"
     rubrics:
-      - id: correct-answer
+      - id: correct_answer
         type: boolean
         description: "The answer is correct"
         label: "Correct answer"
         marks: 2
-      - id: showed-work
+      - id: showed_work
         type: boolean
         marks: 1
 
-  - id: question-2
+  - id: question_2
     rubrics:
       - id: performance
         type: ordinal
@@ -44,7 +44,7 @@ const YAML_PLACEHOLDER = `questions:
           bad: 0
           medium: 2
           good: 4
-      - id: numerical-score
+      - id: numerical_score
         type: numerical
         minMarks: 0
         maxMarks: 6`;

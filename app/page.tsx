@@ -1,7 +1,8 @@
-import { Button, Container, Typography } from "@mui/material";
+import { Box, Button, Container, Typography } from "@mui/material";
 import { Suspense } from "react";
 import GlobalAssessmentSummary from "@/assessment/GlobalAssessmentSummary";
 import { loadGlobalAssessmentProgress } from "@/db/assessmentsProgress";
+import ExportCsvMenu from "@/export/ExportCsvMenu";
 
 export default function HomePage() {
   return (
@@ -16,15 +17,18 @@ async function HomePageContent() {
 
   return (
     <Container component="main" maxWidth="md" sx={{ py: 5 }}>
-      <Typography component="h1" variant="h2">
+      <Typography component="h1" variant="h2" sx={{ mb: 2 }}>
         Assessments
       </Typography>
-      <Button href="/import" sx={{ my: 2 }} variant="outlined">
-        Import rubric and student data
-      </Button>
-      <Button href="/assessments" sx={{ my: 2, ml: 1 }} variant="contained">
-        Open assessments
-      </Button>
+      <Box sx={{ mb: 2, display: "flex", gap: 1, flexWrap: "wrap" }}>
+        <Button href="/import" variant="outlined">
+          Import rubric and student data
+        </Button>
+        <Button href="/assessments" variant="contained">
+          Open assessments
+        </Button>
+        <ExportCsvMenu />
+      </Box>
       <GlobalAssessmentSummary progress={progress} />
     </Container>
   );
