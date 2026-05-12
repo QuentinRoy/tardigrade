@@ -1,4 +1,4 @@
-import { getRubricMaxMarks } from "../rubrics/rubric";
+import { getRubricMaxMarks, scoreToMarks } from "../rubrics/rubric";
 import type { GradedRubric } from "./grading";
 
 export type GradingSummary = {
@@ -29,11 +29,11 @@ function accumulateRubricMarks(
   }
 
   if (rubric.type === "ordinal") {
-    summary.marks += rubric.values[rubric.grading] ?? 0;
+    summary.marks += rubric.marks[rubric.grading] ?? 0;
     return;
   }
 
-  summary.marks += rubric.grading;
+  summary.marks += scoreToMarks(rubric, rubric.grading);
 }
 
 export function summarizeRubrics(rubrics: GradedRubric[]): GradingSummary {

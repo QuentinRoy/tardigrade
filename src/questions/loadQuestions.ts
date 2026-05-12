@@ -31,19 +31,24 @@ function toRubric(data: {
   description: string | null;
   label: string | null;
   booleanRubric: { marks: number } | null;
-  ordinalRubric: { values: { label: string; score: number }[] } | null;
-  numericalRubric: { min: number; max: number } | null;
+  ordinalRubric: { marks: { label: string; score: number }[] } | null;
+  numericalRubric: {
+    minScore: number;
+    maxScore: number;
+    minMarks: number;
+    maxMarks: number;
+  } | null;
 }): Rubric {
   if (data.type === RubricType.ORDINAL && data.ordinalRubric) {
-    const values = Object.fromEntries(
-      data.ordinalRubric.values.map((item) => [item.label, item.score]),
+    const marks = Object.fromEntries(
+      data.ordinalRubric.marks.map((item) => [item.label, item.score]),
     );
     return {
       id: data.id,
       description: data.description ?? undefined,
       label: data.label ?? undefined,
       type: "ordinal",
-      values,
+      marks,
     };
   }
 
@@ -53,8 +58,10 @@ function toRubric(data: {
       description: data.description ?? undefined,
       label: data.label ?? undefined,
       type: "numerical",
-      min: toNumber(data.numericalRubric.min),
-      max: toNumber(data.numericalRubric.max),
+      minScore: toNumber(data.numericalRubric.minScore),
+      maxScore: toNumber(data.numericalRubric.maxScore),
+      minMarks: toNumber(data.numericalRubric.minMarks),
+      maxMarks: toNumber(data.numericalRubric.maxMarks),
     };
   }
 
@@ -76,8 +83,13 @@ type QuestionRow = {
     description: string | null;
     label: string | null;
     booleanRubric: { marks: number } | null;
-    ordinalRubric: { values: { label: string; score: number }[] } | null;
-    numericalRubric: { min: number; max: number } | null;
+    ordinalRubric: { marks: { label: string; score: number }[] } | null;
+    numericalRubric: {
+      minScore: number;
+      maxScore: number;
+      minMarks: number;
+      maxMarks: number;
+    } | null;
   }[];
 };
 
@@ -99,7 +111,7 @@ async function loadQuestionsFromDb(): Promise<QuestionRow[]> {
           booleanRubric: { select: { marks: true } },
           ordinalRubric: {
             select: {
-              values: {
+              marks: {
                 select: { label: true, score: true },
                 orderBy: [
                   { score: "desc" as const },
@@ -108,7 +120,14 @@ async function loadQuestionsFromDb(): Promise<QuestionRow[]> {
               },
             },
           },
-          numericalRubric: { select: { min: true, max: true } },
+          numericalRubric: {
+            select: {
+              minScore: true,
+              maxScore: true,
+              minMarks: true,
+              maxMarks: true,
+            },
+          },
         },
         orderBy: { position: "asc" as const },
       },
@@ -120,8 +139,8 @@ async function loadQuestionsFromDb(): Promise<QuestionRow[]> {
     id: question.id,
     label: question.label,
     rubrics: question.rubrics.map((rubric) => {
-      const ordinalValues =
-        rubric.ordinalRubric?.values.map((item) => ({
+      const ordinalMarkEntries =
+        rubric.ordinalRubric?.marks.map((item) => ({
           label: item.label,
           score: toNumber(item.score),
         })) ?? [];
@@ -134,12 +153,16 @@ async function loadQuestionsFromDb(): Promise<QuestionRow[]> {
         booleanRubric: rubric.booleanRubric
           ? { marks: toNumber(rubric.booleanRubric.marks) }
           : null,
-        ordinalRubric: rubric.ordinalRubric ? { values: ordinalValues } : null,
+        ordinalRubric: rubric.ordinalRubric
+          ? { marks: ordinalMarkEntries }
+          : null,
         numericalRubric:
-          rubric.numericalRubric && rubric.numericalRubric.min
+          rubric.numericalRubric != null
             ? {
-                min: toNumber(rubric.numericalRubric.min),
-                max: toNumber(rubric.numericalRubric.max),
+                minScore: toNumber(rubric.numericalRubric.minScore),
+                maxScore: toNumber(rubric.numericalRubric.maxScore),
+                minMarks: toNumber(rubric.numericalRubric.minMarks),
+                maxMarks: toNumber(rubric.numericalRubric.maxMarks),
               }
             : null,
       };

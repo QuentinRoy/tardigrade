@@ -82,8 +82,10 @@ export async function importDataAction(
           ? [
               {
                 rubricId: rubric.id,
-                min: new Prisma.Decimal(rubric.min),
-                max: new Prisma.Decimal(rubric.max),
+                minScore: new Prisma.Decimal(rubric.minScore),
+                maxScore: new Prisma.Decimal(rubric.maxScore),
+                minMarks: new Prisma.Decimal(rubric.minMarks),
+                maxMarks: new Prisma.Decimal(rubric.maxMarks),
               },
             ]
           : [],
@@ -96,7 +98,7 @@ export async function importDataAction(
           ? [
               {
                 rubricId: rubric.id,
-                values: rubric.values,
+                marks: rubric.marks,
               },
             ]
           : [],
@@ -219,12 +221,16 @@ export async function importDataAction(
             where: { rubricId: numericalRubric.rubricId },
             create: {
               rubricId: numericalRubric.rubricId,
-              min: numericalRubric.min,
-              max: numericalRubric.max,
+              minScore: numericalRubric.minScore,
+              maxScore: numericalRubric.maxScore,
+              minMarks: numericalRubric.minMarks,
+              maxMarks: numericalRubric.maxMarks,
             },
             update: {
-              min: numericalRubric.min,
-              max: numericalRubric.max,
+              minScore: numericalRubric.minScore,
+              maxScore: numericalRubric.maxScore,
+              minMarks: numericalRubric.minMarks,
+              maxMarks: numericalRubric.maxMarks,
             },
           }),
         ),
@@ -262,7 +268,7 @@ export async function importDataAction(
             return [];
           }
 
-          return Object.entries(rubric.values).map(([label, score]) => ({
+          return Object.entries(rubric.marks).map(([label, score]) => ({
             ordinalRubricId,
             label,
             score: new Prisma.Decimal(score),

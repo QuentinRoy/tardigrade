@@ -6,14 +6,14 @@ import type { ReactElement } from "react";
 
 type OrdinalGradeControlProps = {
   grading?: string;
-  values: Record<string, number>;
+  marks: Record<string, number>;
   disabled: boolean;
   onGrade: (grading: string) => void;
 };
 
 export default function OrdinalGradeControl({
   grading,
-  values,
+  marks,
   disabled,
   onGrade,
 }: OrdinalGradeControlProps): ReactElement {
@@ -30,7 +30,7 @@ export default function OrdinalGradeControl({
       aria-label="Ordinal rubric grading"
       disabled={disabled}
     >
-      {Object.entries(values).map(([valueLabel, valueScore]) => (
+      {Object.entries(marks).map(([valueLabel, valueScore]) => (
         <ToggleButton
           key={valueLabel}
           size="small"

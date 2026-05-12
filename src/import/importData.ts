@@ -3,7 +3,7 @@ import yaml from "js-yaml";
 import { z } from "zod";
 
 const nonEmptyString = z.string().trim().min(1);
-const numericValue = z.coerce.number();
+const numericValue = z.number();
 
 const baseRubricSchema = z.object({
   id: nonEmptyString,
@@ -17,25 +17,50 @@ const booleanRubricSchema = baseRubricSchema.extend({
   marks: numericValue.nonnegative(),
 });
 
-const ordinalValuesSchema = z
+const ordinalMarksSchema = z
   .record(nonEmptyString, numericValue.nonnegative())
-  .refine((values) => Object.keys(values).length >= 2, {
-    message: "Ordinal rubric must have at least 2 values",
+  .refine((marks) => Object.keys(marks).length >= 2, {
+    message: "Ordinal rubric must have at least 2 mark entries",
   });
 
 const ordinalRubricSchema = baseRubricSchema.extend({
   type: z.literal("ordinal"),
-  values: ordinalValuesSchema,
+  marks: ordinalMarksSchema,
 });
 
 const numericalRubricSchema = baseRubricSchema
   .extend({
     type: z.literal("numerical"),
-    min: numericValue,
-    max: numericValue,
+    minScore: numericValue.optional(),
+    maxScore: numericValue.optional(),
+    minMarks: numericValue.optional(),
+    maxMarks: numericValue.optional(),
   })
-  .refine((r) => r.min < r.max, {
-    message: "min must be less than max",
+  .refine((r) => r.minMarks != null || r.maxMarks != null, {
+    message:
+      "Numerical rubric must provide at least one of minMarks or maxMarks",
+  })
+  .refine((r) => r.minScore == null || r.maxScore != null, {
+    message: "maxScore must be provided when minScore is provided",
+  })
+  .refine((r) => r.minMarks != null || (r.maxMarks ?? 0) > 0, {
+    message: "When minMarks is omitted, maxMarks must be greater than 0",
+  })
+  .refine((r) => r.maxMarks != null || (r.minMarks ?? 0) < 0, {
+    message: "When maxMarks is omitted, minMarks must be less than 0",
+  })
+  .transform((r) => ({
+    ...r,
+    minScore: r.minScore ?? 0,
+    maxScore: r.maxScore ?? 1,
+    minMarks: r.minMarks ?? 0,
+    maxMarks: r.maxMarks ?? 0,
+  }))
+  .refine((r) => r.minMarks <= r.maxMarks, {
+    message: "minMarks must be less than or equal to maxMarks",
+  })
+  .refine((r) => r.minScore < r.maxScore, {
+    message: "minScore must be less than maxScore",
   });
 
 const rubricSchema = z.discriminatedUnion("type", [

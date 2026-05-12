@@ -40,14 +40,14 @@ const YAML_PLACEHOLDER = `questions:
       - id: performance
         type: ordinal
         description: "Overall performance"
-        values:
+        marks:
           bad: 0
           medium: 2
           good: 4
       - id: numerical-score
         type: numerical
-        min: -1
-        max: 3`;
+        minMarks: 0
+        maxMarks: 6`;
 
 const CSV_PLACEHOLDER = `family_name,first_name,id,team
 Smith,Alice,s1001,
@@ -76,8 +76,19 @@ function HelpDialog({ open, onClose }: HelpDialogProps): React.ReactElement {
               <code>label</code>, and a <code>rubrics</code> array. Each rubric
               requires a stable <code>id</code>, accepts an optional{" "}
               <code>description</code> and <code>label</code>. Boolean rubrics
-              use <code>marks</code>, ordinal rubrics use <code>values</code>,
-              and numerical rubrics use <code>min</code>/<code>max</code>.
+              use <code>marks</code>, ordinal rubrics use <code>marks</code>,
+              and numerical rubrics use <code>minScore</code>/
+              <code>maxScore</code> and/or <code>minMarks</code>/
+              <code>maxMarks</code>.
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+              Numerical defaults and rules: <code>minScore</code> defaults to{" "}
+              <code>0</code>, <code>maxScore</code> defaults to <code>1</code>.
+              If <code>minScore</code> is provided, <code>maxScore</code> must
+              be provided too. <code>minMarks</code> defaults to <code>0</code>{" "}
+              when omitted; <code>maxMarks</code> defaults to <code>0</code>{" "}
+              when omitted. At least one of <code>minMarks</code>/
+              <code>maxMarks</code> must be provided.
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
               Rubric types:

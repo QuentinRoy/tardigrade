@@ -27,7 +27,7 @@ export async function saveRubricGrading({
       include: {
         ordinalRubric: {
           select: {
-            values: {
+            marks: {
               select: {
                 label: true,
               },
@@ -35,7 +35,7 @@ export async function saveRubricGrading({
           },
         },
         numericalRubric: {
-          select: { min: true, max: true },
+          select: { minScore: true, maxScore: true },
         },
       },
     }),
@@ -110,7 +110,7 @@ export async function saveRubricGrading({
     }
 
     const allowedValues =
-      rubric.ordinalRubric?.values.map((item) => item.label) ?? [];
+      rubric.ordinalRubric?.marks.map((item) => item.label) ?? [];
 
     if (!allowedValues.includes(grading)) {
       return { success: false, error: "Invalid ordinal value." };
@@ -143,24 +143,24 @@ export async function saveRubricGrading({
       return { success: false, error: "Invalid numerical value." };
     }
 
-    const min =
-      rubric.numericalRubric?.min != null
-        ? Number(rubric.numericalRubric.min)
+    const minScore =
+      rubric.numericalRubric?.minScore != null
+        ? Number(rubric.numericalRubric.minScore)
         : null;
-    const max =
-      rubric.numericalRubric?.max != null
-        ? Number(rubric.numericalRubric.max)
+    const maxScore =
+      rubric.numericalRubric?.maxScore != null
+        ? Number(rubric.numericalRubric.maxScore)
         : null;
 
-    if (min != null && parsed < min) {
-      return { success: false, error: `Score must be at least ${min}.` };
-    }
-    if (max != null && parsed > max) {
-      return { success: false, error: `Score must be at most ${max}.` };
-    }
-
-    if (min == null || max == null || max <= min) {
+    if (minScore == null || maxScore == null || maxScore <= minScore) {
       return { success: false, error: "Numerical rubric bounds are invalid." };
+    }
+
+    if (parsed < minScore) {
+      return { success: false, error: `Score must be at least ${minScore}.` };
+    }
+    if (parsed > maxScore) {
+      return { success: false, error: `Score must be at most ${maxScore}.` };
     }
 
     await Promise.all([

@@ -5,16 +5,16 @@ import { type ReactElement, useEffect, useState } from "react";
 
 type NumericalGradeControlProps = {
   grading?: number;
-  min: number;
-  max: number;
+  minScore: number;
+  maxScore: number;
   disabled: boolean;
   onGrade: (grading: number) => void;
 };
 
 export default function NumericalGradeControl({
   grading,
-  min,
-  max,
+  minScore,
+  maxScore,
   disabled,
   onGrade,
 }: NumericalGradeControlProps): ReactElement {
@@ -33,8 +33,8 @@ export default function NumericalGradeControl({
     if (!Number.isFinite(parsed) || parsed === grading) {
       return;
     }
-    if (parsed < min) parsed = min;
-    else if (parsed > max) parsed = max;
+    if (parsed < minScore) parsed = minScore;
+    else if (parsed > maxScore) parsed = maxScore;
     onGrade(parsed);
   }
 
@@ -53,7 +53,7 @@ export default function NumericalGradeControl({
       }}
       placeholder="Score"
       disabled={disabled}
-      slotProps={{ htmlInput: { min, max, step: "any" } }}
+      slotProps={{ htmlInput: { min: minScore, max: maxScore, step: "any" } }}
       sx={{ width: 96 }}
     />
   );

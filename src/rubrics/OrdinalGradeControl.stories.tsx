@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/nextjs";
 import { fn } from "storybook/test";
 import OrdinalGradeControl from "./OrdinalGradeControl";
 
-const exampleValues = {
+const exampleMarks = {
   Excellent: 4,
   Good: 3,
   Satisfactory: 2,
@@ -18,7 +18,7 @@ const meta = {
   args: {
     onGrade: fn(),
     disabled: false,
-    values: exampleValues,
+    marks: exampleMarks,
   },
 } satisfies Meta<typeof OrdinalGradeControl>;
 
@@ -38,6 +38,6 @@ export const Disabled: Story = {
 
 export const TwoValues: Story = {
   args: {
-    values: { Pass: 1, Fail: 0 },
+    marks: { Pass: 1, Fail: 0 },
   },
 };

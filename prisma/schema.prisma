@@ -89,7 +89,7 @@ model OrdinalRubric {
   id       String               @id @default(cuid())
   rubricId String               @unique
   rubric   Rubric               @relation(fields: [rubricId], references: [id], onDelete: Cascade)
-  values   OrdinalRubricValue[]
+  marks    OrdinalRubricValue[]
 }
 
 model OrdinalRubricValue {
@@ -106,8 +106,10 @@ model OrdinalRubricValue {
 model NumericalRubric {
   id       String  @id @default(cuid())
   rubricId String  @unique
-  min      Decimal @db.Decimal(10, 2)
-  max      Decimal @db.Decimal(10, 2)
+  minScore Decimal @db.Decimal(10, 2)
+  maxScore Decimal @db.Decimal(10, 2)
+  minMarks Decimal @db.Decimal(10, 2)
+  maxMarks Decimal @db.Decimal(10, 2)
   rubric   Rubric  @relation(fields: [rubricId], references: [id], onDelete: Cascade)
 }
 

@@ -10,8 +10,8 @@ const meta = {
   args: {
     onGrade: fn(),
     disabled: false,
-    min: 0,
-    max: 10,
+    minScore: 0,
+    maxScore: 10,
   },
 } satisfies Meta<typeof NumericalGradeControl>;
 

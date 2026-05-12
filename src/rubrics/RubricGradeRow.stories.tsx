@@ -69,8 +69,10 @@ export const NumericalUnset: Story = {
     rubric: {
       id: "r2",
       type: "numerical",
-      min: 0,
-      max: 5,
+      minScore: 0,
+      maxScore: 5,
+      minMarks: 0,
+      maxMarks: 5,
       label: "Quality of explanation",
       description: "Rate the quality of the student's explanation from 0 to 5.",
     },
@@ -82,8 +84,10 @@ export const NumericalGraded: Story = {
     rubric: {
       id: "r2",
       type: "numerical",
-      min: 0,
-      max: 5,
+      minScore: 0,
+      maxScore: 5,
+      minMarks: 0,
+      maxMarks: 5,
       label: "Quality of explanation",
       description: "Rate the quality of the student's explanation from 0 to 5.",
       grading: 3,
@@ -96,7 +100,7 @@ export const OrdinalUnset: Story = {
     rubric: {
       id: "r3",
       type: "ordinal",
-      values: { Excellent: 4, Good: 3, Satisfactory: 2, Poor: 1 },
+      marks: { Excellent: 4, Good: 3, Satisfactory: 2, Poor: 1 },
       label: "Overall performance",
     },
   },
@@ -107,7 +111,7 @@ export const OrdinalGraded: Story = {
     rubric: {
       id: "r3",
       type: "ordinal",
-      values: { Excellent: 4, Good: 3, Satisfactory: 2, Poor: 1 },
+      marks: { Excellent: 4, Good: 3, Satisfactory: 2, Poor: 1 },
       label: "Overall performance",
       grading: "Good",
     },

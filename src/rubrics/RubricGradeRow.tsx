@@ -34,7 +34,7 @@ export default function RubricGradeRow({
     control = (
       <OrdinalGradeControl
         grading={grading}
-        values={rubric.values}
+        marks={rubric.marks}
         disabled={disabled}
         onGrade={onGrade}
       />
@@ -43,8 +43,8 @@ export default function RubricGradeRow({
     control = (
       <NumericalGradeControl
         grading={grading}
-        min={rubric.min}
-        max={rubric.max}
+        minScore={rubric.minScore}
+        maxScore={rubric.maxScore}
         disabled={disabled}
         onGrade={onGrade}
       />
