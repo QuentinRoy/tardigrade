@@ -5,33 +5,40 @@ import Typography from "@mui/material/Typography";
 import { cacheTag } from "next/cache";
 import { notFound } from "next/navigation";
 import { attachAssessment } from "@/assessment/assessment";
-import PaperAssessmentClient from "@/assessment/PaperAssessmentClient";
+import SubmissionAssessmentClient from "@/assessment/SubmissionAssessmentClient";
 import { loadAssessment } from "@/db/assessments";
-import { loadPapers } from "@/db/papers";
 import { loadQuestion } from "@/db/questions";
+import { loadSubmissions } from "@/db/submissions";
 import CodeSnippet from "@/shared/CodeSnippet";
 import MuiNextLink from "@/shared/MuiNextLink";
 
 type PageParams = {
-  paperId: string;
+  submissionId: string;
   questionId: string;
 };
 
-type QuestionPaperPageProps = {
+type QuestionSubmissionPageProps = {
   params: Promise<PageParams>;
 };
 
-export default function QuestionPaperPage({ params }: QuestionPaperPageProps) {
-  return <QuestionPaperPageContent params={params} />;
+export default function QuestionSubmissionPage({
+  params,
+}: QuestionSubmissionPageProps) {
+  return <QuestionSubmissionPageContent params={params} />;
 }
 
-async function QuestionPaperPageContent({ params }: QuestionPaperPageProps) {
-  const { paperId, questionId } = await params;
+async function QuestionSubmissionPageContent({
+  params,
+}: QuestionSubmissionPageProps) {
+  const { submissionId, questionId } = await params;
 
   return (
     <Container maxWidth="md" sx={{ py: 5 }}>
       <QuestionHeaderSection questionId={questionId} />
-      <PaperRubricSection questionId={questionId} paperId={paperId} />
+      <SubmissionRubricSection
+        questionId={questionId}
+        submissionId={submissionId}
+      />
     </Container>
   );
 }
@@ -73,21 +80,23 @@ async function QuestionHeaderSection({ questionId }: { questionId: string }) {
   );
 }
 
-async function PaperRubricSection({
+async function SubmissionRubricSection({
   questionId,
-  paperId,
+  submissionId,
 }: {
   questionId: string;
-  paperId: string;
+  submissionId: string;
 }) {
-  const [question, papers, assessments] = await Promise.all([
+  const [question, submissions, assessments] = await Promise.all([
     loadQuestion(questionId),
-    loadPapers(),
-    loadAssessment(paperId, questionId),
+    loadSubmissions(),
+    loadAssessment(submissionId, questionId),
   ]);
-  const hasPaper = papers.some((paper) => paper.id === paperId);
+  const hasSubmission = submissions.some(
+    (submission) => submission.id === submissionId,
+  );
 
-  if (question == null || !hasPaper) {
+  if (question == null || !hasSubmission) {
     notFound();
   }
 
@@ -96,13 +105,13 @@ async function PaperRubricSection({
   );
 
   return (
-    <PaperAssessmentClient
-      key={`${questionId}-${paperId}`}
+    <SubmissionAssessmentClient
+      key={`${questionId}-${submissionId}`}
       questionId={questionId}
       questionLabel={question.label}
       rubrics={rubricsWithAssessments}
-      papers={papers}
-      currentPaperId={paperId}
+      submissions={submissions}
+      currentSubmissionId={submissionId}
     />
   );
 }

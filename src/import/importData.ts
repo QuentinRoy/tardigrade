@@ -1,7 +1,9 @@
 import "server-only";
+import { Prisma, RubricType, SubmissionType } from "@prisma/client";
 import { parse as parseCSV } from "csv-parse/sync";
 import yaml from "js-yaml";
 import { z } from "zod";
+import { prisma } from "../db/prisma";
 
 const nonEmptyString = z.string().trim().min(1);
 const numericValue = z.number();
@@ -115,9 +117,9 @@ export type ImportedRubric = z.output<typeof rubricSchema>;
 export type ImportedQuestion = z.output<typeof questionSchema>;
 export type ImportedQuestions = z.output<typeof questionsSchema>["questions"];
 export type ImportedStudent = z.output<typeof studentRowSchema>;
-export type ImportedPaper = {
+export type ImportedSubmission = {
   id: string;
-  label: string;
+  type: "INDIVIDUAL" | "TEAM";
   team?: string;
   students: ImportedStudent[];
 };
@@ -144,9 +146,9 @@ export function parseStudentsCsv(content: string): ImportedStudent[] {
   return studentRowsSchema.parse(rows);
 }
 
-export function buildPapersFromStudents(
+export function buildSubmissionsFromStudents(
   students: ImportedStudent[],
-): ImportedPaper[] {
+): ImportedSubmission[] {
   const groupedByPaper = new Map<string, ImportedStudent[]>();
 
   for (const student of students) {
@@ -173,24 +175,374 @@ export function buildPapersFromStudents(
 
       return {
         id,
-        label: `Team ${firstStudent.team}`,
+        type: "TEAM",
         team: firstStudent.team,
         students: groupedStudents,
       };
     }
 
-    let id = `paper-${toSlug(firstStudent.id) || "unknown"}`;
+    let id = `submission-${toSlug(firstStudent.id) || "unknown"}`;
     let suffix = 1;
     while (usedIds.has(id)) {
       suffix += 1;
-      id = `paper-${toSlug(firstStudent.id) || "unknown"}-${suffix}`;
+      id = `submission-${toSlug(firstStudent.id) || "unknown"}-${suffix}`;
     }
     usedIds.add(id);
 
     return {
       id,
-      label: `${firstStudent.familyName} ${firstStudent.firstName}`.trim(),
+      type: "INDIVIDUAL",
       students: groupedStudents,
+    };
+  });
+}
+
+function toRubricType(type: string): RubricType {
+  if (type === "boolean") return RubricType.BOOLEAN;
+  if (type === "ordinal") return RubricType.ORDINAL;
+  return RubricType.NUMERICAL;
+}
+
+export async function persistImportData(
+  questions: ImportedQuestions,
+  submissions: ImportedSubmission[],
+): Promise<{
+  questionCount: number;
+  rubricCount: number;
+  submissionCount: number;
+  studentCount: number;
+}> {
+  // Transform submissions
+  const submissionsById = submissions.map((submission) => ({
+    id: submission.id,
+    type: submission.type,
+    teamName: submission.team,
+    studentId:
+      submission.type === "INDIVIDUAL" ? submission.students[0].id : undefined,
+  }));
+
+  // Transform students
+  const studentsWithTeam = submissions.flatMap((submission) =>
+    submission.students.map((student) => ({
+      id: student.id,
+      familyName: student.familyName,
+      firstName: student.firstName,
+      teamName: submission.type === "TEAM" ? submission.team : undefined,
+    })),
+  );
+
+  // Transform questions
+  const questionsById = questions.map((question, position) => ({
+    id: question.id,
+    label: question.label ?? null,
+    position,
+  }));
+
+  // Transform rubrics
+  const rubricRows = questions.flatMap((question) =>
+    question.rubrics.map((rubric, position) => ({
+      id: rubric.id,
+      questionId: question.id,
+      position,
+      description: rubric.description ?? null,
+      label: rubric.label ?? null,
+      type: rubric.type,
+    })),
+  );
+
+  const booleanRubricRows = questions.flatMap((question) =>
+    question.rubrics.flatMap((rubric) =>
+      rubric.type === "boolean"
+        ? [
+            {
+              rubricId: rubric.id,
+              marks: rubric.marks,
+            },
+          ]
+        : [],
+    ),
+  );
+
+  const numericalRubricRows = questions.flatMap((question) =>
+    question.rubrics.flatMap((rubric) =>
+      rubric.type === "numerical"
+        ? [
+            {
+              rubricId: rubric.id,
+              minScore: rubric.minScore,
+              maxScore: rubric.maxScore,
+              minMarks: rubric.minMarks,
+              maxMarks: rubric.maxMarks,
+            },
+          ]
+        : [],
+    ),
+  );
+
+  const ordinalRubricSources = questions.flatMap((question) =>
+    question.rubrics.flatMap((rubric) =>
+      rubric.type === "ordinal"
+        ? [
+            {
+              rubricId: rubric.id,
+              marks: rubric.marks,
+            },
+          ]
+        : [],
+    ),
+  );
+
+  const questionIds = questionsById.map((question) => question.id);
+  const rubricIds = rubricRows.map((rubric) => rubric.id);
+  const rubricTypeById = new Map(
+    rubricRows.map((rubric) => [rubric.id, toRubricType(rubric.type)]),
+  );
+
+  return prisma.$transaction(async (tx) => {
+    const existingRubrics = await tx.rubric.findMany({
+      where: { id: { in: rubricIds } },
+      select: {
+        id: true,
+        type: true,
+      },
+    });
+
+    const rubricsToRecreate = existingRubrics.flatMap((rubric) => {
+      const nextType = rubricTypeById.get(rubric.id);
+
+      if (nextType == null || nextType === rubric.type) {
+        return [];
+      }
+
+      return [rubric.id];
+    });
+
+    if (rubricsToRecreate.length > 0) {
+      await tx.rubric.deleteMany({
+        where: { id: { in: rubricsToRecreate } },
+      });
+    }
+
+    // Create or update teams first
+    const teamNames = new Set(
+      submissionsById
+        .filter((s) => s.type === "TEAM" && s.teamName)
+        .map((s) => s.teamName!),
+    );
+
+    const teamsByName = new Map<string, string>(); // Map of name -> id
+
+    const teamResults = await Promise.all(
+      Array.from(teamNames).map((teamName) =>
+        tx.team.upsert({
+          where: { name: teamName },
+          update: {},
+          create: {
+            id: `team-${teamName}`,
+            name: teamName,
+          },
+          select: { id: true },
+        }),
+      ),
+    );
+
+    Array.from(teamNames).forEach((teamName, index) => {
+      teamsByName.set(teamName, teamResults[index].id);
+    });
+
+    // Create or update questions and students in parallel
+    await Promise.all([
+      ...questionsById.map((question) =>
+        tx.question.upsert({
+          where: { id: question.id },
+          create: question,
+          update: {
+            label: question.label,
+            position: question.position,
+          },
+        }),
+      ),
+      ...studentsWithTeam.map((student) =>
+        tx.student.upsert({
+          where: { id: student.id },
+          create: {
+            id: student.id,
+            familyName: student.familyName,
+            firstName: student.firstName,
+            teams: student.teamName
+              ? {
+                  connect: [{ name: student.teamName }],
+                }
+              : undefined,
+          },
+          update: {
+            familyName: student.familyName,
+            firstName: student.firstName,
+            teams:
+              student.teamName != null
+                ? {
+                    set: [{ name: student.teamName }],
+                  }
+                : { set: [] },
+          },
+        }),
+      ),
+    ]);
+
+    // Create or update submissions (depends on students existing)
+    await Promise.all(
+      submissionsById.map((submission) =>
+        tx.submission.upsert({
+          where: { id: submission.id },
+          create: {
+            id: submission.id,
+            type: submission.type as SubmissionType,
+            teamId:
+              submission.type === "TEAM" && submission.teamName
+                ? teamsByName.get(submission.teamName)
+                : null,
+            studentId:
+              submission.type === "INDIVIDUAL" ? submission.studentId : null,
+          },
+          update: {
+            type: submission.type as SubmissionType,
+            teamId:
+              submission.type === "TEAM" && submission.teamName
+                ? teamsByName.get(submission.teamName)
+                : null,
+            studentId:
+              submission.type === "INDIVIDUAL" ? submission.studentId : null,
+          },
+        }),
+      ),
+    );
+
+    await Promise.all(
+      rubricRows.map((rubric) =>
+        tx.rubric.upsert({
+          where: { id: rubric.id },
+          create: {
+            id: rubric.id,
+            questionId: rubric.questionId,
+            position: rubric.position,
+            description: rubric.description,
+            label: rubric.label,
+            type: toRubricType(rubric.type),
+          },
+          update: {
+            questionId: rubric.questionId,
+            position: rubric.position,
+            description: rubric.description,
+            label: rubric.label,
+            type: toRubricType(rubric.type),
+          },
+        }),
+      ),
+    );
+
+    // Upsert boolean and numerical rubrics in parallel
+    await Promise.all([
+      ...booleanRubricRows.map((booleanRubric) =>
+        tx.booleanRubric.upsert({
+          where: { rubricId: booleanRubric.rubricId },
+          create: {
+            rubricId: booleanRubric.rubricId,
+            marks: new Prisma.Decimal(booleanRubric.marks),
+          },
+          update: {
+            marks: new Prisma.Decimal(booleanRubric.marks),
+          },
+        }),
+      ),
+      ...numericalRubricRows.map((numericalRubric) =>
+        tx.numericalRubric.upsert({
+          where: { rubricId: numericalRubric.rubricId },
+          create: {
+            rubricId: numericalRubric.rubricId,
+            minScore: new Prisma.Decimal(numericalRubric.minScore),
+            maxScore: new Prisma.Decimal(numericalRubric.maxScore),
+            minMarks: new Prisma.Decimal(numericalRubric.minMarks),
+            maxMarks: new Prisma.Decimal(numericalRubric.maxMarks),
+          },
+          update: {
+            minScore: new Prisma.Decimal(numericalRubric.minScore),
+            maxScore: new Prisma.Decimal(numericalRubric.maxScore),
+            minMarks: new Prisma.Decimal(numericalRubric.minMarks),
+            maxMarks: new Prisma.Decimal(numericalRubric.maxMarks),
+          },
+        }),
+      ),
+    ]);
+
+    // Upsert ordinal rubrics separately, fetching back their generated cuids
+    // (OrdinalRubricValue.ordinalRubricId references OrdinalRubric.id, not Rubric.id)
+    const upsertedOrdinalRubrics = await Promise.all(
+      ordinalRubricSources.map((source) =>
+        tx.ordinalRubric.upsert({
+          where: { rubricId: source.rubricId },
+          create: { rubricId: source.rubricId },
+          update: {},
+          select: { id: true, rubricId: true },
+        }),
+      ),
+    );
+
+    // Map from Rubric.id -> OrdinalRubric.id (cuid)
+    const ordinalRubricIdByRubricId = new Map(
+      upsertedOrdinalRubrics.map((r) => [r.rubricId, r.id]),
+    );
+
+    if (ordinalRubricSources.length > 0) {
+      const ordinalRubricCuids = upsertedOrdinalRubrics.map((r) => r.id);
+
+      // Build set of valid (ordinalRubricId cuid, label) pairs
+      const validPairs = ordinalRubricSources.flatMap((source) => {
+        const ordinalRubricId = ordinalRubricIdByRubricId.get(source.rubricId);
+        if (ordinalRubricId == null) return [];
+
+        return Object.keys(source.marks).map((label) => ({
+          AND: [{ ordinalRubricId }, { label }],
+        }));
+      });
+
+      // Delete obsolete labels and upsert all values in one request
+      await Promise.all([
+        tx.ordinalRubricValue.deleteMany({
+          where: {
+            ordinalRubricId: { in: ordinalRubricCuids },
+            NOT: { OR: validPairs },
+          },
+        }),
+        ...ordinalRubricSources.flatMap((source) => {
+          const ordinalRubricId = ordinalRubricIdByRubricId.get(
+            source.rubricId,
+          );
+          if (ordinalRubricId == null) return [];
+
+          return Object.entries(source.marks).map(([label, mark]) =>
+            tx.ordinalRubricValue.upsert({
+              where: {
+                ordinalRubricId_label: { ordinalRubricId, label },
+              },
+              create: {
+                ordinalRubricId,
+                label,
+                marks: new Prisma.Decimal(mark),
+              },
+              update: {
+                marks: new Prisma.Decimal(mark),
+              },
+            }),
+          );
+        }),
+      ]);
+    }
+
+    return {
+      questionCount: questionIds.length,
+      rubricCount: rubricIds.length,
+      submissionCount: submissionsById.length,
+      studentCount: studentsWithTeam.length,
     };
   });
 }

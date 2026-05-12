@@ -12,6 +12,11 @@ enum RubricType {
   NUMERICAL
 }
 
+enum SubmissionType {
+  INDIVIDUAL
+  TEAM
+}
+
 /// IMPORTANT MAINTAINER NOTE
 ///
 /// Type compatibility between `Rubric.type` and typed rubric tables
@@ -29,25 +34,37 @@ enum RubricType {
 ///    cannot be changed after creation.
 /// 4. Update import logic in src/import/importDataAction.ts accordingly.
 
-model Paper {
-  id          String       @id
-  label       String
-  team        String?
+model Submission {
+  id          String         @id
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  type        SubmissionType @default(INDIVIDUAL)
+  assessments Assessment[]
+  teamId      String?
+  team        Team?          @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  studentId   String?
+  student     Student?       @relation(fields: [studentId], references: [id], onDelete: SetNull)
+}
+
+model Team {
+  id          String       @id @default(cuid())
+  name        String
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
-  assessments Assessment[]
   students    Student[]
+  submissions Submission[]
+
+  @@unique([name])
 }
 
 model Student {
-  id         String   @id
-  familyName String
-  firstName  String
-  team       String?
-  paperId    String
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  paper      Paper    @relation(fields: [paperId], references: [id], onDelete: Cascade)
+  id          String       @id
+  familyName  String
+  firstName   String
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  submissions Submission[]
+  teams       Team[]
 }
 
 model Question {
@@ -61,15 +78,15 @@ model Question {
 }
 
 model Rubric {
-  id              String         @id
+  id              String             @id
   questionId      String
   position        Int
   description     String?
   label           String?
   type            RubricType
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
-  question        Question       @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  question        Question           @relation(fields: [questionId], references: [id], onDelete: Cascade)
   booleanRubric   BooleanRubric?
   ordinalRubric   OrdinalRubric?
   numericalRubric NumericalRubric?
@@ -114,27 +131,27 @@ model NumericalRubric {
 }
 
 model Assessment {
-  id         String        @id @default(cuid())
-  paperId    String
-  questionId String
-  createdAt  DateTime      @default(now())
-  updatedAt  DateTime      @updatedAt
-  paper      Paper         @relation(fields: [paperId], references: [id], onDelete: Cascade)
-  question   Question      @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  assessments RubricAssessment[]
+  id           String             @id @default(cuid())
+  submissionId String
+  questionId   String
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  submission   Submission         @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  question     Question           @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  assessments  RubricAssessment[]
 
-  @@unique([paperId, questionId])
+  @@unique([submissionId, questionId])
 }
 
 model RubricAssessment {
-  id             String               @id @default(cuid())
-  assessmentId   String
-  rubricId       String
-  type           RubricType
-  createdAt      DateTime             @default(now())
-  updatedAt      DateTime             @updatedAt
-  assessment     Assessment           @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
-  rubric         Rubric               @relation(fields: [rubricId], references: [id], onDelete: Cascade)
+  id                  String                     @id @default(cuid())
+  assessmentId        String
+  rubricId            String
+  type                RubricType
+  createdAt           DateTime                   @default(now())
+  updatedAt           DateTime                   @updatedAt
+  assessment          Assessment                 @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  rubric              Rubric                     @relation(fields: [rubricId], references: [id], onDelete: Cascade)
   booleanAssessment   BooleanRubricAssessment?
   ordinalAssessment   OrdinalRubricAssessment?
   numericalAssessment NumericalRubricAssessment?
@@ -145,20 +162,20 @@ model RubricAssessment {
 model BooleanRubricAssessment {
   id                 String           @id @default(cuid())
   rubricAssessmentId String           @unique
-  passed        Boolean
+  passed             Boolean
   rubricAssessment   RubricAssessment @relation(fields: [rubricAssessmentId], references: [id], onDelete: Cascade)
 }
 
 model OrdinalRubricAssessment {
   id                 String           @id @default(cuid())
   rubricAssessmentId String           @unique
-  selectedLabel String
+  selectedLabel      String
   rubricAssessment   RubricAssessment @relation(fields: [rubricAssessmentId], references: [id], onDelete: Cascade)
 }
 
 model NumericalRubricAssessment {
   id                 String           @id @default(cuid())
   rubricAssessmentId String           @unique
-  score         Decimal     @db.Decimal(10, 6)
+  score              Decimal          @db.Decimal(10, 6)
   rubricAssessment   RubricAssessment @relation(fields: [rubricAssessmentId], references: [id], onDelete: Cascade)
 }

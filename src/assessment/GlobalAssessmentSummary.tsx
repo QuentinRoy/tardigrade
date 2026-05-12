@@ -64,21 +64,21 @@ export default function GlobalAssessmentSummary({
       <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap" }}>
         <MetricCard
           title="Rubrics assessed"
-          helper="Saved rubric assessments across all papers"
+          helper="Saved rubric assessments across all submissions"
           completed={progress.rubrics.completed}
           total={progress.rubrics.total}
         />
         <MetricCard
           title="Questions assessed"
-          helper="Fully assessed across all papers"
+          helper="Fully assessed across all submissions"
           completed={progress.questions.completed}
           total={progress.questions.total}
         />
         <MetricCard
-          title="Papers assessed"
+          title="Submissions assessed"
           helper="Fully assessed across all questions"
-          completed={progress.papers.completed}
-          total={progress.papers.total}
+          completed={progress.submissions.completed}
+          total={progress.submissions.total}
         />
       </Box>
     </Box>

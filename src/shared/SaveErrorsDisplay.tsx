@@ -36,12 +36,12 @@ export function SaveErrorsDisplay() {
           Failed to save assessment for{" "}
           <Link
             component={NextLink}
-            href={`/${error.questionId}/${error.paperId}`}
+            href={`/assessments/submissions/${error.submissionId}/questions/${error.questionId}`}
             color="inherit"
             sx={{ fontWeight: "bold" }}
           >
             {error.questionLabel ?? error.questionId} /{" "}
-            {error.paperLabel ?? error.paperId}
+            {error.submissionLabel ?? error.submissionId}
           </Link>
           . {error.message}
         </MuiAlert>

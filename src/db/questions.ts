@@ -1,3 +1,4 @@
+import "server-only";
 import { type Prisma, RubricType } from "@prisma/client";
 import { cacheLife, cacheTag } from "next/cache";
 import { prisma } from "./prisma";

@@ -6,8 +6,9 @@ import {
   ListItemText,
   Typography,
 } from "@mui/material";
-import { loadPapers } from "@/db/papers";
 import { loadQuestions } from "@/db/questions";
+import { loadSubmissions } from "@/db/submissions";
+import { getSubmissionLabel } from "@/submissions/getSubmissionLabel";
 import QuestionList from "../../src/questions/QuestionList";
 
 export default function AssessmentPage() {
@@ -15,13 +16,16 @@ export default function AssessmentPage() {
 }
 
 async function AssessmentPageContent() {
-  const [grid, papers] = await Promise.all([loadQuestions(), loadPapers()]);
-  const firstPaperId = papers[0]?.id;
-  const questions = firstPaperId
+  const [grid, submissions] = await Promise.all([
+    loadQuestions(),
+    loadSubmissions(),
+  ]);
+  const firstSubmissionId = submissions[0]?.id;
+  const questions = firstSubmissionId
     ? Object.entries(grid).map(([id, { label }]) => ({
         id,
         label: label == null ? id : label,
-        href: `/assessments/papers/${firstPaperId}/questions/${id}`,
+        href: `/assessments/submissions/${firstSubmissionId}/questions/${id}`,
       }))
     : [];
 
@@ -34,26 +38,29 @@ async function AssessmentPageContent() {
         Back to overview
       </Button>
       <Typography component="h2" variant="h5" sx={{ mt: 2 }}>
-        Assess by paper
+        Assess by submission
       </Typography>
-      <List component="nav" aria-label="Paper list" sx={{ mb: 3 }}>
-        {papers.map((paper) => (
+      <List component="nav" aria-label="Submission list" sx={{ mb: 3 }}>
+        {submissions.map((submission) => (
           <ListItemButton
-            key={paper.id}
-            href={`/assessments/papers/${paper.id}`}
+            key={submission.id}
+            href={`/assessments/submissions/${submission.id}`}
           >
-            <ListItemText primary={paper.label} secondary={paper.id} />
+            <ListItemText
+              primary={getSubmissionLabel(submission)}
+              secondary={submission.id}
+            />
           </ListItemButton>
         ))}
       </List>
       <Typography component="h2" variant="h5">
         Assess by question
       </Typography>
-      {firstPaperId ? (
+      {firstSubmissionId ? (
         <QuestionList questions={questions} />
       ) : (
         <Typography color="text.secondary">
-          Add a paper first to start assessments by question.
+          Add a submission first to start assessments by question.
         </Typography>
       )}
     </Container>

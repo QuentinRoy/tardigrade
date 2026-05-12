@@ -125,7 +125,7 @@ function HelpDialog({ open, onClose }: HelpDialogProps): React.ReactElement {
               Required columns: <code>family_name</code>,{" "}
               <code>first_name</code>, <code>id</code>. Optional:{" "}
               <code>team</code> (students sharing a team get grouped into the
-              same paper).
+              same submission).
             </Typography>
             <Box
               component="pre"

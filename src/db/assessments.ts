@@ -1,3 +1,4 @@
+import "server-only";
 import { RubricType } from "@prisma/client";
 import { cacheTag, updateTag } from "next/cache";
 import { assertNever } from "@/utils/utils";
@@ -9,7 +10,7 @@ export type SaveAssessmentResult =
   | { success: false; error: string };
 
 export type SaveAssessmentParams = {
-  paperId: string;
+  submissionId: string;
   questionId: string;
   rubric: AssessmentRubricValue;
 };
@@ -41,17 +42,17 @@ function toAssessmentRubricType(
   }
 }
 
-// Returns typed rubric values for a paper/question assessment.
+// Returns typed rubric values for a submission/question assessment.
 export async function loadAssessment(
-  paperId: string,
+  submissionId: string,
   questionId: string,
 ): Promise<AssessmentRubricValue[]> {
   "use cache";
-  cacheTag(`assessments:${paperId}:${questionId}`);
+  cacheTag(`assessments:${submissionId}:${questionId}`);
 
   const assessment = await prisma.assessment.findFirst({
     where: {
-      paper: { id: paperId },
+      submission: { id: submissionId },
       question: { id: questionId },
     },
     include: {
@@ -118,14 +119,14 @@ export async function loadAssessment(
 }
 
 export async function saveAssessment({
-  paperId,
+  submissionId,
   questionId,
   rubric: rubricValue,
 }: SaveAssessmentParams): Promise<SaveAssessmentResult> {
   const rubricId = rubricValue.rubricId;
 
-  const [paper, question, rubric] = await Promise.all([
-    prisma.paper.findUnique({ where: { id: paperId } }),
+  const [submission, question, rubric] = await Promise.all([
+    prisma.submission.findUnique({ where: { id: submissionId } }),
     prisma.question.findUnique({ where: { id: questionId } }),
     prisma.rubric.findUnique({
       where: { id: rubricId },
@@ -146,8 +147,8 @@ export async function saveAssessment({
     }),
   ]);
 
-  if (paper == null || question == null) {
-    return { success: false, error: "Paper or question not found." };
+  if (submission == null || question == null) {
+    return { success: false, error: "Submission or question not found." };
   }
 
   if (rubric == null || rubric.questionId !== question.id) {
@@ -162,9 +163,12 @@ export async function saveAssessment({
 
   const assessment = await prisma.assessment.upsert({
     where: {
-      paperId_questionId: { paperId: paper.id, questionId: question.id },
+      submissionId_questionId: {
+        submissionId: submission.id,
+        questionId: question.id,
+      },
     },
-    create: { paperId: paper.id, questionId: question.id },
+    create: { submissionId: submission.id, questionId: question.id },
     update: {},
   });
 
@@ -268,7 +272,7 @@ export async function saveAssessment({
     ]);
   }
 
-  updateTag(`assessments:${paperId}:${questionId}`);
+  updateTag(`assessments:${submissionId}:${questionId}`);
   updateTag("assessments");
 
   return { success: true };

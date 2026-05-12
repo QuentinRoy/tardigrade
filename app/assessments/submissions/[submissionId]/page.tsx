@@ -4,34 +4,35 @@ import Container from "@mui/material/Container";
 import Typography from "@mui/material/Typography";
 import { notFound } from "next/navigation";
 import { attachAssessment } from "@/assessment/assessment";
+import SubmissionOverviewAssessmentClient from "@/assessment/SubmissionOverviewAssessmentClient";
 import { loadAssessment } from "@/db/assessments";
-import { loadPapers } from "@/db/papers";
 import { loadQuestions } from "@/db/questions";
+import { loadSubmissions } from "@/db/submissions";
 import MuiNextLink from "@/shared/MuiNextLink";
-import PaperOverviewAssessmentClient from "../../../../src/assessment/PaperOverviewAssessmentClient";
+import { getSubmissionLabel } from "@/submissions/getSubmissionLabel";
 
 type PageParams = {
-  paperId: string;
+  submissionId: string;
 };
 
-type PaperPageProps = {
+type SubmissionPageProps = {
   params: Promise<PageParams>;
 };
 
-export default function PaperPage({ params }: PaperPageProps) {
-  return <PaperPageContent params={params} />;
+export default function SubmissionPage({ params }: SubmissionPageProps) {
+  return <SubmissionPageContent params={params} />;
 }
 
-async function PaperPageContent({ params }: PaperPageProps) {
-  const { paperId } = await params;
+async function SubmissionPageContent({ params }: SubmissionPageProps) {
+  const { submissionId } = await params;
 
-  const [papers, questionGrid] = await Promise.all([
-    loadPapers(),
+  const [submissions, questionGrid] = await Promise.all([
+    loadSubmissions(),
     loadQuestions(),
   ]);
-  const currentPaper = papers.find((paper) => paper.id === paperId);
+  const currentSubmission = submissions.find((s) => s.id === submissionId);
 
-  if (currentPaper == null) {
+  if (currentSubmission == null) {
     notFound();
   }
 
@@ -44,7 +45,9 @@ async function PaperPageContent({ params }: PaperPageProps) {
   );
 
   const assessments = await Promise.all(
-    questions.map((question) => loadAssessment(paperId, question.questionId)),
+    questions.map((question) =>
+      loadAssessment(submissionId, question.questionId),
+    ),
   );
 
   const gradedQuestions = questions.map((question, index) => ({
@@ -62,16 +65,18 @@ async function PaperPageContent({ params }: PaperPageProps) {
           <MuiNextLink color="inherit" href="/assessments">
             Assessments
           </MuiNextLink>
-          <Typography color="textPrimary">{currentPaper.label}</Typography>
+          <Typography color="textPrimary">
+            {getSubmissionLabel(currentSubmission)}
+          </Typography>
         </Breadcrumbs>
         <Typography component="h1" variant="h4" gutterBottom sx={{ mt: 1 }}>
-          {currentPaper.label}
+          {getSubmissionLabel(currentSubmission)}
         </Typography>
       </Box>
 
-      <PaperOverviewAssessmentClient
-        currentPaperId={paperId}
-        papers={papers}
+      <SubmissionOverviewAssessmentClient
+        currentSubmissionId={submissionId}
+        submissions={submissions}
         questions={gradedQuestions}
       />
     </Container>

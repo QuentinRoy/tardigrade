@@ -2,9 +2,9 @@
 
 import { produce } from "immer";
 import { startTransition, useOptimistic, useReducer } from "react";
-import type { AssessmentRubricValue, Paper } from "../db/types";
+import type { AssessmentRubricValue, Submission } from "../db/types";
 import { type AssessedRubric, attachAssessment } from "./assessment";
-import { getPaperNavigation } from "./paperNavigation";
+import { getSubmissionNavigation } from "./submissionNavigation";
 
 export type SaveRubricResult<TError> =
   | { success: true }
@@ -12,8 +12,8 @@ export type SaveRubricResult<TError> =
 
 export type UseAssessmentSessionConfig<TError> = {
   initialRubrics: AssessedRubric[];
-  papers: Paper[];
-  currentPaperId: string;
+  submissions: Submission[];
+  currentSubmissionId: string;
   saveRubric: (
     rubric: AssessedRubric,
     assessment: AssessmentRubricValue,
@@ -22,10 +22,10 @@ export type UseAssessmentSessionConfig<TError> = {
 };
 
 export type UseAssessmentSessionResult = {
-  currentPaperIndex: number;
-  currentPaper: Paper | undefined;
-  previousPaper: Paper | undefined;
-  nextPaper: Paper | undefined;
+  currentSubmissionIndex: number;
+  currentSubmission: Submission | undefined;
+  previousSubmission: Submission | undefined;
+  nextSubmission: Submission | undefined;
   optimisticRubrics: AssessedRubric[];
   pendingByIndex: Record<number, number>;
   assess: (index: number, assessment: AssessmentRubricValue) => void;
@@ -43,8 +43,8 @@ type Action =
 
 export function useAssessmentSession<TError>({
   initialRubrics,
-  papers,
-  currentPaperId,
+  submissions,
+  currentSubmissionId,
   saveRubric,
   onError,
 }: UseAssessmentSessionConfig<TError>): UseAssessmentSessionResult {
@@ -67,8 +67,12 @@ export function useAssessmentSession<TError>({
       ),
   );
 
-  const { currentPaperIndex, currentPaper, previousPaper, nextPaper } =
-    getPaperNavigation(papers, currentPaperId);
+  const {
+    currentSubmissionIndex,
+    currentSubmission,
+    previousSubmission,
+    nextSubmission,
+  } = getSubmissionNavigation(submissions, currentSubmissionId);
 
   function assess(index: number, assessment: AssessmentRubricValue) {
     const rubric = savedRubrics[index];
@@ -95,10 +99,10 @@ export function useAssessmentSession<TError>({
   }
 
   return {
-    currentPaperIndex,
-    currentPaper,
-    previousPaper,
-    nextPaper,
+    currentSubmissionIndex,
+    currentSubmission,
+    previousSubmission,
+    nextSubmission,
     optimisticRubrics,
     pendingByIndex,
     assess,

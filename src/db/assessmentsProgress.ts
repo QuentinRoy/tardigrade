@@ -1,3 +1,4 @@
+import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import { prisma } from "./prisma";
 import type { GlobalAssessmentProgress } from "./types";
@@ -5,13 +6,13 @@ import type { GlobalAssessmentProgress } from "./types";
 async function loadGlobalAssessmentProgressFromDb(): Promise<GlobalAssessmentProgress> {
   "use cache";
   cacheTag("questions");
-  cacheTag("papers");
+  cacheTag("submissions");
   cacheTag("assessments");
   cacheLife({ revalidate: 60 });
 
-  const [papers, questions, assessments, rubricAssessmentsCount] =
+  const [submissions, questions, assessments, rubricAssessmentsCount] =
     await Promise.all([
-      prisma.paper.findMany({ select: { id: true } }),
+      prisma.submission.findMany({ select: { id: true } }),
       prisma.question.findMany({
         select: {
           id: true,
@@ -20,7 +21,7 @@ async function loadGlobalAssessmentProgressFromDb(): Promise<GlobalAssessmentPro
       }),
       prisma.assessment.findMany({
         select: {
-          paperId: true,
+          submissionId: true,
           questionId: true,
           _count: { select: { assessments: true } },
         },
@@ -28,7 +29,7 @@ async function loadGlobalAssessmentProgressFromDb(): Promise<GlobalAssessmentPro
       prisma.rubricAssessment.count(),
     ]);
 
-  const totalPapers = papers.length;
+  const totalSubmissions = submissions.length;
   const totalQuestions = questions.length;
 
   const rubricCountByQuestionId = new Map(
@@ -39,7 +40,8 @@ async function loadGlobalAssessmentProgressFromDb(): Promise<GlobalAssessmentPro
     (sum, question) => sum + question._count.rubrics,
     0,
   );
-  const totalExpectedRubricAssessments = totalPapers * totalRubricsInProject;
+  const totalExpectedRubricAssessments =
+    totalSubmissions * totalRubricsInProject;
 
   const zeroRubricQuestionCount = questions.filter(
     (question) => question._count.rubrics === 0,
@@ -48,8 +50,8 @@ async function loadGlobalAssessmentProgressFromDb(): Promise<GlobalAssessmentPro
   const completedQuestionAssessmentsByQuestionId = new Map(
     questions.map((question) => [question.id, 0]),
   );
-  const completedQuestionAssessmentsByPaperId = new Map(
-    papers.map((paper) => [paper.id, zeroRubricQuestionCount]),
+  const completedQuestionAssessmentsBySubmissionId = new Map(
+    submissions.map((submission) => [submission.id, zeroRubricQuestionCount]),
   );
 
   for (const assessment of assessments) {
@@ -66,36 +68,37 @@ async function loadGlobalAssessmentProgressFromDb(): Promise<GlobalAssessmentPro
         (completedQuestionAssessmentsByQuestionId.get(assessment.questionId) ??
           0) + 1,
       );
-      completedQuestionAssessmentsByPaperId.set(
-        assessment.paperId,
-        (completedQuestionAssessmentsByPaperId.get(assessment.paperId) ?? 0) +
-          1,
+      completedQuestionAssessmentsBySubmissionId.set(
+        assessment.submissionId,
+        (completedQuestionAssessmentsBySubmissionId.get(
+          assessment.submissionId,
+        ) ?? 0) + 1,
       );
     }
   }
 
   const completedQuestions =
-    totalPapers === 0
+    totalSubmissions === 0
       ? 0
       : questions.filter(
           (question) =>
             (completedQuestionAssessmentsByQuestionId.get(question.id) ?? 0) >=
-            totalPapers,
+            totalSubmissions,
         ).length;
 
-  const completedPapers =
+  const completedSubmissions =
     totalQuestions === 0
       ? 0
-      : papers.filter(
-          (paper) =>
-            (completedQuestionAssessmentsByPaperId.get(paper.id) ?? 0) >=
-            totalQuestions,
+      : submissions.filter(
+          (submission) =>
+            (completedQuestionAssessmentsBySubmissionId.get(submission.id) ??
+              0) >= totalQuestions,
         ).length;
 
   return {
-    papers: {
-      completed: completedPapers,
-      total: totalPapers,
+    submissions: {
+      completed: completedSubmissions,
+      total: totalSubmissions,
     },
     questions: {
       completed: completedQuestions,

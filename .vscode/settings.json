@@ -4,5 +4,11 @@
     "source.organizeImports.biome": "explicit",
     "source.fixAll.biome": "explicit"
   },
-  "editor.defaultFormatter": "biomejs.biome"
+  "editor.defaultFormatter": "biomejs.biome",
+  "[prisma]": {
+    "editor.defaultFormatter": "Prisma.prisma"
+  },
+  "[sql]": {
+    "editor.defaultFormatter": "denoland.vscode-deno"
+  }
 }

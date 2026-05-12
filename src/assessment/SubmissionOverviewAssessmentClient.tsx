@@ -6,11 +6,9 @@ import Typography from "@mui/material/Typography";
 import NextLink from "next/link";
 import type { ReactElement } from "react";
 import { useMemo } from "react";
-import type {
-  Paper as AssessmentPaper,
-  AssessmentRubricValue,
-} from "../db/types";
+import type { AssessmentRubricValue, Submission } from "../db/types";
 import { type SaveError, useSaveErrors } from "../shared/SaveErrorsProvider";
+import { getSubmissionLabel } from "../submissions/getSubmissionLabel";
 import AssessmentProgressSummary from "./AssessmentProgressSummary";
 import { type AssessedRubric } from "./assessment";
 import { summarizeRubrics } from "./assessmentSummary";
@@ -31,21 +29,25 @@ type OptimisticQuestionSection = {
   flatIndices: Array<number | undefined>;
 };
 
-type PaperOverviewAssessmentClientProps = {
+type SubmissionOverviewAssessmentClientProps = {
   questions: QuestionAssessmentSection[];
-  papers: AssessmentPaper[];
-  currentPaperId: string;
+  submissions: Submission[];
+  currentSubmissionId: string;
 };
 
-export default function PaperOverviewAssessmentClient({
+export default function SubmissionOverviewAssessmentClient({
   questions: initialQuestions,
-  papers,
-  currentPaperId,
-}: PaperOverviewAssessmentClientProps): ReactElement {
+  submissions,
+  currentSubmissionId,
+}: SubmissionOverviewAssessmentClientProps): ReactElement {
   const { addError } = useSaveErrors();
-  const currentPaperLabel = papers.find(
-    (paper) => paper.id === currentPaperId,
-  )?.label;
+  const currentSubmission = submissions.find(
+    (submission) => submission.id === currentSubmissionId,
+  );
+  const currentSubmissionLabel =
+    currentSubmission != null
+      ? getSubmissionLabel(currentSubmission)
+      : undefined;
 
   const { initialRubrics, rubricInfoByRubricId } = useMemo(() => {
     const rubrics: AssessedRubric[] = [];
@@ -68,17 +70,17 @@ export default function PaperOverviewAssessmentClient({
   }, [initialQuestions]);
 
   const {
-    currentPaperIndex,
-    currentPaper,
-    previousPaper,
-    nextPaper,
+    currentSubmissionIndex,
+    currentSubmission: sessionCurrentSubmission,
+    previousSubmission,
+    nextSubmission,
     optimisticRubrics,
     pendingByIndex,
     assess,
   } = useAssessmentSession<Omit<SaveError, "id">>({
     initialRubrics,
-    papers,
-    currentPaperId,
+    submissions,
+    currentSubmissionId,
     saveRubric: async (
       rubric: AssessedRubric,
       assessment: AssessmentRubricValue,
@@ -89,8 +91,8 @@ export default function PaperOverviewAssessmentClient({
         return {
           success: false,
           error: {
-            paperId: currentPaperId,
-            paperLabel: currentPaperLabel,
+            submissionId: currentSubmissionId,
+            submissionLabel: currentSubmissionLabel,
             questionId: "unknown-question",
             questionLabel: "Unknown question",
             message: `Unknown rubric mapping for ${rubric.id}`,
@@ -100,7 +102,7 @@ export default function PaperOverviewAssessmentClient({
 
       const result = await saveAssessment({
         rubric: assessment,
-        paperId: currentPaperId,
+        submissionId: currentSubmissionId,
         questionId: info.questionId,
       });
 
@@ -111,8 +113,8 @@ export default function PaperOverviewAssessmentClient({
       return {
         success: false,
         error: {
-          paperId: currentPaperId,
-          paperLabel: currentPaperLabel,
+          submissionId: currentSubmissionId,
+          submissionLabel: currentSubmissionLabel,
           questionId: info.questionId,
           questionLabel: info.questionLabel,
           message: result.error,
@@ -146,22 +148,22 @@ export default function PaperOverviewAssessmentClient({
 
   const summary = summarizeRubrics(optimisticRubrics);
 
-  if (currentPaper == null) {
+  if (sessionCurrentSubmission == null || currentSubmission == null) {
     return (
       <Typography variant="body1" sx={{ mb: 3 }}>
-        No papers found in database.
+        No submissions found in database.
       </Typography>
     );
   }
 
   return (
     <>
-      <PaperNavigation
-        currentPaperId={currentPaperId}
-        currentPaperIndex={currentPaperIndex}
-        totalPapers={papers.length}
-        previousPaperId={previousPaper?.id}
-        nextPaperId={nextPaper?.id}
+      <SubmissionNavigation
+        currentSubmissionId={currentSubmissionId}
+        currentSubmissionIndex={currentSubmissionIndex}
+        totalSubmissions={submissions.length}
+        previousSubmissionId={previousSubmission?.id}
+        nextSubmissionId={nextSubmission?.id}
       />
 
       {optimisticQuestions.length === 0 ? (
@@ -209,39 +211,39 @@ export default function PaperOverviewAssessmentClient({
   );
 }
 
-function PaperNavigation({
-  currentPaperId,
-  currentPaperIndex,
-  totalPapers,
-  previousPaperId,
-  nextPaperId,
+function SubmissionNavigation({
+  currentSubmissionId,
+  currentSubmissionIndex,
+  totalSubmissions,
+  previousSubmissionId,
+  nextSubmissionId,
 }: {
-  currentPaperId: string;
-  currentPaperIndex: number;
-  totalPapers: number;
-  previousPaperId?: string;
-  nextPaperId?: string;
+  currentSubmissionId: string;
+  currentSubmissionIndex: number;
+  totalSubmissions: number;
+  previousSubmissionId?: string;
+  nextSubmissionId?: string;
 }): ReactElement {
   return (
     <Box sx={{ mb: 4, display: "flex", gap: 1, flexWrap: "wrap" }}>
       <Button
         component={NextLink}
-        href={`/assessments/papers/${previousPaperId ?? currentPaperId}`}
+        href={`/assessments/submissions/${previousSubmissionId ?? currentSubmissionId}`}
         variant="outlined"
-        disabled={previousPaperId == null}
+        disabled={previousSubmissionId == null}
       >
-        Previous paper
+        Previous submission
       </Button>
       <Button
         component={NextLink}
-        href={`/assessments/papers/${nextPaperId ?? currentPaperId}`}
+        href={`/assessments/submissions/${nextSubmissionId ?? currentSubmissionId}`}
         variant="outlined"
-        disabled={nextPaperId == null}
+        disabled={nextSubmissionId == null}
       >
-        Next paper
+        Next submission
       </Button>
       <Typography variant="body2" sx={{ alignSelf: "center", ml: 1 }}>
-        {currentPaperIndex + 1} / {totalPapers} papers
+        {currentSubmissionIndex + 1} / {totalSubmissions} submissions
       </Typography>
     </Box>
   );

@@ -2,11 +2,11 @@
 
 import { revalidateTag } from "next/cache";
 import { prettifyError, ZodError } from "zod";
-import { persistImportData } from "../db/importData";
 import {
-  buildPapersFromStudents,
+  buildSubmissionsFromStudents,
   parseQuestionsYaml,
   parseStudentsCsv,
+  persistImportData,
 } from "./importData";
 import type { ImportState } from "./importState";
 
@@ -22,105 +22,17 @@ export async function importDataAction(
   try {
     const questions = parseQuestionsYaml(questionsYaml);
     const students = parseStudentsCsv(studentsCsv);
-    const papers = buildPapersFromStudents(students);
+    const submissions = buildSubmissionsFromStudents(students);
 
-    const papersById = papers.map((paper) => ({
-      id: paper.id,
-      label: paper.label,
-      team: paper.team,
-    }));
-
-    const studentsWithPaper = papers.flatMap((paper) =>
-      paper.students.map((student) => ({
-        id: student.id,
-        familyName: student.familyName,
-        firstName: student.firstName,
-        team: student.team,
-        paperId: paper.id,
-      })),
-    );
-
-    const questionsById = questions.map((question, position) => ({
-      id: question.id,
-      label: question.label ?? null,
-      position,
-    }));
-
-    const rubricRows = questions.flatMap((question) =>
-      question.rubrics.map((rubric, position) => ({
-        id: rubric.id,
-        questionId: question.id,
-        position,
-        description: rubric.description ?? null,
-        label: rubric.label ?? null,
-        type: rubric.type,
-      })),
-    );
-
-    const booleanRubricRows = questions.flatMap((question) =>
-      question.rubrics.flatMap((rubric) =>
-        rubric.type === "boolean"
-          ? [
-              {
-                rubricId: rubric.id,
-                marks: rubric.marks,
-              },
-            ]
-          : [],
-      ),
-    );
-
-    const numericalRubricRows = questions.flatMap((question) =>
-      question.rubrics.flatMap((rubric) =>
-        rubric.type === "numerical"
-          ? [
-              {
-                rubricId: rubric.id,
-                minScore: rubric.minScore,
-                maxScore: rubric.maxScore,
-                minMarks: rubric.minMarks,
-                maxMarks: rubric.maxMarks,
-              },
-            ]
-          : [],
-      ),
-    );
-
-    const ordinalRubricSources = questions.flatMap((question) =>
-      question.rubrics.flatMap((rubric) =>
-        rubric.type === "ordinal"
-          ? [
-              {
-                rubricId: rubric.id,
-                marks: rubric.marks,
-              },
-            ]
-          : [],
-      ),
-    );
-
-    const ordinalRubricRows = ordinalRubricSources.map(({ rubricId }) => ({
-      rubricId,
-    }));
-
-    const result = await persistImportData({
-      questionsById,
-      papersById,
-      studentsWithPaper,
-      rubricRows,
-      booleanRubricRows,
-      numericalRubricRows,
-      ordinalRubricSources,
-      ordinalRubricRows,
-    });
+    const result = await persistImportData(questions, submissions);
 
     revalidateTag("questions", "seconds");
-    revalidateTag("papers", "seconds");
+    revalidateTag("submissions", "seconds");
     revalidateTag("assessments", "seconds");
 
     return {
       status: "success",
-      message: `Imported ${result.questionCount} questions, ${result.rubricCount} rubrics, ${result.paperCount} papers, and ${result.studentCount} students. Existing records were updated in place.`,
+      message: `Imported ${result.questionCount} questions, ${result.rubricCount} rubrics, ${result.submissionCount} submissions, and ${result.studentCount} students. Existing records were updated in place.`,
     };
   } catch (error) {
     if (error instanceof ZodError) {

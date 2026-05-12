@@ -5,9 +5,9 @@ import React from "react";
 export type SaveError = {
   id: string;
   questionId: string;
-  paperId: string;
+  submissionId: string;
   questionLabel?: string;
-  paperLabel?: string;
+  submissionLabel?: string;
   message: string;
 };
 

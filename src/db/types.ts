@@ -21,15 +21,16 @@ type ProgressMetric = {
 };
 
 export type GlobalAssessmentProgress = {
-  papers: ProgressMetric;
+  submissions: ProgressMetric;
   questions: ProgressMetric;
   rubrics: ProgressMetric;
 };
 
-export type Paper = {
+export type Submission = {
   id: string;
-  label: string;
-  team?: string;
+  type: "INDIVIDUAL" | "TEAM";
+  studentName?: string;
+  teamName?: string;
 };
 
 export type Rubric =
