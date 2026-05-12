@@ -1,28 +1,4 @@
-export type Rubric =
-  | {
-      id: string;
-      description?: string | undefined;
-      label?: string | undefined;
-      type: "boolean";
-      marks: number;
-    }
-  | {
-      id: string;
-      description?: string | undefined;
-      label?: string | undefined;
-      type: "ordinal";
-      marks: Record<string, number>;
-    }
-  | {
-      id: string;
-      description?: string | undefined;
-      label?: string | undefined;
-      type: "numerical";
-      minScore: number;
-      maxScore: number;
-      minMarks: number;
-      maxMarks: number;
-    };
+import type { Rubric } from "@/db/types";
 
 export function getRubricMaxMarks(rubric: Rubric): number {
   if (rubric.type === "boolean") {

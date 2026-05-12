@@ -6,46 +6,49 @@ import Typography from "@mui/material/Typography";
 import NextLink from "next/link";
 import type { ReactElement } from "react";
 import { useMemo } from "react";
-import type { Paper as GradingPaper } from "../db/papers";
+import type {
+  Paper as AssessmentPaper,
+  AssessmentRubricValue,
+} from "../db/types";
 import { type SaveError, useSaveErrors } from "../shared/SaveErrorsProvider";
-import GradingProgressSummary from "./GradingProgressSummary";
-import { type GradedRubric, type Grading } from "./grading";
-import { summarizeRubrics } from "./gradingSummary";
+import AssessmentProgressSummary from "./AssessmentProgressSummary";
+import { type AssessedRubric } from "./assessment";
+import { summarizeRubrics } from "./assessmentSummary";
 import RubricGradeList from "./RubricGradeList";
-import { saveRubricGrading } from "./saveRubricGrading";
-import { useGradingSession } from "./useGradingSession";
+import { saveAssessment } from "./saveAssessment";
+import { useAssessmentSession } from "./useAssessmentSession";
 
-type QuestionGradingSection = {
+type QuestionAssessmentSection = {
   questionId: string;
   questionLabel: string;
-  rubrics: GradedRubric[];
+  rubrics: AssessedRubric[];
 };
 
 type OptimisticQuestionSection = {
   questionId: string;
   questionLabel: string;
-  rubrics: GradedRubric[];
+  rubrics: AssessedRubric[];
   flatIndices: Array<number | undefined>;
 };
 
-type PaperOverviewGradingClientProps = {
-  questions: QuestionGradingSection[];
-  papers: GradingPaper[];
+type PaperOverviewAssessmentClientProps = {
+  questions: QuestionAssessmentSection[];
+  papers: AssessmentPaper[];
   currentPaperId: string;
 };
 
-export default function PaperOverviewGradingClient({
+export default function PaperOverviewAssessmentClient({
   questions: initialQuestions,
   papers,
   currentPaperId,
-}: PaperOverviewGradingClientProps): ReactElement {
+}: PaperOverviewAssessmentClientProps): ReactElement {
   const { addError } = useSaveErrors();
   const currentPaperLabel = papers.find(
     (paper) => paper.id === currentPaperId,
   )?.label;
 
   const { initialRubrics, rubricInfoByRubricId } = useMemo(() => {
-    const rubrics: GradedRubric[] = [];
+    const rubrics: AssessedRubric[] = [];
     const infoMap = new Map<
       string,
       { questionId: string; questionLabel: string }
@@ -72,11 +75,14 @@ export default function PaperOverviewGradingClient({
     optimisticRubrics,
     pendingByIndex,
     grade,
-  } = useGradingSession<Omit<SaveError, "id">>({
+  } = useAssessmentSession<Omit<SaveError, "id">>({
     initialRubrics,
     papers,
     currentPaperId,
-    saveRubric: async (rubric: GradedRubric, grading: Grading) => {
+    saveRubric: async (
+      rubric: AssessedRubric,
+      assessment: AssessmentRubricValue,
+    ) => {
       const info = rubricInfoByRubricId.get(rubric.id);
 
       if (info == null) {
@@ -92,11 +98,10 @@ export default function PaperOverviewGradingClient({
         };
       }
 
-      const result = await saveRubricGrading({
+      const result = await saveAssessment({
+        rubric: assessment,
         paperId: currentPaperId,
         questionId: info.questionId,
-        rubricId: rubric.id,
-        grading,
       });
 
       if (result.success) {
@@ -182,9 +187,9 @@ export default function PaperOverviewGradingClient({
                     0: flatIndex != null ? (pendingByIndex[flatIndex] ?? 0) : 0,
                   }}
                   disabled={false}
-                  onGrade={(_, grading) => {
+                  onGrade={(_, assessment) => {
                     if (flatIndex != null) {
-                      grade(flatIndex, grading);
+                      grade(flatIndex, assessment);
                     }
                   }}
                 />
@@ -194,7 +199,7 @@ export default function PaperOverviewGradingClient({
         ))
       )}
 
-      <GradingProgressSummary
+      <AssessmentProgressSummary
         marks={summary.marks}
         maxMarks={summary.maxMarks}
         completedRubrics={summary.completedRubrics}
@@ -221,7 +226,7 @@ function PaperNavigation({
     <Box sx={{ mb: 4, display: "flex", gap: 1, flexWrap: "wrap" }}>
       <Button
         component={NextLink}
-        href={`/grading/papers/${previousPaperId ?? currentPaperId}`}
+        href={`/assessments/papers/${previousPaperId ?? currentPaperId}`}
         variant="outlined"
         disabled={previousPaperId == null}
       >
@@ -229,7 +234,7 @@ function PaperNavigation({
       </Button>
       <Button
         component={NextLink}
-        href={`/grading/papers/${nextPaperId ?? currentPaperId}`}
+        href={`/assessments/papers/${nextPaperId ?? currentPaperId}`}
         variant="outlined"
         disabled={nextPaperId == null}
       >

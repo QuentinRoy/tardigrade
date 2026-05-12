@@ -4,13 +4,13 @@ import Container from "@mui/material/Container";
 import Typography from "@mui/material/Typography";
 import { cacheTag } from "next/cache";
 import { notFound } from "next/navigation";
-import { loadAssessment } from "@/db/loadAssessment";
+import { attachAssessment } from "@/assessment/assessment";
+import PaperAssessmentClient from "@/assessment/PaperAssessmentClient";
+import { loadAssessment } from "@/db/assessments";
 import { loadPapers } from "@/db/papers";
 import { loadQuestion } from "@/db/questions";
-import { attachGrading } from "../../../../../../src/grading/grading";
-import PaperGradingClient from "../../../../../../src/grading/PaperGradingClient";
-import CodeSnippet from "../../../../../../src/shared/CodeSnippet";
-import MuiNextLink from "../../../../../../src/shared/MuiNextLink";
+import CodeSnippet from "@/shared/CodeSnippet";
+import MuiNextLink from "@/shared/MuiNextLink";
 
 type PageParams = {
   paperId: string;
@@ -49,8 +49,8 @@ async function QuestionHeaderSection({ questionId }: { questionId: string }) {
     <>
       <Box component="header" sx={{ pb: 2 }}>
         <Breadcrumbs aria-label="breadcrumb">
-          <MuiNextLink color="inherit" href="/grading">
-            Grading
+          <MuiNextLink color="inherit" href="/assessments">
+            Assessments
           </MuiNextLink>
           <Typography color="textPrimary">
             {question.label ?? questionId}
@@ -80,7 +80,7 @@ async function PaperRubricSection({
   questionId: string;
   paperId: string;
 }) {
-  const [question, papers, gradings] = await Promise.all([
+  const [question, papers, assessments] = await Promise.all([
     loadQuestion(questionId),
     loadPapers(),
     loadAssessment(paperId, questionId),
@@ -91,16 +91,16 @@ async function PaperRubricSection({
     notFound();
   }
 
-  const rubricsWithGradings = question.rubrics.map((rubric) =>
-    attachGrading(rubric, gradings.get(rubric.id)),
+  const rubricsWithAssessments = question.rubrics.map((rubric) =>
+    attachAssessment(rubric, assessments),
   );
 
   return (
-    <PaperGradingClient
+    <PaperAssessmentClient
       key={`${questionId}-${paperId}`}
       questionId={questionId}
       questionLabel={question.label}
-      rubrics={rubricsWithGradings}
+      rubrics={rubricsWithAssessments}
       papers={papers}
       currentPaperId={paperId}
     />

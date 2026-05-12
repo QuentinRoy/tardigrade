@@ -3,19 +3,19 @@ import LinearProgress from "@mui/material/LinearProgress";
 import Typography from "@mui/material/Typography";
 import type { ReactElement } from "react";
 
-type GradingProgressSummaryProps = {
+type AssessmentProgressSummaryProps = {
   marks: number;
   maxMarks: number;
   completedRubrics: number;
   totalRubrics: number;
 };
 
-export default function GradingProgressSummary({
+export default function AssessmentProgressSummary({
   marks,
   maxMarks,
   completedRubrics,
   totalRubrics,
-}: GradingProgressSummaryProps): ReactElement {
+}: AssessmentProgressSummaryProps): ReactElement {
   const safeCompletedRubrics = Math.max(
     0,
     Math.min(completedRubrics, totalRubrics),

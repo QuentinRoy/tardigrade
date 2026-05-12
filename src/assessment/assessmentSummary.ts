@@ -1,7 +1,7 @@
 import { getRubricMaxMarks, scoreToMarks } from "../rubrics/rubric";
-import type { GradedRubric } from "./grading";
+import type { AssessedRubric } from "./assessment";
 
-export type GradingSummary = {
+export type AssessmentSummary = {
   marks: number;
   maxMarks: number;
   completedRubrics: number;
@@ -12,9 +12,9 @@ export type GradingSummary = {
 
 function accumulateRubricMarks(
   summary: { marks: number; maxMarks: number },
-  rubric: GradedRubric,
+  rubric: AssessedRubric,
 ) {
-  if (rubric.grading == null) {
+  if (rubric.assessment == null) {
     return;
   }
 
@@ -22,21 +22,21 @@ function accumulateRubricMarks(
   summary.maxMarks += rubricMarks;
 
   if (rubric.type === "boolean") {
-    if (rubric.grading === true) {
+    if (rubric.assessment.passed) {
       summary.marks += rubricMarks;
     }
     return;
   }
 
   if (rubric.type === "ordinal") {
-    summary.marks += rubric.marks[rubric.grading] ?? 0;
+    summary.marks += rubric.marks[rubric.assessment.selectedLabel] ?? 0;
     return;
   }
 
-  summary.marks += scoreToMarks(rubric, rubric.grading);
+  summary.marks += scoreToMarks(rubric, rubric.assessment.score);
 }
 
-export function summarizeRubrics(rubrics: GradedRubric[]): GradingSummary {
+export function summarizeRubrics(rubrics: AssessedRubric[]): AssessmentSummary {
   const summary = {
     marks: 0,
     maxMarks: 0,
@@ -46,7 +46,7 @@ export function summarizeRubrics(rubrics: GradedRubric[]): GradingSummary {
 
   rubrics.forEach((rubric) => {
     summary.totalRubrics += 1;
-    if (rubric.grading != null) {
+    if (rubric.assessment != null) {
       summary.completedRubrics += 1;
     }
     accumulateRubricMarks(summary, rubric);
@@ -56,8 +56,8 @@ export function summarizeRubrics(rubrics: GradedRubric[]): GradingSummary {
 }
 
 export function summarizeQuestionSections(
-  questions: Array<{ rubrics: GradedRubric[] }>,
-): GradingSummary {
+  questions: Array<{ rubrics: AssessedRubric[] }>,
+): AssessmentSummary {
   const summary = {
     marks: 0,
     maxMarks: 0,
@@ -72,7 +72,7 @@ export function summarizeQuestionSections(
     question.rubrics.forEach((rubric) => {
       summary.totalRubrics += 1;
 
-      if (rubric.grading != null) {
+      if (rubric.assessment != null) {
         summary.completedRubrics += 1;
         accumulateRubricMarks(summary, rubric);
       } else {

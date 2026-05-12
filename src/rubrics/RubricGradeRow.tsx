@@ -5,17 +5,18 @@ import CircularProgress from "@mui/material/CircularProgress";
 import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
 import { type ReactElement } from "react";
-import type { GradedRubric } from "../grading/grading";
+import type { AssessedRubric } from "../assessment/assessment";
+import type { AssessmentRubricValue } from "../db/types";
 import BooleanGradeControl from "./BooleanGradeControl";
 import NumericalGradeControl from "./NumericalGradeControl";
 import OrdinalGradeControl from "./OrdinalGradeControl";
 import { getRubricMaxMarks as computeMarks } from "./rubric";
 
 type RubricGradeRowProps = {
-  rubric: GradedRubric;
+  rubric: AssessedRubric;
   isPending: boolean;
   disabled: boolean;
-  onGrade: (grading: boolean | number | string) => void;
+  onGrade: (assessment: AssessmentRubricValue) => void;
 };
 
 export default function RubricGradeRow({
@@ -24,7 +25,7 @@ export default function RubricGradeRow({
   disabled,
   onGrade,
 }: RubricGradeRowProps): ReactElement {
-  const { description, grading, id, label, type } = rubric;
+  const { description, assessment, id, label, type } = rubric;
   const displayDescription = description ?? label ?? id;
   const rubricMarks = computeMarks(rubric);
 
@@ -33,28 +34,46 @@ export default function RubricGradeRow({
   if (type === "ordinal") {
     control = (
       <OrdinalGradeControl
-        grading={grading}
+        value={assessment?.selectedLabel}
         marks={rubric.marks}
         disabled={disabled}
-        onGrade={onGrade}
+        onGrade={(selectedLabel) =>
+          onGrade({
+            rubricId: id,
+            type: "ordinal",
+            selectedLabel,
+          })
+        }
       />
     );
   } else if (type === "numerical") {
     control = (
       <NumericalGradeControl
-        grading={grading}
+        value={assessment?.score}
         minScore={rubric.minScore}
         maxScore={rubric.maxScore}
         disabled={disabled}
-        onGrade={onGrade}
+        onGrade={(score) =>
+          onGrade({
+            rubricId: id,
+            type: "numerical",
+            score,
+          })
+        }
       />
     );
   } else {
     control = (
       <BooleanGradeControl
-        grading={grading}
+        value={assessment?.passed}
         disabled={disabled}
-        onGrade={onGrade}
+        onGrade={(passed) =>
+          onGrade({
+            rubricId: id,
+            type: "boolean",
+            passed,
+          })
+        }
       />
     );
   }

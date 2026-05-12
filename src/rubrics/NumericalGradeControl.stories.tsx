@@ -22,17 +22,17 @@ type Story = StoryObj<typeof meta>;
 export const Unset: Story = {};
 
 export const WithValue: Story = {
-  args: { grading: 7 },
+  args: { value: 7 },
 };
 
 export const AtMin: Story = {
-  args: { grading: 0 },
+  args: { value: 0 },
 };
 
 export const AtMax: Story = {
-  args: { grading: 10 },
+  args: { value: 10 },
 };
 
 export const Disabled: Story = {
-  args: { grading: 5, disabled: true },
+  args: { value: 5, disabled: true },
 };

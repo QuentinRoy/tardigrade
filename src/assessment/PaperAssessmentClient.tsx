@@ -5,30 +5,30 @@ import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
 import NextLink from "next/link";
 import type { ReactElement } from "react";
-import type { Paper } from "../db/papers";
+import type { AssessmentRubricValue, Paper } from "../db/types";
 import { type SaveError, useSaveErrors } from "../shared/SaveErrorsProvider";
-import GradingProgressSummary from "./GradingProgressSummary";
-import { type GradedRubric, type Grading } from "./grading";
-import { summarizeRubrics } from "./gradingSummary";
+import AssessmentProgressSummary from "./AssessmentProgressSummary";
+import { type AssessedRubric } from "./assessment";
+import { summarizeRubrics } from "./assessmentSummary";
 import RubricGradeList from "./RubricGradeList";
-import { saveRubricGrading } from "./saveRubricGrading";
-import { useGradingSession } from "./useGradingSession";
+import { saveAssessment } from "./saveAssessment";
+import { useAssessmentSession } from "./useAssessmentSession";
 
-type PaperGradingClientProps = {
+type PaperAssessmentClientProps = {
   questionId: string;
   questionLabel?: string;
-  rubrics: GradedRubric[];
+  rubrics: AssessedRubric[];
   papers: Paper[];
   currentPaperId: string;
 };
 
-export default function PaperGradingClient({
+export default function PaperAssessmentClient({
   questionId,
   questionLabel,
   rubrics: initialRubrics,
   papers,
   currentPaperId,
-}: PaperGradingClientProps): ReactElement {
+}: PaperAssessmentClientProps): ReactElement {
   const { addError } = useSaveErrors();
   const currentPaperLabel = papers.find(
     (paper) => paper.id === currentPaperId,
@@ -42,16 +42,18 @@ export default function PaperGradingClient({
     optimisticRubrics,
     pendingByIndex,
     grade,
-  } = useGradingSession<Omit<SaveError, "id">>({
+  } = useAssessmentSession<Omit<SaveError, "id">>({
     initialRubrics,
     papers,
     currentPaperId,
-    saveRubric: async (rubric: GradedRubric, grading: Grading) => {
-      const result = await saveRubricGrading({
+    saveRubric: async (
+      _rubric: AssessedRubric,
+      rubric: AssessmentRubricValue,
+    ) => {
+      const result = await saveAssessment({
         paperId: currentPaperId,
         questionId,
-        rubricId: rubric.id,
-        grading,
+        rubric,
       });
       if (result.success) {
         return { success: true };
@@ -105,7 +107,7 @@ export default function PaperGradingClient({
       <Box sx={{ mb: 4, display: "flex", gap: 1, flexWrap: "wrap" }}>
         <Button
           component={NextLink}
-          href={`/grading/papers/${previousPaper?.id ?? currentPaperId}/questions/${questionId}`}
+          href={`/assessments/papers/${previousPaper?.id ?? currentPaperId}/questions/${questionId}`}
           variant="outlined"
           color={isCompleted ? "primary" : "secondary"}
           disabled={previousPaper == null}
@@ -114,7 +116,7 @@ export default function PaperGradingClient({
         </Button>
         <Button
           component={NextLink}
-          href={`/grading/papers/${nextPaper?.id ?? currentPaperId}/questions/${questionId}`}
+          href={`/assessments/papers/${nextPaper?.id ?? currentPaperId}/questions/${questionId}`}
           variant="outlined"
           color={isCompleted ? "primary" : "secondary"}
           disabled={nextPaper == null}
@@ -130,10 +132,10 @@ export default function PaperGradingClient({
         rubrics={optimisticRubrics}
         pendingByIndex={pendingByIndex}
         disabled={currentPaper == null}
-        onGrade={(index, grading) => grade(index, grading)}
+        onGrade={(index, assessment) => grade(index, assessment)}
       />
 
-      <GradingProgressSummary
+      <AssessmentProgressSummary
         marks={marks}
         maxMarks={maxMarks}
         completedRubrics={completedRubrics}

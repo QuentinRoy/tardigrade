@@ -7,17 +7,17 @@ import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import type { ReactElement } from "react";
 
 type BooleanGradeControlProps = {
-  grading?: boolean;
+  value?: boolean;
   disabled: boolean;
-  onGrade: (grading: boolean) => void;
+  onGrade: (value: boolean) => void;
 };
 
 export default function BooleanGradeControl({
-  grading,
+  value,
   disabled,
   onGrade,
 }: BooleanGradeControlProps): ReactElement {
-  const buttonValue = grading ?? null;
+  const buttonValue = value ?? null;
 
   return (
     <ToggleButtonGroup
@@ -28,14 +28,14 @@ export default function BooleanGradeControl({
           onGrade(value);
         }
       }}
-      aria-label="Boolean rubric grading"
+      aria-label="Boolean rubric assessment"
       disabled={disabled}
     >
       <ToggleButton size="small" value={true} aria-label="true" color="primary">
-        <CheckIcon color={grading === true ? "primary" : "inherit"} />
+        <CheckIcon color={value === true ? "primary" : "inherit"} />
       </ToggleButton>
       <ToggleButton size="small" value={false} color="error" aria-label="false">
-        <CrossIcon color={grading === false ? "error" : "inherit"} />
+        <CrossIcon color={value === false ? "error" : "inherit"} />
       </ToggleButton>
     </ToggleButtonGroup>
   );

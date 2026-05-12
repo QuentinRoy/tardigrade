@@ -6,8 +6,8 @@ import { SaveErrorsDisplay } from "@/shared/SaveErrorsDisplay";
 import { SaveErrorsProvider } from "@/shared/SaveErrorsProvider";
 
 export const metadata = {
-  title: "Grading",
-  description: "Simple grading helper for rubric-based evaluation",
+  title: "Assessment",
+  description: "Simple assessment helper for rubric-based evaluation",
 };
 
 type RootLayoutProps = {

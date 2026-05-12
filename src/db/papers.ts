@@ -1,11 +1,6 @@
 import { cacheLife, cacheTag } from "next/cache";
 import { prisma } from "./prisma";
-
-export type Paper = {
-  id: string;
-  label: string;
-  team?: string;
-};
+import type { Paper } from "./types";
 
 async function loadPapersFromDb() {
   "use cache";

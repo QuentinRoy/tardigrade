@@ -29,11 +29,11 @@ type Story = StoryObj<typeof meta>;
 export const Unset: Story = {};
 
 export const Selected: Story = {
-  args: { grading: "Good" },
+  args: { value: "Good" },
 };
 
 export const Disabled: Story = {
-  args: { grading: "Satisfactory", disabled: true },
+  args: { value: "Satisfactory", disabled: true },
 };
 
 export const TwoValues: Story = {

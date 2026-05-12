@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/nextjs";
-import GradingProgressSummary from "./GradingProgressSummary";
+import AssessmentProgressSummary from "./AssessmentProgressSummary";
 
 const meta = {
-  title: "Grading/GradingProgressSummary",
-  component: GradingProgressSummary,
+  title: "Assessment/AssessmentProgressSummary",
+  component: AssessmentProgressSummary,
   tags: ["autodocs"],
   parameters: { layout: "centered" },
   args: {
@@ -12,7 +12,7 @@ const meta = {
     completedRubrics: 2,
     totalRubrics: 3,
   },
-} satisfies Meta<typeof GradingProgressSummary>;
+} satisfies Meta<typeof AssessmentProgressSummary>;
 
 export default meta;
 

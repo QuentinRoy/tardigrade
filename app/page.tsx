@@ -1,7 +1,7 @@
 import { Button, Container, Typography } from "@mui/material";
 import { Suspense } from "react";
-import { loadGlobalProgress } from "@/db/gradingProgress";
-import GlobalGradingSummary from "@/grading/GlobalGradingSummary";
+import GlobalAssessmentSummary from "@/assessment/GlobalAssessmentSummary";
+import { loadGlobalAssessmentProgress } from "@/db/assessmentsProgress";
 
 export default function HomePage() {
   return (
@@ -12,20 +12,20 @@ export default function HomePage() {
 }
 
 async function HomePageContent() {
-  const progress = await loadGlobalProgress();
+  const progress = await loadGlobalAssessmentProgress();
 
   return (
     <Container component="main" maxWidth="md" sx={{ py: 5 }}>
       <Typography component="h1" variant="h2">
-        Grading
+        Assessments
       </Typography>
       <Button href="/import" sx={{ my: 2 }} variant="outlined">
         Import rubric and student data
       </Button>
-      <Button href="/grading" sx={{ my: 2, ml: 1 }} variant="contained">
-        Open grading
+      <Button href="/assessments" sx={{ my: 2, ml: 1 }} variant="contained">
+        Open assessments
       </Button>
-      <GlobalGradingSummary progress={progress} />
+      <GlobalAssessmentSummary progress={progress} />
     </Container>
   );
 }

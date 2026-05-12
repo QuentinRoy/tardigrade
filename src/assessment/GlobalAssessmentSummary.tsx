@@ -3,10 +3,10 @@ import LinearProgress from "@mui/material/LinearProgress";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import type { ReactElement } from "react";
-import type { GlobalGradingProgress } from "../db/gradingProgress";
+import type { GlobalAssessmentProgress } from "../db/types";
 
-type GlobalGradingSummaryProps = {
-  progress: GlobalGradingProgress;
+type GlobalAssessmentSummaryProps = {
+  progress: GlobalAssessmentProgress;
 };
 
 type MetricCardProps = {
@@ -53,30 +53,30 @@ function MetricCard({
   );
 }
 
-export default function GlobalGradingSummary({
+export default function GlobalAssessmentSummary({
   progress,
-}: GlobalGradingSummaryProps): ReactElement {
+}: GlobalAssessmentSummaryProps): ReactElement {
   return (
     <Box sx={{ my: 3 }}>
       <Typography variant="h6" sx={{ mb: 1.5 }}>
-        Grading Progress
+        Assessment Progress
       </Typography>
       <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap" }}>
         <MetricCard
-          title="Rubrics graded"
-          helper="Saved rubric scores across all papers"
+          title="Rubrics assessed"
+          helper="Saved rubric assessments across all papers"
           completed={progress.rubrics.completed}
           total={progress.rubrics.total}
         />
         <MetricCard
-          title="Questions graded"
-          helper="Fully graded across all papers"
+          title="Questions assessed"
+          helper="Fully assessed across all papers"
           completed={progress.questions.completed}
           total={progress.questions.total}
         />
         <MetricCard
-          title="Papers graded"
-          helper="Fully graded across all questions"
+          title="Papers assessed"
+          helper="Fully assessed across all questions"
           completed={progress.papers.completed}
           total={progress.papers.total}
         />

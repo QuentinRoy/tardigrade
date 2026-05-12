@@ -1,18 +1,8 @@
 import { cacheLife, cacheTag } from "next/cache";
 import { prisma } from "./prisma";
+import type { GlobalAssessmentProgress } from "./types";
 
-type ProgressMetric = {
-  completed: number;
-  total: number;
-};
-
-export type GlobalGradingProgress = {
-  papers: ProgressMetric;
-  questions: ProgressMetric;
-  rubrics: ProgressMetric;
-};
-
-async function loadGlobalProgressFromDb(): Promise<GlobalGradingProgress> {
+async function loadGlobalAssessmentProgressFromDb(): Promise<GlobalAssessmentProgress> {
   "use cache";
   cacheTag("questions");
   cacheTag("papers");
@@ -119,6 +109,6 @@ async function loadGlobalProgressFromDb(): Promise<GlobalGradingProgress> {
   };
 }
 
-export async function loadGlobalProgress(): Promise<GlobalGradingProgress> {
-  return loadGlobalProgressFromDb();
+export async function loadGlobalAssessmentProgress(): Promise<GlobalAssessmentProgress> {
+  return loadGlobalAssessmentProgressFromDb();
 }

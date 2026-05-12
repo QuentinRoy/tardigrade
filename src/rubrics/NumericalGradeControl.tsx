@@ -4,25 +4,25 @@ import TextField from "@mui/material/TextField";
 import { type ReactElement, useEffect, useState } from "react";
 
 type NumericalGradeControlProps = {
-  grading?: number;
+  value?: number;
   minScore: number;
   maxScore: number;
   disabled: boolean;
-  onGrade: (grading: number) => void;
+  onGrade: (value: number) => void;
 };
 
 export default function NumericalGradeControl({
-  grading,
+  value,
   minScore,
   maxScore,
   disabled,
   onGrade,
 }: NumericalGradeControlProps): ReactElement {
-  const [draft, setDraft] = useState(grading != null ? String(grading) : "");
+  const [draft, setDraft] = useState(value != null ? String(value) : "");
 
   useEffect(() => {
-    setDraft(grading != null ? String(grading) : "");
-  }, [grading]);
+    setDraft(value != null ? String(value) : "");
+  }, [value]);
 
   function submit() {
     const trimmed = draft.trim();
@@ -30,7 +30,7 @@ export default function NumericalGradeControl({
       return;
     }
     let parsed = Number(trimmed);
-    if (!Number.isFinite(parsed) || parsed === grading) {
+    if (!Number.isFinite(parsed) || parsed === value) {
       return;
     }
     if (parsed < minScore) parsed = minScore;

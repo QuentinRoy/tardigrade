@@ -1,19 +1,7 @@
 import { type Prisma, RubricType } from "@prisma/client";
 import { cacheLife, cacheTag } from "next/cache";
-import type { Rubric } from "../rubrics/rubric";
 import { prisma } from "./prisma";
-
-export type { Rubric } from "../rubrics/rubric";
-
-export type Question = {
-  label?: string;
-  rubrics: Rubric[];
-  solution?: string;
-};
-
-export type Grid = {
-  [id: string]: Question;
-};
+import type { Grid, Question, Rubric } from "./types";
 
 function toNumber(value: Prisma.Decimal | number): number {
   if (typeof value === "number") return value;

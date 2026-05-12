@@ -33,7 +33,7 @@ export function SaveErrorsDisplay() {
           variant="filled"
           onClose={() => dismissError(error.id)}
         >
-          Failed to save grading for{" "}
+          Failed to save assessment for{" "}
           <Link
             component={NextLink}
             href={`/${error.questionId}/${error.paperId}`}

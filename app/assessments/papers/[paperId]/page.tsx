@@ -3,12 +3,12 @@ import Breadcrumbs from "@mui/material/Breadcrumbs";
 import Container from "@mui/material/Container";
 import Typography from "@mui/material/Typography";
 import { notFound } from "next/navigation";
-import { loadAssessment } from "@/db/loadAssessment";
+import { attachAssessment } from "@/assessment/assessment";
+import { loadAssessment } from "@/db/assessments";
 import { loadPapers } from "@/db/papers";
 import { loadQuestions } from "@/db/questions";
-import { attachGrading } from "@/grading/grading";
 import MuiNextLink from "@/shared/MuiNextLink";
-import PaperOverviewGradingClient from "../../../../src/grading/PaperOverviewGradingClient";
+import PaperOverviewAssessmentClient from "../../../../src/assessment/PaperOverviewAssessmentClient";
 
 type PageParams = {
   paperId: string;
@@ -51,7 +51,7 @@ async function PaperPageContent({ params }: PaperPageProps) {
     questionId: question.questionId,
     questionLabel: question.questionLabel,
     rubrics: question.rubrics.map((rubric) =>
-      attachGrading(rubric, assessments[index].get(rubric.id)),
+      attachAssessment(rubric, assessments[index]),
     ),
   }));
 
@@ -59,8 +59,8 @@ async function PaperPageContent({ params }: PaperPageProps) {
     <Container maxWidth="md" sx={{ py: 5 }}>
       <Box component="header" sx={{ pb: 2 }}>
         <Breadcrumbs aria-label="breadcrumb">
-          <MuiNextLink color="inherit" href="/grading">
-            Grading
+          <MuiNextLink color="inherit" href="/assessments">
+            Assessments
           </MuiNextLink>
           <Typography color="textPrimary">{currentPaper.label}</Typography>
         </Breadcrumbs>
@@ -69,7 +69,7 @@ async function PaperPageContent({ params }: PaperPageProps) {
         </Typography>
       </Box>
 
-      <PaperOverviewGradingClient
+      <PaperOverviewAssessmentClient
         currentPaperId={paperId}
         papers={papers}
         questions={gradedQuestions}

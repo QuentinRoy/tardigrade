@@ -5,21 +5,21 @@ import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import type { ReactElement } from "react";
 
 type OrdinalGradeControlProps = {
-  grading?: string;
+  value?: string;
   marks: Record<string, number>;
   disabled: boolean;
-  onGrade: (grading: string) => void;
+  onGrade: (value: string) => void;
 };
 
 export default function OrdinalGradeControl({
-  grading,
+  value,
   marks,
   disabled,
   onGrade,
 }: OrdinalGradeControlProps): ReactElement {
   return (
     <ToggleButtonGroup
-      value={grading ?? null}
+      value={value ?? null}
       orientation="vertical"
       exclusive
       onChange={(_, value: string | null) => {
@@ -27,7 +27,7 @@ export default function OrdinalGradeControl({
           onGrade(value);
         }
       }}
-      aria-label="Ordinal rubric grading"
+      aria-label="Ordinal rubric assessment"
       disabled={disabled}
     >
       {Object.entries(marks).map(([valueLabel, valueScore]) => (

@@ -236,7 +236,7 @@ export default function ImportPageClient({
             Load question rubrics and student or team data into PostgreSQL.
           </Typography>
           <Link component={NextLink} href="/" underline="hover">
-            Back to grading home
+            Back to assessments home
           </Link>
         </Box>
 

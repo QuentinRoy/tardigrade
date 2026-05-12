@@ -2,14 +2,15 @@
 
 import Grid from "@mui/material/Grid";
 import type { ReactElement } from "react";
+import type { AssessmentRubricValue } from "../db/types";
 import RubricGradeRow from "../rubrics/RubricGradeRow";
-import type { GradedRubric, Grading } from "./grading";
+import type { AssessedRubric } from "./assessment";
 
-type RubricGradingSectionProps = {
-  rubrics: GradedRubric[];
+type RubricAssessmentSectionProps = {
+  rubrics: AssessedRubric[];
   pendingByIndex: Record<number, number>;
   disabled: boolean;
-  onGrade: (index: number, grading: Grading) => void;
+  onGrade: (index: number, assessment: AssessmentRubricValue) => void;
 };
 
 export default function RubricGradeList({
@@ -17,8 +18,9 @@ export default function RubricGradeList({
   pendingByIndex,
   disabled,
   onGrade,
-}: RubricGradingSectionProps): ReactElement {
-  const handleGrade = (index: number, value: Grading) => onGrade(index, value);
+}: RubricAssessmentSectionProps): ReactElement {
+  const handleAssessment = (index: number, assessment: AssessmentRubricValue) =>
+    onGrade(index, assessment);
 
   return (
     <Grid container spacing={2} sx={{ mb: 2, alignItems: "center" }}>
@@ -31,7 +33,7 @@ export default function RubricGradeList({
             rubric={rubric}
             isPending={isPending}
             disabled={disabled}
-            onGrade={(value) => handleGrade(index, value)}
+            onGrade={(assessment) => handleAssessment(index, assessment)}
           />
         );
       })}

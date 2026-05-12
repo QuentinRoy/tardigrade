@@ -46,7 +46,7 @@ export const BooleanGraded: Story = {
       marks: 2,
       label: "Correct answer",
       description: "The student provided the correct final answer.",
-      grading: true,
+      assessment: { passed: true },
     },
   },
 };
@@ -59,7 +59,7 @@ export const BooleanPending: Story = {
       type: "boolean",
       marks: 2,
       label: "Correct answer",
-      grading: true,
+      assessment: { passed: true },
     },
   },
 };
@@ -90,7 +90,7 @@ export const NumericalGraded: Story = {
       maxMarks: 5,
       label: "Quality of explanation",
       description: "Rate the quality of the student's explanation from 0 to 5.",
-      grading: 3,
+      assessment: { score: 3 },
     },
   },
 };
@@ -113,7 +113,7 @@ export const OrdinalGraded: Story = {
       type: "ordinal",
       marks: { Excellent: 4, Good: 3, Satisfactory: 2, Poor: 1 },
       label: "Overall performance",
-      grading: "Good",
+      assessment: { selectedLabel: "Good" },
     },
   },
 };
@@ -126,7 +126,7 @@ export const Disabled: Story = {
       type: "boolean",
       marks: 1,
       label: "Read-only rubric",
-      grading: false,
+      assessment: { passed: false },
     },
   },
 };

@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/nextjs";
-import GlobalGradingSummary from "./GlobalGradingSummary";
+import GlobalAssessmentSummary from "./GlobalAssessmentSummary";
 
 const meta = {
-  title: "Grading/GlobalGradingSummary",
-  component: GlobalGradingSummary,
+  title: "Assessment/GlobalAssessmentSummary",
+  component: GlobalAssessmentSummary,
   tags: ["autodocs"],
   parameters: { layout: "padded" },
   args: {
@@ -13,7 +13,7 @@ const meta = {
       rubrics: { completed: 120, total: 360 },
     },
   },
-} satisfies Meta<typeof GlobalGradingSummary>;
+} satisfies Meta<typeof GlobalAssessmentSummary>;
 
 export default meta;
 
@@ -41,7 +41,7 @@ export const Completed: Story = {
   },
 };
 
-export const EmptyGrading: Story = {
+export const EmptyAssessment: Story = {
   args: {
     progress: {
       papers: { completed: 0, total: 0 },

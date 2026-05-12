@@ -2,52 +2,52 @@
 
 import { produce } from "immer";
 import { startTransition, useOptimistic, useReducer } from "react";
-import type { Paper } from "../db/papers";
-import { attachGrading, type GradedRubric, type Grading } from "./grading";
+import type { AssessmentRubricValue, Paper } from "../db/types";
+import { type AssessedRubric, attachAssessment } from "./assessment";
 import { getPaperNavigation } from "./paperNavigation";
 
 export type SaveRubricResult<TError> =
   | { success: true }
   | { success: false; error: TError };
 
-export type UseGradingSessionConfig<TError> = {
-  initialRubrics: GradedRubric[];
+export type UseAssessmentSessionConfig<TError> = {
+  initialRubrics: AssessedRubric[];
   papers: Paper[];
   currentPaperId: string;
   saveRubric: (
-    rubric: GradedRubric,
-    grading: Grading,
+    rubric: AssessedRubric,
+    assessment: AssessmentRubricValue,
   ) => Promise<SaveRubricResult<TError>>;
   onError: (error: TError) => void;
 };
 
-export type UseGradingSessionResult = {
+export type UseAssessmentSessionResult = {
   currentPaperIndex: number;
   currentPaper: Paper | undefined;
   previousPaper: Paper | undefined;
   nextPaper: Paper | undefined;
-  optimisticRubrics: GradedRubric[];
+  optimisticRubrics: AssessedRubric[];
   pendingByIndex: Record<number, number>;
-  grade: (index: number, grading: Grading) => void;
+  grade: (index: number, assessment: AssessmentRubricValue) => void;
 };
 
 type State = {
-  savedRubrics: GradedRubric[];
+  savedRubrics: AssessedRubric[];
   pendingByIndex: Record<number, number>;
 };
 
 type Action =
   | { type: "save-start"; index: number }
-  | { type: "save-success"; index: number; grading: Grading }
+  | { type: "save-success"; index: number; assessment: AssessmentRubricValue }
   | { type: "save-failure"; index: number };
 
-export function useGradingSession<TError>({
+export function useAssessmentSession<TError>({
   initialRubrics,
   papers,
   currentPaperId,
   saveRubric,
   onError,
-}: UseGradingSessionConfig<TError>): UseGradingSessionResult {
+}: UseAssessmentSessionConfig<TError>): UseAssessmentSessionResult {
   const [{ savedRubrics, pendingByIndex }, dispatch] = useReducer(reducer, {
     savedRubrics: initialRubrics,
     pendingByIndex: {},
@@ -55,32 +55,37 @@ export function useGradingSession<TError>({
 
   const [optimisticRubrics, addOptimisticUpdate] = useOptimistic(
     savedRubrics,
-    (current, { index, grading }: { index: number; grading: Grading }) =>
+    (
+      current,
+      {
+        index,
+        assessment,
+      }: { index: number; assessment: AssessmentRubricValue },
+    ) =>
       current.map((rubric, i) =>
-        i === index ? attachGrading(rubric, grading) : rubric,
+        i === index ? attachAssessment(rubric, assessment) : rubric,
       ),
   );
 
   const { currentPaperIndex, currentPaper, previousPaper, nextPaper } =
     getPaperNavigation(papers, currentPaperId);
 
-  function grade(index: number, grading: Grading) {
+  function grade(index: number, assessment: AssessmentRubricValue) {
     const rubric = savedRubrics[index];
-    const currentGrading = optimisticRubrics[index]?.grading;
 
-    if (rubric == null || currentGrading === grading) {
+    if (rubric == null || isSameAssessment(rubric, assessment)) {
       return;
     }
 
     dispatch({ type: "save-start", index });
 
     startTransition(async () => {
-      addOptimisticUpdate({ index, grading });
+      addOptimisticUpdate({ index, assessment });
 
-      const result = await saveRubric(rubric, grading);
+      const result = await saveRubric(rubric, assessment);
 
       if (result.success) {
-        dispatch({ type: "save-success", index, grading });
+        dispatch({ type: "save-success", index, assessment });
         return;
       }
 
@@ -114,9 +119,9 @@ function reducer(state: State, action: Action): State {
           (draft.pendingByIndex[action.index] ?? 0) - 1,
         );
         if (draft.savedRubrics[action.index] != null) {
-          draft.savedRubrics[action.index] = attachGrading(
+          draft.savedRubrics[action.index] = attachAssessment(
             draft.savedRubrics[action.index],
-            action.grading,
+            action.assessment,
           );
         }
         break;
@@ -132,4 +137,33 @@ function reducer(state: State, action: Action): State {
         break;
     }
   });
+}
+
+function isSameAssessment(
+  rubric: AssessedRubric,
+  right: AssessmentRubricValue,
+): boolean {
+  if (
+    rubric.assessment == null ||
+    right.rubricId !== rubric.id ||
+    right.type !== rubric.type
+  ) {
+    return false;
+  }
+
+  if (right.type === "boolean") {
+    const assessment =
+      rubric.assessment as AssessedRubric<"boolean">["assessment"];
+    return assessment?.passed === right.passed;
+  }
+
+  if (right.type === "ordinal") {
+    const assessment =
+      rubric.assessment as AssessedRubric<"ordinal">["assessment"];
+    return assessment?.selectedLabel === right.selectedLabel;
+  }
+
+  const assessment =
+    rubric.assessment as AssessedRubric<"numerical">["assessment"];
+  return assessment?.score === right.score;
 }
