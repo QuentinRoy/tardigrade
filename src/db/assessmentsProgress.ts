@@ -32,7 +32,7 @@ async function loadGlobalAssessmentProgressFromDb(): Promise<GlobalAssessmentPro
   const totalSubmissions = submissions.length;
   const totalQuestions = questions.length;
 
-  const rubricCountByQuestionId = new Map(
+  const rubricCountByQuestionId = new Map<string, number>(
     questions.map((question) => [question.id, question._count.rubrics]),
   );
 
@@ -47,10 +47,10 @@ async function loadGlobalAssessmentProgressFromDb(): Promise<GlobalAssessmentPro
     (question) => question._count.rubrics === 0,
   ).length;
 
-  const completedQuestionAssessmentsByQuestionId = new Map(
+  const completedQuestionAssessmentsByQuestionId = new Map<string, number>(
     questions.map((question) => [question.id, 0]),
   );
-  const completedQuestionAssessmentsBySubmissionId = new Map(
+  const completedQuestionAssessmentsBySubmissionId = new Map<string, number>(
     submissions.map((submission) => [submission.id, zeroRubricQuestionCount]),
   );
 

@@ -42,6 +42,13 @@ export default function ImportMenu(): ReactElement {
         <MenuItem onClick={handleClose} component="a" href="/import/students">
           Import Students
         </MenuItem>
+        <MenuItem
+          onClick={handleClose}
+          component="a"
+          href="/import/assessments"
+        >
+          Import Assessments
+        </MenuItem>
       </Menu>
     </>
   );
