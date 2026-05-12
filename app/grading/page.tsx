@@ -6,17 +6,12 @@ import {
   ListItemText,
   Typography,
 } from "@mui/material";
-import { Suspense } from "react";
 import loadPapers from "../../src/papers/loadPapers";
 import loadQuestions from "../../src/questions/loadQuestions";
 import QuestionList from "../../src/questions/QuestionList";
 
 export default function GradingPage() {
-  return (
-    <Suspense>
-      <GradingPageContent />
-    </Suspense>
-  );
+  return <GradingPageContent />;
 }
 
 async function GradingPageContent() {
