@@ -36,23 +36,22 @@ export default function QuestionsImportForm({
             A top-level <code>questions</code> array of question objects. Each
             question requires a stable <code>id</code>, has an optional{" "}
             <code>label</code>, and a <code>rubrics</code> array. Each rubric
-            requires a stable <code>id</code>, accepts an optional{" "}
+            requires a stable <code>id</code>, and accepts an optional{" "}
             <code>description</code> and <code>label</code>. Boolean rubrics use{" "}
             <code>marks</code>, ordinal rubrics use <code>marks</code>, and
             numerical rubrics use <code>minScore</code>/<code>maxScore</code>{" "}
-            and/or
-            <code>minMarks</code>/<code>maxMarks</code>.
+            and/or <code>minMarks</code>/<code>maxMarks</code>. Numerical
+            rubrics can also set <code>reversed: true</code> to map the highest
+            score to the lowest mark.
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
             Numerical defaults and rules: <code>minScore</code> defaults to{" "}
-            <code>0</code>,<code>maxScore</code> defaults to <code>1</code>. If{" "}
+            <code>0</code>, <code>maxScore</code> defaults to <code>1</code>. If{" "}
             <code>minScore</code> is provided, <code>maxScore</code> must be
             provided too. <code>minMarks</code>
             defaults to <code>0</code> when omitted; <code>maxMarks</code>{" "}
-            defaults to
-            <code>0</code> when omitted. At least one of <code>minMarks</code>/
-            <code>maxMarks</code>
-            must be provided.
+            defaults to <code>0</code> when omitted. At least one of{" "}
+            <code>minMarks</code>/<code>maxMarks</code> must be provided.
           </Typography>
           <Box
             component="pre"

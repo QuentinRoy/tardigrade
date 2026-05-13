@@ -33,6 +33,7 @@ export const numericalRubricSchema = baseRubricSchema
     maxScore: numericValue.optional(),
     minMarks: numericValue.optional(),
     maxMarks: numericValue.optional(),
+    reversed: z.boolean().optional(),
   })
   .refine((r) => r.minMarks != null || r.maxMarks != null, {
     message:
@@ -53,6 +54,7 @@ export const numericalRubricSchema = baseRubricSchema
     maxScore: r.maxScore ?? 1,
     minMarks: r.minMarks ?? 0,
     maxMarks: r.maxMarks ?? 0,
+    reversed: r.reversed ?? false,
   }))
   .refine((r) => r.minMarks <= r.maxMarks, {
     message: "minMarks must be less than or equal to maxMarks",

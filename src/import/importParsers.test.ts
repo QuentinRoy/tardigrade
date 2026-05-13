@@ -20,6 +20,25 @@ describe("parseQuestionsYaml", () => {
     expect(questions[0].rubrics[0].id).toBe("r1");
   });
 
+  it("parses reversed numerical rubrics", () => {
+    const questions = parseQuestionsYaml(`questions:
+  - id: q1
+    rubrics:
+      - id: r1
+        type: numerical
+        minScore: 0
+        maxScore: 10
+        minMarks: 0
+        maxMarks: 5
+        reversed: true`);
+
+    expect(questions[0].rubrics[0]).toMatchObject({
+      id: "r1",
+      type: "numerical",
+      reversed: true,
+    });
+  });
+
   it("parses rubric description", () => {
     const questions = parseQuestionsYaml(`questions:
   - id: q1

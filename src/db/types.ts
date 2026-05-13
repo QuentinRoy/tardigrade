@@ -85,6 +85,7 @@ export type Rubric =
         maxScore: number;
         minMarks: number;
         maxMarks: number;
+        reversed?: boolean;
       }
     >;
 

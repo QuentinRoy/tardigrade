@@ -97,7 +97,14 @@ async function loadQuestionPlan(): Promise<ExportQuestionPlan[]> {
       db.selectFrom("booleanRubric").select(["rubricId", "marks"]).execute(),
       db
         .selectFrom("numericalRubric")
-        .select(["rubricId", "minScore", "maxScore", "minMarks", "maxMarks"])
+        .select([
+          "rubricId",
+          "minScore",
+          "maxScore",
+          "minMarks",
+          "maxMarks",
+          "reversed",
+        ])
         .execute(),
       db
         .selectFrom("ordinalRubric")
@@ -178,6 +185,7 @@ async function loadQuestionPlan(): Promise<ExportQuestionPlan[]> {
           numericalRubric != null ? toNumber(numericalRubric.minMarks) : 0,
         maxMarks:
           numericalRubric != null ? toNumber(numericalRubric.maxMarks) : 0,
+        reversed: numericalRubric != null ? numericalRubric.reversed : false,
       };
     }),
   }));

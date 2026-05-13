@@ -44,6 +44,7 @@ export interface NumericalRubric {
   maxScore: Numeric;
   minMarks: Numeric;
   minScore: Numeric;
+  reversed: Generated<boolean>;
   rubricId: string;
 }
 

@@ -28,9 +28,14 @@ export function scoreToMarks(
     return rubric.minMarks;
   }
 
+  const reversed = rubric.reversed ?? false;
+
+  const scoreOffset = reversed
+    ? rubric.maxScore - score
+    : score - rubric.minScore;
+
   return (
     rubric.minMarks +
-    ((score - rubric.minScore) * (rubric.maxMarks - rubric.minMarks)) /
-      scoreRange
+    (scoreOffset * (rubric.maxMarks - rubric.minMarks)) / scoreRange
   );
 }

@@ -20,6 +20,7 @@ function toRubric(data: {
     maxScore: number;
     minMarks: number;
     maxMarks: number;
+    reversed: boolean;
   } | null;
 }): Rubric {
   if (data.type === "ordinal" && data.ordinalRubric) {
@@ -48,6 +49,7 @@ function toRubric(data: {
       maxScore: toNumber(data.numericalRubric.maxScore),
       minMarks: toNumber(data.numericalRubric.minMarks),
       maxMarks: toNumber(data.numericalRubric.maxMarks),
+      reversed: data.numericalRubric.reversed,
     };
   }
 
@@ -75,6 +77,7 @@ type QuestionRow = {
       maxScore: number;
       minMarks: number;
       maxMarks: number;
+      reversed: boolean;
     } | null;
   }[];
 };
@@ -106,7 +109,14 @@ async function loadQuestionsFromDb(): Promise<QuestionRow[]> {
       db.selectFrom("booleanRubric").select(["rubricId", "marks"]).execute(),
       db
         .selectFrom("numericalRubric")
-        .select(["rubricId", "minScore", "maxScore", "minMarks", "maxMarks"])
+        .select([
+          "rubricId",
+          "minScore",
+          "maxScore",
+          "minMarks",
+          "maxMarks",
+          "reversed",
+        ])
         .execute(),
       db
         .selectFrom("ordinalRubric")
@@ -137,6 +147,7 @@ async function loadQuestionsFromDb(): Promise<QuestionRow[]> {
         maxScore: row.maxScore,
         minMarks: row.minMarks,
         maxMarks: row.maxMarks,
+        reversed: row.reversed,
       },
     ]),
   );

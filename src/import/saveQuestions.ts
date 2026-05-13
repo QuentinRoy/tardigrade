@@ -46,6 +46,7 @@ export async function saveQuestions(questions: ImportedQuestions): Promise<{
               maxScore: rubric.maxScore,
               minMarks: rubric.minMarks,
               maxMarks: rubric.maxMarks,
+              reversed: rubric.reversed,
             },
           ]
         : [],
@@ -158,6 +159,7 @@ export async function saveQuestions(questions: ImportedQuestions): Promise<{
             maxScore: expressionBuilder.ref("excluded.maxScore"),
             minMarks: expressionBuilder.ref("excluded.minMarks"),
             maxMarks: expressionBuilder.ref("excluded.maxMarks"),
+            reversed: expressionBuilder.ref("excluded.reversed"),
           })),
         )
         .execute();

@@ -3,6 +3,7 @@ import type {
   Rubric,
   SubmissionSubmitter,
 } from "@/db/types";
+import { scoreToMarks } from "../rubrics/rubric";
 import { assertNever } from "../utils/utils";
 
 export type ExportInclude = "rubric-assessment" | "rubric-marks";
@@ -30,7 +31,13 @@ type ExportOrdinalRubricPlan = ExportRubricLabel &
 type ExportNumericalRubricPlan = ExportRubricLabel &
   Pick<
     RubricOfType<"numerical">,
-    "id" | "type" | "minScore" | "maxScore" | "minMarks" | "maxMarks"
+    | "id"
+    | "type"
+    | "minScore"
+    | "maxScore"
+    | "minMarks"
+    | "maxMarks"
+    | "reversed"
   >;
 
 export type ExportRubricPlan =
@@ -130,22 +137,6 @@ export function buildSubmissionExportHeaders(
   return headers;
 }
 
-function numericalScoreToMarks(
-  rubric: Extract<ExportRubricPlan, { type: "numerical" }>,
-  score: number,
-): number {
-  const scoreRange = rubric.maxScore - rubric.minScore;
-  if (scoreRange <= 0) {
-    return rubric.minMarks;
-  }
-
-  return (
-    rubric.minMarks +
-    ((score - rubric.minScore) * (rubric.maxMarks - rubric.minMarks)) /
-      scoreRange
-  );
-}
-
 function getRubricAssessmentDisplay(value: AssessmentRubricValue): string {
   switch (value.type) {
     case "boolean": {
@@ -184,7 +175,7 @@ function getRubricMarks(
       if (value.type !== "numerical") {
         return 0;
       }
-      return numericalScoreToMarks(rubric, value.score);
+      return scoreToMarks(rubric, value.score);
     }
     default: {
       return assertNever(rubric);
