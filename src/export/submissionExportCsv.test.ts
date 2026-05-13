@@ -3,6 +3,7 @@ import type { AssessmentRubricValue } from "@/db/types";
 import {
   buildSubmissionExportHeaders,
   buildSubmissionExportRow,
+  getSubmissionExportIdentifier,
   parseExportOptions,
 } from "./submissionExportCsv";
 
@@ -176,18 +177,10 @@ describe("submission CSV ordering", () => {
 
   it("throws when individual submission has no student id", () => {
     expect(() =>
-      buildSubmissionExportRow({
-        submission: {
-          id: "sub-ind-1",
-          type: "individual",
-        },
-        questions,
-        options: {
-          includeRubricAssessment: false,
-          includeRubricMarks: false,
-        },
-        valuesByKey: new Map(),
-      }),
+      getSubmissionExportIdentifier({
+        id: "sub-ind-1",
+        type: "individual",
+      } as never),
     ).toThrow(
       "Submission sub-ind-1 has type individual but no student is linked.",
     );

@@ -1,4 +1,5 @@
-import type { AssessmentRubricValue, SubmissionType } from "@/db/types";
+import type { AssessmentRubricValue, SubmissionSubmitter } from "@/db/types";
+import { assertNever } from "@/utils/utils";
 
 export type ExportInclude = "rubric-assessment" | "rubric-marks";
 
@@ -36,12 +37,7 @@ export type ExportQuestionPlan = {
   rubrics: ExportRubricPlan[];
 };
 
-export type SubmissionIdentity = {
-  id: string;
-  type: SubmissionType;
-  teamName?: string | null;
-  studentId?: string | null;
-};
+export type SubmissionIdentity = SubmissionSubmitter;
 
 export function parseExportOptions(
   searchParams: URLSearchParams,
@@ -146,34 +142,49 @@ function numericalScoreToMarks(
 }
 
 function getRubricAssessmentDisplay(value: AssessmentRubricValue): string {
-  if (value.type === "boolean") {
-    return value.passed ? "true" : "false";
+  switch (value.type) {
+    case "boolean": {
+      return value.passed ? "true" : "false";
+    }
+    case "ordinal": {
+      return value.selectedLabel;
+    }
+    case "numerical": {
+      return String(value.score);
+    }
+    default: {
+      return assertNever(value);
+    }
   }
-
-  if (value.type === "ordinal") {
-    return value.selectedLabel;
-  }
-
-  return String(value.score);
 }
 
 function getRubricMarks(
   rubric: ExportRubricPlan,
   value: AssessmentRubricValue,
 ): number {
-  if (rubric.type === "boolean" && value.type === "boolean") {
-    return value.passed ? rubric.marks : 0;
+  switch (rubric.type) {
+    case "boolean": {
+      if (value.type !== "boolean") {
+        return 0;
+      }
+      return value.passed ? rubric.marks : 0;
+    }
+    case "ordinal": {
+      if (value.type !== "ordinal") {
+        return 0;
+      }
+      return rubric.marksByLabel[value.selectedLabel] ?? 0;
+    }
+    case "numerical": {
+      if (value.type !== "numerical") {
+        return 0;
+      }
+      return numericalScoreToMarks(rubric, value.score);
+    }
+    default: {
+      return assertNever(rubric);
+    }
   }
-
-  if (rubric.type === "ordinal" && value.type === "ordinal") {
-    return rubric.marksByLabel[value.selectedLabel] ?? 0;
-  }
-
-  if (rubric.type === "numerical" && value.type === "numerical") {
-    return numericalScoreToMarks(rubric, value.score);
-  }
-
-  return 0;
 }
 
 export function buildSubmissionExportRow(params: {

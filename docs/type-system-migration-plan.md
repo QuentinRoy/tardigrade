@@ -8,12 +8,13 @@ Related: `docs/type-audit-report.md`
 
 | Field | Current value |
 | --- | --- |
-| Current phase | Phase 1 — Domain model stabilization |
-| Overall status | Phase 0 completed |
+| Current phase | Phase 2 — DB and domain alignment |
+| Overall status | Phase 1 completed |
 | Current blocker | None |
-| Open uncertainties | Submission split naming/details during implementation |
-| Last confirmed decisions | Domain-first architecture; submission concerns should be split; domain `marks` canonical; `switch` + `assertNever`; strict import |
-| Last updated | 2026-05-13 |
+| Open uncertainties | SubmissionSubmitter field/details during implementation |
+| Last confirmed decisions | Domain-first architecture; submission concerns split; `SubmissionSubmitter` adopted in export path; domain `marks` canonical; `switch` + `assertNever`; strict import; helper extraction deferred to Phase 3/4 |
+| Last updated | 2026-05-13 16:30 |
+
 
 
 
@@ -198,10 +199,12 @@ Reasoning:
 Confirmed decision:
 
 - split submission concerns into purposeful types rather than keeping one overloaded `Submission` shape
+- use the `SubmissionSubmitter` naming direction for the ownership/export-oriented submission identity type
 
 Implementation note:
 
-- exact naming and final boundaries can still be refined during Phase 1, but the architectural direction is now decided
+- exact field boundaries can still be refined during Phase 1, but the architectural direction and naming direction are now decided
+
 
 
 #### Ordinal rubric representation
@@ -252,28 +255,59 @@ Make `src/db/types.ts` a clean and reliable source of truth for domain concepts.
 
 #### 1.1 Submission cleanup
 
-- [ ] Correct the asymmetric `Submission` branch typo as part of the chosen architecture.
-- [ ] If investigation supports it, split mixed-purpose submission concerns into clearer types.
-- [ ] Keep naming aligned with actual responsibility: domain identity, display, owner, export-ready view, etc.
+- [x] Correct the asymmetric `Submission` branch typo as part of the chosen architecture.
+- [x] If investigation supports it, split mixed-purpose submission concerns into clearer types.
+- [x] Keep naming aligned with actual responsibility: domain identity, display, owner, export-ready view, etc.
+
+**Phase 1 progress update**
+
+- `src/db/types.ts` now separates UI/display-oriented `Submission` from ownership/export-oriented `SubmissionSubmitter`.
+- The old team-branch typo excluding `studentId` has been replaced with the intended `studentName` exclusion on display-oriented `Submission`.
+- `src/export/submissionExportCsv.ts` now adopts `SubmissionSubmitter` as the type behind export submission identity.
+- `src/db/submissionExport.ts` now narrows streamed row state through `toSubmissionSubmitter(...)` before row serialization, so export row building receives a validated discriminated submitter shape.
+
+
+
+**Phase 1 target shape (provisional, based on current usage)**
+
+- Keep `Submission` as the UI/display-oriented submission type currently consumed by assessment and quick-jump flows.
+- Introduce `SubmissionSubmitter` as the ownership/export-oriented submission identity type used by export and persistence-adjacent logic.
+- Keep search/navigation fields (`displayLabel`, `memberNames`, `searchKeys`) out of `SubmissionSubmitter`.
+- Keep stable ownership fields (`studentId`, later possibly `teamId` if useful) out of the UI/display-oriented `Submission` type unless a concrete UI need appears.
+
+
+**Reasoning from current code**
+
+- `src/db/submissions.ts` constructs a display/search-oriented shape.
+- `src/submissions/getSubmissionLabel.ts` and quick-jump search use display concerns only.
+- export logic in `src/export/submissionExportCsv.ts` uses owner identity semantics, not display semantics.
+- keeping one type for both concerns would continue to blur domain boundaries.
+
 
 #### 1.2 Domain derivation helpers
 
-- [ ] Evaluate whether `RubricOf<T>` is justified by actual reuse.
-- [ ] Evaluate whether `AssessmentOf<T>` is justified by actual reuse.
-- [ ] Add only the shared aliases that clearly improve multiple modules.
-- [ ] Keep helpers near the domain layer unless broader reuse proves necessary.
+- [x] Evaluate whether `RubricOf<T>` is justified by actual reuse. (Decision: defer extraction to Phase 3/4 when export/import refactors can immediately consume it.)
+- [x] Evaluate whether `AssessmentOf<T>` is justified by actual reuse. (Decision: defer extraction to Phase 3/4 when export/import refactors can immediately consume it.)
+- [x] Add only the shared aliases that clearly improve multiple modules. (Decision: no new aliases in Phase 1.)
+- [x] Keep helpers near the domain layer unless broader reuse proves necessary. (Decision: postponed with same rule.)
 
 #### 1.3 Exhaustiveness strategy
 
-- [ ] Add or standardize `assertNever` utility if needed.
-- [ ] Prefer `switch`-based discriminant handling for rubric and assessment variants.
-- [ ] Avoid visitor-style abstractions unless a concrete case justifies them.
+- [x] Add or standardize `assertNever` utility if needed. (`assertNever` already existed in `src/utils/utils.ts` and is now used in updated discriminant branches.)
+- [x] Prefer `switch`-based discriminant handling for rubric and assessment variants. (Applied in `src/rubrics/rubric.ts`, `src/assessment/assessment.ts`, and `src/export/submissionExportCsv.ts`.)
+- [x] Avoid visitor-style abstractions unless a concrete case justifies them. (No visitor abstraction introduced.)
+
+**Phase 1 exhaustiveness progress update**
+
+- Replaced key discriminant `if` chains with `switch` + `assertNever` in high-value paths.
+- Kept type readability high without introducing visitor patterns.
+- Avoided `as never` shortcuts in exhaustiveness checks.
 
 ### Phase 1 exit criteria
 
-- [ ] Domain types read clearly and consistently.
-- [ ] Core discriminated unions are the obvious source of truth.
-- [ ] There is no unresolved ambiguity about what `Submission` means.
+- [x] Domain types read clearly and consistently.
+- [x] Core discriminated unions are the obvious source of truth.
+- [x] There is no unresolved ambiguity about what `Submission` means.
 
 ---
 
@@ -454,9 +488,11 @@ This section should be updated iteratively during execution.
 
 ### Open decisions
 
-- Submission split naming/details during implementation: pending
+- SubmissionSubmitter field/details during implementation: pending
 - Ordinal export representation strategy implementation details: pending if export code reveals a concrete edge-only shape need
 - Import staging naming details: pending
+- Exact helper aliases to introduce in Phase 3/4 (if any): pending
+
 
 
 
@@ -465,9 +501,14 @@ This section should be updated iteratively during execution.
 - Domain-first architecture
 - `Rubric` and `AssessmentRubricValue` are canonical unions
 - Submission concerns should be split into purposeful types rather than kept in one overloaded `Submission` shape
+- `SubmissionSubmitter` is the chosen naming direction for the ownership/export-oriented submission identity type
+- `src/db/types.ts` now contains separate `Submission` and `SubmissionSubmitter` types as the Phase 1 domain split foundation
+- Export flow now validates streamed submission identity via `toSubmissionSubmitter(...)` in `src/db/submissionExport.ts` before calling CSV row builders
+- Domain helper alias extraction is deferred to Phase 3/4 to avoid speculative abstractions
 - Domain ordinal `marks` should remain canonical unless implementation reveals a concrete export-only reason to keep a separate edge shape
 - Assessment import should move toward parsed row -> validated row -> normalization helpers
 - Prefer `switch` + `assertNever`
+- Avoid `as` when possible; do not use `any`
 - No visitor abstraction without a concrete need
 - Strict import behavior
 - Large refactors and renames are acceptable

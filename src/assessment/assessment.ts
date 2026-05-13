@@ -1,4 +1,5 @@
 import type { AssessmentRubricValue, Rubric } from "@/db/types";
+import { assertNever } from "@/utils/utils";
 
 type RubricType = Rubric["type"];
 type RubricForType<TType extends RubricType> = Extract<Rubric, { type: TType }>;
@@ -45,31 +46,36 @@ export function attachAssessment<TType extends RubricType>(
 ): AssessedRubric<TType> {
   const assessment = findAssessment(rubric.id, source);
 
-  if (rubric.type === "boolean") {
-    return {
-      ...rubric,
-      assessment:
-        assessment?.type === "boolean"
-          ? { passed: assessment.passed }
-          : undefined,
-    } as AssessedRubric<TType>;
+  switch (rubric.type) {
+    case "boolean": {
+      return {
+        ...rubric,
+        assessment:
+          assessment?.type === "boolean"
+            ? { passed: assessment.passed }
+            : undefined,
+      } as AssessedRubric<TType>;
+    }
+    case "ordinal": {
+      return {
+        ...rubric,
+        assessment:
+          assessment?.type === "ordinal"
+            ? { selectedLabel: assessment.selectedLabel }
+            : undefined,
+      } as AssessedRubric<TType>;
+    }
+    case "numerical": {
+      return {
+        ...rubric,
+        assessment:
+          assessment?.type === "numerical"
+            ? { score: assessment.score }
+            : undefined,
+      } as AssessedRubric<TType>;
+    }
+    default: {
+      return assertNever(rubric.type);
+    }
   }
-
-  if (rubric.type === "ordinal") {
-    return {
-      ...rubric,
-      assessment:
-        assessment?.type === "ordinal"
-          ? { selectedLabel: assessment.selectedLabel }
-          : undefined,
-    } as AssessedRubric<TType>;
-  }
-
-  return {
-    ...rubric,
-    assessment:
-      assessment?.type === "numerical"
-        ? { score: assessment.score }
-        : undefined,
-  } as AssessedRubric<TType>;
 }

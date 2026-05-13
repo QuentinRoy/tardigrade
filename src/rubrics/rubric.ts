@@ -1,16 +1,22 @@
 import type { Rubric } from "@/db/types";
+import { assertNever } from "@/utils/utils";
 
 export function getRubricMaxMarks(rubric: Rubric): number {
-  if (rubric.type === "boolean") {
-    return rubric.marks;
+  switch (rubric.type) {
+    case "boolean": {
+      return rubric.marks;
+    }
+    case "ordinal": {
+      const scores = Object.values(rubric.marks);
+      return scores.length > 0 ? Math.max(0, ...scores) : 0;
+    }
+    case "numerical": {
+      return rubric.maxMarks;
+    }
+    default: {
+      return assertNever(rubric);
+    }
   }
-
-  if (rubric.type === "ordinal") {
-    const scores = Object.values(rubric.marks);
-    return scores.length > 0 ? Math.max(0, ...scores) : 0;
-  }
-
-  return rubric.maxMarks;
 }
 
 export function scoreToMarks(

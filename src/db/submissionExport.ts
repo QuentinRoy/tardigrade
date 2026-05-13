@@ -7,11 +7,44 @@ import {
   type ExportQuestionPlan,
 } from "@/export/submissionExportCsv";
 import { db } from "./kysely";
-import type { AssessmentRubricValue } from "./types";
+import type { AssessmentRubricValue, SubmissionSubmitter } from "./types";
 
 function toNumber(value: string | number): number {
   if (typeof value === "number") return value;
   return parseFloat(value);
+}
+
+function toSubmissionSubmitter(params: {
+  id: string;
+  type: "team" | "individual";
+  teamName: string | null;
+  studentId: string | null;
+}): SubmissionSubmitter {
+  if (params.type === "team") {
+    if (params.teamName == null || params.teamName.length === 0) {
+      throw new Error(
+        `Submission ${params.id} has type team but no team is linked.`,
+      );
+    }
+
+    return {
+      id: params.id,
+      type: "team",
+      teamName: params.teamName,
+    };
+  }
+
+  if (params.studentId == null || params.studentId.length === 0) {
+    throw new Error(
+      `Submission ${params.id} has type individual but no student is linked.`,
+    );
+  }
+
+  return {
+    id: params.id,
+    type: "individual",
+    studentId: params.studentId,
+  };
 }
 
 async function assertSubmissionInvariants() {
@@ -217,12 +250,12 @@ export async function createSubmissionExport(options: ExportOptions): Promise<{
         }
 
         yield buildSubmissionExportRow({
-          submission: {
+          submission: toSubmissionSubmitter({
             id: String(currentSubmissionId),
             type: currentSubmissionType,
             teamName: currentTeamName,
             studentId: currentStudentId,
-          },
+          }),
           questions,
           options,
           valuesByKey: currentValuesByKey,
@@ -275,12 +308,12 @@ export async function createSubmissionExport(options: ExportOptions): Promise<{
       }
 
       yield buildSubmissionExportRow({
-        submission: {
+        submission: toSubmissionSubmitter({
           id: String(currentSubmissionId),
           type: currentSubmissionType,
           teamName: currentTeamName,
           studentId: currentStudentId,
-        },
+        }),
         questions,
         options,
         valuesByKey: currentValuesByKey,
