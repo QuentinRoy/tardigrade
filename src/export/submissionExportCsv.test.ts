@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { AssessmentRubricValue } from "@/db/types";
+import type { AssessmentRubricValue, SubmissionSubmitter } from "@/db/types";
 import {
   buildSubmissionExportHeaders,
   buildSubmissionExportRow,
@@ -175,14 +175,18 @@ describe("submission CSV ordering", () => {
     expect(row[1]).toBe("Team A");
   });
 
-  it("throws when individual submission has no student id", () => {
-    expect(() =>
-      getSubmissionExportIdentifier({
-        id: "sub-ind-1",
-        type: "individual",
-      } as never),
-    ).toThrow(
-      "Submission sub-ind-1 has type individual but no student is linked.",
-    );
+  it("requires student id for individual submissions at the type level", () => {
+    type IndividualSubmitter = Extract<
+      SubmissionSubmitter,
+      { type: "individual" }
+    >;
+
+    // @ts-expect-error missing studentId for individual submission
+    const invalidIndividualSubmitter: IndividualSubmitter = {
+      id: "sub-ind-1",
+      type: "individual",
+    };
+
+    expect(invalidIndividualSubmitter).toBeDefined();
   });
 });

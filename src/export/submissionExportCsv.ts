@@ -1,5 +1,5 @@
 import type { AssessmentRubricValue, SubmissionSubmitter } from "@/db/types";
-import { assertNever } from "@/utils/utils";
+import { assertNever } from "../utils/utils";
 
 export type ExportInclude = "rubric-assessment" | "rubric-marks";
 

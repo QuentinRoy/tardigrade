@@ -1,5 +1,5 @@
 import type { Rubric } from "@/db/types";
-import { assertNever } from "@/utils/utils";
+import { assertNever } from "../utils/utils";
 
 export function getRubricMaxMarks(rubric: Rubric): number {
   switch (rubric.type) {

@@ -1,5 +1,6 @@
 import "server-only";
 import { cacheTag, updateTag } from "next/cache";
+import { assertNever } from "../utils/utils";
 import { db } from "./kysely";
 import type { AssessmentRubricValue } from "./types";
 
@@ -12,6 +13,74 @@ export type SaveAssessmentParams = {
   questionId: string;
   rubric: AssessmentRubricValue;
 };
+
+async function loadBooleanRubricValue(params: {
+  rubricAssessmentId: number;
+  rubricId: string;
+}): Promise<AssessmentRubricValue | undefined> {
+  const booleanAssessment = await db
+    .selectFrom("booleanRubricAssessment")
+    .where("rubricAssessmentId", "=", params.rubricAssessmentId)
+    .select("passed")
+    .executeTakeFirst();
+
+  if (booleanAssessment == null) {
+    return undefined;
+  }
+
+  return {
+    rubricId: params.rubricId,
+    type: "boolean",
+    passed: booleanAssessment.passed,
+  };
+}
+
+async function loadOrdinalRubricValue(params: {
+  rubricAssessmentId: number;
+  rubricId: string;
+}): Promise<AssessmentRubricValue | undefined> {
+  const ordinalAssessment = await db
+    .selectFrom("ordinalRubricAssessment")
+    .where("rubricAssessmentId", "=", params.rubricAssessmentId)
+    .select("selectedLabel")
+    .executeTakeFirst();
+
+  if (ordinalAssessment == null) {
+    return undefined;
+  }
+
+  return {
+    rubricId: params.rubricId,
+    type: "ordinal",
+    selectedLabel: ordinalAssessment.selectedLabel,
+  };
+}
+
+async function loadNumericalRubricValue(params: {
+  rubricAssessmentId: number;
+  rubricId: string;
+}): Promise<AssessmentRubricValue | undefined> {
+  const numericalAssessment = await db
+    .selectFrom("numericalRubricAssessment")
+    .where("rubricAssessmentId", "=", params.rubricAssessmentId)
+    .select("score")
+    .executeTakeFirst();
+
+  if (numericalAssessment == null) {
+    return undefined;
+  }
+
+  const numericScore =
+    typeof numericalAssessment.score === "number"
+      ? numericalAssessment.score
+      : parseFloat(String(numericalAssessment.score));
+
+  return {
+    rubricId: params.rubricId,
+    type: "numerical",
+    score: numericScore,
+  };
+}
 
 // Returns typed rubric values for a submission/question assessment.
 export async function loadAssessment(
@@ -41,52 +110,37 @@ export async function loadAssessment(
   const result: AssessmentRubricValue[] = [];
 
   for (const rubricAssessment of rubricAssessments) {
-    if (rubricAssessment.type === "boolean") {
-      const booleanAssessment = await db
-        .selectFrom("booleanRubricAssessment")
-        .where("rubricAssessmentId", "=", rubricAssessment.id)
-        .select("passed")
-        .executeTakeFirst();
+    let value: AssessmentRubricValue | undefined;
 
-      if (booleanAssessment) {
-        result.push({
+    switch (rubricAssessment.type) {
+      case "boolean": {
+        value = await loadBooleanRubricValue({
+          rubricAssessmentId: rubricAssessment.id,
           rubricId: rubricAssessment.rubricId,
-          type: "boolean",
-          passed: booleanAssessment.passed,
         });
+        break;
       }
-    } else if (rubricAssessment.type === "ordinal") {
-      const ordinalAssessment = await db
-        .selectFrom("ordinalRubricAssessment")
-        .where("rubricAssessmentId", "=", rubricAssessment.id)
-        .select("selectedLabel")
-        .executeTakeFirst();
+      case "ordinal": {
+        value = await loadOrdinalRubricValue({
+          rubricAssessmentId: rubricAssessment.id,
+          rubricId: rubricAssessment.rubricId,
+        });
+        break;
+      }
+      case "numerical": {
+        value = await loadNumericalRubricValue({
+          rubricAssessmentId: rubricAssessment.id,
+          rubricId: rubricAssessment.rubricId,
+        });
+        break;
+      }
+      default: {
+        assertNever(rubricAssessment.type);
+      }
+    }
 
-      if (ordinalAssessment) {
-        result.push({
-          rubricId: rubricAssessment.rubricId,
-          type: "ordinal",
-          selectedLabel: ordinalAssessment.selectedLabel,
-        });
-      }
-    } else if (rubricAssessment.type === "numerical") {
-      const numericalAssessment = await db
-        .selectFrom("numericalRubricAssessment")
-        .where("rubricAssessmentId", "=", rubricAssessment.id)
-        .select("score")
-        .executeTakeFirst();
-
-      if (numericalAssessment) {
-        const numericScore =
-          typeof numericalAssessment.score === "number"
-            ? numericalAssessment.score
-            : parseFloat(String(numericalAssessment.score));
-        result.push({
-          rubricId: rubricAssessment.rubricId,
-          type: "numerical",
-          score: numericScore,
-        });
-      }
+    if (value != null) {
+      result.push(value);
     }
   }
 
@@ -145,7 +199,7 @@ export async function saveAssessment({
   }
 
   return db.transaction().execute(async (tx) => {
-    const _assessment = await tx
+    await tx
       .insertInto("assessment")
       .values({ submissionId: submission.id, questionId: question.id })
       .onConflict((conflict) =>
@@ -162,7 +216,7 @@ export async function saveAssessment({
 
     const assessmentId = existingAssessment.id;
 
-    const _rubricAssessment = await tx
+    await tx
       .insertInto("rubricAssessment")
       .values({
         assessmentId,
@@ -185,18 +239,20 @@ export async function saveAssessment({
 
     const rubricAssessmentId = existingRubricAssessment.id;
 
-    if (rubricValue.type === "boolean") {
+    async function saveBooleanAssessment(
+      value: Extract<AssessmentRubricValue, { type: "boolean" }>,
+    ): Promise<void> {
       await Promise.all([
         tx
           .insertInto("booleanRubricAssessment")
           .values({
             rubricAssessmentId,
-            passed: rubricValue.passed,
+            passed: value.passed,
           })
           .onConflict((conflict) =>
             conflict
               .column("rubricAssessmentId")
-              .doUpdateSet({ passed: rubricValue.passed }),
+              .doUpdateSet({ passed: value.passed }),
           )
           .execute(),
         tx
@@ -208,7 +264,11 @@ export async function saveAssessment({
           .where("rubricAssessmentId", "=", rubricAssessmentId)
           .execute(),
       ]);
-    } else if (rubricValue.type === "ordinal") {
+    }
+
+    async function saveOrdinalAssessment(
+      value: Extract<AssessmentRubricValue, { type: "ordinal" }>,
+    ): Promise<SaveAssessmentResult | void> {
       const ordinalLabels = await tx
         .selectFrom("ordinalRubricValue")
         .innerJoin(
@@ -220,9 +280,8 @@ export async function saveAssessment({
         .select("ordinalRubricValue.label")
         .execute();
 
-      const allowedValues = ordinalLabels.map((v) => v.label);
-
-      if (!allowedValues.includes(rubricValue.selectedLabel)) {
+      const allowedValues = ordinalLabels.map((item) => item.label);
+      if (!allowedValues.includes(value.selectedLabel)) {
         return { success: false, error: "Invalid ordinal value." };
       }
 
@@ -231,12 +290,12 @@ export async function saveAssessment({
           .insertInto("ordinalRubricAssessment")
           .values({
             rubricAssessmentId,
-            selectedLabel: rubricValue.selectedLabel,
+            selectedLabel: value.selectedLabel,
           })
           .onConflict((conflict) =>
             conflict
               .column("rubricAssessmentId")
-              .doUpdateSet({ selectedLabel: rubricValue.selectedLabel }),
+              .doUpdateSet({ selectedLabel: value.selectedLabel }),
           )
           .execute(),
         tx
@@ -248,9 +307,12 @@ export async function saveAssessment({
           .where("rubricAssessmentId", "=", rubricAssessmentId)
           .execute(),
       ]);
-    } else {
-      const parsed = rubricValue.score;
+    }
 
+    async function saveNumericalAssessment(
+      value: Extract<AssessmentRubricValue, { type: "numerical" }>,
+    ): Promise<SaveAssessmentResult | void> {
+      const parsed = value.score;
       if (!Number.isFinite(parsed)) {
         return { success: false, error: "Invalid numerical value." };
       }
@@ -278,16 +340,10 @@ export async function saveAssessment({
       }
 
       if (parsed < minScore) {
-        return {
-          success: false,
-          error: `Score must be at least ${minScore}.`,
-        };
+        return { success: false, error: `Score must be at least ${minScore}.` };
       }
       if (parsed > maxScore) {
-        return {
-          success: false,
-          error: `Score must be at most ${maxScore}.`,
-        };
+        return { success: false, error: `Score must be at most ${maxScore}.` };
       }
 
       await Promise.all([
@@ -312,6 +368,27 @@ export async function saveAssessment({
           .where("rubricAssessmentId", "=", rubricAssessmentId)
           .execute(),
       ]);
+    }
+
+    const result = await (async (): Promise<SaveAssessmentResult | void> => {
+      switch (rubricValue.type) {
+        case "boolean": {
+          return await saveBooleanAssessment(rubricValue);
+        }
+        case "ordinal": {
+          return await saveOrdinalAssessment(rubricValue);
+        }
+        case "numerical": {
+          return await saveNumericalAssessment(rubricValue);
+        }
+        default: {
+          return assertNever(rubricValue);
+        }
+      }
+    })();
+
+    if (result != null) {
+      return result;
     }
 
     updateTag(`assessments:${submissionId}:${questionId}`);

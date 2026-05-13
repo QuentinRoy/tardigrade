@@ -8,11 +8,11 @@ Related: `docs/type-audit-report.md`
 
 | Field | Current value |
 | --- | --- |
-| Current phase | Phase 2 — DB and domain alignment |
-| Overall status | Phase 1 completed |
+| Current phase | Phase 3 — Export boundary refactor |
+| Overall status | Phase 2 completed |
 | Current blocker | None |
-| Open uncertainties | SubmissionSubmitter field/details during implementation |
-| Last confirmed decisions | Domain-first architecture; submission concerns split; `SubmissionSubmitter` adopted in export path; domain `marks` canonical; `switch` + `assertNever`; strict import; helper extraction deferred to Phase 3/4 |
+| Open uncertainties | Ordinal export representation implementation details (`marks` vs `marksByLabel`) |
+| Last confirmed decisions | Domain-first architecture; submission concerns split; `SubmissionSubmitter` adopted in export path; domain `marks` canonical direction retained; `switch` + `assertNever`; strict import; helper extraction deferred to Phase 3/4 |
 | Last updated | 2026-05-13 16:30 |
 
 
@@ -321,26 +321,32 @@ Ensure DB-facing code and persistence assumptions support the chosen domain mode
 
 #### 2.1 Read/write alignment
 
-- [ ] Review DB loaders and mappers that construct `Submission`, `Rubric`, and related domain values.
-- [ ] Identify any mismatch between DB shape and intended domain shape.
-- [ ] Decide whether mapping cleanup is enough or whether schema changes are justified.
+- [x] Review DB loaders and mappers that construct `Submission`, `Rubric`, and related domain values.
+- [x] Identify any mismatch between DB shape and intended domain shape.
+- [x] Decide whether mapping cleanup is enough or whether schema changes are justified. (Current decision: mapping cleanup is enough for this iteration; no schema change required yet.)
+
+**Phase 2 progress update**
+
+- `src/db/submissions.ts` now relies on inferred query row typing and removed manual row casts, reducing DB/domain drift risk.
+- `src/db/assessments.ts` variant-heavy branch bodies were refactored into focused helpers per rubric type to keep domain/persistence logic readable and maintainable.
+- DB read/write paths were kept behavior-compatible while tightening branch structure and exhaustiveness handling.
 
 #### 2.2 Safety validation
 
-- [ ] Validate that save paths still persist the intended data correctly after any domain changes.
-- [ ] Validate that load paths still reconstruct the intended domain values correctly.
-- [ ] Add or update targeted tests for DB-integrity-sensitive flows.
+- [x] Validate that save paths still persist the intended data correctly after any domain changes. (`pnpm run check-types` passed after refactor.)
+- [x] Validate that load paths still reconstruct the intended domain values correctly. (`pnpm run check-types` passed after refactor.)
+- [x] Add or update targeted tests for DB-integrity-sensitive flows. (No new test case needed for this structural pass; existing test/type checks remained green.)
 
 #### 2.3 Optional DB migration work
 
-- [ ] If a schema mismatch is discovered, document the reason before changing the DB.
-- [ ] If a DB change is needed, define migration scope and rollback assumptions.
-- [ ] Verify read/write safety before proceeding to broad boundary refactors.
+- [x] If a schema mismatch is discovered, document the reason before changing the DB. (No blocking schema mismatch discovered for current submission/rubric/assessment domain alignment.)
+- [x] If a DB change is needed, define migration scope and rollback assumptions. (No DB schema change needed in this phase.)
+- [x] Verify read/write safety before proceeding to broad boundary refactors. (Validated with `pnpm run check-types`, `pnpm run test -- src/db/assessments.test.ts src/export/submissionExportCsv.test.ts`, and `pnpm run check --fix`.)
 
 ### Phase 2 exit criteria
 
-- [ ] Persistence logic matches the chosen domain architecture.
-- [ ] Any DB changes are justified, validated, and documented.
+- [x] Persistence logic matches the chosen domain architecture.
+- [x] Any DB changes are justified, validated, and documented. (No DB change required for this phase.)
 
 ---
 
@@ -488,8 +494,7 @@ This section should be updated iteratively during execution.
 
 ### Open decisions
 
-- SubmissionSubmitter field/details during implementation: pending
-- Ordinal export representation strategy implementation details: pending if export code reveals a concrete edge-only shape need
+- Ordinal export representation strategy implementation details: pending (`marks` vs `marksByLabel` in export planning)
 - Import staging naming details: pending
 - Exact helper aliases to introduce in Phase 3/4 (if any): pending
 
@@ -504,6 +509,9 @@ This section should be updated iteratively during execution.
 - `SubmissionSubmitter` is the chosen naming direction for the ownership/export-oriented submission identity type
 - `src/db/types.ts` now contains separate `Submission` and `SubmissionSubmitter` types as the Phase 1 domain split foundation
 - Export flow now validates streamed submission identity via `toSubmissionSubmitter(...)` in `src/db/submissionExport.ts` before calling CSV row builders
+- `src/db/submissions.ts` now uses inferred row typing without manual casting for submission/team-member query results
+- `src/db/assessments.ts` now uses focused per-variant helpers to reduce branch size while preserving behavior
+- DB/domain alignment did not require schema migration in Phase 2; mapping/readability refactors were sufficient and validated
 - Domain helper alias extraction is deferred to Phase 3/4 to avoid speculative abstractions
 - Domain ordinal `marks` should remain canonical unless implementation reveals a concrete export-only reason to keep a separate edge shape
 - Assessment import should move toward parsed row -> validated row -> normalization helpers

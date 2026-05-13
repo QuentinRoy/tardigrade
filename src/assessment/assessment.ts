@@ -1,5 +1,5 @@
 import type { AssessmentRubricValue, Rubric } from "@/db/types";
-import { assertNever } from "@/utils/utils";
+import { assertNever } from "../utils/utils";
 
 type RubricType = Rubric["type"];
 type RubricForType<TType extends RubricType> = Extract<Rubric, { type: TType }>;
