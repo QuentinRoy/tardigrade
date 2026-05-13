@@ -8,10 +8,10 @@ Related: `docs/type-audit-report.md`
 
 | Field | Current value |
 | --- | --- |
-| Current phase | Phase 6 — Consistency pass and docs refresh |
-| Overall status | Phase 5 completed |
+| Current phase | Completed |
+| Overall status | Phase 6 completed |
 | Current blocker | None |
-| Open uncertainties | Final docs synchronization scope (`type-audit-report` refresh detail level) |
+| Open uncertainties | Deferred strategic design choice: `ExportRubricPlan` dedicated type vs tighter direct `Rubric` usage |
 | Last confirmed decisions | Domain-first architecture; export/import boundaries now derive from validated domain-oriented types; assessment CSV rows parse through Zod; import normalization helpers extracted; `SubmissionSubmitter` adopted in export path; domain `marks` canonical in export; `switch` + `assertNever`; strict import |
 | Last updated | 2026-05-13 16:30 |
 
@@ -494,16 +494,22 @@ Finish the migration by removing residual drift and synchronizing docs.
 
 ### Checklist
 
-- [ ] Replace remaining unjustified duplicated discriminant logic where worthwhile.
-- [ ] Remove obsolete intermediate types.
-- [ ] Update `docs/type-audit-report.md` to reflect what was actually changed.
-- [ ] Update this migration plan with completed work and any scope changes.
-- [ ] Document any deliberate non-goals or deferred items.
+- [x] Replace remaining unjustified duplicated discriminant logic where worthwhile.
+- [x] Remove obsolete intermediate types.
+- [x] Update `docs/type-audit-report.md` to reflect what was actually changed.
+- [x] Update this migration plan with completed work and any scope changes.
+- [x] Document any deliberate non-goals or deferred items.
+
+**Phase 6 completion update**
+
+- Audit report is now synchronized to implementation reality (resolved vs open items).
+- Migration plan now reflects completed phases 1–6 and remaining deferred strategic choices.
+- Non-goals/deferred items remain documented to avoid accidental scope creep.
 
 ### Phase 6 exit criteria
 
-- [ ] The codebase reflects the intended domain-first architecture.
-- [ ] The audit and migration plan are aligned with reality.
+- [x] The codebase reflects the intended domain-first architecture.
+- [x] The audit and migration plan are aligned with reality.
 
 ---
 
@@ -536,7 +542,6 @@ This section should be updated iteratively during execution.
 ### Open decisions
 
 - Whether to keep `ExportRubricPlan` as a dedicated export type or to move toward direct `Rubric` usage closer to row serialization in a later pass: deferred
-- Final docs synchronization scope (`type-audit-report` update depth): pending
 
 
 
@@ -572,3 +577,4 @@ This section should be updated iteratively during execution.
 - Introducing a generalized visitor framework for discriminated unions
 - Over-abstracting query result typing
 - Extracting broad shared type utility modules without clear reuse
+- Forcing an immediate replacement of `ExportRubricPlan` with direct `Rubric` usage without clear payoff
