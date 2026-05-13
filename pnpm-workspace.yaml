@@ -1,6 +1,9 @@
 allowBuilds:
   '@prisma/engines': true
   core-js-pure: true
+  cpu-features: true
   esbuild: true
   prisma: true
+  protobufjs: true
   sharp: true
+  ssh2: true

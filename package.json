@@ -49,11 +49,13 @@
     "@biomejs/biome": "2.4.15",
     "@dotenvx/dotenvx": "^1.65.0",
     "@storybook/nextjs": "^10.3.6",
+    "@testcontainers/postgresql": "^11.14.0",
     "@types/node": "^24.12.2",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "kysely-codegen": "^0.20.0",
     "storybook": "^10.3.6",
+    "testcontainers": "^11.14.0",
     "tsx": "^4.21.0",
     "vitest": "^4.1.5"
   },
