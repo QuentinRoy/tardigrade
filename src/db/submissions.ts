@@ -11,16 +11,7 @@ function formatStudentName(familyName: string, firstName: string): string {
   return `${familyName} ${firstName}`.trim();
 }
 
-async function loadSubmissionsFromDb(): Promise<{
-  submissions: Array<{
-    id: number;
-    type: "individual" | "team";
-    studentFamilyName: string | null;
-    studentFirstName: string | null;
-    teamName: string | null;
-  }>;
-  teamMembersBySubmissionId: Map<string, string[]>;
-}> {
+async function loadSubmissionsFromDb() {
   "use cache";
   cacheTag("submissions");
   cacheLife({ revalidate: 60 });

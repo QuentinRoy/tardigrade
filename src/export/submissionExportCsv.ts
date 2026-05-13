@@ -1,4 +1,8 @@
-import type { AssessmentRubricValue, SubmissionSubmitter } from "@/db/types";
+import type {
+  AssessmentRubricValue,
+  Rubric,
+  SubmissionSubmitter,
+} from "@/db/types";
 import { assertNever } from "../utils/utils";
 
 export type ExportInclude = "rubric-assessment" | "rubric-marks";
@@ -8,36 +12,37 @@ export type ExportOptions = {
   includeRubricMarks: boolean;
 };
 
+type RubricOfType<TType extends Rubric["type"]> = Extract<
+  Rubric,
+  { type: TType }
+>;
+
+type ExportRubricLabel = {
+  label: string;
+};
+
+type ExportBooleanRubricPlan = ExportRubricLabel &
+  Pick<RubricOfType<"boolean">, "id" | "type" | "marks">;
+
+type ExportOrdinalRubricPlan = ExportRubricLabel &
+  Pick<RubricOfType<"ordinal">, "id" | "type" | "marks">;
+
+type ExportNumericalRubricPlan = ExportRubricLabel &
+  Pick<
+    RubricOfType<"numerical">,
+    "id" | "type" | "minScore" | "maxScore" | "minMarks" | "maxMarks"
+  >;
+
 export type ExportRubricPlan =
-  | {
-      id: string;
-      label: string;
-      type: "boolean";
-      marks: number;
-    }
-  | {
-      id: string;
-      label: string;
-      type: "ordinal";
-      marksByLabel: Record<string, number>;
-    }
-  | {
-      id: string;
-      label: string;
-      type: "numerical";
-      minScore: number;
-      maxScore: number;
-      minMarks: number;
-      maxMarks: number;
-    };
+  | ExportBooleanRubricPlan
+  | ExportOrdinalRubricPlan
+  | ExportNumericalRubricPlan;
 
 export type ExportQuestionPlan = {
   id: string;
   label: string;
   rubrics: ExportRubricPlan[];
 };
-
-export type SubmissionIdentity = SubmissionSubmitter;
 
 export function parseExportOptions(
   searchParams: URLSearchParams,
@@ -68,7 +73,7 @@ export function buildAssessmentKey(
 }
 
 export function getSubmissionExportIdentifier(
-  submission: SubmissionIdentity,
+  submission: SubmissionSubmitter,
 ): string {
   if (submission.type === "team") {
     if (submission.teamName == null || submission.teamName.length === 0) {
@@ -173,7 +178,7 @@ function getRubricMarks(
       if (value.type !== "ordinal") {
         return 0;
       }
-      return rubric.marksByLabel[value.selectedLabel] ?? 0;
+      return rubric.marks[value.selectedLabel] ?? 0;
     }
     case "numerical": {
       if (value.type !== "numerical") {
@@ -188,7 +193,7 @@ function getRubricMarks(
 }
 
 export function buildSubmissionExportRow(params: {
-  submission: SubmissionIdentity;
+  submission: SubmissionSubmitter;
   questions: ExportQuestionPlan[];
   options: ExportOptions;
   valuesByKey: Map<string, AssessmentRubricValue>;
@@ -206,21 +211,19 @@ export function buildSubmissionExportRow(params: {
 
     for (const rubric of question.rubrics) {
       const value = valuesByKey.get(buildAssessmentKey(question.id, rubric.id));
+      const rubricMarks =
+        value != null ? getRubricMarks(rubric, value) : undefined;
 
       if (options.includeRubricAssessment) {
         row.push(value != null ? getRubricAssessmentDisplay(value) : "");
       }
 
       if (options.includeRubricMarks) {
-        if (value == null) {
-          row.push("");
-        } else {
-          row.push(String(getRubricMarks(rubric, value)));
-        }
+        row.push(rubricMarks != null ? String(rubricMarks) : "");
       }
 
-      if (value != null) {
-        questionTotalMarks += getRubricMarks(rubric, value);
+      if (rubricMarks != null) {
+        questionTotalMarks += rubricMarks;
       }
     }
 

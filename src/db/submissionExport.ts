@@ -159,7 +159,7 @@ async function loadQuestionPlan(): Promise<ExportQuestionPlan[]> {
           id: rubric.id,
           label: rubricLabel,
           type: "ordinal" as const,
-          marksByLabel: Object.fromEntries(
+          marks: Object.fromEntries(
             marks.map((item) => [item.label, toNumber(item.marks)]),
           ),
         };

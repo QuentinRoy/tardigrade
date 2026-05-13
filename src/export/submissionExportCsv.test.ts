@@ -39,7 +39,7 @@ describe("submission CSV ordering", () => {
           id: "r2",
           label: "R2",
           type: "ordinal" as const,
-          marksByLabel: { A: 3, B: 1 },
+          marks: { A: 3, B: 1 },
         },
       ],
     },

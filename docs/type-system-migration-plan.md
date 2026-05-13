@@ -8,11 +8,11 @@ Related: `docs/type-audit-report.md`
 
 | Field | Current value |
 | --- | --- |
-| Current phase | Phase 3 — Export boundary refactor |
-| Overall status | Phase 2 completed |
+| Current phase | Phase 4 — Import boundary refactor |
+| Overall status | Phase 3 completed |
 | Current blocker | None |
-| Open uncertainties | Ordinal export representation implementation details (`marks` vs `marksByLabel`) |
-| Last confirmed decisions | Domain-first architecture; submission concerns split; `SubmissionSubmitter` adopted in export path; domain `marks` canonical direction retained; `switch` + `assertNever`; strict import; helper extraction deferred to Phase 3/4 |
+| Open uncertainties | Import staging naming details |
+| Last confirmed decisions | Domain-first architecture; export boundary derives from domain types; `SubmissionSubmitter` adopted in export path; domain `marks` canonical in export; `switch` + `assertNever`; strict import; helper extraction deferred to Phase 4 |
 | Last updated | 2026-05-13 16:30 |
 
 
@@ -365,26 +365,44 @@ Make export types derive from domain types wherever the concepts are the same.
 
 #### 3.1 Rubric export derivation
 
-- [ ] Refactor `ExportRubricPlan` to derive as much as possible from domain `Rubric`.
-- [ ] Revisit whether `marksByLabel` should remain an internal export planning shape.
-- [ ] Keep export-specific transformation only where it adds real clarity.
+- [x] Refactor `ExportRubricPlan` to derive as much as possible from domain `Rubric`.
+- [x] Revisit whether `marksByLabel` should remain an internal export planning shape.
+- [x] Keep export-specific transformation only where it adds real clarity.
+
+**Phase 3 progress update**
+
+- Removed `marksByLabel` from export rubric planning in favor of canonical ordinal `marks`.
+- Updated export plan builder (`src/db/submissionExport.ts`) and CSV serialization (`src/export/submissionExportCsv.ts`) to use `marks` consistently.
+- Updated `ExportRubricPlan` in `src/export/submissionExportCsv.ts` to derive variant fields from domain `Rubric` via `Extract` + `Pick` aliases.
+- Updated export tests to reflect `marks` naming while preserving output behavior.
 
 #### 3.2 Submission export identity
 
-- [ ] Replace or narrow `SubmissionIdentity` using domain-derived logic where practical.
-- [ ] Add a shared assertion/helper for export-ready submission identity.
-- [ ] Centralize submission export invariant checks.
+- [x] Replace or narrow `SubmissionIdentity` using domain-derived logic where practical. (Alias removed in `src/export/submissionExportCsv.ts`; signatures now consume `SubmissionSubmitter` directly.)
+- [x] Add a shared assertion/helper for export-ready submission identity. (`toSubmissionSubmitter(...)` in `src/db/submissionExport.ts`.)
+- [x] Centralize submission export invariant checks. (Invariant checks are enforced in `toSubmissionSubmitter(...)` before CSV row serialization.)
+
+**Phase 3 submission identity progress update**
+
+- Export CSV helpers now take `SubmissionSubmitter` directly, reducing indirection.
+- Export stream path performs invariant validation once during submitter narrowing.
+- Submission export identity semantics are now domain-aligned and explicit.
 
 #### 3.3 Export flow readability
 
-- [ ] Simplify row generation around validated domain-aligned inputs.
-- [ ] Use readable `switch` + `assertNever` handling for discriminant logic where needed.
+- [x] Simplify row generation around validated domain-aligned inputs.
+- [x] Use readable `switch` + `assertNever` handling for discriminant logic where needed.
+
+**Phase 3 readability progress update**
+
+- `buildSubmissionExportRow(...)` now computes rubric marks once per rubric/value pair and reuses that result for marks columns and question totals.
+- Export variant handling remains explicit and exhaustive without introducing visitor abstractions.
 
 ### Phase 3 exit criteria
 
-- [ ] Export types no longer duplicate domain variants without a good reason.
-- [ ] Export identity rules are expressed once and reused.
-- [ ] CSV behavior remains correct and tested.
+- [x] Export types no longer duplicate domain variants without a good reason.
+- [x] Export identity rules are expressed once and reused.
+- [x] CSV behavior remains correct and tested.
 
 ---
 
@@ -494,9 +512,9 @@ This section should be updated iteratively during execution.
 
 ### Open decisions
 
-- Ordinal export representation strategy implementation details: pending (`marks` vs `marksByLabel` in export planning)
+- Whether to keep `ExportRubricPlan` as a dedicated export type or to move toward direct `Rubric` usage closer to row serialization in a later pass: deferred
 - Import staging naming details: pending
-- Exact helper aliases to introduce in Phase 3/4 (if any): pending
+- Exact helper aliases to introduce in Phase 4 (if any): pending
 
 
 
@@ -513,7 +531,10 @@ This section should be updated iteratively during execution.
 - `src/db/assessments.ts` now uses focused per-variant helpers to reduce branch size while preserving behavior
 - DB/domain alignment did not require schema migration in Phase 2; mapping/readability refactors were sufficient and validated
 - Domain helper alias extraction is deferred to Phase 3/4 to avoid speculative abstractions
-- Domain ordinal `marks` should remain canonical unless implementation reveals a concrete export-only reason to keep a separate edge shape
+- Domain ordinal `marks` remains canonical in export planning; `marksByLabel` has been removed
+- `ExportRubricPlan` now derives variant fields from domain `Rubric` using `Extract` + `Pick`
+- Export CSV helpers now consume `SubmissionSubmitter` directly (without `SubmissionIdentity` alias)
+- Phase 3 export boundary refactor completed with CSV behavior validated
 - Assessment import should move toward parsed row -> validated row -> normalization helpers
 - Prefer `switch` + `assertNever`
 - Avoid `as` when possible; do not use `any`
