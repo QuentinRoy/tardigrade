@@ -1,8 +1,6 @@
 import "server-only";
-import { RubricType } from "@prisma/client";
 import { cacheTag, updateTag } from "next/cache";
-import { assertNever } from "@/utils/utils";
-import { prisma } from "./prisma";
+import { db } from "./kysely";
 import type { AssessmentRubricValue } from "./types";
 
 export type SaveAssessmentResult =
@@ -15,33 +13,6 @@ export type SaveAssessmentParams = {
   rubric: AssessmentRubricValue;
 };
 
-function toDbRubricType(type: AssessmentRubricValue["type"]): RubricType {
-  switch (type) {
-    case "boolean":
-      return RubricType.BOOLEAN;
-    case "ordinal":
-      return RubricType.ORDINAL;
-    case "numerical":
-      return RubricType.NUMERICAL;
-    default:
-      assertNever(type);
-  }
-}
-function toAssessmentRubricType(
-  type: RubricType,
-): AssessmentRubricValue["type"] {
-  switch (type) {
-    case RubricType.BOOLEAN:
-      return "boolean";
-    case RubricType.ORDINAL:
-      return "ordinal";
-    case RubricType.NUMERICAL:
-      return "numerical";
-    default:
-      assertNever(type);
-  }
-}
-
 // Returns typed rubric values for a submission/question assessment.
 export async function loadAssessment(
   submissionId: string,
@@ -50,68 +21,72 @@ export async function loadAssessment(
   "use cache";
   cacheTag(`assessments:${submissionId}:${questionId}`);
 
-  const assessment = await prisma.assessment.findFirst({
-    where: {
-      submission: { id: submissionId },
-      question: { id: questionId },
-    },
-    include: {
-      assessments: {
-        select: {
-          rubricId: true,
-          type: true,
-          booleanAssessment: {
-            select: {
-              passed: true,
-            },
-          },
-          ordinalAssessment: {
-            select: {
-              selectedLabel: true,
-            },
-          },
-          numericalAssessment: {
-            select: {
-              score: true,
-            },
-          },
-        },
-      },
-    },
-  });
+  const assessment = await db
+    .selectFrom("assessment")
+    .where("submissionId", "=", Number(submissionId))
+    .where("questionId", "=", questionId)
+    .select("id")
+    .executeTakeFirst();
+
+  if (!assessment) {
+    return [];
+  }
+
+  const rubricAssessments = await db
+    .selectFrom("rubricAssessment")
+    .where("assessmentId", "=", assessment.id)
+    .select(["id", "rubricId", "type"])
+    .execute();
 
   const result: AssessmentRubricValue[] = [];
-  if (assessment == null) return result;
 
-  for (const rubricAssessment of assessment.assessments) {
-    if (rubricAssessment.booleanAssessment != null) {
-      result.push({
-        rubricId: rubricAssessment.rubricId,
-        type: "boolean",
-        passed: rubricAssessment.booleanAssessment.passed,
-      });
-      continue;
-    }
+  for (const rubricAssessment of rubricAssessments) {
+    if (rubricAssessment.type === "boolean") {
+      const booleanAssessment = await db
+        .selectFrom("booleanRubricAssessment")
+        .where("rubricAssessmentId", "=", rubricAssessment.id)
+        .select("passed")
+        .executeTakeFirst();
 
-    if (rubricAssessment.ordinalAssessment != null) {
-      result.push({
-        rubricId: rubricAssessment.rubricId,
-        type: "ordinal",
-        selectedLabel: rubricAssessment.ordinalAssessment.selectedLabel,
-      });
-      continue;
-    }
+      if (booleanAssessment) {
+        result.push({
+          rubricId: rubricAssessment.rubricId,
+          type: "boolean",
+          passed: booleanAssessment.passed,
+        });
+      }
+    } else if (rubricAssessment.type === "ordinal") {
+      const ordinalAssessment = await db
+        .selectFrom("ordinalRubricAssessment")
+        .where("rubricAssessmentId", "=", rubricAssessment.id)
+        .select("selectedLabel")
+        .executeTakeFirst();
 
-    if (rubricAssessment.numericalAssessment != null) {
-      const numericScore =
-        typeof rubricAssessment.numericalAssessment.score === "number"
-          ? rubricAssessment.numericalAssessment.score
-          : parseFloat(String(rubricAssessment.numericalAssessment.score));
-      result.push({
-        rubricId: rubricAssessment.rubricId,
-        type: "numerical",
-        score: numericScore,
-      });
+      if (ordinalAssessment) {
+        result.push({
+          rubricId: rubricAssessment.rubricId,
+          type: "ordinal",
+          selectedLabel: ordinalAssessment.selectedLabel,
+        });
+      }
+    } else if (rubricAssessment.type === "numerical") {
+      const numericalAssessment = await db
+        .selectFrom("numericalRubricAssessment")
+        .where("rubricAssessmentId", "=", rubricAssessment.id)
+        .select("score")
+        .executeTakeFirst();
+
+      if (numericalAssessment) {
+        const numericScore =
+          typeof numericalAssessment.score === "number"
+            ? numericalAssessment.score
+            : parseFloat(String(numericalAssessment.score));
+        result.push({
+          rubricId: rubricAssessment.rubricId,
+          type: "numerical",
+          score: numericScore,
+        });
+      }
     }
   }
 
@@ -126,25 +101,35 @@ export async function saveAssessment({
   const rubricId = rubricValue.rubricId;
 
   const [submission, question, rubric] = await Promise.all([
-    prisma.submission.findUnique({ where: { id: submissionId } }),
-    prisma.question.findUnique({ where: { id: questionId } }),
-    prisma.rubric.findUnique({
-      where: { id: rubricId },
-      include: {
-        ordinalRubric: {
-          select: {
-            marks: {
-              select: {
-                label: true,
-              },
-            },
-          },
-        },
-        numericalRubric: {
-          select: { minScore: true, maxScore: true },
-        },
-      },
-    }),
+    db
+      .selectFrom("submission")
+      .where("id", "=", Number(submissionId))
+      .select("id")
+      .executeTakeFirst(),
+    db
+      .selectFrom("question")
+      .where("id", "=", questionId)
+      .select("id")
+      .executeTakeFirst(),
+    db
+      .selectFrom("rubric")
+      .leftJoin("ordinalRubric", "ordinalRubric.rubricId", "rubric.id")
+      .leftJoin(
+        "ordinalRubricValue",
+        "ordinalRubricValue.ordinalRubricId",
+        "ordinalRubric.id",
+      )
+      .leftJoin("numericalRubric", "numericalRubric.rubricId", "rubric.id")
+      .where("rubric.id", "=", rubricId)
+      .select([
+        "rubric.id",
+        "rubric.type",
+        "rubric.questionId",
+        "ordinalRubricValue.label",
+        "numericalRubric.minScore",
+        "numericalRubric.maxScore",
+      ])
+      .executeTakeFirst(),
   ]);
 
   if (submission == null || question == null) {
@@ -155,125 +140,183 @@ export async function saveAssessment({
     return { success: false, error: "Rubric not found." };
   }
 
-  if (toAssessmentRubricType(rubric.type) !== rubricValue.type) {
+  if (rubric.type !== rubricValue.type) {
     return { success: false, error: "Rubric type mismatch." };
   }
 
-  const rubricAssessmentType = toDbRubricType(rubricValue.type);
+  return db.transaction().execute(async (tx) => {
+    const _assessment = await tx
+      .insertInto("assessment")
+      .values({ submissionId: submission.id, questionId: question.id })
+      .onConflict((conflict) =>
+        conflict.columns(["submissionId", "questionId"]).doNothing(),
+      )
+      .execute();
 
-  const assessment = await prisma.assessment.upsert({
-    where: {
-      submissionId_questionId: {
-        submissionId: submission.id,
-        questionId: question.id,
-      },
-    },
-    create: { submissionId: submission.id, questionId: question.id },
-    update: {},
-  });
+    const existingAssessment = await tx
+      .selectFrom("assessment")
+      .where("submissionId", "=", submission.id)
+      .where("questionId", "=", question.id)
+      .select("id")
+      .executeTakeFirstOrThrow();
 
-  const rubricAssessment = await prisma.rubricAssessment.upsert({
-    where: {
-      assessmentId_rubricId: {
-        assessmentId: assessment.id,
+    const assessmentId = existingAssessment.id;
+
+    const _rubricAssessment = await tx
+      .insertInto("rubricAssessment")
+      .values({
+        assessmentId,
         rubricId,
-      },
-    },
-    create: {
-      assessmentId: assessment.id,
-      rubricId,
-      type: rubricAssessmentType,
-    },
-    update: {
-      type: rubricAssessmentType,
-    },
+        type: rubricValue.type,
+      })
+      .onConflict((conflict) =>
+        conflict
+          .columns(["assessmentId", "rubricId"])
+          .doUpdateSet({ type: rubricValue.type }),
+      )
+      .execute();
+
+    const existingRubricAssessment = await tx
+      .selectFrom("rubricAssessment")
+      .where("assessmentId", "=", assessmentId)
+      .where("rubricId", "=", rubricId)
+      .select("id")
+      .executeTakeFirstOrThrow();
+
+    const rubricAssessmentId = existingRubricAssessment.id;
+
+    if (rubricValue.type === "boolean") {
+      await Promise.all([
+        tx
+          .insertInto("booleanRubricAssessment")
+          .values({
+            rubricAssessmentId,
+            passed: rubricValue.passed,
+          })
+          .onConflict((conflict) =>
+            conflict
+              .column("rubricAssessmentId")
+              .doUpdateSet({ passed: rubricValue.passed }),
+          )
+          .execute(),
+        tx
+          .deleteFrom("ordinalRubricAssessment")
+          .where("rubricAssessmentId", "=", rubricAssessmentId)
+          .execute(),
+        tx
+          .deleteFrom("numericalRubricAssessment")
+          .where("rubricAssessmentId", "=", rubricAssessmentId)
+          .execute(),
+      ]);
+    } else if (rubricValue.type === "ordinal") {
+      const ordinalLabels = await tx
+        .selectFrom("ordinalRubricValue")
+        .innerJoin(
+          "ordinalRubric",
+          "ordinalRubric.id",
+          "ordinalRubricValue.ordinalRubricId",
+        )
+        .where("ordinalRubric.rubricId", "=", rubricId)
+        .select("ordinalRubricValue.label")
+        .execute();
+
+      const allowedValues = ordinalLabels.map((v) => v.label);
+
+      if (!allowedValues.includes(rubricValue.selectedLabel)) {
+        return { success: false, error: "Invalid ordinal value." };
+      }
+
+      await Promise.all([
+        tx
+          .insertInto("ordinalRubricAssessment")
+          .values({
+            rubricAssessmentId,
+            selectedLabel: rubricValue.selectedLabel,
+          })
+          .onConflict((conflict) =>
+            conflict
+              .column("rubricAssessmentId")
+              .doUpdateSet({ selectedLabel: rubricValue.selectedLabel }),
+          )
+          .execute(),
+        tx
+          .deleteFrom("booleanRubricAssessment")
+          .where("rubricAssessmentId", "=", rubricAssessmentId)
+          .execute(),
+        tx
+          .deleteFrom("numericalRubricAssessment")
+          .where("rubricAssessmentId", "=", rubricAssessmentId)
+          .execute(),
+      ]);
+    } else {
+      const parsed = rubricValue.score;
+
+      if (!Number.isFinite(parsed)) {
+        return { success: false, error: "Invalid numerical value." };
+      }
+
+      const numericalRubricData = await tx
+        .selectFrom("numericalRubric")
+        .where("rubricId", "=", rubricId)
+        .select(["minScore", "maxScore"])
+        .executeTakeFirst();
+
+      const minScore =
+        numericalRubricData?.minScore != null
+          ? Number(numericalRubricData.minScore)
+          : null;
+      const maxScore =
+        numericalRubricData?.maxScore != null
+          ? Number(numericalRubricData.maxScore)
+          : null;
+
+      if (minScore == null || maxScore == null || maxScore <= minScore) {
+        return {
+          success: false,
+          error: "Numerical rubric bounds are invalid.",
+        };
+      }
+
+      if (parsed < minScore) {
+        return {
+          success: false,
+          error: `Score must be at least ${minScore}.`,
+        };
+      }
+      if (parsed > maxScore) {
+        return {
+          success: false,
+          error: `Score must be at most ${maxScore}.`,
+        };
+      }
+
+      await Promise.all([
+        tx
+          .insertInto("numericalRubricAssessment")
+          .values({
+            rubricAssessmentId,
+            score: parsed,
+          })
+          .onConflict((conflict) =>
+            conflict
+              .column("rubricAssessmentId")
+              .doUpdateSet({ score: parsed }),
+          )
+          .execute(),
+        tx
+          .deleteFrom("booleanRubricAssessment")
+          .where("rubricAssessmentId", "=", rubricAssessmentId)
+          .execute(),
+        tx
+          .deleteFrom("ordinalRubricAssessment")
+          .where("rubricAssessmentId", "=", rubricAssessmentId)
+          .execute(),
+      ]);
+    }
+
+    updateTag(`assessments:${submissionId}:${questionId}`);
+    updateTag("assessments");
+
+    return { success: true };
   });
-
-  if (rubricValue.type === "boolean") {
-    await Promise.all([
-      prisma.booleanRubricAssessment.upsert({
-        where: { rubricAssessmentId: rubricAssessment.id },
-        create: {
-          rubricAssessmentId: rubricAssessment.id,
-          passed: rubricValue.passed,
-        },
-        update: { passed: rubricValue.passed },
-      }),
-      prisma.ordinalRubricAssessment.deleteMany({
-        where: { rubricAssessmentId: rubricAssessment.id },
-      }),
-      prisma.numericalRubricAssessment.deleteMany({
-        where: { rubricAssessmentId: rubricAssessment.id },
-      }),
-    ]);
-  } else if (rubricValue.type === "ordinal") {
-    const allowedValues =
-      rubric.ordinalRubric?.marks.map((item) => item.label) ?? [];
-
-    if (!allowedValues.includes(rubricValue.selectedLabel)) {
-      return { success: false, error: "Invalid ordinal value." };
-    }
-
-    await Promise.all([
-      prisma.ordinalRubricAssessment.upsert({
-        where: { rubricAssessmentId: rubricAssessment.id },
-        create: {
-          rubricAssessmentId: rubricAssessment.id,
-          selectedLabel: rubricValue.selectedLabel,
-        },
-        update: { selectedLabel: rubricValue.selectedLabel },
-      }),
-      prisma.booleanRubricAssessment.deleteMany({
-        where: { rubricAssessmentId: rubricAssessment.id },
-      }),
-      prisma.numericalRubricAssessment.deleteMany({
-        where: { rubricAssessmentId: rubricAssessment.id },
-      }),
-    ]);
-  } else {
-    const parsed = rubricValue.score;
-
-    if (!Number.isFinite(parsed)) {
-      return { success: false, error: "Invalid numerical value." };
-    }
-
-    const minScore =
-      rubric.numericalRubric?.minScore != null
-        ? Number(rubric.numericalRubric.minScore)
-        : null;
-    const maxScore =
-      rubric.numericalRubric?.maxScore != null
-        ? Number(rubric.numericalRubric.maxScore)
-        : null;
-
-    if (minScore == null || maxScore == null || maxScore <= minScore) {
-      return { success: false, error: "Numerical rubric bounds are invalid." };
-    }
-
-    if (parsed < minScore) {
-      return { success: false, error: `Score must be at least ${minScore}.` };
-    }
-    if (parsed > maxScore) {
-      return { success: false, error: `Score must be at most ${maxScore}.` };
-    }
-
-    await Promise.all([
-      prisma.numericalRubricAssessment.upsert({
-        where: { rubricAssessmentId: rubricAssessment.id },
-        create: { rubricAssessmentId: rubricAssessment.id, score: parsed },
-        update: { score: parsed },
-      }),
-      prisma.booleanRubricAssessment.deleteMany({
-        where: { rubricAssessmentId: rubricAssessment.id },
-      }),
-      prisma.ordinalRubricAssessment.deleteMany({
-        where: { rubricAssessmentId: rubricAssessment.id },
-      }),
-    ]);
-  }
-
-  updateTag(`assessments:${submissionId}:${questionId}`);
-  updateTag("assessments");
-
-  return { success: true };
 }

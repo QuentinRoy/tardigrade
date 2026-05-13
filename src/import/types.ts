@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { SubmissionType } from "@/db/types";
 import {
   booleanRubricSchema,
   numericalRubricSchema,
@@ -17,7 +18,7 @@ export type ImportedStudent = z.output<typeof studentRowSchema>;
 export type ImportedAssessmentRow = Record<string, string>;
 export type ImportedSubmission = {
   id: string;
-  type: "INDIVIDUAL" | "TEAM";
+  type: SubmissionType;
   team?: string;
   students: ImportedStudent[];
 };

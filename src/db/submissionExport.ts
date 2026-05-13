@@ -1,5 +1,4 @@
 import "server-only";
-import { Prisma, SubmissionType } from "@prisma/client";
 import {
   buildAssessmentKey,
   buildSubmissionExportHeaders,
@@ -7,129 +6,145 @@ import {
   type ExportOptions,
   type ExportQuestionPlan,
 } from "@/export/submissionExportCsv";
-import { prisma } from "./prisma";
+import { db } from "./kysely";
+import type { AssessmentRubricValue } from "./types";
 
-function toNumber(value: Prisma.Decimal | number): number {
+function toNumber(value: string | number): number {
   if (typeof value === "number") return value;
-  if (typeof value === "string") return parseFloat(value);
-  if (typeof (value as { toNumber?: unknown }).toNumber === "function") {
-    return (value as Prisma.Decimal).toNumber();
-  }
-  return parseFloat(String(value));
+  return parseFloat(value);
 }
 
 async function assertSubmissionInvariants() {
-  const invalidSubmissions = await prisma.submission.count({
-    where: {
-      OR: [
-        { type: SubmissionType.TEAM, teamId: null },
-        { type: SubmissionType.INDIVIDUAL, studentId: null },
-      ],
-    },
-  });
+  const invalidSubmissions = await db
+    .selectFrom("submission")
+    .select((expressionBuilder) => expressionBuilder.fn.countAll().as("count"))
+    .where((expressionBuilder) =>
+      expressionBuilder.or([
+        expressionBuilder.and([
+          expressionBuilder("type", "=", "team"),
+          expressionBuilder("teamId", "is", null),
+        ]),
+        expressionBuilder.and([
+          expressionBuilder("type", "=", "individual"),
+          expressionBuilder("studentId", "is", null),
+        ]),
+      ]),
+    )
+    .executeTakeFirstOrThrow();
 
-  if (invalidSubmissions > 0) {
+  const invalidCount = Number(invalidSubmissions.count);
+
+  if (invalidCount > 0) {
     throw new Error(
-      `Unexpected submission data: found ${invalidSubmissions} submissions without required owner.`,
+      `Unexpected submission data: found ${invalidCount} submissions without required owner.`,
     );
   }
 }
 
 async function loadQuestionPlan(): Promise<ExportQuestionPlan[]> {
-  const questions = await prisma.question.findMany({
-    select: {
-      id: true,
-      label: true,
-      position: true,
-      rubrics: {
-        select: {
-          id: true,
-          label: true,
-          description: true,
-          position: true,
-          type: true,
-          booleanRubric: {
-            select: {
-              marks: true,
-            },
-          },
-          ordinalRubric: {
-            select: {
-              marks: {
-                select: {
-                  label: true,
-                  marks: true,
-                },
-              },
-            },
-          },
-          numericalRubric: {
-            select: {
-              minScore: true,
-              maxScore: true,
-              minMarks: true,
-              maxMarks: true,
-            },
-          },
-        },
-        orderBy: { position: "asc" },
-      },
-    },
-    orderBy: { position: "asc" },
-  });
+  const [questions, rubrics, booleanRubrics, numericalRubrics, ordinalMarks] =
+    await Promise.all([
+      db
+        .selectFrom("question")
+        .select(["id", "label", "position"])
+        .orderBy("position", "asc")
+        .execute(),
+      db
+        .selectFrom("rubric")
+        .select([
+          "id",
+          "questionId",
+          "label",
+          "description",
+          "position",
+          "type",
+        ])
+        .orderBy("position", "asc")
+        .execute(),
+      db.selectFrom("booleanRubric").select(["rubricId", "marks"]).execute(),
+      db
+        .selectFrom("numericalRubric")
+        .select(["rubricId", "minScore", "maxScore", "minMarks", "maxMarks"])
+        .execute(),
+      db
+        .selectFrom("ordinalRubric")
+        .innerJoin(
+          "ordinalRubricValue",
+          "ordinalRubricValue.ordinalRubricId",
+          "ordinalRubric.id",
+        )
+        .select([
+          "ordinalRubric.rubricId as rubricId",
+          "ordinalRubricValue.label as label",
+          "ordinalRubricValue.marks as marks",
+        ])
+        .execute(),
+    ]);
+
+  const rubricsByQuestionId = new Map<string, (typeof rubrics)[number][]>();
+  for (const rubric of rubrics) {
+    const list = rubricsByQuestionId.get(rubric.questionId) ?? [];
+    list.push(rubric);
+    rubricsByQuestionId.set(rubric.questionId, list);
+  }
+
+  const booleanRubricById = new Map(
+    booleanRubrics.map((row) => [row.rubricId, row]),
+  );
+  const numericalRubricById = new Map(
+    numericalRubrics.map((row) => [row.rubricId, row]),
+  );
+  const ordinalMarksByRubricId = new Map<
+    string,
+    { label: string; marks: number }[]
+  >();
+  for (const row of ordinalMarks) {
+    const list = ordinalMarksByRubricId.get(row.rubricId) ?? [];
+    list.push({ label: row.label, marks: row.marks });
+    ordinalMarksByRubricId.set(row.rubricId, list);
+  }
 
   return questions.map((question) => ({
     id: question.id,
     label: question.label ?? question.id,
-    rubrics: question.rubrics.map((rubric) => {
+    rubrics: (rubricsByQuestionId.get(question.id) ?? []).map((rubric) => {
       const rubricLabel = rubric.label ?? rubric.description ?? rubric.id;
 
-      if (rubric.type === "BOOLEAN") {
+      if (rubric.type === "boolean") {
+        const booleanRubric = booleanRubricById.get(rubric.id);
         return {
           id: rubric.id,
           label: rubricLabel,
           type: "boolean" as const,
-          marks:
-            rubric.booleanRubric != null
-              ? toNumber(rubric.booleanRubric.marks)
-              : 0,
+          marks: booleanRubric != null ? toNumber(booleanRubric.marks) : 0,
         };
       }
 
-      if (rubric.type === "ORDINAL") {
+      if (rubric.type === "ordinal") {
+        const marks = ordinalMarksByRubricId.get(rubric.id) ?? [];
         return {
           id: rubric.id,
           label: rubricLabel,
           type: "ordinal" as const,
           marksByLabel: Object.fromEntries(
-            (rubric.ordinalRubric?.marks ?? []).map((item) => [
-              item.label,
-              toNumber(item.marks),
-            ]),
+            marks.map((item) => [item.label, toNumber(item.marks)]),
           ),
         };
       }
 
+      const numericalRubric = numericalRubricById.get(rubric.id);
       return {
         id: rubric.id,
         label: rubricLabel,
         type: "numerical" as const,
         minScore:
-          rubric.numericalRubric != null
-            ? toNumber(rubric.numericalRubric.minScore)
-            : 0,
+          numericalRubric != null ? toNumber(numericalRubric.minScore) : 0,
         maxScore:
-          rubric.numericalRubric != null
-            ? toNumber(rubric.numericalRubric.maxScore)
-            : 0,
+          numericalRubric != null ? toNumber(numericalRubric.maxScore) : 0,
         minMarks:
-          rubric.numericalRubric != null
-            ? toNumber(rubric.numericalRubric.minMarks)
-            : 0,
+          numericalRubric != null ? toNumber(numericalRubric.minMarks) : 0,
         maxMarks:
-          rubric.numericalRubric != null
-            ? toNumber(rubric.numericalRubric.maxMarks)
-            : 0,
+          numericalRubric != null ? toNumber(numericalRubric.maxMarks) : 0,
       };
     }),
   }));
@@ -145,82 +160,130 @@ export async function createSubmissionExport(options: ExportOptions): Promise<{
   const headers = buildSubmissionExportHeaders(questions, options);
 
   async function* rows(): AsyncGenerator<string[]> {
-    const stream = prisma.submission.cursorStream(
-      {
-        orderBy: { id: "asc" },
-        select: {
-          id: true,
-          type: true,
-          team: { select: { name: true } },
-          student: { select: { id: true } },
-          assessments: {
-            select: {
-              questionId: true,
-              assessments: {
-                select: {
-                  rubricId: true,
-                  booleanAssessment: { select: { passed: true } },
-                  ordinalAssessment: { select: { selectedLabel: true } },
-                  numericalAssessment: { select: { score: true } },
-                },
-              },
-            },
-          },
-        },
-      },
-      {
-        batchSize: 100,
-      },
-    );
+    const stream = db
+      .selectFrom("submission")
+      .leftJoin("team", "team.id", "submission.teamId")
+      .leftJoin("student", "student.id", "submission.studentId")
+      .leftJoin("assessment", "assessment.submissionId", "submission.id")
+      .leftJoin(
+        "rubricAssessment",
+        "rubricAssessment.assessmentId",
+        "assessment.id",
+      )
+      .leftJoin(
+        "booleanRubricAssessment",
+        "booleanRubricAssessment.rubricAssessmentId",
+        "rubricAssessment.id",
+      )
+      .leftJoin(
+        "ordinalRubricAssessment",
+        "ordinalRubricAssessment.rubricAssessmentId",
+        "rubricAssessment.id",
+      )
+      .leftJoin(
+        "numericalRubricAssessment",
+        "numericalRubricAssessment.rubricAssessmentId",
+        "rubricAssessment.id",
+      )
+      .select([
+        "submission.id as submissionId",
+        "submission.type as submissionType",
+        "team.name as teamName",
+        "student.id as studentId",
+        "assessment.questionId as questionId",
+        "rubricAssessment.rubricId as rubricId",
+        "booleanRubricAssessment.passed as booleanPassed",
+        "ordinalRubricAssessment.selectedLabel as ordinalSelectedLabel",
+        "numericalRubricAssessment.score as numericalScore",
+      ])
+      .orderBy("submission.id", "asc")
+      .orderBy("assessment.id", "asc")
+      .orderBy("rubricAssessment.id", "asc")
+      .stream(200);
 
-    for await (const submission of stream) {
-      const valuesByKey = new Map();
+    let currentSubmissionId: number | null = null;
+    let currentSubmissionType: "team" | "individual" | null = null;
+    let currentTeamName: string | null = null;
+    let currentStudentId: string | null = null;
+    let currentValuesByKey = new Map<string, AssessmentRubricValue>();
 
-      for (const assessment of submission.assessments) {
-        for (const rubricAssessment of assessment.assessments) {
-          const key = buildAssessmentKey(
-            assessment.questionId,
-            rubricAssessment.rubricId,
-          );
-
-          if (rubricAssessment.booleanAssessment != null) {
-            valuesByKey.set(key, {
-              rubricId: rubricAssessment.rubricId,
-              type: "boolean",
-              passed: rubricAssessment.booleanAssessment.passed,
-            });
-            continue;
-          }
-
-          if (rubricAssessment.ordinalAssessment != null) {
-            valuesByKey.set(key, {
-              rubricId: rubricAssessment.rubricId,
-              type: "ordinal",
-              selectedLabel: rubricAssessment.ordinalAssessment.selectedLabel,
-            });
-            continue;
-          }
-
-          if (rubricAssessment.numericalAssessment != null) {
-            valuesByKey.set(key, {
-              rubricId: rubricAssessment.rubricId,
-              type: "numerical",
-              score: toNumber(rubricAssessment.numericalAssessment.score),
-            });
-          }
+    for await (const row of stream) {
+      if (
+        currentSubmissionId != null &&
+        row.submissionId !== currentSubmissionId
+      ) {
+        if (currentSubmissionType == null) {
+          throw new Error("Missing submission type while streaming export.");
         }
+
+        yield buildSubmissionExportRow({
+          submission: {
+            id: String(currentSubmissionId),
+            type: currentSubmissionType,
+            teamName: currentTeamName,
+            studentId: currentStudentId,
+          },
+          questions,
+          options,
+          valuesByKey: currentValuesByKey,
+        });
+
+        currentValuesByKey = new Map<string, AssessmentRubricValue>();
+      }
+
+      currentSubmissionId = row.submissionId;
+      currentSubmissionType = row.submissionType;
+      currentTeamName = row.teamName;
+      currentStudentId = row.studentId;
+
+      if (row.questionId == null || row.rubricId == null) {
+        continue;
+      }
+
+      const key = buildAssessmentKey(row.questionId, row.rubricId);
+
+      if (row.booleanPassed != null) {
+        currentValuesByKey.set(key, {
+          rubricId: row.rubricId,
+          type: "boolean",
+          passed: row.booleanPassed,
+        });
+        continue;
+      }
+
+      if (row.ordinalSelectedLabel != null) {
+        currentValuesByKey.set(key, {
+          rubricId: row.rubricId,
+          type: "ordinal",
+          selectedLabel: row.ordinalSelectedLabel,
+        });
+        continue;
+      }
+
+      if (row.numericalScore != null) {
+        currentValuesByKey.set(key, {
+          rubricId: row.rubricId,
+          type: "numerical",
+          score: toNumber(row.numericalScore),
+        });
+      }
+    }
+
+    if (currentSubmissionId != null) {
+      if (currentSubmissionType == null) {
+        throw new Error("Missing submission type while finalizing export.");
       }
 
       yield buildSubmissionExportRow({
         submission: {
-          id: submission.id,
-          type: submission.type,
-          teamName: submission.team?.name,
-          studentId: submission.student?.id,
+          id: String(currentSubmissionId),
+          type: currentSubmissionType,
+          teamName: currentTeamName,
+          studentId: currentStudentId,
         },
         questions,
         options,
-        valuesByKey,
+        valuesByKey: currentValuesByKey,
       });
     }
   }

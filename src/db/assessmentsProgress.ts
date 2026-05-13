@@ -1,6 +1,6 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
-import { prisma } from "./prisma";
+import { db } from "./kysely";
 import type { GlobalAssessmentProgress } from "./types";
 
 async function loadGlobalAssessmentProgressFromDb(): Promise<GlobalAssessmentProgress> {
@@ -12,46 +12,66 @@ async function loadGlobalAssessmentProgressFromDb(): Promise<GlobalAssessmentPro
 
   const [submissions, questions, assessments, rubricAssessmentsCount] =
     await Promise.all([
-      prisma.submission.findMany({ select: { id: true } }),
-      prisma.question.findMany({
-        select: {
-          id: true,
-          _count: { select: { rubrics: true } },
-        },
-      }),
-      prisma.assessment.findMany({
-        select: {
-          submissionId: true,
-          questionId: true,
-          _count: { select: { assessments: true } },
-        },
-      }),
-      prisma.rubricAssessment.count(),
+      db.selectFrom("submission").select("id").execute(),
+      db
+        .selectFrom("question")
+        .leftJoin("rubric", "rubric.questionId", "question.id")
+        .select((expressionBuilder) => [
+          "question.id as id",
+          expressionBuilder.fn.count<number>("rubric.id").as("rubricCount"),
+        ])
+        .groupBy("question.id")
+        .execute(),
+      db
+        .selectFrom("assessment")
+        .leftJoin(
+          "rubricAssessment",
+          "rubricAssessment.assessmentId",
+          "assessment.id",
+        )
+        .select((expressionBuilder) => [
+          "assessment.submissionId as submissionId",
+          "assessment.questionId as questionId",
+          expressionBuilder.fn
+            .count<number>("rubricAssessment.id")
+            .as("assessmentCount"),
+        ])
+        .groupBy(["assessment.submissionId", "assessment.questionId"])
+        .execute(),
+      db
+        .selectFrom("rubricAssessment")
+        .select((expressionBuilder) =>
+          expressionBuilder.fn.countAll<number>().as("count"),
+        )
+        .executeTakeFirstOrThrow(),
     ]);
 
   const totalSubmissions = submissions.length;
   const totalQuestions = questions.length;
 
   const rubricCountByQuestionId = new Map<string, number>(
-    questions.map((question) => [question.id, question._count.rubrics]),
+    questions.map((question) => [question.id, Number(question.rubricCount)]),
   );
 
   const totalRubricsInProject = questions.reduce(
-    (sum, question) => sum + question._count.rubrics,
+    (sum, question) => sum + Number(question.rubricCount),
     0,
   );
   const totalExpectedRubricAssessments =
     totalSubmissions * totalRubricsInProject;
 
   const zeroRubricQuestionCount = questions.filter(
-    (question) => question._count.rubrics === 0,
+    (question) => Number(question.rubricCount) === 0,
   ).length;
 
   const completedQuestionAssessmentsByQuestionId = new Map<string, number>(
     questions.map((question) => [question.id, 0]),
   );
   const completedQuestionAssessmentsBySubmissionId = new Map<string, number>(
-    submissions.map((submission) => [submission.id, zeroRubricQuestionCount]),
+    submissions.map((submission) => [
+      String(submission.id),
+      zeroRubricQuestionCount,
+    ]),
   );
 
   for (const assessment of assessments) {
@@ -62,17 +82,17 @@ async function loadGlobalAssessmentProgressFromDb(): Promise<GlobalAssessmentPro
       continue;
     }
 
-    if (assessment._count.assessments >= requiredRubricCount) {
+    const submissionId = String(assessment.submissionId);
+
+    if (Number(assessment.assessmentCount) >= requiredRubricCount) {
       completedQuestionAssessmentsByQuestionId.set(
         assessment.questionId,
         (completedQuestionAssessmentsByQuestionId.get(assessment.questionId) ??
           0) + 1,
       );
       completedQuestionAssessmentsBySubmissionId.set(
-        assessment.submissionId,
-        (completedQuestionAssessmentsBySubmissionId.get(
-          assessment.submissionId,
-        ) ?? 0) + 1,
+        submissionId,
+        (completedQuestionAssessmentsBySubmissionId.get(submissionId) ?? 0) + 1,
       );
     }
   }
@@ -91,8 +111,9 @@ async function loadGlobalAssessmentProgressFromDb(): Promise<GlobalAssessmentPro
       ? 0
       : submissions.filter(
           (submission) =>
-            (completedQuestionAssessmentsBySubmissionId.get(submission.id) ??
-              0) >= totalQuestions,
+            (completedQuestionAssessmentsBySubmissionId.get(
+              String(submission.id),
+            ) ?? 0) >= totalQuestions,
         ).length;
 
   return {
@@ -106,7 +127,7 @@ async function loadGlobalAssessmentProgressFromDb(): Promise<GlobalAssessmentPro
     },
     rubrics: {
       completed: Math.min(
-        rubricAssessmentsCount,
+        Number(rubricAssessmentsCount.count),
         totalExpectedRubricAssessments,
       ),
       total: totalExpectedRubricAssessments,

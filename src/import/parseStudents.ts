@@ -41,7 +41,7 @@ export function groupStudentsIntoSubmissions(
 
       return {
         id,
-        type: "TEAM",
+        type: "team",
         team: firstStudent.team,
         students: groupedStudents,
       };
@@ -57,7 +57,7 @@ export function groupStudentsIntoSubmissions(
 
     return {
       id,
-      type: "INDIVIDUAL",
+      type: "individual",
       students: groupedStudents,
     };
   });

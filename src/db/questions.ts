@@ -1,16 +1,11 @@
 import "server-only";
-import { type Prisma, RubricType } from "@prisma/client";
 import { cacheLife, cacheTag } from "next/cache";
-import { prisma } from "./prisma";
-import type { Grid, Question, Rubric } from "./types";
+import { db } from "./kysely";
+import type { Grid, Question, Rubric, RubricType } from "./types";
 
-function toNumber(value: Prisma.Decimal | number): number {
+function toNumber(value: string | number): number {
   if (typeof value === "number") return value;
-  if (typeof value === "string") return parseFloat(value);
-  if (typeof (value as { toNumber?: unknown }).toNumber === "function") {
-    return (value as Prisma.Decimal).toNumber();
-  }
-  return parseFloat(String(value));
+  return parseFloat(value);
 }
 
 function toRubric(data: {
@@ -27,9 +22,12 @@ function toRubric(data: {
     maxMarks: number;
   } | null;
 }): Rubric {
-  if (data.type === RubricType.ORDINAL && data.ordinalRubric) {
+  if (data.type === "ordinal" && data.ordinalRubric) {
     const marks = Object.fromEntries(
-      data.ordinalRubric.marks.map((item) => [item.label, item.marks]),
+      data.ordinalRubric.marks.map((item) => [
+        item.label,
+        toNumber(item.marks),
+      ]),
     );
     return {
       id: data.id,
@@ -40,7 +38,7 @@ function toRubric(data: {
     };
   }
 
-  if (data.type === RubricType.NUMERICAL && data.numericalRubric) {
+  if (data.type === "numerical" && data.numericalRubric) {
     return {
       id: data.id,
       description: data.description ?? undefined,
@@ -86,76 +84,108 @@ async function loadQuestionsFromDb(): Promise<QuestionRow[]> {
   cacheTag("questions");
   cacheLife({ revalidate: 60 * 60 });
 
-  const rows = await prisma.question.findMany({
-    select: {
-      id: true,
-      label: true,
-      rubrics: {
-        select: {
-          id: true,
-          type: true,
-          description: true,
-          label: true,
-          booleanRubric: { select: { marks: true } },
-          ordinalRubric: {
-            select: {
-              marks: {
-                select: { label: true, marks: true },
-                orderBy: [
-                  { marks: "desc" as const },
-                  { label: "asc" as const },
-                ],
-              },
-            },
-          },
-          numericalRubric: {
-            select: {
-              minScore: true,
-              maxScore: true,
-              minMarks: true,
-              maxMarks: true,
-            },
-          },
-        },
-        orderBy: { position: "asc" as const },
+  const [questions, rubrics, booleanRubrics, numericalRubrics, ordinalMarks] =
+    await Promise.all([
+      db
+        .selectFrom("question")
+        .select(["id", "label", "position"])
+        .orderBy("position", "asc")
+        .execute(),
+      db
+        .selectFrom("rubric")
+        .select([
+          "id",
+          "questionId",
+          "position",
+          "description",
+          "label",
+          "type",
+        ])
+        .orderBy("position", "asc")
+        .execute(),
+      db.selectFrom("booleanRubric").select(["rubricId", "marks"]).execute(),
+      db
+        .selectFrom("numericalRubric")
+        .select(["rubricId", "minScore", "maxScore", "minMarks", "maxMarks"])
+        .execute(),
+      db
+        .selectFrom("ordinalRubric")
+        .innerJoin(
+          "ordinalRubricValue",
+          "ordinalRubricValue.ordinalRubricId",
+          "ordinalRubric.id",
+        )
+        .select([
+          "ordinalRubric.rubricId as rubricId",
+          "ordinalRubricValue.label as label",
+          "ordinalRubricValue.marks as marks",
+        ])
+        .orderBy("ordinalRubricValue.marks", "desc")
+        .orderBy("ordinalRubricValue.label", "asc")
+        .execute(),
+    ]);
+
+  const booleanRubricById = new Map(
+    booleanRubrics.map((row) => [row.rubricId, { marks: row.marks }]),
+  );
+
+  const numericalRubricById = new Map(
+    numericalRubrics.map((row) => [
+      row.rubricId,
+      {
+        minScore: row.minScore,
+        maxScore: row.maxScore,
+        minMarks: row.minMarks,
+        maxMarks: row.maxMarks,
       },
-    },
-    orderBy: { position: "asc" as const },
-  });
+    ]),
+  );
 
-  return rows.map((question) => ({
-    id: question.id,
-    label: question.label,
-    rubrics: question.rubrics.map((rubric) => {
-      const ordinalMarkEntries =
-        rubric.ordinalRubric?.marks.map((item) => ({
-          label: item.label,
-          marks: toNumber(item.marks),
-        })) ?? [];
+  const ordinalMarksByRubricId = new Map<
+    string,
+    { label: string; marks: number }[]
+  >();
+  for (const row of ordinalMarks) {
+    const list = ordinalMarksByRubricId.get(row.rubricId) ?? [];
+    list.push({ label: row.label, marks: row.marks });
+    ordinalMarksByRubricId.set(row.rubricId, list);
+  }
 
-      return {
+  const rubricsByQuestionId = new Map<
+    string,
+    Array<{
+      id: string;
+      questionId: string;
+      description: string | null;
+      label: string | null;
+      type: RubricType;
+    }>
+  >();
+  for (const rubric of rubrics) {
+    const list = rubricsByQuestionId.get(rubric.questionId) ?? [];
+    list.push(rubric);
+    rubricsByQuestionId.set(rubric.questionId, list);
+  }
+
+  return questions.map((question) => {
+    const questionRubrics = rubricsByQuestionId.get(question.id) ?? [];
+
+    return {
+      id: question.id,
+      label: question.label,
+      rubrics: questionRubrics.map((rubric) => ({
         id: rubric.id,
         type: rubric.type,
         description: rubric.description,
         label: rubric.label,
-        booleanRubric: rubric.booleanRubric
-          ? { marks: toNumber(rubric.booleanRubric.marks) }
+        booleanRubric: booleanRubricById.get(rubric.id) ?? null,
+        ordinalRubric: ordinalMarksByRubricId.has(rubric.id)
+          ? { marks: ordinalMarksByRubricId.get(rubric.id) ?? [] }
           : null,
-        ordinalRubric: rubric.ordinalRubric
-          ? { marks: ordinalMarkEntries }
-          : null,
-        numericalRubric:
-          rubric.numericalRubric != null
-            ? {
-                minScore: toNumber(rubric.numericalRubric.minScore),
-                maxScore: toNumber(rubric.numericalRubric.maxScore),
-                minMarks: toNumber(rubric.numericalRubric.minMarks),
-                maxMarks: toNumber(rubric.numericalRubric.maxMarks),
-              }
-            : null,
-      };
-    }),
-  }));
+        numericalRubric: numericalRubricById.get(rubric.id) ?? null,
+      })),
+    };
+  });
 }
 
 export async function loadQuestions(): Promise<Grid> {

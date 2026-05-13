@@ -23,6 +23,6 @@ Smith,Jane,jane_smith,
 Johnson,Bob,bob_johnson,Team A`;
 
 export const ASSESSMENTS_CSV_PLACEHOLDER = `submission_type,submitter,q1:r1,q2:r2
-INDIVIDUAL,jane_smith,,
-INDIVIDUAL,john_doe,true,good
-TEAM,Team A,false,excellent`;
+individual,jane_smith,,
+individual,john_doe,true,good
+team,Team A,false,excellent`;

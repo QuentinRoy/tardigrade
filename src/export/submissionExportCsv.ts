@@ -1,4 +1,4 @@
-import type { AssessmentRubricValue } from "@/db/types";
+import type { AssessmentRubricValue, SubmissionType } from "@/db/types";
 
 export type ExportInclude = "rubric-assessment" | "rubric-marks";
 
@@ -38,7 +38,7 @@ export type ExportQuestionPlan = {
 
 export type SubmissionIdentity = {
   id: string;
-  type: "TEAM" | "INDIVIDUAL";
+  type: SubmissionType;
   teamName?: string | null;
   studentId?: string | null;
 };
@@ -74,10 +74,10 @@ export function buildAssessmentKey(
 export function getSubmissionExportIdentifier(
   submission: SubmissionIdentity,
 ): string {
-  if (submission.type === "TEAM") {
+  if (submission.type === "team") {
     if (submission.teamName == null || submission.teamName.length === 0) {
       throw new Error(
-        `Submission ${submission.id} has type TEAM but no team is linked.`,
+        `Submission ${submission.id} has type team but no team is linked.`,
       );
     }
     return submission.teamName;
@@ -85,7 +85,7 @@ export function getSubmissionExportIdentifier(
 
   if (submission.studentId == null || submission.studentId.length === 0) {
     throw new Error(
-      `Submission ${submission.id} has type INDIVIDUAL but no student is linked.`,
+      `Submission ${submission.id} has type individual but no student is linked.`,
     );
   }
 

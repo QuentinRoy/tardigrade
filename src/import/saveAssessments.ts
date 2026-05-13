@@ -1,9 +1,8 @@
 import "server-only";
-import { RubricType } from "@prisma/client";
 import { snakeCase } from "change-case";
 import { saveAssessment } from "../db/assessments";
-import { prisma } from "../db/prisma";
-import type { AssessmentRubricValue } from "../db/types";
+import { db } from "../db/kysely";
+import type { AssessmentRubricValue, RubricType } from "../db/types";
 import type { ImportedAssessmentRow } from "./types";
 
 const SUBMISSION_TYPE_COLUMN = snakeCase("submissionType");
@@ -15,23 +14,66 @@ export async function saveAssessments(
 ): Promise<{
   assessmentCount: number;
 }> {
-  const rubrics = await prisma.rubric.findMany({
-    include: {
-      question: true,
-      booleanRubric: true,
-      ordinalRubric: {
-        include: {
-          marks: true,
-        },
-      },
-      numericalRubric: true,
-    },
-  });
+  const rubrics = await db
+    .selectFrom("rubric")
+    .innerJoin("question", "question.id", "rubric.questionId")
+    .leftJoin("booleanRubric", "booleanRubric.rubricId", "rubric.id")
+    .leftJoin("ordinalRubric", "ordinalRubric.rubricId", "rubric.id")
+    .leftJoin(
+      "ordinalRubricValue",
+      "ordinalRubricValue.ordinalRubricId",
+      "ordinalRubric.id",
+    )
+    .leftJoin("numericalRubric", "numericalRubric.rubricId", "rubric.id")
+    .select([
+      "rubric.id",
+      "rubric.type",
+      "rubric.questionId",
+      "question.id as questionId",
+      "booleanRubric.marks",
+      "ordinalRubricValue.label",
+      "numericalRubric.minScore",
+      "numericalRubric.maxScore",
+    ])
+    .execute();
 
-  const rubricsByKey = new Map<string, (typeof rubrics)[0]>();
-  for (const rubric of rubrics) {
-    const key = `${rubric.question.id}:${rubric.id}`;
-    rubricsByKey.set(key, rubric);
+  const rubricsByKey = new Map<
+    string,
+    {
+      id: string;
+      type: RubricType;
+      questionId: string;
+      ordinalLabels: string[];
+      numericalMinMax?: { minScore: number; maxScore: number };
+    }
+  >();
+
+  for (const row of rubrics) {
+    const key = `${row.questionId}:${row.id}`;
+    const existing = rubricsByKey.get(key);
+
+    if (!existing) {
+      const ordinalLabels =
+        row.type === "ordinal" && row.label ? [row.label] : [];
+      const numericalMinMax =
+        row.type === "numerical" && row.minScore != null && row.maxScore != null
+          ? { minScore: Number(row.minScore), maxScore: Number(row.maxScore) }
+          : undefined;
+
+      rubricsByKey.set(key, {
+        id: row.id,
+        type: row.type,
+        questionId: row.questionId,
+        ordinalLabels,
+        numericalMinMax,
+      });
+    } else if (
+      row.type === "ordinal" &&
+      row.label &&
+      !existing.ordinalLabels.includes(row.label)
+    ) {
+      existing.ordinalLabels.push(row.label);
+    }
   }
 
   const recognizedColumns = new Set([
@@ -40,10 +82,11 @@ export async function saveAssessments(
     GRAND_TOTAL_MARKS_COLUMN,
   ]);
 
-  for (const rubric of rubrics) {
-    recognizedColumns.add(`${rubric.question.id}:${rubric.id}`);
-    recognizedColumns.add(`${rubric.question.id}:${rubric.id}:marks`);
-    recognizedColumns.add(rubric.question.id);
+  for (const [key] of rubricsByKey) {
+    recognizedColumns.add(key);
+    recognizedColumns.add(`${key}:marks`);
+    const [questionId] = key.split(":");
+    recognizedColumns.add(questionId);
   }
 
   if (assessmentRows.length > 0) {
@@ -65,11 +108,11 @@ export async function saveAssessments(
 
   for (let rowIndex = 0; rowIndex < assessmentRows.length; rowIndex++) {
     const row = assessmentRows[rowIndex];
-    const submissionTypeRaw = row[SUBMISSION_TYPE_COLUMN]?.trim().toUpperCase();
+    const submissionType = row[SUBMISSION_TYPE_COLUMN]?.trim();
     const submitter = row[SUBMITTER_COLUMN]?.trim();
     let resolvedSubmissionId: string | null = null;
 
-    if (submissionTypeRaw !== "TEAM" && submissionTypeRaw !== "INDIVIDUAL") {
+    if (submissionType !== "team" && submissionType !== "individual") {
       errorDetails.push({
         row: rowIndex + 2,
         submission: "unknown",
@@ -88,44 +131,34 @@ export async function saveAssessments(
     }
 
     const submissions =
-      submissionTypeRaw === "TEAM"
-        ? await prisma.submission.findMany({
-            where: {
-              type: "TEAM",
-              team: {
-                is: {
-                  name: submitter,
-                },
-              },
-            },
-            select: {
-              id: true,
-            },
-          })
-        : await prisma.submission.findMany({
-            where: {
-              type: "INDIVIDUAL",
-              student: {
-                is: {
-                  id: submitter,
-                },
-              },
-            },
-            select: {
-              id: true,
-            },
-          });
+      submissionType === "team"
+        ? await db
+            .selectFrom("submission")
+            .innerJoin("team", "team.id", "submission.teamId")
+            .where("submission.type", "=", "team")
+            .where("team.name", "=", submitter)
+            .select("submission.id")
+            .execute()
+        : await db
+            .selectFrom("submission")
+            .innerJoin("student", "student.id", "submission.studentId")
+            .where("submission.type", "=", "individual")
+            .where("student.id", "=", submitter)
+            .select("submission.id")
+            .execute();
 
     if (submissions.length > 1) {
       errorDetails.push({
         row: rowIndex + 2,
         submission: submitter,
-        error: `Ambiguous submission mapping for ${submissionTypeRaw}:${submitter}`,
+        error: `Ambiguous submission mapping for ${submissionType ?? "unknown"}:${submitter}`,
       });
       continue;
     }
 
-    resolvedSubmissionId = submissions[0]?.id ?? null;
+    resolvedSubmissionId = submissions[0]?.id
+      ? String(submissions[0].id)
+      : null;
 
     const submissionId = resolvedSubmissionId;
 
@@ -133,7 +166,7 @@ export async function saveAssessments(
       continue;
     }
 
-    for (const [columnKey, rubric] of rubricsByKey) {
+    for (const [columnKey, rubricInfo] of rubricsByKey) {
       const value = row[columnKey]?.trim();
 
       if (!value) {
@@ -143,46 +176,44 @@ export async function saveAssessments(
       try {
         let assessment: AssessmentRubricValue;
 
-        if (rubric.type === RubricType.BOOLEAN) {
+        if (rubricInfo.type === "boolean") {
           const passed = value.toLowerCase() === "true";
           assessment = {
-            rubricId: rubric.id,
+            rubricId: rubricInfo.id,
             type: "boolean" as const,
             passed,
           };
-        } else if (rubric.type === RubricType.ORDINAL) {
-          if (rubric.ordinalRubric) {
-            const labelExists = rubric.ordinalRubric.marks.some(
-              (v) => v.label === value,
-            );
+        } else if (rubricInfo.type === "ordinal") {
+          if (rubricInfo.ordinalLabels.length > 0) {
+            const labelExists = rubricInfo.ordinalLabels.includes(value);
             if (!labelExists) {
               throw new Error(
-                `Invalid ordinal value "${value}" for rubric ${rubric.id}`,
+                `Invalid ordinal value "${value}" for rubric ${rubricInfo.id}`,
               );
             }
           }
           assessment = {
-            rubricId: rubric.id,
+            rubricId: rubricInfo.id,
             type: "ordinal" as const,
             selectedLabel: value,
           };
-        } else if (rubric.type === RubricType.NUMERICAL) {
+        } else if (rubricInfo.type === "numerical") {
           const score = parseFloat(value);
           if (Number.isNaN(score)) {
             throw new Error(`Invalid numerical value "${value}"`);
           }
           assessment = {
-            rubricId: rubric.id,
+            rubricId: rubricInfo.id,
             type: "numerical" as const,
             score,
           };
         } else {
-          throw new Error(`Unknown rubric type: ${rubric.type}`);
+          throw new Error(`Unknown rubric type: ${rubricInfo.type}`);
         }
 
         await saveAssessment({
           submissionId,
-          questionId: rubric.question.id,
+          questionId: rubricInfo.questionId,
           rubric: assessment,
         });
         successCount++;

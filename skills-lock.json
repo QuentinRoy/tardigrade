@@ -1,6 +1,12 @@
 {
   "version": 1,
   "skills": {
+    "kysely": {
+      "source": "mindrally/skills",
+      "sourceType": "github",
+      "skillPath": "kysely/SKILL.md",
+      "computedHash": "3adbe7431dc72cb2394f62d3aadaebd28202be8399c171c17e5a3593fb0b8dfc"
+    },
     "next-best-practices": {
       "source": "vercel-labs/next-skills",
       "sourceType": "github",

@@ -1,19 +1,7 @@
-export type AssessmentRubricValue =
-  | {
-      rubricId: string;
-      type: "boolean";
-      passed: boolean;
-    }
-  | {
-      rubricId: string;
-      type: "ordinal";
-      selectedLabel: string;
-    }
-  | {
-      rubricId: string;
-      type: "numerical";
-      score: number;
-    };
+import { Simplify } from "@/utils/utils";
+import { RubricType, SubmissionType } from "./generated/db";
+
+export * from "./generated/db";
 
 type ProgressMetric = {
   completed: number;
@@ -26,38 +14,48 @@ export type GlobalAssessmentProgress = {
   rubrics: ProgressMetric;
 };
 
-export type Submission = {
-  id: string;
-  type: "INDIVIDUAL" | "TEAM";
-  studentName?: string;
-  teamName?: string;
-};
+type SubmissionBase = { id: string; type: SubmissionType };
+export type Submission = Simplify<
+  SubmissionBase &
+    (
+      | { type: "individual"; studentName: string; teamName?: undefined }
+      | { type: "team"; studentId?: undefined; teamName: string }
+    )
+>;
 
-export type Rubric =
-  | {
-      id: string;
-      description?: string | undefined;
-      label?: string | undefined;
-      type: "boolean";
-      marks: number;
-    }
-  | {
-      id: string;
-      description?: string | undefined;
-      label?: string | undefined;
-      type: "ordinal";
-      marks: Record<string, number>;
-    }
-  | {
-      id: string;
-      description?: string | undefined;
-      label?: string | undefined;
-      type: "numerical";
-      minScore: number;
-      maxScore: number;
-      minMarks: number;
-      maxMarks: number;
-    };
+type RubricBase = {
+  id: string;
+  description?: string | undefined;
+  label?: string | undefined;
+  type: RubricType;
+};
+export type Rubric = Simplify<
+  RubricBase &
+    (
+      | { type: "boolean"; marks: number }
+      | { type: "ordinal"; marks: Record<string, number> }
+      | {
+          type: "numerical";
+          minScore: number;
+          maxScore: number;
+          minMarks: number;
+          maxMarks: number;
+        }
+    )
+>;
+
+type AssessmentRubricValueBase = {
+  rubricId: string;
+  type: RubricType;
+};
+export type AssessmentRubricValue = Simplify<
+  AssessmentRubricValueBase &
+    (
+      | { type: "boolean"; passed: boolean }
+      | { type: "ordinal"; selectedLabel: string }
+      | { type: "numerical"; score: number }
+    )
+>;
 
 export type Question = {
   label?: string;

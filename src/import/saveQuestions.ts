@@ -1,7 +1,5 @@
 import "server-only";
-import { Prisma } from "@prisma/client";
-import { prisma } from "../db/prisma";
-import { toRubricType } from "./saveUtils";
+import { db } from "../db/kysely";
 import type { ImportedQuestions } from "./types";
 
 export async function saveQuestions(questions: ImportedQuestions): Promise<{
@@ -70,17 +68,18 @@ export async function saveQuestions(questions: ImportedQuestions): Promise<{
   const questionIds = questionsById.map((question) => question.id);
   const rubricIds = rubricRows.map((rubric) => rubric.id);
   const rubricTypeById = new Map(
-    rubricRows.map((rubric) => [rubric.id, toRubricType(rubric.type)]),
+    rubricRows.map((rubric) => [rubric.id, rubric.type]),
   );
 
-  return prisma.$transaction(async (tx) => {
-    const existingRubrics = await tx.rubric.findMany({
-      where: { id: { in: rubricIds } },
-      select: {
-        id: true,
-        type: true,
-      },
-    });
+  return db.transaction().execute(async (tx) => {
+    const existingRubrics =
+      rubricIds.length === 0
+        ? []
+        : await tx
+            .selectFrom("rubric")
+            .select(["id", "type"])
+            .where("id", "in", rubricIds)
+            .execute();
 
     const rubricsToRecreate = existingRubrics.flatMap((rubric) => {
       const nextType = rubricTypeById.get(rubric.id);
@@ -93,137 +92,162 @@ export async function saveQuestions(questions: ImportedQuestions): Promise<{
     });
 
     if (rubricsToRecreate.length > 0) {
-      await tx.rubric.deleteMany({
-        where: { id: { in: rubricsToRecreate } },
-      });
+      await tx
+        .deleteFrom("rubric")
+        .where("id", "in", rubricsToRecreate)
+        .execute();
     }
 
-    await Promise.all(
-      questionsById.map((question) =>
-        tx.question.upsert({
-          where: { id: question.id },
-          create: question,
-          update: {
-            label: question.label,
-            position: question.position,
-          },
-        }),
-      ),
-    );
+    if (questionsById.length > 0) {
+      await tx
+        .insertInto("question")
+        .values(questionsById)
+        .onConflict((conflict) =>
+          conflict.column("id").doUpdateSet((expressionBuilder) => ({
+            label: expressionBuilder.ref("excluded.label"),
+            position: expressionBuilder.ref("excluded.position"),
+          })),
+        )
+        .execute();
+    }
 
-    await Promise.all(
-      rubricRows.map((rubric) =>
-        tx.rubric.upsert({
-          where: { id: rubric.id },
-          create: {
+    if (rubricRows.length > 0) {
+      await tx
+        .insertInto("rubric")
+        .values(
+          rubricRows.map((rubric) => ({
             id: rubric.id,
             questionId: rubric.questionId,
             position: rubric.position,
             description: rubric.description,
             label: rubric.label,
-            type: toRubricType(rubric.type),
-          },
-          update: {
-            questionId: rubric.questionId,
-            position: rubric.position,
-            description: rubric.description,
-            label: rubric.label,
-            type: toRubricType(rubric.type),
-          },
-        }),
-      ),
-    );
+            type: rubric.type,
+          })),
+        )
+        .onConflict((conflict) =>
+          conflict.column("id").doUpdateSet((expressionBuilder) => ({
+            questionId: expressionBuilder.ref("excluded.questionId"),
+            position: expressionBuilder.ref("excluded.position"),
+            description: expressionBuilder.ref("excluded.description"),
+            label: expressionBuilder.ref("excluded.label"),
+            type: expressionBuilder.ref("excluded.type"),
+          })),
+        )
+        .execute();
+    }
 
-    await Promise.all([
-      ...booleanRubricRows.map((booleanRubric) =>
-        tx.booleanRubric.upsert({
-          where: { rubricId: booleanRubric.rubricId },
-          create: {
-            rubricId: booleanRubric.rubricId,
-            marks: new Prisma.Decimal(booleanRubric.marks),
-          },
-          update: {
-            marks: new Prisma.Decimal(booleanRubric.marks),
-          },
-        }),
-      ),
-      ...numericalRubricRows.map((numericalRubric) =>
-        tx.numericalRubric.upsert({
-          where: { rubricId: numericalRubric.rubricId },
-          create: {
-            rubricId: numericalRubric.rubricId,
-            minScore: new Prisma.Decimal(numericalRubric.minScore),
-            maxScore: new Prisma.Decimal(numericalRubric.maxScore),
-            minMarks: new Prisma.Decimal(numericalRubric.minMarks),
-            maxMarks: new Prisma.Decimal(numericalRubric.maxMarks),
-          },
-          update: {
-            minScore: new Prisma.Decimal(numericalRubric.minScore),
-            maxScore: new Prisma.Decimal(numericalRubric.maxScore),
-            minMarks: new Prisma.Decimal(numericalRubric.minMarks),
-            maxMarks: new Prisma.Decimal(numericalRubric.maxMarks),
-          },
-        }),
-      ),
-    ]);
+    if (booleanRubricRows.length > 0) {
+      await tx
+        .insertInto("booleanRubric")
+        .values(booleanRubricRows)
+        .onConflict((conflict) =>
+          conflict.column("rubricId").doUpdateSet((expressionBuilder) => ({
+            marks: expressionBuilder.ref("excluded.marks"),
+          })),
+        )
+        .execute();
+    }
 
-    const upsertedOrdinalRubrics = await Promise.all(
-      ordinalRubricSources.map((source) =>
-        tx.ordinalRubric.upsert({
-          where: { rubricId: source.rubricId },
-          create: { rubricId: source.rubricId },
-          update: {},
-          select: { id: true, rubricId: true },
-        }),
-      ),
-    );
-
-    const ordinalRubricIdByRubricId = new Map(
-      upsertedOrdinalRubrics.map((r) => [r.rubricId, r.id]),
-    );
+    if (numericalRubricRows.length > 0) {
+      await tx
+        .insertInto("numericalRubric")
+        .values(numericalRubricRows)
+        .onConflict((conflict) =>
+          conflict.column("rubricId").doUpdateSet((expressionBuilder) => ({
+            minScore: expressionBuilder.ref("excluded.minScore"),
+            maxScore: expressionBuilder.ref("excluded.maxScore"),
+            minMarks: expressionBuilder.ref("excluded.minMarks"),
+            maxMarks: expressionBuilder.ref("excluded.maxMarks"),
+          })),
+        )
+        .execute();
+    }
 
     if (ordinalRubricSources.length > 0) {
-      const ordinalRubricCuids = upsertedOrdinalRubrics.map((r) => r.id);
+      await tx
+        .insertInto("ordinalRubric")
+        .values(
+          ordinalRubricSources.map((source) => ({ rubricId: source.rubricId })),
+        )
+        .onConflict((conflict) => conflict.column("rubricId").doNothing())
+        .execute();
 
-      const validPairs = ordinalRubricSources.flatMap((source) => {
-        const ordinalRubricId = ordinalRubricIdByRubricId.get(source.rubricId);
-        if (ordinalRubricId == null) return [];
+      const upsertedOrdinalRubrics = await tx
+        .selectFrom("ordinalRubric")
+        .select(["id", "rubricId"])
+        .where(
+          "rubricId",
+          "in",
+          ordinalRubricSources.map((source) => source.rubricId),
+        )
+        .execute();
 
-        return Object.keys(source.marks).map((label) => ({
-          AND: [{ ordinalRubricId }, { label }],
-        }));
-      });
+      const ordinalRubricIdByRubricId = new Map(
+        upsertedOrdinalRubrics.map((row) => [row.rubricId, row.id]),
+      );
 
-      await Promise.all([
-        tx.ordinalRubricValue.deleteMany({
-          where: {
-            ordinalRubricId: { in: ordinalRubricCuids },
-            NOT: { OR: validPairs },
-          },
-        }),
-        ...ordinalRubricSources.flatMap((source) => {
+      const ordinalRubricIds = upsertedOrdinalRubrics.map((row) => row.id);
+
+      const validPairKeys = new Set(
+        ordinalRubricSources.flatMap((source) => {
           const ordinalRubricId = ordinalRubricIdByRubricId.get(
             source.rubricId,
           );
           if (ordinalRubricId == null) return [];
 
-          return Object.entries(source.marks).map(([label, mark]) =>
-            tx.ordinalRubricValue.upsert({
-              where: {
-                ordinalRubricId_label: { ordinalRubricId, label },
-              },
-              create: {
-                ordinalRubricId,
-                label,
-                marks: new Prisma.Decimal(mark),
-              },
-              update: {
-                marks: new Prisma.Decimal(mark),
-              },
-            }),
+          return Object.keys(source.marks).map(
+            (label) => `${ordinalRubricId}::${label}`,
           );
         }),
-      ]);
+      );
+
+      const existingOrdinalValues =
+        ordinalRubricIds.length === 0
+          ? []
+          : await tx
+              .selectFrom("ordinalRubricValue")
+              .select(["id", "ordinalRubricId", "label"])
+              .where("ordinalRubricId", "in", ordinalRubricIds)
+              .execute();
+
+      const staleOrdinalValueIds = existingOrdinalValues
+        .filter(
+          (value) =>
+            !validPairKeys.has(`${value.ordinalRubricId}::${value.label}`),
+        )
+        .map((value) => value.id);
+
+      if (staleOrdinalValueIds.length > 0) {
+        await tx
+          .deleteFrom("ordinalRubricValue")
+          .where("id", "in", staleOrdinalValueIds)
+          .execute();
+      }
+
+      const ordinalValueRows = ordinalRubricSources.flatMap((source) => {
+        const ordinalRubricId = ordinalRubricIdByRubricId.get(source.rubricId);
+        if (ordinalRubricId == null) return [];
+
+        return Object.entries(source.marks).map(([label, marks]) => ({
+          ordinalRubricId,
+          label,
+          marks,
+        }));
+      });
+
+      if (ordinalValueRows.length > 0) {
+        await tx
+          .insertInto("ordinalRubricValue")
+          .values(ordinalValueRows)
+          .onConflict((conflict) =>
+            conflict
+              .columns(["ordinalRubricId", "label"])
+              .doUpdateSet((expressionBuilder) => ({
+                marks: expressionBuilder.ref("excluded.marks"),
+              })),
+          )
+          .execute();
+      }
     }
 
     return {

@@ -15,11 +15,10 @@
     "test:watch": "vitest",
     "check": "biome check",
     "check-types": "tsc --noEmit",
-    "prisma:generate": "dotenvx run -- prisma generate",
-    "prisma:migrate:deploy": "dotenvx run -- prisma migrate deploy",
-    "prisma:migrate:dev": "dotenvx run -- prisma migrate dev",
-    "prisma:studio": "dotenvx run -- prisma studio",
-    "prisma:validate": "dotenvx run -- prisma validate"
+    "db:migrate:down": "dotenvx run -- tsx src/db/migrate.ts down",
+    "db:migrate:status": "dotenvx run -- tsx src/db/migrate.ts status",
+    "db:migrate:up": "dotenvx run -- tsx src/db/migrate.ts up",
+    "db:types:generate": "dotenvx run -- kysely-codegen --numeric-parser number --camel-case --out-file src/db/generated/db.ts"
   },
   "dependencies": {
     "@emotion/react": "^11.11.4",
@@ -29,8 +28,6 @@
     "@mui/icons-material": "^9.0.1",
     "@mui/material": "^9.0.1",
     "@mui/material-nextjs": "^9.0.1",
-    "@prisma/adapter-pg": "^7.8.0",
-    "@prisma/client": "^7.8.0",
     "@shikijs/langs": "^4.0.2",
     "@shikijs/themes": "^4.0.2",
     "change-case": "^5.4.4",
@@ -39,9 +36,9 @@
     "csv-stringify": "^6.7.0",
     "immer": "^11.1.8",
     "js-yaml": "^4.1.0",
+    "kysely": "^0.29.0",
     "next": "^16.2.6",
     "pg": "^8.20.0",
-    "prisma-cursorstream": "^0.4.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "shiki": "^4.0.2",
@@ -55,8 +52,9 @@
     "@types/node": "^24.12.2",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
-    "prisma": "^7.8.0",
+    "kysely-codegen": "^0.20.0",
     "storybook": "^10.3.6",
+    "tsx": "^4.21.0",
     "vitest": "^4.1.5"
   },
   "packageManager": "pnpm@11.1.1"

@@ -86,15 +86,40 @@ describe("groupStudentsIntoSubmissions", () => {
     expect(submissions).toHaveLength(2);
 
     const teamSubmission = submissions.find(
-      (submission) => submission.type === "TEAM",
+      (submission) => submission.type === "team",
     );
     expect(teamSubmission).toBeDefined();
     expect(teamSubmission?.students).toHaveLength(2);
 
     const individualSubmission = submissions.find(
-      (submission) => submission.type === "INDIVIDUAL",
+      (submission) => submission.type === "individual",
     );
     expect(individualSubmission).toBeDefined();
     expect(individualSubmission?.students[0].id).toBe("s1");
+  });
+
+  it("generates unique submission ids when team slugs collide", () => {
+    const students = [
+      {
+        familyName: "One",
+        firstName: "Alpha",
+        id: "s1",
+        team: "Team A",
+      },
+      {
+        familyName: "Two",
+        firstName: "Beta",
+        id: "s2",
+        team: "Team-A",
+      },
+    ];
+
+    const submissions = groupStudentsIntoSubmissions(students);
+    const teamIds = submissions
+      .filter((submission) => submission.type === "team")
+      .map((submission) => submission.id)
+      .sort();
+
+    expect(teamIds).toEqual(["team-team-a", "team-team-a-2"]);
   });
 });

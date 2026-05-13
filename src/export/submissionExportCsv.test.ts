@@ -111,7 +111,7 @@ describe("submission CSV ordering", () => {
     const row = buildSubmissionExportRow({
       submission: {
         id: "sub-1",
-        type: "INDIVIDUAL",
+        type: "individual",
         studentId: "stu-123",
       },
       questions,
@@ -123,7 +123,7 @@ describe("submission CSV ordering", () => {
     });
 
     expect(row).toEqual([
-      "INDIVIDUAL",
+      "individual",
       "stu-123",
       "true",
       "2",
@@ -142,7 +142,7 @@ describe("submission CSV ordering", () => {
       buildSubmissionExportRow({
         submission: {
           id: "sub-team",
-          type: "TEAM",
+          type: "team",
           teamName: "",
         },
         questions,
@@ -152,6 +152,44 @@ describe("submission CSV ordering", () => {
         },
         valuesByKey: new Map(),
       }),
-    ).toThrow("Submission sub-team has type TEAM but no team is linked.");
+    ).toThrow("Submission sub-team has type team but no team is linked.");
+  });
+
+  it("uses team name as submitter for team submissions", () => {
+    const row = buildSubmissionExportRow({
+      submission: {
+        id: "sub-team-1",
+        type: "team",
+        teamName: "Team A",
+      },
+      questions,
+      options: {
+        includeRubricAssessment: false,
+        includeRubricMarks: false,
+      },
+      valuesByKey: new Map(),
+    });
+
+    expect(row[0]).toBe("team");
+    expect(row[1]).toBe("Team A");
+  });
+
+  it("throws when individual submission has no student id", () => {
+    expect(() =>
+      buildSubmissionExportRow({
+        submission: {
+          id: "sub-ind-1",
+          type: "individual",
+        },
+        questions,
+        options: {
+          includeRubricAssessment: false,
+          includeRubricMarks: false,
+        },
+        valuesByKey: new Map(),
+      }),
+    ).toThrow(
+      "Submission sub-ind-1 has type individual but no student is linked.",
+    );
   });
 });
