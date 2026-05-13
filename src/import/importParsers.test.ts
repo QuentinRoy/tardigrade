@@ -20,6 +20,18 @@ describe("parseQuestionsYaml", () => {
     expect(questions[0].rubrics[0].id).toBe("r1");
   });
 
+  it("parses rubric description", () => {
+    const questions = parseQuestionsYaml(`questions:
+  - id: q1
+    rubrics:
+      - id: r1
+        type: boolean
+        marks: 2
+        description: A helpful description`);
+
+    expect(questions[0].rubrics[0].description).toBe("A helpful description");
+  });
+
   it("throws when question ids are duplicated", () => {
     expect(() =>
       parseQuestionsYaml(`questions:

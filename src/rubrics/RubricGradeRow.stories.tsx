@@ -130,3 +130,14 @@ export const Disabled: Story = {
     },
   },
 };
+
+export const WithoutDescription: Story = {
+  args: {
+    rubric: {
+      id: "r1",
+      type: "boolean",
+      marks: 2,
+      label: "Correct answer",
+    },
+  },
+};

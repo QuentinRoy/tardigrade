@@ -26,7 +26,7 @@ export default function RubricGradeRow({
   onAssess,
 }: RubricGradeRowProps): ReactElement {
   const { description, assessment, id, label, type } = rubric;
-  const displayDescription = description ?? label ?? id;
+  const displayLabel = label ?? id;
   const rubricMarks = computeMarks(rubric);
 
   let control: ReactElement;
@@ -96,7 +96,16 @@ export default function RubricGradeRow({
           </Box>
         </Box>
       </Grid>
-      <Grid size={{ xs: 12, sm: 8 }}>{displayDescription}</Grid>
+      <Grid size={{ xs: 12, sm: 8 }}>
+        <Box>
+          {displayLabel}
+          {description != null && (
+            <Typography variant="body2" color="text.secondary">
+              {description}
+            </Typography>
+          )}
+        </Box>
+      </Grid>
       <Grid size={{ xs: 12, sm: 1 }}>
         <Typography variant="body2">({rubricMarks})</Typography>
       </Grid>

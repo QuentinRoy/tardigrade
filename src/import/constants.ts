@@ -4,6 +4,7 @@ export const QUESTIONS_YAML_PLACEHOLDER = `questions:
     rubrics:
       - id: r1
         label: Rubric 1
+        description: Optional description shown under the label.
         type: boolean
         marks: 1
   - id: q2
