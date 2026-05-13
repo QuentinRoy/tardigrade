@@ -9,6 +9,106 @@ const SUBMISSION_TYPE_COLUMN = snakeCase("submissionType");
 const SUBMITTER_COLUMN = snakeCase("submitter");
 const GRAND_TOTAL_MARKS_COLUMN = snakeCase("grandTotalMarks");
 
+type ImportedRubricInfo = {
+  id: string;
+  type: RubricType;
+  questionId: string;
+  ordinalLabels: string[];
+};
+
+function assertRecognizedAssessmentColumns(params: {
+  rows: ImportedAssessmentRow[];
+  recognizedColumns: Set<string>;
+}): void {
+  if (params.rows.length === 0) {
+    return;
+  }
+
+  const firstRow = params.rows[0];
+  const headerColumns = Object.keys(firstRow);
+  for (const column of headerColumns) {
+    if (!params.recognizedColumns.has(column)) {
+      throw new Error(`Unrecognized column: "${column}"`);
+    }
+  }
+}
+
+async function resolveSubmissionId(params: {
+  submissionType: "team" | "individual";
+  submitter: string;
+}): Promise<string | null | "ambiguous"> {
+  const submissions =
+    params.submissionType === "team"
+      ? await db
+          .selectFrom("submission")
+          .innerJoin("team", "team.id", "submission.teamId")
+          .where("submission.type", "=", "team")
+          .where("team.name", "=", params.submitter)
+          .select("submission.id")
+          .execute()
+      : await db
+          .selectFrom("submission")
+          .innerJoin("student", "student.id", "submission.studentId")
+          .where("submission.type", "=", "individual")
+          .where("student.id", "=", params.submitter)
+          .select("submission.id")
+          .execute();
+
+  if (submissions.length > 1) {
+    return "ambiguous";
+  }
+
+  return submissions[0]?.id ? String(submissions[0].id) : null;
+}
+
+function parseAssessmentValue(params: {
+  value: string;
+  rubricInfo: ImportedRubricInfo;
+}): AssessmentRubricValue {
+  const { value, rubricInfo } = params;
+
+  switch (rubricInfo.type) {
+    case "boolean": {
+      return {
+        rubricId: rubricInfo.id,
+        type: "boolean",
+        passed: value.toLowerCase() === "true",
+      };
+    }
+    case "ordinal": {
+      if (rubricInfo.ordinalLabels.length > 0) {
+        const labelExists = rubricInfo.ordinalLabels.includes(value);
+        if (!labelExists) {
+          throw new Error(
+            `Invalid ordinal value "${value}" for rubric ${rubricInfo.id}`,
+          );
+        }
+      }
+
+      return {
+        rubricId: rubricInfo.id,
+        type: "ordinal",
+        selectedLabel: value,
+      };
+    }
+    case "numerical": {
+      const score = parseFloat(value);
+      if (Number.isNaN(score)) {
+        throw new Error(`Invalid numerical value "${value}"`);
+      }
+
+      return {
+        rubricId: rubricInfo.id,
+        type: "numerical",
+        score,
+      };
+    }
+    default: {
+      throw new Error(`Unknown rubric type: ${rubricInfo.type}`);
+    }
+  }
+}
+
 export async function saveAssessments(
   assessmentRows: ImportedAssessmentRow[],
 ): Promise<{
@@ -37,16 +137,7 @@ export async function saveAssessments(
     ])
     .execute();
 
-  const rubricsByKey = new Map<
-    string,
-    {
-      id: string;
-      type: RubricType;
-      questionId: string;
-      ordinalLabels: string[];
-      numericalMinMax?: { minScore: number; maxScore: number };
-    }
-  >();
+  const rubricsByKey = new Map<string, ImportedRubricInfo>();
 
   for (const row of rubrics) {
     const key = `${row.questionId}:${row.id}`;
@@ -55,17 +146,11 @@ export async function saveAssessments(
     if (!existing) {
       const ordinalLabels =
         row.type === "ordinal" && row.label ? [row.label] : [];
-      const numericalMinMax =
-        row.type === "numerical" && row.minScore != null && row.maxScore != null
-          ? { minScore: Number(row.minScore), maxScore: Number(row.maxScore) }
-          : undefined;
-
       rubricsByKey.set(key, {
         id: row.id,
         type: row.type,
         questionId: row.questionId,
         ordinalLabels,
-        numericalMinMax,
       });
     } else if (
       row.type === "ordinal" &&
@@ -89,15 +174,10 @@ export async function saveAssessments(
     recognizedColumns.add(questionId);
   }
 
-  if (assessmentRows.length > 0) {
-    const firstRow = assessmentRows[0];
-    const headerColumns = Object.keys(firstRow);
-    for (const col of headerColumns) {
-      if (!recognizedColumns.has(col)) {
-        throw new Error(`Unrecognized column: "${col}"`);
-      }
-    }
-  }
+  assertRecognizedAssessmentColumns({
+    rows: assessmentRows,
+    recognizedColumns,
+  });
 
   const errorDetails: Array<{
     row: number;
@@ -108,59 +188,22 @@ export async function saveAssessments(
 
   for (let rowIndex = 0; rowIndex < assessmentRows.length; rowIndex++) {
     const row = assessmentRows[rowIndex];
-    const submissionType = row[SUBMISSION_TYPE_COLUMN]?.trim();
-    const submitter = row[SUBMITTER_COLUMN]?.trim();
-    let resolvedSubmissionId: string | null = null;
+    const submissionType = row.submission_type;
+    const submitter = row.submitter;
 
-    if (submissionType !== "team" && submissionType !== "individual") {
-      errorDetails.push({
-        row: rowIndex + 2,
-        submission: "unknown",
-        error: "Missing or invalid submission_type",
-      });
-      continue;
-    }
+    const submissionId = await resolveSubmissionId({
+      submissionType,
+      submitter,
+    });
 
-    if (!submitter) {
-      errorDetails.push({
-        row: rowIndex + 2,
-        submission: "unknown",
-        error: "Missing submitter",
-      });
-      continue;
-    }
-
-    const submissions =
-      submissionType === "team"
-        ? await db
-            .selectFrom("submission")
-            .innerJoin("team", "team.id", "submission.teamId")
-            .where("submission.type", "=", "team")
-            .where("team.name", "=", submitter)
-            .select("submission.id")
-            .execute()
-        : await db
-            .selectFrom("submission")
-            .innerJoin("student", "student.id", "submission.studentId")
-            .where("submission.type", "=", "individual")
-            .where("student.id", "=", submitter)
-            .select("submission.id")
-            .execute();
-
-    if (submissions.length > 1) {
+    if (submissionId === "ambiguous") {
       errorDetails.push({
         row: rowIndex + 2,
         submission: submitter,
-        error: `Ambiguous submission mapping for ${submissionType ?? "unknown"}:${submitter}`,
+        error: `Ambiguous submission mapping for ${submissionType}:${submitter}`,
       });
       continue;
     }
-
-    resolvedSubmissionId = submissions[0]?.id
-      ? String(submissions[0].id)
-      : null;
-
-    const submissionId = resolvedSubmissionId;
 
     if (!submissionId) {
       continue;
@@ -174,42 +217,10 @@ export async function saveAssessments(
       }
 
       try {
-        let assessment: AssessmentRubricValue;
-
-        if (rubricInfo.type === "boolean") {
-          const passed = value.toLowerCase() === "true";
-          assessment = {
-            rubricId: rubricInfo.id,
-            type: "boolean" as const,
-            passed,
-          };
-        } else if (rubricInfo.type === "ordinal") {
-          if (rubricInfo.ordinalLabels.length > 0) {
-            const labelExists = rubricInfo.ordinalLabels.includes(value);
-            if (!labelExists) {
-              throw new Error(
-                `Invalid ordinal value "${value}" for rubric ${rubricInfo.id}`,
-              );
-            }
-          }
-          assessment = {
-            rubricId: rubricInfo.id,
-            type: "ordinal" as const,
-            selectedLabel: value,
-          };
-        } else if (rubricInfo.type === "numerical") {
-          const score = parseFloat(value);
-          if (Number.isNaN(score)) {
-            throw new Error(`Invalid numerical value "${value}"`);
-          }
-          assessment = {
-            rubricId: rubricInfo.id,
-            type: "numerical" as const,
-            score,
-          };
-        } else {
-          throw new Error(`Unknown rubric type: ${rubricInfo.type}`);
-        }
+        const assessment = parseAssessmentValue({
+          value,
+          rubricInfo,
+        });
 
         await saveAssessment({
           submissionId,

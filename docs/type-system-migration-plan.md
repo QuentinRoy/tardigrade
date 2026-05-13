@@ -8,11 +8,11 @@ Related: `docs/type-audit-report.md`
 
 | Field | Current value |
 | --- | --- |
-| Current phase | Phase 4 — Import boundary refactor |
-| Overall status | Phase 3 completed |
+| Current phase | Phase 5 — Naming and local type cleanup |
+| Overall status | Phase 4 completed |
 | Current blocker | None |
-| Open uncertainties | Import staging naming details |
-| Last confirmed decisions | Domain-first architecture; export boundary derives from domain types; `SubmissionSubmitter` adopted in export path; domain `marks` canonical in export; `switch` + `assertNever`; strict import; helper extraction deferred to Phase 4 |
+| Open uncertainties | Potential follow-up alias cleanup outside import module |
+| Last confirmed decisions | Domain-first architecture; export boundary derives from domain types; assessment CSV rows parse through Zod; import normalization helpers extracted; `SubmissionSubmitter` adopted in export path; domain `marks` canonical in export; `switch` + `assertNever`; strict import |
 | Last updated | 2026-05-13 16:30 |
 
 
@@ -422,26 +422,45 @@ Turn assessment import into a stricter, clearer, validated pipeline.
 
 #### 4.1 Row typing
 
-- [ ] Separate broad parsed row shape from validated row shape.
-- [ ] Add validated row types after header checks.
-- [ ] Keep the importer strict about required columns and unknown columns.
+- [x] Separate broad parsed row shape from validated row shape.
+- [x] Add validated row types after header checks.
+- [x] Keep the importer strict about required columns and unknown columns.
+
+**Phase 4 progress update**
+
+- Added Zod-backed `assessmentRowSchema` and `assessmentRowsSchema` in `src/import/schemas.ts`.
+- `ImportedAssessmentRow` is now derived from `z.output<typeof assessmentRowSchema>`.
+- Updated `parseAssessmentsCsv(...)` to parse raw CSV output with Zod on the server before returning assessment rows.
+- `saveAssessments(...)` now relies on Zod for required `submission_type` / `submitter` fields and keeps only DB-aware recognized-column validation locally.
 
 #### 4.2 Normalization helpers
 
-- [ ] Add helpers for extracting required columns from validated rows.
-- [ ] Add helpers for converting row cells into domain-ready assessment inputs.
-- [ ] Reduce direct string-key indexing in downstream logic.
+- [x] Add helpers for extracting required columns from validated rows.
+- [x] Add helpers for converting row cells into domain-ready assessment inputs.
+- [x] Reduce direct string-key indexing in downstream logic.
+
+**Phase 4 normalization progress update**
+
+- Added `resolveSubmissionId(...)` helper for submitter-to-submission resolution.
+- Added `parseAssessmentValue(...)` helper to convert CSV cell values into `AssessmentRubricValue` with type-specific validation.
+- Reduced inline branching in `saveAssessments(...)` by delegating normalization and parsing into helpers.
+- Removed unused intermediate rubric min/max import-shape data from the local normalization structure.
 
 #### 4.3 Naming cleanup in import types
 
-- [ ] Reassess names like `ImportedSubmission` if they do not reflect actual lifecycle role.
-- [ ] Keep names aligned with raw, validated, or normalized responsibilities.
+- [x] Reassess names like `ImportedSubmission` if they do not reflect actual lifecycle role.
+- [x] Keep names aligned with raw, validated, or normalized responsibilities.
+
+**Phase 4 naming progress update**
+
+- Renamed `ImportedSubmission` to `NormalizedImportedSubmission` in import parser/saver flows.
+- Removed redundant `ValidatedAssessmentRow` alias now that assessment rows are Zod-validated at parse time.
 
 ### Phase 4 exit criteria
 
-- [ ] Import row contracts are meaningfully stronger.
-- [ ] Import logic is stricter and clearer.
-- [ ] Errors remain understandable and useful.
+- [x] Import row contracts are meaningfully stronger.
+- [x] Import logic is stricter and clearer.
+- [x] Errors remain understandable and useful.
 
 ---
 
@@ -513,8 +532,7 @@ This section should be updated iteratively during execution.
 ### Open decisions
 
 - Whether to keep `ExportRubricPlan` as a dedicated export type or to move toward direct `Rubric` usage closer to row serialization in a later pass: deferred
-- Import staging naming details: pending
-- Exact helper aliases to introduce in Phase 4 (if any): pending
+- Potential follow-up alias cleanup outside import module: pending
 
 
 
@@ -535,7 +553,7 @@ This section should be updated iteratively during execution.
 - `ExportRubricPlan` now derives variant fields from domain `Rubric` using `Extract` + `Pick`
 - Export CSV helpers now consume `SubmissionSubmitter` directly (without `SubmissionIdentity` alias)
 - Phase 3 export boundary refactor completed with CSV behavior validated
-- Assessment import should move toward parsed row -> validated row -> normalization helpers
+- Assessment import rows now parse through Zod on the server with extracted normalization helpers in `saveAssessments(...)`
 - Prefer `switch` + `assertNever`
 - Avoid `as` when possible; do not use `any`
 - No visitor abstraction without a concrete need

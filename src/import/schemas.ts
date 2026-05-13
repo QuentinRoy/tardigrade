@@ -108,4 +108,13 @@ export const studentRowSchema = z
 
 export const studentRowsSchema = z.array(studentRowSchema);
 
+export const assessmentRowSchema = z
+  .object({
+    submission_type: z.enum(["individual", "team"]),
+    submitter: nonEmptyString,
+  })
+  .catchall(z.string());
+
+export const assessmentRowsSchema = z.array(assessmentRowSchema);
+
 export { questionsSchema, rubricSchema };

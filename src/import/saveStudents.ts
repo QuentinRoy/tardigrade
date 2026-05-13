@@ -1,8 +1,10 @@
 import "server-only";
 import { db } from "../db/kysely";
-import type { ImportedSubmission } from "./types";
+import type { NormalizedImportedSubmission } from "./types";
 
-export async function saveStudents(submissions: ImportedSubmission[]): Promise<{
+export async function saveStudents(
+  submissions: NormalizedImportedSubmission[],
+): Promise<{
   submissionCount: number;
   studentCount: number;
 }> {

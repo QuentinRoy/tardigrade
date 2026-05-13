@@ -1,7 +1,7 @@
 import { parse as parseCSV } from "csv-parse/sync";
 import { toSlug } from "./saveUtils";
 import { studentRowsSchema } from "./schemas";
-import type { ImportedStudent, ImportedSubmission } from "./types";
+import type { ImportedStudent, NormalizedImportedSubmission } from "./types";
 
 export function parseStudentsCsv(content: string): ImportedStudent[] {
   const rows = parseCSV(content, {
@@ -14,7 +14,7 @@ export function parseStudentsCsv(content: string): ImportedStudent[] {
 
 export function groupStudentsIntoSubmissions(
   students: ImportedStudent[],
-): ImportedSubmission[] {
+): NormalizedImportedSubmission[] {
   const groupedByPaper = new Map<string, ImportedStudent[]>();
 
   for (const student of students) {
