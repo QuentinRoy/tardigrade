@@ -4,8 +4,9 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
 import NextLink from "next/link";
+import { useRouter } from "next/navigation";
 import type { ReactElement } from "react";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { AssessmentRubricValue, Submission } from "../db/types";
 import { type SaveError, useSaveErrors } from "../shared/SaveErrorsProvider";
 import { getSubmissionLabel } from "../submissions/getSubmissionLabel";
@@ -13,6 +14,7 @@ import AssessmentProgressSummary from "./AssessmentProgressSummary";
 import { type AssessedRubric } from "./assessment";
 import { summarizeRubrics } from "./assessmentSummary";
 import RubricGradeList from "./RubricGradeList";
+import SubmissionQuickJumpDialog from "./SubmissionQuickJumpDialog";
 import { saveAssessment } from "./saveAssessment";
 import { useAssessmentSession } from "./useAssessmentSession";
 
@@ -32,15 +34,19 @@ type OptimisticQuestionSection = {
 type SubmissionOverviewAssessmentClientProps = {
   questions: QuestionAssessmentSection[];
   submissions: Submission[];
+  progressBySubmissionId: Record<string, { completed: number; total: number }>;
   currentSubmissionId: string;
 };
 
 export default function SubmissionOverviewAssessmentClient({
   questions: initialQuestions,
   submissions,
+  progressBySubmissionId,
   currentSubmissionId,
 }: SubmissionOverviewAssessmentClientProps): ReactElement {
+  const router = useRouter();
   const { addError } = useSaveErrors();
+  const [isQuickJumpOpen, setQuickJumpOpen] = useState(false);
   const currentSubmission = submissions.find(
     (submission) => submission.id === currentSubmissionId,
   );
@@ -148,6 +154,39 @@ export default function SubmissionOverviewAssessmentClient({
 
   const summary = summarizeRubrics(optimisticRubrics);
 
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      const key = event.key.toLowerCase();
+      const isShortcut = (event.metaKey || event.ctrlKey) && key === "k";
+
+      if (!isShortcut) {
+        return;
+      }
+
+      const target = event.target;
+      if (target instanceof HTMLElement) {
+        const tagName = target.tagName.toLowerCase();
+        if (
+          target.isContentEditable ||
+          tagName === "input" ||
+          tagName === "textarea"
+        ) {
+          return;
+        }
+      }
+
+      event.preventDefault();
+      setQuickJumpOpen(true);
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+  const navigateToSubmission = (submissionId: string) => {
+    router.push(`/assessments/submissions/${submissionId}`);
+  };
+
   if (sessionCurrentSubmission == null || currentSubmission == null) {
     return (
       <Typography variant="body1" sx={{ mb: 3 }}>
@@ -164,6 +203,16 @@ export default function SubmissionOverviewAssessmentClient({
         totalSubmissions={submissions.length}
         previousSubmissionId={previousSubmission?.id}
         nextSubmissionId={nextSubmission?.id}
+        onOpenLookup={() => setQuickJumpOpen(true)}
+      />
+
+      <SubmissionQuickJumpDialog
+        open={isQuickJumpOpen}
+        onClose={() => setQuickJumpOpen(false)}
+        onSelectSubmission={navigateToSubmission}
+        submissions={submissions}
+        progressBySubmissionId={progressBySubmissionId}
+        progressLabel="questions"
       />
 
       {optimisticQuestions.length === 0 ? (
@@ -217,12 +266,14 @@ function SubmissionNavigation({
   totalSubmissions,
   previousSubmissionId,
   nextSubmissionId,
+  onOpenLookup,
 }: {
   currentSubmissionId: string;
   currentSubmissionIndex: number;
   totalSubmissions: number;
   previousSubmissionId?: string;
   nextSubmissionId?: string;
+  onOpenLookup: () => void;
 }): ReactElement {
   return (
     <Box sx={{ mb: 4, display: "flex", gap: 1, flexWrap: "wrap" }}>
@@ -241,6 +292,9 @@ function SubmissionNavigation({
         disabled={nextSubmissionId == null}
       >
         Next submission
+      </Button>
+      <Button variant="contained" onClick={onOpenLookup}>
+        Lookup
       </Button>
       <Typography variant="body2" sx={{ alignSelf: "center", ml: 1 }}>
         {currentSubmissionIndex + 1} / {totalSubmissions} submissions

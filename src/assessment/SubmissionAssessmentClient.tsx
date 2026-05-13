@@ -4,7 +4,8 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
 import NextLink from "next/link";
-import type { ReactElement } from "react";
+import { useRouter } from "next/navigation";
+import { type ReactElement, useEffect, useState } from "react";
 import type { AssessmentRubricValue, Submission } from "../db/types";
 import { type SaveError, useSaveErrors } from "../shared/SaveErrorsProvider";
 import { getSubmissionLabel } from "../submissions/getSubmissionLabel";
@@ -12,6 +13,7 @@ import AssessmentProgressSummary from "./AssessmentProgressSummary";
 import { type AssessedRubric } from "./assessment";
 import { summarizeRubrics } from "./assessmentSummary";
 import RubricGradeList from "./RubricGradeList";
+import SubmissionQuickJumpDialog from "./SubmissionQuickJumpDialog";
 import { saveAssessment } from "./saveAssessment";
 import { useAssessmentSession } from "./useAssessmentSession";
 
@@ -20,6 +22,7 @@ type SubmissionAssessmentClientProps = {
   questionLabel?: string;
   rubrics: AssessedRubric[];
   submissions: Submission[];
+  progressBySubmissionId: Record<string, { completed: number; total: number }>;
   currentSubmissionId: string;
 };
 
@@ -28,9 +31,12 @@ export default function SubmissionAssessmentClient({
   questionLabel,
   rubrics: initialRubrics,
   submissions,
+  progressBySubmissionId,
   currentSubmissionId,
 }: SubmissionAssessmentClientProps): ReactElement {
+  const router = useRouter();
   const { addError } = useSaveErrors();
+  const [isQuickJumpOpen, setQuickJumpOpen] = useState(false);
   const currentSubmission = submissions.find(
     (submission) => submission.id === currentSubmissionId,
   );
@@ -81,6 +87,41 @@ export default function SubmissionAssessmentClient({
     summarizeRubrics(optimisticRubrics);
   const isCompleted = totalRubrics > 0 && completedRubrics === totalRubrics;
 
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      const key = event.key.toLowerCase();
+      const isShortcut = (event.metaKey || event.ctrlKey) && key === "k";
+
+      if (!isShortcut) {
+        return;
+      }
+
+      const target = event.target;
+      if (target instanceof HTMLElement) {
+        const tagName = target.tagName.toLowerCase();
+        if (
+          target.isContentEditable ||
+          tagName === "input" ||
+          tagName === "textarea"
+        ) {
+          return;
+        }
+      }
+
+      event.preventDefault();
+      setQuickJumpOpen(true);
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+  const navigateToSubmission = (submissionId: string) => {
+    router.push(
+      `/assessments/submissions/${submissionId}/questions/${questionId}`,
+    );
+  };
+
   if (sessionCurrentSubmission == null || currentSubmission == null) {
     return (
       <Typography variant="body1" sx={{ mb: 3 }}>
@@ -130,10 +171,22 @@ export default function SubmissionAssessmentClient({
         >
           Next submission
         </Button>
+        <Button variant="contained" onClick={() => setQuickJumpOpen(true)}>
+          Lookup
+        </Button>
         <Typography variant="body2" sx={{ alignSelf: "center", ml: 1 }}>
           {currentSubmissionIndex + 1} / {submissions.length}
         </Typography>
       </Box>
+
+      <SubmissionQuickJumpDialog
+        open={isQuickJumpOpen}
+        onClose={() => setQuickJumpOpen(false)}
+        onSelectSubmission={navigateToSubmission}
+        submissions={submissions}
+        progressBySubmissionId={progressBySubmissionId}
+        progressLabel="rubrics"
+      />
 
       <RubricGradeList
         rubrics={optimisticRubrics}

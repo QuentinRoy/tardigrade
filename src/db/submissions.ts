@@ -3,46 +3,134 @@ import { cacheLife, cacheTag } from "next/cache";
 import { db } from "./kysely";
 import type { Submission } from "./types";
 
-async function loadSubmissionsFromDb() {
+type SubmissionRow = {
+  id: number;
+  type: "individual" | "team";
+  studentFamilyName: string | null;
+  studentFirstName: string | null;
+  teamName: string | null;
+};
+
+type TeamMemberRow = {
+  submissionId: number;
+  studentFamilyName: string;
+  studentFirstName: string;
+};
+
+function normalizeSearchValue(value: string): string {
+  return value.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function formatStudentName(familyName: string, firstName: string): string {
+  return `${familyName} ${firstName}`.trim();
+}
+
+async function loadSubmissionsFromDb(): Promise<{
+  submissions: SubmissionRow[];
+  teamMembersBySubmissionId: Map<string, string[]>;
+}> {
   "use cache";
   cacheTag("submissions");
   cacheLife({ revalidate: 60 });
 
-  return db
-    .selectFrom("submission")
-    .leftJoin("student", "student.id", "submission.studentId")
-    .leftJoin("team", "team.id", "submission.teamId")
-    .select([
-      "submission.id as id",
-      "submission.type as type",
-      "student.familyName as studentFamilyName",
-      "student.firstName as studentFirstName",
-      "team.name as teamName",
-    ])
-    .orderBy("submission.id", "asc")
-    .execute();
+  const [submissions, teamMemberRows] = await Promise.all([
+    db
+      .selectFrom("submission")
+      .leftJoin("student", "student.id", "submission.studentId")
+      .leftJoin("team", "team.id", "submission.teamId")
+      .select([
+        "submission.id as id",
+        "submission.type as type",
+        "student.familyName as studentFamilyName",
+        "student.firstName as studentFirstName",
+        "team.name as teamName",
+      ])
+      .orderBy("submission.id", "asc")
+      .execute(),
+    db
+      .selectFrom("submission")
+      .innerJoin("studentToTeam", "studentToTeam.teamId", "submission.teamId")
+      .innerJoin("student", "student.id", "studentToTeam.studentId")
+      .where("submission.type", "=", "team")
+      .select([
+        "submission.id as submissionId",
+        "student.familyName as studentFamilyName",
+        "student.firstName as studentFirstName",
+      ])
+      .orderBy("submission.id", "asc")
+      .orderBy("student.familyName", "asc")
+      .orderBy("student.firstName", "asc")
+      .execute(),
+  ]);
+
+  const teamMembersBySubmissionId = new Map<string, string[]>();
+
+  for (const row of teamMemberRows as TeamMemberRow[]) {
+    const submissionId = String(row.submissionId);
+    const formattedName = formatStudentName(
+      row.studentFamilyName,
+      row.studentFirstName,
+    );
+    if (formattedName.length === 0) {
+      continue;
+    }
+    const names = teamMembersBySubmissionId.get(submissionId) ?? [];
+    names.push(formattedName);
+    teamMembersBySubmissionId.set(submissionId, names);
+  }
+
+  return {
+    submissions: submissions as SubmissionRow[],
+    teamMembersBySubmissionId,
+  };
 }
 
 export async function loadSubmissions(): Promise<Submission[]> {
-  const submissions = await loadSubmissionsFromDb();
+  const { submissions, teamMembersBySubmissionId } =
+    await loadSubmissionsFromDb();
 
   return submissions.map((submission) => {
     if (submission.type === "team") {
+      const displayLabel = submission.teamName ?? String(submission.id);
+      const memberNames =
+        teamMembersBySubmissionId.get(String(submission.id)) ?? [];
+      const searchKeys = Array.from(
+        new Set(
+          [displayLabel, ...memberNames]
+            .map(normalizeSearchValue)
+            .filter((value) => value.length > 0),
+        ),
+      );
+
       return {
         id: String(submission.id),
         type: "team",
-        teamName: submission.teamName ?? String(submission.id),
+        teamName: displayLabel,
+        displayLabel,
+        memberNames,
+        searchKeys,
       };
     }
+
+    const displayLabel =
+      submission.studentFamilyName != null &&
+      submission.studentFirstName != null
+        ? formatStudentName(
+            submission.studentFamilyName,
+            submission.studentFirstName,
+          )
+        : String(submission.id);
+    const searchKeys = [normalizeSearchValue(displayLabel)].filter(
+      (value) => value.length > 0,
+    );
 
     return {
       id: String(submission.id),
       type: "individual",
-      studentName:
-        submission.studentFamilyName != null &&
-        submission.studentFirstName != null
-          ? `${submission.studentFamilyName} ${submission.studentFirstName}`.trim()
-          : String(submission.id),
+      studentName: displayLabel,
+      displayLabel,
+      memberNames: [],
+      searchKeys,
     };
   });
 }

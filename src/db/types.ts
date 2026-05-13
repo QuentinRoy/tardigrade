@@ -14,7 +14,13 @@ export type GlobalAssessmentProgress = {
   rubrics: ProgressMetric;
 };
 
-type SubmissionBase = { id: string; type: SubmissionType };
+type SubmissionBase = {
+  id: string;
+  type: SubmissionType;
+  displayLabel?: string;
+  memberNames?: string[];
+  searchKeys?: string[];
+};
 export type Submission = Simplify<
   SubmissionBase &
     (

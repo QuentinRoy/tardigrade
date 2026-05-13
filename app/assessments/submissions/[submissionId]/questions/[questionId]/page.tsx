@@ -8,6 +8,7 @@ import { attachAssessment } from "@/assessment/assessment";
 import SubmissionAssessmentClient from "@/assessment/SubmissionAssessmentClient";
 import { loadAssessment } from "@/db/assessments";
 import { loadQuestion } from "@/db/questions";
+import { loadSubmissionQuestionProgress } from "@/db/submissionProgress";
 import { loadSubmissions } from "@/db/submissions";
 import CodeSnippet from "@/shared/CodeSnippet";
 import MuiNextLink from "@/shared/MuiNextLink";
@@ -87,11 +88,13 @@ async function SubmissionRubricSection({
   questionId: string;
   submissionId: string;
 }) {
-  const [question, submissions, assessments] = await Promise.all([
-    loadQuestion(questionId),
-    loadSubmissions(),
-    loadAssessment(submissionId, questionId),
-  ]);
+  const [question, submissions, assessments, progressBySubmissionId] =
+    await Promise.all([
+      loadQuestion(questionId),
+      loadSubmissions(),
+      loadAssessment(submissionId, questionId),
+      loadSubmissionQuestionProgress(questionId),
+    ]);
   const hasSubmission = submissions.some(
     (submission) => submission.id === submissionId,
   );
@@ -111,6 +114,7 @@ async function SubmissionRubricSection({
       questionLabel={question.label}
       rubrics={rubricsWithAssessments}
       submissions={submissions}
+      progressBySubmissionId={progressBySubmissionId}
       currentSubmissionId={submissionId}
     />
   );

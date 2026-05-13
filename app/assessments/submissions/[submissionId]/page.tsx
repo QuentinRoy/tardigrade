@@ -7,6 +7,7 @@ import { attachAssessment } from "@/assessment/assessment";
 import SubmissionOverviewAssessmentClient from "@/assessment/SubmissionOverviewAssessmentClient";
 import { loadAssessment } from "@/db/assessments";
 import { loadQuestions } from "@/db/questions";
+import { loadSubmissionOverviewProgress } from "@/db/submissionProgress";
 import { loadSubmissions } from "@/db/submissions";
 import MuiNextLink from "@/shared/MuiNextLink";
 import { getSubmissionLabel } from "@/submissions/getSubmissionLabel";
@@ -26,10 +27,9 @@ export default function SubmissionPage({ params }: SubmissionPageProps) {
 async function SubmissionPageContent({ params }: SubmissionPageProps) {
   const { submissionId } = await params;
 
-  const [submissions, questionGrid] = await Promise.all([
-    loadSubmissions(),
-    loadQuestions(),
-  ]);
+  const [submissions, questionGrid, progressBySubmissionId] = await Promise.all(
+    [loadSubmissions(), loadQuestions(), loadSubmissionOverviewProgress()],
+  );
   const currentSubmission = submissions.find((s) => s.id === submissionId);
 
   if (currentSubmission == null) {
@@ -77,6 +77,7 @@ async function SubmissionPageContent({ params }: SubmissionPageProps) {
       <SubmissionOverviewAssessmentClient
         currentSubmissionId={submissionId}
         submissions={submissions}
+        progressBySubmissionId={progressBySubmissionId}
         questions={gradedQuestions}
       />
     </Container>
