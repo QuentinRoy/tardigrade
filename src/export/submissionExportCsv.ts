@@ -1,4 +1,3 @@
-import { get } from "http";
 import type { AssessmentRubricValue } from "@/db/types";
 
 export type ExportInclude = "rubric-assessment" | "rubric-marks";
@@ -111,7 +110,7 @@ export function buildSubmissionExportHeaders(
   questions: ExportQuestionPlan[],
   options: ExportOptions,
 ): string[] {
-  const headers = ["submissionId", "submissionType", "submitter"];
+  const headers = ["submission_type", "submitter"];
 
   for (const question of questions) {
     for (const rubric of question.rubrics) {
@@ -126,7 +125,7 @@ export function buildSubmissionExportHeaders(
     headers.push(question.id);
   }
 
-  headers.push("grand total marks");
+  headers.push("grand_total_marks");
   return headers;
 }
 
@@ -185,7 +184,6 @@ export function buildSubmissionExportRow(params: {
 }): string[] {
   const { submission, questions, options, valuesByKey } = params;
   const row: string[] = [
-    submission.id,
     submission.type,
     getSubmissionExportIdentifier(submission),
   ];

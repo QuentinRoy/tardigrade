@@ -22,7 +22,7 @@ Doe,John,john_doe,
 Smith,Jane,jane_smith,
 Johnson,Bob,bob_johnson,Team A`;
 
-export const ASSESSMENTS_CSV_PLACEHOLDER = `submission_id,question_id,rubric_id,value
-sub_1,q1,r1,1
-sub_1,q2,r2,excellent
-sub_2,q1,r1,0`;
+export const ASSESSMENTS_CSV_PLACEHOLDER = `submission_type,submitter,q1:r1,q2:r2
+INDIVIDUAL,jane_smith,,
+INDIVIDUAL,john_doe,true,good
+TEAM,Team A,false,excellent`;

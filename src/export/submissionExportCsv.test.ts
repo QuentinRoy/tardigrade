@@ -66,8 +66,7 @@ describe("submission CSV ordering", () => {
     });
 
     expect(headers).toEqual([
-      "submissionId",
-      "submissionType",
+      "submission_type",
       "submitter",
       "q1:r1",
       "q1:r1:marks",
@@ -77,7 +76,7 @@ describe("submission CSV ordering", () => {
       "q2:r3",
       "q2:r3:marks",
       "q2",
-      "grand total marks",
+      "grand_total_marks",
     ]);
   });
 
@@ -124,7 +123,6 @@ describe("submission CSV ordering", () => {
     });
 
     expect(row).toEqual([
-      "sub-1",
       "INDIVIDUAL",
       "stu-123",
       "true",

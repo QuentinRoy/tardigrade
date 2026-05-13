@@ -7,8 +7,7 @@ export async function saveStudents(submissions: ImportedSubmission[]): Promise<{
   submissionCount: number;
   studentCount: number;
 }> {
-  const submissionsById = submissions.map((submission) => ({
-    id: submission.id,
+  const submissionsByOwner = submissions.map((submission) => ({
     type: submission.type,
     teamName: submission.team,
     studentId:
@@ -26,7 +25,7 @@ export async function saveStudents(submissions: ImportedSubmission[]): Promise<{
 
   return prisma.$transaction(async (tx) => {
     const teamNames = new Set(
-      submissionsById
+      submissionsByOwner
         .filter((s) => s.type === "TEAM" && s.teamName)
         .map((s) => s.teamName!),
     );
@@ -80,34 +79,56 @@ export async function saveStudents(submissions: ImportedSubmission[]): Promise<{
     );
 
     await Promise.all(
-      submissionsById.map((submission) =>
-        tx.submission.upsert({
-          where: { id: submission.id },
+      submissionsByOwner.map((submission) => {
+        if (submission.type === "TEAM") {
+          const teamId =
+            submission.teamName != null
+              ? teamsByName.get(submission.teamName)
+              : undefined;
+
+          if (teamId == null) {
+            throw new Error(
+              `Team submission is missing a mapped team for "${submission.teamName ?? "unknown"}".`,
+            );
+          }
+
+          return tx.submission.upsert({
+            where: { teamId },
+            create: {
+              type: SubmissionType.TEAM,
+              teamId,
+              studentId: null,
+            },
+            update: {
+              type: SubmissionType.TEAM,
+              teamId,
+              studentId: null,
+            },
+          });
+        }
+
+        if (submission.studentId == null) {
+          throw new Error("Individual submission is missing student id.");
+        }
+
+        return tx.submission.upsert({
+          where: { studentId: submission.studentId },
           create: {
-            id: submission.id,
-            type: submission.type as SubmissionType,
-            teamId:
-              submission.type === "TEAM" && submission.teamName
-                ? teamsByName.get(submission.teamName)
-                : null,
-            studentId:
-              submission.type === "INDIVIDUAL" ? submission.studentId : null,
+            type: SubmissionType.INDIVIDUAL,
+            studentId: submission.studentId,
+            teamId: null,
           },
           update: {
-            type: submission.type as SubmissionType,
-            teamId:
-              submission.type === "TEAM" && submission.teamName
-                ? teamsByName.get(submission.teamName)
-                : null,
-            studentId:
-              submission.type === "INDIVIDUAL" ? submission.studentId : null,
+            type: SubmissionType.INDIVIDUAL,
+            studentId: submission.studentId,
+            teamId: null,
           },
-        }),
-      ),
+        });
+      }),
     );
 
     return {
-      submissionCount: submissionsById.length,
+      submissionCount: submissionsByOwner.length,
       studentCount: studentsWithTeam.length,
     };
   });

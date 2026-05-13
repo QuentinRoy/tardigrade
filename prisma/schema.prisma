@@ -35,7 +35,7 @@ enum SubmissionType {
 /// 4. Update import logic in src/import/importDataAction.ts accordingly.
 
 model Submission {
-  id          String         @id
+  id          String         @id @default(cuid())
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
   type        SubmissionType @default(INDIVIDUAL)
@@ -44,6 +44,9 @@ model Submission {
   team        Team?          @relation(fields: [teamId], references: [id], onDelete: SetNull)
   studentId   String?
   student     Student?       @relation(fields: [studentId], references: [id], onDelete: SetNull)
+
+  @@unique([teamId])
+  @@unique([studentId])
 }
 
 model Team {

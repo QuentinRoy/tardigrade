@@ -1,9 +1,14 @@
 import "server-only";
 import { RubricType } from "@prisma/client";
+import { snakeCase } from "change-case";
 import { saveAssessment } from "../db/assessments";
 import { prisma } from "../db/prisma";
 import type { AssessmentRubricValue } from "../db/types";
 import type { ImportedAssessmentRow } from "./types";
+
+const SUBMISSION_TYPE_COLUMN = snakeCase("submissionType");
+const SUBMITTER_COLUMN = snakeCase("submitter");
+const GRAND_TOTAL_MARKS_COLUMN = snakeCase("grandTotalMarks");
 
 export async function saveAssessments(
   assessmentRows: ImportedAssessmentRow[],
@@ -16,7 +21,7 @@ export async function saveAssessments(
       booleanRubric: true,
       ordinalRubric: {
         include: {
-          values: true,
+          marks: true,
         },
       },
       numericalRubric: true,
@@ -30,10 +35,9 @@ export async function saveAssessments(
   }
 
   const recognizedColumns = new Set([
-    "submissionId",
-    "submissionType",
-    "submitter",
-    "grand total marks",
+    SUBMISSION_TYPE_COLUMN,
+    SUBMITTER_COLUMN,
+    GRAND_TOTAL_MARKS_COLUMN,
   ]);
 
   for (const rubric of rubrics) {
@@ -61,22 +65,71 @@ export async function saveAssessments(
 
   for (let rowIndex = 0; rowIndex < assessmentRows.length; rowIndex++) {
     const row = assessmentRows[rowIndex];
-    const submissionId = row.submissionId?.trim();
+    const submissionTypeRaw = row[SUBMISSION_TYPE_COLUMN]?.trim().toUpperCase();
+    const submitter = row[SUBMITTER_COLUMN]?.trim();
+    let resolvedSubmissionId: string | null = null;
 
-    if (!submissionId) {
+    if (submissionTypeRaw !== "TEAM" && submissionTypeRaw !== "INDIVIDUAL") {
       errorDetails.push({
         row: rowIndex + 2,
         submission: "unknown",
-        error: "Missing submissionId",
+        error: "Missing or invalid submission_type",
       });
       continue;
     }
 
-    const submission = await prisma.submission.findUnique({
-      where: { id: submissionId },
-    });
+    if (!submitter) {
+      errorDetails.push({
+        row: rowIndex + 2,
+        submission: "unknown",
+        error: "Missing submitter",
+      });
+      continue;
+    }
 
-    if (!submission) {
+    const submissions =
+      submissionTypeRaw === "TEAM"
+        ? await prisma.submission.findMany({
+            where: {
+              type: "TEAM",
+              team: {
+                is: {
+                  name: submitter,
+                },
+              },
+            },
+            select: {
+              id: true,
+            },
+          })
+        : await prisma.submission.findMany({
+            where: {
+              type: "INDIVIDUAL",
+              student: {
+                is: {
+                  id: submitter,
+                },
+              },
+            },
+            select: {
+              id: true,
+            },
+          });
+
+    if (submissions.length > 1) {
+      errorDetails.push({
+        row: rowIndex + 2,
+        submission: submitter,
+        error: `Ambiguous submission mapping for ${submissionTypeRaw}:${submitter}`,
+      });
+      continue;
+    }
+
+    resolvedSubmissionId = submissions[0]?.id ?? null;
+
+    const submissionId = resolvedSubmissionId;
+
+    if (!submissionId) {
       continue;
     }
 
@@ -99,7 +152,7 @@ export async function saveAssessments(
           };
         } else if (rubric.type === RubricType.ORDINAL) {
           if (rubric.ordinalRubric) {
-            const labelExists = rubric.ordinalRubric.values.some(
+            const labelExists = rubric.ordinalRubric.marks.some(
               (v) => v.label === value,
             );
             if (!labelExists) {

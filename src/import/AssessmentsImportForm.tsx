@@ -33,8 +33,8 @@ export default function AssessmentsImportForm({
             Assessments CSV
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-            Required columns: <code>submissionId</code>,{" "}
-            <code>submissionType</code>, <code>submitter</code>.
+            Required columns: <code>submission_type</code>,{" "}
+            <code>submitter</code>.
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
             Assessment columns use the format <code>questionId:rubricId</code>.
