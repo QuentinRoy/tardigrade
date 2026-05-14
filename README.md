@@ -146,7 +146,7 @@ Rules:
 - Each question requires `id` and `rubrics`.
 - Rubric ids must be unique within each question.
 - Boolean rubric: `marks` is the number of marks awarded when true. `falseMarks` (optional) sets marks for a false result (defaults to `0`).
-- Ordinal rubric: `marks` must contain at least 2 label/value pairs with non-negative numbers.
+- Ordinal rubric: `marks` must contain at least 2 label/value pairs (numbers).
 - Numerical rubric:
   - At least one of `minMarks` or `maxMarks` must be provided.
   - When only `maxMarks` is given, `minMarks` defaults to `0` and `maxMarks` must be `> 0`.

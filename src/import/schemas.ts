@@ -17,7 +17,7 @@ export const booleanRubricSchema = baseRubricSchema.extend({
 });
 
 const ordinalMarksSchema = z
-  .record(nonEmptyString, numericValue.nonnegative())
+  .record(nonEmptyString, numericValue)
   .refine((marks) => Object.keys(marks).length >= 2, {
     message: "Ordinal rubric must have at least 2 mark entries",
   });
