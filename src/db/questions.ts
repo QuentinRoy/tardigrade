@@ -144,7 +144,7 @@ async function loadQuestionsFromDb(): Promise<QuestionRow[]> {
   const booleanRubricById = new Map(
     booleanRubrics.map((row) => [
       row.rubricId,
-      { marks: row.marks, falseMarks: row.falseMarks },
+      { marks: toNumber(row.marks), falseMarks: toNumber(row.falseMarks) },
     ]),
   );
 
@@ -152,10 +152,10 @@ async function loadQuestionsFromDb(): Promise<QuestionRow[]> {
     numericalRubrics.map((row) => [
       row.rubricId,
       {
-        minScore: row.minScore,
-        maxScore: row.maxScore,
-        minMarks: row.minMarks,
-        maxMarks: row.maxMarks,
+        minScore: toNumber(row.minScore),
+        maxScore: toNumber(row.maxScore),
+        minMarks: toNumber(row.minMarks),
+        maxMarks: toNumber(row.maxMarks),
         reversed: row.reversed,
       },
     ]),
@@ -167,7 +167,7 @@ async function loadQuestionsFromDb(): Promise<QuestionRow[]> {
   >();
   for (const row of ordinalMarks) {
     const list = ordinalMarksByRubricId.get(row.rubricId) ?? [];
-    list.push({ label: row.label, marks: row.marks });
+    list.push({ label: row.label, marks: toNumber(row.marks) });
     ordinalMarksByRubricId.set(row.rubricId, list);
   }
 

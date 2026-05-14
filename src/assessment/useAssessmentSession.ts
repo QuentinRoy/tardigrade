@@ -3,7 +3,7 @@
 import { produce } from "immer";
 import { startTransition, useOptimistic, useReducer } from "react";
 import type { AssessmentRubricValue, Submission } from "../db/types";
-import { type AssessedRubric, attachAssessment } from "./assessment";
+import { type AssessedRubric, attachAssessment } from "../rubrics/rubric";
 import { getSubmissionNavigation } from "./submissionNavigation";
 
 export type SaveRubricResult<TError> =
@@ -122,12 +122,14 @@ function reducer(state: State, action: Action): State {
           0,
           (draft.pendingByIndex[action.index] ?? 0) - 1,
         );
-        if (draft.savedRubrics[action.index] != null) {
-          draft.savedRubrics[action.index] = attachAssessment(
-            draft.savedRubrics[action.index],
-            action.assessment,
-          );
+        const savedRubric = draft.savedRubrics[action.index];
+        if (savedRubric == null) {
+          break;
         }
+        draft.savedRubrics[action.index] = attachAssessment(
+          savedRubric,
+          action.assessment,
+        );
         break;
       }
       case "save-failure": {

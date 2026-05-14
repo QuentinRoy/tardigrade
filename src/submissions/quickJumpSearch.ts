@@ -92,8 +92,11 @@ function getMatchReason(
   }
 
   // If we have fuzzy match info, try to determine what matched
-  if (matches && matches.length > 0) {
+  if (matches != null) {
     const match = matches[0];
+    if (match == null) {
+      return "";
+    }
     if (match.key === "displayLabel") {
       const label = isTeam ? "team" : "student";
       return `matched ${label}: "${target.displayLabel}"`;

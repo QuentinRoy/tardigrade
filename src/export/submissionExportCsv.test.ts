@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
-import type { AssessmentRubricValue, SubmissionSubmitter } from "@/db/types";
+import type { SubmissionSubmitter } from "@/db/types";
 import {
   buildSubmissionExportHeaders,
   buildSubmissionExportRow,
+  type ExportAssessedQuestionPlan,
   parseExportOptions,
 } from "./submissionExportCsv";
 
@@ -66,6 +67,129 @@ describe("submission CSV ordering", () => {
     },
   ];
 
+  const fullyAssessedQuestions: ExportAssessedQuestionPlan[] = [
+    {
+      id: "q1",
+      label: "Q1",
+      rubrics: [
+        {
+          id: "r1",
+          label: "R1",
+          type: "boolean",
+          marks: 2,
+          falseMarks: -1,
+          assessment: { passed: true },
+        },
+        {
+          id: "r2",
+          label: "R2",
+          type: "ordinal",
+          marks: { A: 3, B: 1 },
+          assessment: { selectedLabel: "B" },
+        },
+      ],
+    },
+    {
+      id: "q2",
+      label: "Q2",
+      rubrics: [
+        {
+          id: "r3",
+          label: "R3",
+          type: "numerical",
+          minScore: 0,
+          maxScore: 10,
+          minMarks: 0,
+          maxMarks: 5,
+          reversed: false,
+          assessment: { score: 8 },
+        },
+      ],
+    },
+  ];
+
+  const failedBooleanQuestions: ExportAssessedQuestionPlan[] = [
+    {
+      id: "q1",
+      label: "Q1",
+      rubrics: [
+        {
+          id: "r1",
+          label: "R1",
+          type: "boolean",
+          marks: 2,
+          falseMarks: -1,
+          assessment: { passed: false },
+        },
+        {
+          id: "r2",
+          label: "R2",
+          type: "ordinal",
+          marks: { A: 3, B: 1 },
+          assessment: null,
+        },
+      ],
+    },
+    {
+      id: "q2",
+      label: "Q2",
+      rubrics: [
+        {
+          id: "r3",
+          label: "R3",
+          type: "numerical",
+          minScore: 0,
+          maxScore: 10,
+          minMarks: 0,
+          maxMarks: 5,
+          reversed: false,
+          assessment: null,
+        },
+      ],
+    },
+  ];
+
+  const unassessedQuestions: ExportAssessedQuestionPlan[] = [
+    {
+      id: "q1",
+      label: "Q1",
+      rubrics: [
+        {
+          id: "r1",
+          label: "R1",
+          type: "boolean",
+          marks: 2,
+          falseMarks: -1,
+          assessment: null,
+        },
+        {
+          id: "r2",
+          label: "R2",
+          type: "ordinal",
+          marks: { A: 3, B: 1 },
+          assessment: null,
+        },
+      ],
+    },
+    {
+      id: "q2",
+      label: "Q2",
+      rubrics: [
+        {
+          id: "r3",
+          label: "R3",
+          type: "numerical",
+          minScore: 0,
+          maxScore: 10,
+          minMarks: 0,
+          maxMarks: 5,
+          reversed: false,
+          assessment: null,
+        },
+      ],
+    },
+  ];
+
   it("builds headers in rubric-before-question-total order", () => {
     const headers = buildSubmissionExportHeaders(questions, {
       includeRubricAssessment: true,
@@ -88,45 +212,17 @@ describe("submission CSV ordering", () => {
   });
 
   it("builds row values with question totals and grand total", () => {
-    const valuesByKey = new Map<string, AssessmentRubricValue>([
-      [
-        "q1::r1",
-        {
-          rubricId: "r1",
-          type: "boolean" as const,
-          passed: true,
-        },
-      ],
-      [
-        "q1::r2",
-        {
-          rubricId: "r2",
-          type: "ordinal" as const,
-          selectedLabel: "B",
-        },
-      ],
-      [
-        "q2::r3",
-        {
-          rubricId: "r3",
-          type: "numerical" as const,
-          score: 8,
-        },
-      ],
-    ]);
-
     const row = buildSubmissionExportRow({
       submission: {
         id: "sub-1",
         type: "individual",
         studentId: "stu-123",
       },
-      questions,
+      questions: fullyAssessedQuestions,
       options: {
         includeRubricAssessment: true,
         includeRubricMarks: true,
       },
-      valuesByKey,
     });
 
     expect(row).toEqual([
@@ -145,29 +241,17 @@ describe("submission CSV ordering", () => {
   });
 
   it("uses falseMarks when a boolean rubric is not passed", () => {
-    const valuesByKey = new Map<string, AssessmentRubricValue>([
-      [
-        "q1::r1",
-        {
-          rubricId: "r1",
-          type: "boolean" as const,
-          passed: false,
-        },
-      ],
-    ]);
-
     const row = buildSubmissionExportRow({
       submission: {
         id: "sub-1",
         type: "individual",
         studentId: "stu-123",
       },
-      questions,
+      questions: failedBooleanQuestions,
       options: {
         includeRubricAssessment: true,
         includeRubricMarks: true,
       },
-      valuesByKey,
     });
 
     expect(row).toEqual([
@@ -193,12 +277,11 @@ describe("submission CSV ordering", () => {
           type: "team",
           teamName: "",
         },
-        questions,
+        questions: unassessedQuestions,
         options: {
           includeRubricAssessment: false,
           includeRubricMarks: false,
         },
-        valuesByKey: new Map(),
       }),
     ).toThrow("Submission sub-team has type team but no team is linked.");
   });
@@ -210,12 +293,11 @@ describe("submission CSV ordering", () => {
         type: "team",
         teamName: "Team A",
       },
-      questions,
+      questions: unassessedQuestions,
       options: {
         includeRubricAssessment: false,
         includeRubricMarks: false,
       },
-      valuesByKey: new Map(),
     });
 
     expect(row[0]).toBe("team");

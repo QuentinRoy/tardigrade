@@ -3,11 +3,13 @@ import {
   buildAssessmentKey,
   buildSubmissionExportHeaders,
   buildSubmissionExportRow,
+  type ExportAssessedQuestionPlan,
   type ExportOptions,
   type ExportQuestionPlan,
 } from "@/export/submissionExportCsv";
 import { db } from "../db/kysely";
 import type { AssessmentRubricValue, SubmissionSubmitter } from "../db/types";
+import { attachAssessment } from "../rubrics/rubric";
 
 function toNumber(value: string | number): number {
   if (typeof value === "number") return value;
@@ -155,13 +157,17 @@ async function loadQuestionPlan(): Promise<ExportQuestionPlan[]> {
 
       if (rubric.type === "boolean") {
         const booleanRubric = booleanRubricById.get(rubric.id);
+        if (booleanRubric == null) {
+          throw new Error(
+            `Unexpected data: missing booleanRubric row for rubric ${rubric.id}.`,
+          );
+        }
         return {
           id: rubric.id,
           label: rubricLabel,
           type: "boolean" as const,
-          marks: booleanRubric != null ? toNumber(booleanRubric.marks) : 0,
-          falseMarks:
-            booleanRubric != null ? toNumber(booleanRubric.falseMarks) : 0,
+          marks: toNumber(booleanRubric.marks),
+          falseMarks: toNumber(booleanRubric.falseMarks),
         };
       }
 
@@ -178,19 +184,20 @@ async function loadQuestionPlan(): Promise<ExportQuestionPlan[]> {
       }
 
       const numericalRubric = numericalRubricById.get(rubric.id);
+      if (numericalRubric == null) {
+        throw new Error(
+          `Unexpected data: missing numericalRubric row for rubric ${rubric.id}.`,
+        );
+      }
       return {
         id: rubric.id,
         label: rubricLabel,
         type: "numerical" as const,
-        minScore:
-          numericalRubric != null ? toNumber(numericalRubric.minScore) : 0,
-        maxScore:
-          numericalRubric != null ? toNumber(numericalRubric.maxScore) : 0,
-        minMarks:
-          numericalRubric != null ? toNumber(numericalRubric.minMarks) : 0,
-        maxMarks:
-          numericalRubric != null ? toNumber(numericalRubric.maxMarks) : 0,
-        reversed: numericalRubric != null ? numericalRubric.reversed : false,
+        minScore: toNumber(numericalRubric.minScore),
+        maxScore: toNumber(numericalRubric.maxScore),
+        minMarks: toNumber(numericalRubric.minMarks),
+        maxMarks: toNumber(numericalRubric.maxMarks),
+        reversed: numericalRubric.reversed,
       };
     }),
   }));
@@ -262,6 +269,20 @@ export async function createSubmissionExport(options: ExportOptions): Promise<{
           throw new Error("Missing submission type while streaming export.");
         }
 
+        const assessedQuestions: ExportAssessedQuestionPlan[] = questions.map(
+          (question) => ({
+            ...question,
+            rubrics: question.rubrics.map((rubric) =>
+              attachAssessment(
+                rubric,
+                currentValuesByKey.get(
+                  buildAssessmentKey(question.id, rubric.id),
+                ),
+              ),
+            ),
+          }),
+        );
+
         yield buildSubmissionExportRow({
           submission: toSubmissionSubmitter({
             id: String(currentSubmissionId),
@@ -269,9 +290,8 @@ export async function createSubmissionExport(options: ExportOptions): Promise<{
             teamName: currentTeamName,
             studentId: currentStudentId,
           }),
-          questions,
+          questions: assessedQuestions,
           options,
-          valuesByKey: currentValuesByKey,
         });
 
         currentValuesByKey = new Map<string, AssessmentRubricValue>();
@@ -320,6 +340,18 @@ export async function createSubmissionExport(options: ExportOptions): Promise<{
         throw new Error("Missing submission type while finalizing export.");
       }
 
+      const assessedQuestions: ExportAssessedQuestionPlan[] = questions.map(
+        (question) => ({
+          ...question,
+          rubrics: question.rubrics.map((rubric) =>
+            attachAssessment(
+              rubric,
+              currentValuesByKey.get(buildAssessmentKey(question.id, rubric.id)),
+            ),
+          ),
+        }),
+      );
+
       yield buildSubmissionExportRow({
         submission: toSubmissionSubmitter({
           id: String(currentSubmissionId),
@@ -327,9 +359,8 @@ export async function createSubmissionExport(options: ExportOptions): Promise<{
           teamName: currentTeamName,
           studentId: currentStudentId,
         }),
-        questions,
+        questions: assessedQuestions,
         options,
-        valuesByKey: currentValuesByKey,
       });
     }
   }

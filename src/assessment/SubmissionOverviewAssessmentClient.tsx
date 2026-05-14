@@ -8,10 +8,10 @@ import { useRouter } from "next/navigation";
 import type { ReactElement } from "react";
 import { useEffect, useMemo, useState } from "react";
 import type { AssessmentRubricValue, Submission } from "../db/types";
+import { type AssessedRubric } from "../rubrics/rubric";
 import { type SaveError, useSaveErrors } from "../shared/SaveErrorsProvider";
 import { getSubmissionLabel } from "../submissions/getSubmissionLabel";
 import AssessmentProgressSummary from "./AssessmentProgressSummary";
-import { type AssessedRubric } from "./assessment";
 import { summarizeRubrics } from "./assessmentSummary";
 import RubricGradeList from "./RubricGradeList";
 import SubmissionQuickJumpDialog from "./SubmissionQuickJumpDialog";
@@ -134,7 +134,11 @@ export default function SubmissionOverviewAssessmentClient({
     const rubricToFlatIndex = new Map<string, number>();
 
     for (let i = 0; i < optimisticRubrics.length; i++) {
-      rubricToFlatIndex.set(optimisticRubrics[i].id, i);
+      const optimisticRubric = optimisticRubrics[i];
+      if (optimisticRubric == null) {
+        continue;
+      }
+      rubricToFlatIndex.set(optimisticRubric.id, i);
     }
 
     return initialQuestions.map((question) => ({

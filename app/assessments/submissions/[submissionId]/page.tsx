@@ -3,12 +3,12 @@ import Breadcrumbs from "@mui/material/Breadcrumbs";
 import Container from "@mui/material/Container";
 import Typography from "@mui/material/Typography";
 import { notFound } from "next/navigation";
-import { attachAssessment } from "@/assessment/assessment";
 import SubmissionOverviewAssessmentClient from "@/assessment/SubmissionOverviewAssessmentClient";
 import { loadAssessment } from "@/db/assessments";
 import { loadQuestions } from "@/db/questions";
 import { loadSubmissionOverviewProgress } from "@/db/submissionProgress";
 import { loadSubmissions } from "@/db/submissions";
+import { attachAssessment } from "@/rubrics/rubric";
 import MuiNextLink from "@/shared/MuiNextLink";
 import { getSubmissionLabel } from "@/submissions/getSubmissionLabel";
 

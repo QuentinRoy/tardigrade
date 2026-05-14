@@ -25,6 +25,9 @@ function assertRecognizedAssessmentColumns(params: {
   }
 
   const firstRow = params.rows[0];
+  if (firstRow == null) {
+    throw new Error("First row of assessment data is null or undefined.");
+  }
   const headerColumns = Object.keys(firstRow);
   for (const column of headerColumns) {
     if (!params.recognizedColumns.has(column)) {
@@ -171,6 +174,9 @@ export async function saveAssessments(
     recognizedColumns.add(key);
     recognizedColumns.add(`${key}:marks`);
     const [questionId] = key.split(":");
+    if (questionId == null || questionId.length === 0) {
+      throw new Error(`Invalid rubric key: "${key}"`);
+    }
     recognizedColumns.add(questionId);
   }
 
@@ -188,6 +194,11 @@ export async function saveAssessments(
 
   for (let rowIndex = 0; rowIndex < assessmentRows.length; rowIndex++) {
     const row = assessmentRows[rowIndex];
+    if (row == null) {
+      throw new Error(
+        `Row ${rowIndex + 2} of assessment data is null or undefined.`,
+      );
+    }
     const submissionType = row.submission_type;
     const submitter = row.submitter;
 

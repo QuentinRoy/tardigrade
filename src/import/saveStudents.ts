@@ -8,12 +8,29 @@ export async function saveStudents(
   submissionCount: number;
   studentCount: number;
 }> {
-  const submissionsByOwner = submissions.map((submission) => ({
-    type: submission.type,
-    teamName: submission.team,
-    studentId:
-      submission.type === "individual" ? submission.students[0].id : undefined,
-  }));
+  const submissionsByOwner = submissions.map((submission) => {
+    const firstStudent = submission.students[0];
+    let studentId: string | undefined;
+
+    if (submission.type === "individual") {
+      if (firstStudent == null) {
+        throw new Error(
+          `Individual submission ${submission.id} must include at least one student.`,
+        );
+      } else if (submission.students.length > 1) {
+        throw new Error(
+          `Individual submission ${submission.id} cannot include more than one student.`,
+        );
+      }
+      studentId = firstStudent.id;
+    }
+
+    return {
+      type: submission.type,
+      teamName: submission.team,
+      studentId,
+    };
+  });
 
   const studentsWithTeam = submissions.flatMap((submission) =>
     submission.students.map((student) => ({

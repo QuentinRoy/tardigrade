@@ -4,12 +4,12 @@ import Container from "@mui/material/Container";
 import Typography from "@mui/material/Typography";
 import { cacheTag } from "next/cache";
 import { notFound } from "next/navigation";
-import { attachAssessment } from "@/assessment/assessment";
 import SubmissionAssessmentClient from "@/assessment/SubmissionAssessmentClient";
 import { loadAssessment } from "@/db/assessments";
 import { loadQuestion } from "@/db/questions";
 import { loadSubmissionQuestionProgress } from "@/db/submissionProgress";
 import { loadSubmissions } from "@/db/submissions";
+import { attachAssessment } from "@/rubrics/rubric";
 import CodeSnippet from "@/shared/CodeSnippet";
 import MuiNextLink from "@/shared/MuiNextLink";
 

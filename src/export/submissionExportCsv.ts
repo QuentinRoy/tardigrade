@@ -1,9 +1,5 @@
-import type {
-  AssessmentRubricValue,
-  Rubric,
-  SubmissionSubmitter,
-} from "@/db/types";
-import { markRubric } from "../rubrics/rubric";
+import type { Rubric, SubmissionSubmitter } from "@/db/types";
+import { type AssessedRubric, markRubric } from "../rubrics/rubric";
 import { assertNever } from "../utils/utils";
 
 export type ExportInclude = "rubric-assessment" | "rubric-marks";
@@ -49,6 +45,12 @@ export type ExportQuestionPlan = {
   id: string;
   label: string;
   rubrics: ExportRubricPlan[];
+};
+
+export type ExportAssessedQuestionPlan = {
+  id: string;
+  label: string;
+  rubrics: AssessedRubric[];
 };
 
 export function parseExportOptions(
@@ -137,30 +139,33 @@ export function buildSubmissionExportHeaders(
   return headers;
 }
 
-function getRubricAssessmentDisplay(value: AssessmentRubricValue): string {
-  switch (value.type) {
+function getRubricAssessmentDisplay(rubric: AssessedRubric): string {
+  if (rubric.assessment == null) {
+    return "";
+  }
+
+  switch (rubric.type) {
     case "boolean": {
-      return value.passed ? "true" : "false";
+      return rubric.assessment.passed ? "true" : "false";
     }
     case "ordinal": {
-      return value.selectedLabel;
+      return rubric.assessment.selectedLabel;
     }
     case "numerical": {
-      return String(value.score);
+      return String(rubric.assessment.score);
     }
     default: {
-      return assertNever(value);
+      return assertNever(rubric);
     }
   }
 }
 
 export function buildSubmissionExportRow(params: {
   submission: SubmissionSubmitter;
-  questions: ExportQuestionPlan[];
+  questions: ExportAssessedQuestionPlan[];
   options: ExportOptions;
-  valuesByKey: Map<string, AssessmentRubricValue>;
 }): string[] {
-  const { submission, questions, options, valuesByKey } = params;
+  const { submission, questions, options } = params;
   const row: string[] = [
     submission.type,
     getSubmissionExportIdentifier(submission),
@@ -172,11 +177,11 @@ export function buildSubmissionExportRow(params: {
     let questionTotalMarks = 0;
 
     for (const rubric of question.rubrics) {
-      const value = valuesByKey.get(buildAssessmentKey(question.id, rubric.id));
-      const rubricMarks = value != null ? markRubric(rubric) : undefined;
+      const rubricMarks =
+        rubric.assessment != null ? markRubric(rubric) : undefined;
 
       if (options.includeRubricAssessment) {
-        row.push(value != null ? getRubricAssessmentDisplay(value) : "");
+        row.push(getRubricAssessmentDisplay(rubric));
       }
 
       if (options.includeRubricMarks) {
