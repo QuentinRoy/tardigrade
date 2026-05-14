@@ -3,3 +3,7 @@ export function assertNever(x: never): never {
 }
 
 export type Simplify<T> = T extends object ? { [K in keyof T]: T[K] } : T;
+
+export type DistributedOmit<T, K extends keyof T> = T extends unknown
+  ? Omit<T, K>
+  : never;

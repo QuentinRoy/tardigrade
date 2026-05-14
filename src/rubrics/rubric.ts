@@ -1,10 +1,10 @@
-import type { Rubric } from "@/db/types";
-import { assertNever } from "../utils/utils";
+import type { AssessmentRubricValue, Rubric } from "@/db/types";
+import { assertNever, DistributedOmit } from "../utils/utils";
 
 export function getRubricMaxMarks(rubric: Rubric): number {
   switch (rubric.type) {
     case "boolean": {
-      return rubric.marks;
+      return Math.max(rubric.marks, rubric.falseMarks ?? 0);
     }
     case "ordinal": {
       const scores = Object.values(rubric.marks);
@@ -19,7 +19,7 @@ export function getRubricMaxMarks(rubric: Rubric): number {
   }
 }
 
-export function scoreToMarks(
+export function markNumericalRubric(
   rubric: Extract<Rubric, { type: "numerical" }>,
   score: number,
 ): number {
@@ -38,4 +38,57 @@ export function scoreToMarks(
     rubric.minMarks +
     (scoreOffset * (rubric.maxMarks - rubric.minMarks)) / scoreRange
   );
+}
+
+export function markBooleanRubric(
+  rubric: Extract<Rubric, { type: "boolean" }>,
+  passed: boolean,
+): number {
+  return passed ? rubric.marks : (rubric.falseMarks ?? 0);
+}
+
+export function markOrdinalRubric(
+  rubric: Extract<Rubric, { type: "ordinal" }>,
+  selectedLabel: string,
+): number {
+  if (!(selectedLabel in rubric.marks)) {
+    throw new Error(
+      `Selected label "${selectedLabel}" not found in rubric marks`,
+    );
+  }
+  return rubric.marks[selectedLabel];
+}
+
+export function markRubric({
+  rubric,
+  value,
+}: {
+  rubric: Rubric;
+  value: DistributedOmit<AssessmentRubricValue, "rubricId">;
+}): number {
+  switch (rubric.type) {
+    case "boolean":
+      if (value.type !== "boolean") {
+        throw new Error(
+          `Expected boolean assessment value for rubric ${rubric.id}, got ${value.type}`,
+        );
+      }
+      return markBooleanRubric(rubric, value.passed);
+    case "ordinal":
+      if (value.type !== "ordinal") {
+        throw new Error(
+          `Expected ordinal assessment value for rubric ${rubric.id}, got ${value.type}`,
+        );
+      }
+      return markOrdinalRubric(rubric, value.selectedLabel);
+    case "numerical":
+      if (value.type !== "numerical") {
+        throw new Error(
+          `Expected numerical assessment value for rubric ${rubric.id}, got ${value.type}`,
+        );
+      }
+      return markNumericalRubric(rubric, value.score);
+    default:
+      assertNever(rubric);
+  }
 }

@@ -13,7 +13,7 @@ function toRubric(data: {
   type: RubricType;
   description: string | null;
   label: string | null;
-  booleanRubric: { marks: number } | null;
+  booleanRubric: { marks: number; falseMarks: number } | null;
   ordinalRubric: { marks: { label: string; marks: number }[] } | null;
   numericalRubric: {
     minScore: number;
@@ -59,6 +59,9 @@ function toRubric(data: {
     label: data.label ?? undefined,
     type: "boolean",
     marks: data.booleanRubric ? toNumber(data.booleanRubric.marks) : 0,
+    falseMarks: data.booleanRubric
+      ? toNumber(data.booleanRubric.falseMarks)
+      : 0,
   };
 }
 
@@ -70,7 +73,7 @@ type QuestionRow = {
     type: RubricType;
     description: string | null;
     label: string | null;
-    booleanRubric: { marks: number } | null;
+    booleanRubric: { marks: number; falseMarks: number } | null;
     ordinalRubric: { marks: { label: string; marks: number }[] } | null;
     numericalRubric: {
       minScore: number;
@@ -106,7 +109,10 @@ async function loadQuestionsFromDb(): Promise<QuestionRow[]> {
         ])
         .orderBy("position", "asc")
         .execute(),
-      db.selectFrom("booleanRubric").select(["rubricId", "marks"]).execute(),
+      db
+        .selectFrom("booleanRubric")
+        .select(["rubricId", "marks", "falseMarks"])
+        .execute(),
       db
         .selectFrom("numericalRubric")
         .select([
@@ -136,7 +142,10 @@ async function loadQuestionsFromDb(): Promise<QuestionRow[]> {
     ]);
 
   const booleanRubricById = new Map(
-    booleanRubrics.map((row) => [row.rubricId, { marks: row.marks }]),
+    booleanRubrics.map((row) => [
+      row.rubricId,
+      { marks: row.marks, falseMarks: row.falseMarks },
+    ]),
   );
 
   const numericalRubricById = new Map(

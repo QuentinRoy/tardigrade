@@ -51,6 +51,23 @@ describe("parseQuestionsYaml", () => {
     expect(questions[0].rubrics[0].description).toBe("A helpful description");
   });
 
+  it("parses boolean falseMarks", () => {
+    const questions = parseQuestionsYaml(`questions:
+  - id: q1
+    rubrics:
+      - id: r1
+        type: boolean
+        marks: 2
+        falseMarks: -1`);
+
+    expect(questions[0].rubrics[0]).toMatchObject({
+      id: "r1",
+      type: "boolean",
+      marks: 2,
+      falseMarks: -1,
+    });
+  });
+
   it("throws when question ids are duplicated", () => {
     expect(() =>
       parseQuestionsYaml(`questions:

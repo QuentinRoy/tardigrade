@@ -38,11 +38,12 @@ export default function QuestionsImportForm({
             <code>label</code>, and a <code>rubrics</code> array. Each rubric
             requires a stable <code>id</code>, and accepts an optional{" "}
             <code>description</code> and <code>label</code>. Boolean rubrics use{" "}
-            <code>marks</code>, ordinal rubrics use <code>marks</code>, and
-            numerical rubrics use <code>minScore</code>/<code>maxScore</code>{" "}
-            and/or <code>minMarks</code>/<code>maxMarks</code>. Numerical
-            rubrics can also set <code>reversed: true</code> to map the highest
-            score to the lowest mark.
+            <code>marks</code> and optional <code>falseMarks</code>, ordinal
+            rubrics use <code>marks</code>, and numerical rubrics use{" "}
+            <code>minScore</code>/<code>maxScore</code> and/or{" "}
+            <code>minMarks</code>/<code>maxMarks</code>. Numerical rubrics can
+            also set <code>reversed: true</code> to map the highest score to the
+            lowest mark.
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
             Numerical defaults and rules: <code>minScore</code> defaults to{" "}

@@ -30,6 +30,7 @@ export async function saveQuestions(questions: ImportedQuestions): Promise<{
             {
               rubricId: rubric.id,
               marks: rubric.marks,
+              falseMarks: rubric.falseMarks ?? 0,
             },
           ]
         : [],
@@ -144,6 +145,7 @@ export async function saveQuestions(questions: ImportedQuestions): Promise<{
         .onConflict((conflict) =>
           conflict.column("rubricId").doUpdateSet((expressionBuilder) => ({
             marks: expressionBuilder.ref("excluded.marks"),
+            falseMarks: expressionBuilder.ref("excluded.falseMarks"),
           })),
         )
         .execute();

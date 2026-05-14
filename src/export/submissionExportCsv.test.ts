@@ -34,7 +34,13 @@ describe("submission CSV ordering", () => {
       id: "q1",
       label: "Q1",
       rubrics: [
-        { id: "r1", label: "R1", type: "boolean" as const, marks: 2 },
+        {
+          id: "r1",
+          label: "R1",
+          type: "boolean" as const,
+          marks: 2,
+          falseMarks: -1,
+        },
         {
           id: "r2",
           label: "R2",
@@ -135,6 +141,47 @@ describe("submission CSV ordering", () => {
       "4",
       "4",
       "7",
+    ]);
+  });
+
+  it("uses falseMarks when a boolean rubric is not passed", () => {
+    const valuesByKey = new Map<string, AssessmentRubricValue>([
+      [
+        "q1::r1",
+        {
+          rubricId: "r1",
+          type: "boolean" as const,
+          passed: false,
+        },
+      ],
+    ]);
+
+    const row = buildSubmissionExportRow({
+      submission: {
+        id: "sub-1",
+        type: "individual",
+        studentId: "stu-123",
+      },
+      questions,
+      options: {
+        includeRubricAssessment: true,
+        includeRubricMarks: true,
+      },
+      valuesByKey,
+    });
+
+    expect(row).toEqual([
+      "individual",
+      "stu-123",
+      "false",
+      "-1",
+      "",
+      "",
+      "-1",
+      "",
+      "",
+      "0",
+      "-1",
     ]);
   });
 

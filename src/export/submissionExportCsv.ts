@@ -3,7 +3,7 @@ import type {
   Rubric,
   SubmissionSubmitter,
 } from "@/db/types";
-import { scoreToMarks } from "../rubrics/rubric";
+import { markRubric } from "../rubrics/rubric";
 import { assertNever } from "../utils/utils";
 
 export type ExportInclude = "rubric-assessment" | "rubric-marks";
@@ -154,35 +154,6 @@ function getRubricAssessmentDisplay(value: AssessmentRubricValue): string {
   }
 }
 
-function getRubricMarks(
-  rubric: ExportRubricPlan,
-  value: AssessmentRubricValue,
-): number {
-  switch (rubric.type) {
-    case "boolean": {
-      if (value.type !== "boolean") {
-        return 0;
-      }
-      return value.passed ? rubric.marks : 0;
-    }
-    case "ordinal": {
-      if (value.type !== "ordinal") {
-        return 0;
-      }
-      return rubric.marks[value.selectedLabel] ?? 0;
-    }
-    case "numerical": {
-      if (value.type !== "numerical") {
-        return 0;
-      }
-      return scoreToMarks(rubric, value.score);
-    }
-    default: {
-      return assertNever(rubric);
-    }
-  }
-}
-
 export function buildSubmissionExportRow(params: {
   submission: SubmissionSubmitter;
   questions: ExportQuestionPlan[];
@@ -203,7 +174,7 @@ export function buildSubmissionExportRow(params: {
     for (const rubric of question.rubrics) {
       const value = valuesByKey.get(buildAssessmentKey(question.id, rubric.id));
       const rubricMarks =
-        value != null ? getRubricMarks(rubric, value) : undefined;
+        value != null ? markRubric({ rubric, value }) : undefined;
 
       if (options.includeRubricAssessment) {
         row.push(value != null ? getRubricAssessmentDisplay(value) : "");

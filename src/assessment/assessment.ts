@@ -11,7 +11,7 @@ type AssessmentForRubricType<TType extends RubricType> = Extract<
 
 type AssessmentValueForRubricType<TType extends RubricType> = Omit<
   AssessmentForRubricType<TType>,
-  "rubricId" | "type"
+  "rubricId"
 >;
 
 export type AssessedRubric<TType extends RubricType = RubricType> =

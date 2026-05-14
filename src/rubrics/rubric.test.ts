@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { scoreToMarks } from "./rubric";
+import { markBooleanRubric, markNumericalRubric } from "./rubric";
 
 describe("scoreToMarks", () => {
   it("maps low scores to low marks by default", () => {
     expect(
-      scoreToMarks(
+      markNumericalRubric(
         {
           id: "r1",
           type: "numerical",
@@ -20,7 +20,7 @@ describe("scoreToMarks", () => {
 
   it("reverses the mapping when requested", () => {
     expect(
-      scoreToMarks(
+      markNumericalRubric(
         {
           id: "r1",
           type: "numerical",
@@ -33,5 +33,35 @@ describe("scoreToMarks", () => {
         2,
       ),
     ).toBe(4);
+  });
+});
+
+describe("booleanToMarks", () => {
+  it("returns marks when passed", () => {
+    expect(
+      markBooleanRubric(
+        {
+          id: "r1",
+          type: "boolean",
+          marks: 2,
+          falseMarks: -1,
+        },
+        true,
+      ),
+    ).toBe(2);
+  });
+
+  it("returns falseMarks when not passed", () => {
+    expect(
+      markBooleanRubric(
+        {
+          id: "r1",
+          type: "boolean",
+          marks: 2,
+          falseMarks: -1,
+        },
+        false,
+      ),
+    ).toBe(-1);
   });
 });

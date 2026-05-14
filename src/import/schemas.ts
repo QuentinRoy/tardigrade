@@ -13,6 +13,7 @@ const baseRubricSchema = z.object({
 export const booleanRubricSchema = baseRubricSchema.extend({
   type: z.literal("boolean"),
   marks: numericValue,
+  falseMarks: numericValue.optional(),
 });
 
 const ordinalMarksSchema = z

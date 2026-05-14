@@ -94,7 +94,10 @@ async function loadQuestionPlan(): Promise<ExportQuestionPlan[]> {
         ])
         .orderBy("position", "asc")
         .execute(),
-      db.selectFrom("booleanRubric").select(["rubricId", "marks"]).execute(),
+      db
+        .selectFrom("booleanRubric")
+        .select(["rubricId", "marks", "falseMarks"])
+        .execute(),
       db
         .selectFrom("numericalRubric")
         .select([
@@ -157,6 +160,8 @@ async function loadQuestionPlan(): Promise<ExportQuestionPlan[]> {
           label: rubricLabel,
           type: "boolean" as const,
           marks: booleanRubric != null ? toNumber(booleanRubric.marks) : 0,
+          falseMarks:
+            booleanRubric != null ? toNumber(booleanRubric.falseMarks) : 0,
         };
       }
 

@@ -70,6 +70,7 @@ export type Rubric =
       RubricBase & {
         type: "boolean";
         marks: number;
+        falseMarks?: number;
       }
     >
   | Simplify<

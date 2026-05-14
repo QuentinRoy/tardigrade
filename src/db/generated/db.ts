@@ -27,6 +27,7 @@ export interface Assessment {
 }
 
 export interface BooleanRubric {
+  falseMarks: Generated<Numeric>;
   id: Generated<number>;
   marks: Numeric;
   rubricId: string;
