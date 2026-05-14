@@ -100,8 +100,7 @@ export async function loadSubmissions(): Promise<Submission[]> {
     }
 
     const displayLabel =
-      submission.studentLastName != null &&
-      submission.studentFirstName != null
+      submission.studentLastName != null && submission.studentFirstName != null
         ? formatStudentName(
             submission.studentLastName,
             submission.studentFirstName,
