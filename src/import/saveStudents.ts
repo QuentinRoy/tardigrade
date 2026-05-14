@@ -35,7 +35,7 @@ export async function saveStudents(
   const studentsWithTeam = submissions.flatMap((submission) =>
     submission.students.map((student) => ({
       id: student.id,
-      familyName: student.familyName,
+      lastName: student.lastName,
       firstName: student.firstName,
       teamName: submission.type === "team" ? submission.team : undefined,
     })),
@@ -74,13 +74,13 @@ export async function saveStudents(
         .values(
           studentsWithTeam.map((student) => ({
             id: student.id,
-            familyName: student.familyName,
+            lastName: student.lastName,
             firstName: student.firstName,
           })),
         )
         .onConflict((conflict) =>
           conflict.column("id").doUpdateSet((expressionBuilder) => ({
-            familyName: expressionBuilder.ref("excluded.familyName"),
+            lastName: expressionBuilder.ref("excluded.lastName"),
             firstName: expressionBuilder.ref("excluded.firstName"),
           })),
         )

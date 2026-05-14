@@ -93,7 +93,7 @@ const questionsSchema = z.object({
 
 export const studentRowSchema = z
   .object({
-    family_name: nonEmptyString,
+    last_name: nonEmptyString,
     first_name: nonEmptyString,
     id: nonEmptyString,
     team: z
@@ -103,7 +103,7 @@ export const studentRowSchema = z
       .transform((value) => (value === "" ? undefined : value)),
   })
   .transform((row) => ({
-    familyName: row.family_name,
+    lastName: row.last_name,
     firstName: row.first_name,
     id: row.id,
     ...("team" in row && row.team != null ? { team: row.team } : {}),

@@ -33,7 +33,7 @@ export default function StudentsImportForm({
             Students CSV
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-            Required columns: <code>family_name</code>, <code>first_name</code>,{" "}
+            Required columns: <code>last_name</code>, <code>first_name</code>,{" "}
             <code>id</code>. Optional: <code>team</code> (students sharing a
             team get grouped into the same submission).
           </Typography>

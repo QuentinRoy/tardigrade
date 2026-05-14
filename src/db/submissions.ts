@@ -7,8 +7,8 @@ function normalizeSearchValue(value: string): string {
   return value.trim().toLowerCase().replace(/\s+/g, " ");
 }
 
-function formatStudentName(familyName: string, firstName: string): string {
-  return `${familyName} ${firstName}`.trim();
+function formatStudentName(lastName: string, firstName: string): string {
+  return `${lastName} ${firstName}`.trim();
 }
 
 async function loadSubmissionsFromDb() {
@@ -24,7 +24,7 @@ async function loadSubmissionsFromDb() {
       .select([
         "submission.id as id",
         "submission.type as type",
-        "student.familyName as studentFamilyName",
+        "student.lastName as studentLastName",
         "student.firstName as studentFirstName",
         "team.name as teamName",
       ])
@@ -37,11 +37,11 @@ async function loadSubmissionsFromDb() {
       .where("submission.type", "=", "team")
       .select([
         "submission.id as submissionId",
-        "student.familyName as studentFamilyName",
+        "student.lastName as studentLastName",
         "student.firstName as studentFirstName",
       ])
       .orderBy("submission.id", "asc")
-      .orderBy("student.familyName", "asc")
+      .orderBy("student.lastName", "asc")
       .orderBy("student.firstName", "asc")
       .execute(),
   ]);
@@ -49,13 +49,13 @@ async function loadSubmissionsFromDb() {
   const teamMembersBySubmissionId = new Map<string, string[]>();
 
   for (const row of teamMemberRows) {
-    if (row.studentFamilyName == null || row.studentFirstName == null) {
+    if (row.studentLastName == null || row.studentFirstName == null) {
       continue;
     }
 
     const submissionId = String(row.submissionId);
     const formattedName = formatStudentName(
-      row.studentFamilyName,
+      row.studentLastName,
       row.studentFirstName,
     );
     if (formattedName.length === 0) {
@@ -100,10 +100,10 @@ export async function loadSubmissions(): Promise<Submission[]> {
     }
 
     const displayLabel =
-      submission.studentFamilyName != null &&
+      submission.studentLastName != null &&
       submission.studentFirstName != null
         ? formatStudentName(
-            submission.studentFamilyName,
+            submission.studentLastName,
             submission.studentFirstName,
           )
         : String(submission.id);

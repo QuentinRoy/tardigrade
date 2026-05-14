@@ -87,18 +87,18 @@ describe("parseQuestionsYaml", () => {
 
 describe("parseStudentsCsv", () => {
   it("parses required columns and optional team", () => {
-    const students = parseStudentsCsv(`family_name,first_name,id,team
+    const students = parseStudentsCsv(`last_name,first_name,id,team
 Smith,Alice,s1,
 Jones,Bob,s2,Team A`);
 
     expect(students).toEqual([
       {
-        familyName: "Smith",
+        lastName: "Smith",
         firstName: "Alice",
         id: "s1",
       },
       {
-        familyName: "Jones",
+        lastName: "Jones",
         firstName: "Bob",
         id: "s2",
         team: "Team A",
@@ -111,18 +111,18 @@ describe("groupStudentsIntoSubmissions", () => {
   it("groups team students and creates individual submissions", () => {
     const students = [
       {
-        familyName: "Smith",
+        lastName: "Smith",
         firstName: "Alice",
         id: "s1",
       },
       {
-        familyName: "Jones",
+        lastName: "Jones",
         firstName: "Bob",
         id: "s2",
         team: "Team A",
       },
       {
-        familyName: "Ray",
+        lastName: "Ray",
         firstName: "Cora",
         id: "s3",
         team: "Team A",
@@ -149,13 +149,13 @@ describe("groupStudentsIntoSubmissions", () => {
   it("generates unique submission ids when team slugs collide", () => {
     const students = [
       {
-        familyName: "One",
+        lastName: "One",
         firstName: "Alpha",
         id: "s1",
         team: "Team A",
       },
       {
-        familyName: "Two",
+        lastName: "Two",
         firstName: "Beta",
         id: "s2",
         team: "Team-A",

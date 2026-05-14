@@ -103,7 +103,7 @@ export interface RubricAssessment {
 
 export interface Student {
   createdAt: Generated<Timestamp>;
-  familyName: string;
+  lastName: string;
   firstName: string;
   id: string;
   updatedAt: Generated<Timestamp>;

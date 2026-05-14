@@ -19,7 +19,7 @@ export const QUESTIONS_YAML_PLACEHOLDER = `questions:
           good: 1
           poor: 0`;
 
-export const STUDENTS_CSV_PLACEHOLDER = `family_name,first_name,id,team
+export const STUDENTS_CSV_PLACEHOLDER = `last_name,first_name,id,team
 Doe,John,john_doe,
 Smith,Jane,jane_smith,
 Johnson,Bob,bob_johnson,Team A`;

@@ -27,7 +27,7 @@ Top-level JSON object:
 
 **Details:**
 - `questions`: Each object matches the import question schema, e.g. `{ id, label, rubrics: [...] }` with all fields present (even if optional in import, always included here with their actual value or default).
-- `students`: Each object matches the import student schema, e.g. `{ id, firstName, familyName, team? }` (all fields present, even if optional in import, always included here with their actual value or default).
+- `students`: Each object matches the import student schema, e.g. `{ id, firstName, lastName, team? }` (all fields present, even if optional in import, always included here with their actual value or default).
 - `submissions`: Each object includes a `submissionType` field ("individual" or "team"), references either a student (by `studentId`) or a team (by `teamName`), and contains an array of `assessments`. Each assessment includes a `questionId`, `rubricId`, `assessmentType` (e.g., "boolean", "ordinal", "numerical"), and the value. Only one of `studentId` or `teamName` is present per submission.
 
 **Principles:**
@@ -54,9 +54,9 @@ Top-level JSON object:
       }
     ],
     "students": [
-      { "id": "stu1", "firstName": "Alice", "familyName": "Smith", "team": "Team Alpha" },
-      { "id": "stu2", "firstName": "Bob", "familyName": "Jones", "team": "Team Alpha" },
-      { "id": "stu3", "firstName": "Charlie", "familyName": "Brown" }
+      { "id": "stu1", "firstName": "Alice", "lastName": "Smith", "team": "Team Alpha" },
+      { "id": "stu2", "firstName": "Bob", "lastName": "Jones", "team": "Team Alpha" },
+      { "id": "stu3", "firstName": "Charlie", "lastName": "Brown" }
     ],
     "submissions": [
       {

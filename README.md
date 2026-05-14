@@ -158,7 +158,7 @@ Rules:
 ### Students CSV
 
 ```csv
-family_name,first_name,id,team
+last_name,first_name,id,team
 Doe,John,john_doe,
 Smith,Jane,jane_smith,
 Johnson,Bob,bob_johnson,Team A
@@ -166,7 +166,7 @@ Johnson,Bob,bob_johnson,Team A
 
 Rules:
 
-- Required columns: `family_name`, `first_name`, `id`.
+- Required columns: `last_name`, `first_name`, `id`.
 - Optional column: `team`.
 - Empty `team` means individual submission.
 - Same `team` groups students into one team submission.

@@ -79,7 +79,7 @@ async function createAssessmentFixture(): Promise<AssessmentFixture> {
     .insertInto("student")
     .values({
       id: studentId,
-      familyName: "Integration",
+      lastName: "Integration",
       firstName: "Test",
     })
     .execute();
