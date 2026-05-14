@@ -86,7 +86,7 @@ export default function RubricGradeRow({
 
   return (
     <>
-      <Grid size={{ xs: 12, sm: 3 }}>
+      <Grid size={2}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           {control}
           <Box
@@ -102,7 +102,7 @@ export default function RubricGradeRow({
           </Box>
         </Box>
       </Grid>
-      <Grid size={{ xs: 12, sm: 8 }}>
+      <Grid size={8}>
         <Box>
           {displayLabel}
           {description != null && (
@@ -112,9 +112,9 @@ export default function RubricGradeRow({
           )}
         </Box>
       </Grid>
-      <Grid size={{ xs: 12, sm: 1 }}>
+      <Grid size={2} sx={{ textAlign: "right" }}>
         <Typography variant="body2" color="textSecondary">
-          ({currentMarks != null ? currentMarks : "?"}&nbsp;/&nbsp;{rubricBound}
+          ({currentMarks != null ? currentMarks : "_"}&nbsp;/&nbsp;{rubricBound}
           )
         </Typography>
       </Grid>
