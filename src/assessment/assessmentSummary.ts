@@ -1,10 +1,8 @@
 import {
+  type AssessedRubric,
   getRubricMaxMarks,
-  markBooleanRubric,
-  markNumericalRubric,
   markRubric,
 } from "../rubrics/rubric";
-import type { AssessedRubric } from "./assessment";
 
 export type AssessmentSummary = {
   marks: number;
@@ -25,19 +23,7 @@ function accumulateRubricMarks(
 
   const rubricMarks = getRubricMaxMarks(rubric);
   summary.maxMarks += rubricMarks;
-  summary.marks += markRubric({ rubric, value: rubric.assessment });
-
-  if (rubric.type === "boolean") {
-    summary.marks += markBooleanRubric(rubric, rubric.assessment.passed);
-    return;
-  }
-
-  if (rubric.type === "ordinal") {
-    summary.marks += rubric.marks[rubric.assessment.selectedLabel] ?? 0;
-    return;
-  }
-
-  summary.marks += markNumericalRubric(rubric, rubric.assessment.score);
+  summary.marks += markRubric(rubric);
 }
 
 export function summarizeRubrics(rubrics: AssessedRubric[]): AssessmentSummary {

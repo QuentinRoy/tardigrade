@@ -23,7 +23,7 @@ type ExportRubricLabel = {
 };
 
 type ExportBooleanRubricPlan = ExportRubricLabel &
-  Pick<RubricOfType<"boolean">, "id" | "type" | "marks">;
+  Pick<RubricOfType<"boolean">, "id" | "type" | "marks" | "falseMarks">;
 
 type ExportOrdinalRubricPlan = ExportRubricLabel &
   Pick<RubricOfType<"ordinal">, "id" | "type" | "marks">;
@@ -173,8 +173,7 @@ export function buildSubmissionExportRow(params: {
 
     for (const rubric of question.rubrics) {
       const value = valuesByKey.get(buildAssessmentKey(question.id, rubric.id));
-      const rubricMarks =
-        value != null ? markRubric({ rubric, value }) : undefined;
+      const rubricMarks = value != null ? markRubric(rubric) : undefined;
 
       if (options.includeRubricAssessment) {
         row.push(value != null ? getRubricAssessmentDisplay(value) : "");

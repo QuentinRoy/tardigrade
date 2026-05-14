@@ -1,4 +1,5 @@
 import { parse as parseCSV } from "csv-parse/sync";
+import type { NonEmptyArray } from "@/utils/utils";
 import { toSlug } from "./saveUtils";
 import { studentRowsSchema } from "./schemas";
 import type { ImportedStudent, NormalizedImportedSubmission } from "./types";
@@ -15,13 +16,17 @@ export function parseStudentsCsv(content: string): ImportedStudent[] {
 export function groupStudentsIntoSubmissions(
   students: ImportedStudent[],
 ): NormalizedImportedSubmission[] {
-  const groupedByPaper = new Map<string, ImportedStudent[]>();
+  const groupedByPaper = new Map<string, NonEmptyArray<ImportedStudent>>();
 
   for (const student of students) {
     const key =
       student.team == null ? `student:${student.id}` : `team:${student.team}`;
-    const currentStudents = groupedByPaper.get(key) ?? [];
-    currentStudents.push(student);
+    let currentStudents = groupedByPaper.get(key);
+    if (currentStudents == null) {
+      currentStudents = [student];
+    } else {
+      currentStudents.push(student);
+    }
     groupedByPaper.set(key, currentStudents);
   }
 

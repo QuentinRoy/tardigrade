@@ -6,8 +6,8 @@ import {
   type ExportOptions,
   type ExportQuestionPlan,
 } from "@/export/submissionExportCsv";
-import { db } from "./kysely";
-import type { AssessmentRubricValue, SubmissionSubmitter } from "./types";
+import { db } from "../db/kysely";
+import type { AssessmentRubricValue, SubmissionSubmitter } from "../db/types";
 
 function toNumber(value: string | number): number {
   if (typeof value === "number") return value;

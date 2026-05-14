@@ -1,5 +1,5 @@
 import { stringify } from "csv-stringify/sync";
-import { createSubmissionExport } from "@/db/submissionExport";
+import { createSubmissionExport } from "@/export/submissionExport";
 import { parseExportOptions } from "@/export/submissionExportCsv";
 
 export async function GET(request: Request): Promise<Response> {

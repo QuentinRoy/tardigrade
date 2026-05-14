@@ -16,8 +16,8 @@ describe("parseQuestionsYaml", () => {
         marks: 2`);
 
     expect(questions).toHaveLength(1);
-    expect(questions[0].id).toBe("q1");
-    expect(questions[0].rubrics[0].id).toBe("r1");
+    expect(questions[0]?.id).toBe("q1");
+    expect(questions[0]?.rubrics[0]?.id).toBe("r1");
   });
 
   it("parses reversed numerical rubrics", () => {
@@ -32,7 +32,7 @@ describe("parseQuestionsYaml", () => {
         maxMarks: 5
         reversed: true`);
 
-    expect(questions[0].rubrics[0]).toMatchObject({
+    expect(questions[0]?.rubrics[0]).toMatchObject({
       id: "r1",
       type: "numerical",
       reversed: true,
@@ -48,7 +48,7 @@ describe("parseQuestionsYaml", () => {
         marks: 2
         description: A helpful description`);
 
-    expect(questions[0].rubrics[0].description).toBe("A helpful description");
+    expect(questions[0]?.rubrics[0]?.description).toBe("A helpful description");
   });
 
   it("parses boolean falseMarks", () => {
@@ -60,7 +60,7 @@ describe("parseQuestionsYaml", () => {
         marks: 2
         falseMarks: -1`);
 
-    expect(questions[0].rubrics[0]).toMatchObject({
+    expect(questions[0]?.rubrics[0]).toMatchObject({
       id: "r1",
       type: "boolean",
       marks: 2,
@@ -143,7 +143,7 @@ describe("groupStudentsIntoSubmissions", () => {
       (submission) => submission.type === "individual",
     );
     expect(individualSubmission).toBeDefined();
-    expect(individualSubmission?.students[0].id).toBe("s1");
+    expect(individualSubmission?.students[0]?.id).toBe("s1");
   });
 
   it("generates unique submission ids when team slugs collide", () => {

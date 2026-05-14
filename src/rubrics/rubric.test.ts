@@ -12,6 +12,7 @@ describe("scoreToMarks", () => {
           maxScore: 10,
           minMarks: 0,
           maxMarks: 5,
+          reversed: false,
         },
         2,
       ),

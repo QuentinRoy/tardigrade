@@ -32,8 +32,10 @@ export const BooleanUnset: Story = {
       id: "r1",
       type: "boolean",
       marks: 2,
+      falseMarks: 0,
       label: "Correct answer",
       description: "The student provided the correct final answer.",
+      assessment: null,
     },
   },
 };
@@ -43,6 +45,7 @@ export const BooleanGraded: Story = {
     rubric: {
       id: "r1",
       type: "boolean",
+      falseMarks: 0,
       marks: 2,
       label: "Correct answer",
       description: "The student provided the correct final answer.",
@@ -57,6 +60,7 @@ export const BooleanPending: Story = {
     rubric: {
       id: "r1",
       type: "boolean",
+      falseMarks: -1,
       marks: 2,
       label: "Correct answer",
       assessment: { passed: true },
@@ -73,8 +77,10 @@ export const NumericalUnset: Story = {
       maxScore: 5,
       minMarks: 0,
       maxMarks: 5,
+      reversed: false,
       label: "Quality of explanation",
       description: "Rate the quality of the student's explanation from 0 to 5.",
+      assessment: null,
     },
   },
 };
@@ -88,6 +94,7 @@ export const NumericalGraded: Story = {
       maxScore: 5,
       minMarks: 0,
       maxMarks: 5,
+      reversed: false,
       label: "Quality of explanation",
       description: "Rate the quality of the student's explanation from 0 to 5.",
       assessment: { score: 3 },
@@ -102,6 +109,7 @@ export const OrdinalUnset: Story = {
       type: "ordinal",
       marks: { Excellent: 4, Good: 3, Satisfactory: 2, Poor: 1 },
       label: "Overall performance",
+      assessment: null,
     },
   },
 };
@@ -125,6 +133,7 @@ export const Disabled: Story = {
       id: "r1",
       type: "boolean",
       marks: 1,
+      falseMarks: 0,
       label: "Read-only rubric",
       assessment: { passed: false },
     },
@@ -137,7 +146,9 @@ export const WithoutDescription: Story = {
       id: "r1",
       type: "boolean",
       marks: 2,
+      falseMarks: 0,
       label: "Correct answer",
+      assessment: null,
     },
   },
 };

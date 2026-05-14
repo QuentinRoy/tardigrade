@@ -1,5 +1,5 @@
-import { Simplify } from "@/utils/utils";
-import { RubricType, SubmissionType } from "./generated/db";
+import type { Simplify } from "@/utils/utils";
+import type { RubricType, SubmissionType } from "./generated/db";
 
 export * from "./generated/db";
 
@@ -65,12 +65,13 @@ type RubricBase = {
   label?: string | undefined;
   type: RubricType;
 };
+
 export type Rubric =
   | Simplify<
       RubricBase & {
         type: "boolean";
         marks: number;
-        falseMarks?: number;
+        falseMarks: number;
       }
     >
   | Simplify<
@@ -86,7 +87,7 @@ export type Rubric =
         maxScore: number;
         minMarks: number;
         maxMarks: number;
-        reversed?: boolean;
+        reversed: boolean;
       }
     >;
 

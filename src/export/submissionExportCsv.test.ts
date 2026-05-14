@@ -3,7 +3,6 @@ import type { AssessmentRubricValue, SubmissionSubmitter } from "@/db/types";
 import {
   buildSubmissionExportHeaders,
   buildSubmissionExportRow,
-  getSubmissionExportIdentifier,
   parseExportOptions,
 } from "./submissionExportCsv";
 
@@ -61,6 +60,7 @@ describe("submission CSV ordering", () => {
           maxScore: 10,
           minMarks: 0,
           maxMarks: 5,
+          reversed: false,
         },
       ],
     },

@@ -5,12 +5,14 @@ import CircularProgress from "@mui/material/CircularProgress";
 import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
 import { type ReactElement } from "react";
-import type { AssessedRubric } from "../assessment/assessment";
 import type { AssessmentRubricValue } from "../db/types";
 import BooleanGradeControl from "./BooleanGradeControl";
 import NumericalGradeControl from "./NumericalGradeControl";
 import OrdinalGradeControl from "./OrdinalGradeControl";
-import { getRubricMaxMarks as computeMarks } from "./rubric";
+import {
+  type AssessedRubric,
+  getRubricMaxMarks as computeMarks,
+} from "./rubric";
 
 type RubricGradeRowProps = {
   rubric: AssessedRubric;
