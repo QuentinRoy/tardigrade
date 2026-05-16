@@ -156,10 +156,10 @@ function DrawerContent({ onNavigate }: { onNavigate?: () => void }): ReactNode {
         />
         <Box sx={{ px: 2, py: 1.5 }}>
           <Typography component="p" variant="overline" color="text.secondary">
-            Export
+            Export Submissions
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-            Configure CSV columns before download.
+            Configure columns before download.
           </Typography>
           <FormGroup sx={{ mb: 2 }}>
             <FormControlLabel
@@ -198,7 +198,21 @@ function DrawerContent({ onNavigate }: { onNavigate?: () => void }): ReactNode {
             fullWidth
             onClick={onNavigate}
           >
-            Download CSV
+            Download Submissions
+          </Button>
+        </Box>
+        <Box sx={{ px: 2, py: 1.5 }}>
+          <Typography component="p" variant="overline" color="text.secondary">
+            Export Questions
+          </Typography>
+          <Button
+            component={NextLink}
+            href="/export/questions"
+            variant="outlined"
+            fullWidth
+            onClick={onNavigate}
+          >
+            Download Questions
           </Button>
         </Box>
       </Stack>
