@@ -58,9 +58,6 @@ export default function GlobalAssessmentSummary({
 }: GlobalAssessmentSummaryProps): ReactElement {
   return (
     <Box sx={{ my: 3 }}>
-      <Typography variant="h6" sx={{ mb: 1.5 }}>
-        Assessment Progress
-      </Typography>
       <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap" }}>
         <MetricCard
           title="Rubrics assessed"

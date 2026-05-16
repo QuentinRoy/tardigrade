@@ -1,33 +1,41 @@
-# Questions Home Navigation
+# Global Navigation Shell
 
 ## Goal
-Add a clear way to navigate from Questions management back to the home screen.
+Introduce a consistent app-level navigation shell with a top bar and side drawer, then remove page-level back/data/export shortcuts that become redundant.
 
 ## Scope
-- Update the Questions management UI header to include a visible "Back to home" action.
-- Keep existing layout, behavior, and data flow intact.
-- No routing logic changes beyond linking to the existing home route.
+- Add an always-visible top menu bar with a persistent Home link.
+- Add a ubiquitous side drawer with links/actions for Assessments, Manage Questions, Import, and Export.
+- Remove local Back to home/Back to overview links and Data/Export page buttons.
+- Move the Open assessments button to below the global assessment progress card on the home page.
 
 ## Plan
-1. Add a secondary header action in QuestionsManagementClient that links to /. 
-2. Place the action near the page title/description so it is always visible.
-3. Keep spacing/style aligned with existing Material UI patterns in the file.
-4. Run formatting and type checks for the change.
+1. Create a shared app shell component (top app bar + side drawer) and wire it in root layout.
+2. Move import/export/manage/assessments actions into the drawer as navigation items.
+3. Update home page to keep summary first and place Open assessments below progress.
+4. Remove page-level back-home/back-overview links from questions/import/assessments pages.
+5. Run formatting and type checks.
 
 ## Verification
 1. pnpm run check --fix
 2. pnpm run check-types
-3. Manual check: from /questions, click "Back to home" and confirm it opens /
+3. Manual checks:
+	- Home link is visible from any page.
+	- Drawer is reachable from any page and includes Manage/Import/Export/Assessments links.
+	- Questions/import/assessments pages no longer show Back to home buttons.
+	- Home page shows Open assessments below assessment progress.
 
 ## Risks
-- Minimal: slight visual layout shift in the header area.
+- Layout spacing/overflow regressions on small screens due to the new shell container.
+- Navigation duplication risk if any old action button is missed.
 
 ## Rollback
-- Revert the Questions management client header change.
+- Revert shell integration in root layout and restore removed page-level navigation buttons.
 
 ## Progress
 - [x] Plan drafted
 - [x] Plan validated with user
-- [x] Header action added
+- [x] Shell component added
+- [x] Page-level buttons removed
 - [x] Formatting/type checks passed
 - [ ] Manual navigation verified

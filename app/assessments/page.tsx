@@ -1,5 +1,4 @@
 import {
-  Button,
   Container,
   List,
   ListItemButton,
@@ -35,13 +34,10 @@ async function AssessmentPageContent() {
 
   return (
     <Container component="main" maxWidth="md" sx={{ py: 5 }}>
-      <Typography component="h1" variant="h3">
+      <Typography component="h1" variant="h3" sx={{ mb: 3 }}>
         Assessments
       </Typography>
-      <Button href="/" sx={{ my: 2 }} variant="text">
-        Back to overview
-      </Button>
-      <Typography component="h2" variant="h5" sx={{ mt: 2 }}>
+      <Typography component="h2" variant="h5" sx={{ mb: 2 }}>
         Assess by submission
       </Typography>
       <List component="nav" aria-label="Submission list" sx={{ mb: 3 }}>

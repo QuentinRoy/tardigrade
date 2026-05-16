@@ -9,12 +9,10 @@ import Dialog from "@mui/material/Dialog";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import IconButton from "@mui/material/IconButton";
-import Link from "@mui/material/Link";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
-import NextLink from "next/link";
 import {
   type DragEvent,
   type ReactElement,
@@ -133,9 +131,6 @@ export default function BaseImportForm({
           <Typography variant="body1" color="text.secondary" sx={{ mb: 0.5 }}>
             {description}
           </Typography>
-          <Link component={NextLink} href="/" underline="hover">
-            Back to home
-          </Link>
         </Box>
 
         <Dialog
