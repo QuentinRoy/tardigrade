@@ -1,5 +1,6 @@
 import "server-only";
-import { cacheLife, cacheTag } from "next/cache";
+import { cacheLife, cacheTag, updateTag } from "next/cache";
+import { QuestionsValidationError } from "@/questions/errors";
 import { db } from "./kysely";
 import type { Grid, Question, Rubric, RubricType } from "./types";
 
@@ -239,4 +240,481 @@ export async function loadQuestion(
     label: row.label ?? undefined,
     rubrics: row.rubrics.map(toRubric),
   };
+}
+
+export type ManagedRubricInput =
+  | {
+      previousId?: string;
+      id: string;
+      description?: string;
+      label?: string;
+      type: "boolean";
+      marks: number;
+      falseMarks?: number;
+    }
+  | {
+      previousId?: string;
+      id: string;
+      description?: string;
+      label?: string;
+      type: "ordinal";
+      marks: Record<string, number>;
+    }
+  | {
+      previousId?: string;
+      id: string;
+      description?: string;
+      label?: string;
+      type: "numerical";
+      minScore: number;
+      maxScore: number;
+      minMarks: number;
+      maxMarks: number;
+      reversed: boolean;
+    };
+
+export type ManagedQuestionInput = {
+  originalId?: string;
+  id: string;
+  label?: string;
+  rubrics: ManagedRubricInput[];
+};
+
+export type ManagedQuestionSummary = {
+  id: string;
+  label?: string;
+  position: number;
+  assessmentCount: number;
+  rubricCount: number;
+};
+
+export type ManagedQuestionDetails = ManagedQuestionSummary & {
+  question: Question;
+};
+
+type NormalizedRubricRow = {
+  sourceId: string;
+  id: string;
+  questionId: string;
+  position: number;
+  description: string | null;
+  label: string | null;
+  type: RubricType;
+};
+
+function normalizeOptionalText(value: string | undefined): string | null {
+  const trimmed = value?.trim();
+  if (trimmed == null || trimmed.length === 0) {
+    return null;
+  }
+  return trimmed;
+}
+
+function toManagedRubricRows(
+  questionId: string,
+  rubrics: ManagedRubricInput[],
+): NormalizedRubricRow[] {
+  return rubrics.map((rubric, position) => ({
+    sourceId: rubric.previousId?.trim() || rubric.id,
+    id: rubric.id,
+    questionId,
+    position,
+    description: normalizeOptionalText(rubric.description),
+    label: normalizeOptionalText(rubric.label),
+    type: rubric.type,
+  }));
+}
+
+function assertUniqueIds(label: string, ids: string[]): void {
+  const counts = new Map<string, number[]>();
+
+  ids.forEach((id, index) => {
+    const key = id.trim();
+    if (key.length === 0) {
+      return;
+    }
+
+    const indexes = counts.get(key) ?? [];
+    indexes.push(index);
+    counts.set(key, indexes);
+  });
+
+  const duplicateIndexes = [...counts.values()].filter(
+    (indexes) => indexes.length > 1,
+  );
+  if (duplicateIndexes.length === 0) {
+    return;
+  }
+
+  const rubrics = ids.map(() => ({}) as { id?: string });
+  for (const indexes of duplicateIndexes) {
+    for (const index of indexes) {
+      rubrics[index] = {
+        id: `${label} must be unique.`,
+      };
+    }
+  }
+
+  throw new QuestionsValidationError({
+    fieldErrors: { rubrics },
+  });
+}
+
+export async function loadManagedQuestions(): Promise<
+  ManagedQuestionDetails[]
+> {
+  const [rows, counts] = await Promise.all([
+    loadQuestionsFromDb(),
+    db
+      .selectFrom("assessment")
+      .select(({ fn }) => [
+        "questionId",
+        fn.count<number>("assessment.id").as("assessmentCount"),
+      ])
+      .groupBy("questionId")
+      .execute(),
+  ]);
+
+  const assessmentCountByQuestionId = new Map(
+    counts.map((count) => [count.questionId, Number(count.assessmentCount)]),
+  );
+
+  return rows.map((row, position) => ({
+    id: row.id,
+    label: row.label ?? undefined,
+    position,
+    assessmentCount: assessmentCountByQuestionId.get(row.id) ?? 0,
+    rubricCount: row.rubrics.length,
+    question: {
+      label: row.label ?? undefined,
+      rubrics: row.rubrics.map(toRubric),
+    },
+  }));
+}
+
+export async function getQuestionDeleteImpact(questionId: string): Promise<{
+  assessmentCount: number;
+}> {
+  const row = await db
+    .selectFrom("assessment")
+    .select(({ fn }) => [fn.count<number>("id").as("assessmentCount")])
+    .where("questionId", "=", questionId)
+    .executeTakeFirst();
+
+  return {
+    assessmentCount: Number(row?.assessmentCount ?? 0),
+  };
+}
+
+export async function saveManagedQuestion(
+  input: ManagedQuestionInput,
+): Promise<{ id: string }> {
+  const requestedId = input.id.trim();
+  const originalId = input.originalId?.trim() || requestedId;
+
+  if (requestedId.length === 0) {
+    throw new Error("Question id is required.");
+  }
+
+  assertUniqueIds(
+    "Rubric ids",
+    input.rubrics.map((rubric) => rubric.id),
+  );
+
+  const normalizedRubrics = toManagedRubricRows(requestedId, input.rubrics);
+  assertUniqueIds(
+    "Rubric source ids",
+    normalizedRubrics.map((rubric) => rubric.sourceId),
+  );
+
+  await db.transaction().execute(async (tx) => {
+    const existingQuestion = await tx
+      .selectFrom("question")
+      .select(["id", "position"])
+      .where("id", "=", originalId)
+      .executeTakeFirst();
+
+    const conflictingQuestion =
+      originalId !== requestedId
+        ? await tx
+            .selectFrom("question")
+            .select("id")
+            .where("id", "=", requestedId)
+            .executeTakeFirst()
+        : null;
+
+    if (conflictingQuestion != null) {
+      throw new QuestionsValidationError({
+        fieldErrors: {
+          questionId: `Question id '${requestedId}' already exists.`,
+        },
+      });
+    }
+
+    if (existingQuestion == null) {
+      const row = await tx
+        .selectFrom("question")
+        .select(({ fn }) => [fn.max<number>("position").as("maxPosition")])
+        .executeTakeFirst();
+      const nextPosition = (row?.maxPosition ?? -1) + 1;
+
+      await tx
+        .insertInto("question")
+        .values({
+          id: requestedId,
+          label: normalizeOptionalText(input.label),
+          position: nextPosition,
+        })
+        .execute();
+    } else {
+      await tx
+        .updateTable("question")
+        .set({
+          id: requestedId,
+          label: normalizeOptionalText(input.label),
+        })
+        .where("id", "=", originalId)
+        .execute();
+    }
+
+    const existingRubrics = await tx
+      .selectFrom("rubric")
+      .select(["id", "type"])
+      .where("questionId", "=", requestedId)
+      .execute();
+
+    const existingById = new Map(existingRubrics.map((row) => [row.id, row]));
+    const referencedSourceIds = new Set(
+      normalizedRubrics.map((rubric) => rubric.sourceId),
+    );
+
+    const staleRubricIds = existingRubrics
+      .filter((rubric) => !referencedSourceIds.has(rubric.id))
+      .map((rubric) => rubric.id);
+
+    if (staleRubricIds.length > 0) {
+      await tx.deleteFrom("rubric").where("id", "in", staleRubricIds).execute();
+    }
+
+    for (const rubric of normalizedRubrics) {
+      const existing = existingById.get(rubric.sourceId);
+
+      if (existing == null) {
+        await tx
+          .insertInto("rubric")
+          .values({
+            id: rubric.id,
+            questionId: requestedId,
+            position: rubric.position,
+            description: rubric.description,
+            label: rubric.label,
+            type: rubric.type,
+          })
+          .execute();
+        continue;
+      }
+
+      const isTypeChanged = existing.type !== rubric.type;
+      if (isTypeChanged) {
+        await tx.deleteFrom("rubric").where("id", "=", existing.id).execute();
+        await tx
+          .insertInto("rubric")
+          .values({
+            id: rubric.id,
+            questionId: requestedId,
+            position: rubric.position,
+            description: rubric.description,
+            label: rubric.label,
+            type: rubric.type,
+          })
+          .execute();
+        continue;
+      }
+
+      await tx
+        .updateTable("rubric")
+        .set({
+          id: rubric.id,
+          questionId: requestedId,
+          position: rubric.position,
+          description: rubric.description,
+          label: rubric.label,
+          type: rubric.type,
+        })
+        .where("id", "=", existing.id)
+        .execute();
+    }
+
+    const booleanRows = input.rubrics.flatMap((rubric) =>
+      rubric.type === "boolean"
+        ? [
+            {
+              rubricId: rubric.id,
+              marks: rubric.marks,
+              falseMarks: rubric.falseMarks ?? 0,
+            },
+          ]
+        : [],
+    );
+    const numericalRows = input.rubrics.flatMap((rubric) =>
+      rubric.type === "numerical"
+        ? [
+            {
+              rubricId: rubric.id,
+              minScore: rubric.minScore,
+              maxScore: rubric.maxScore,
+              minMarks: rubric.minMarks,
+              maxMarks: rubric.maxMarks,
+              reversed: rubric.reversed,
+            },
+          ]
+        : [],
+    );
+    const ordinalSources = input.rubrics.flatMap((rubric) =>
+      rubric.type === "ordinal"
+        ? [{ rubricId: rubric.id, marks: rubric.marks }]
+        : [],
+    );
+
+    if (booleanRows.length > 0) {
+      await tx
+        .insertInto("booleanRubric")
+        .values(booleanRows)
+        .onConflict((conflict) =>
+          conflict.column("rubricId").doUpdateSet((eb) => ({
+            marks: eb.ref("excluded.marks"),
+            falseMarks: eb.ref("excluded.falseMarks"),
+          })),
+        )
+        .execute();
+    }
+
+    if (numericalRows.length > 0) {
+      await tx
+        .insertInto("numericalRubric")
+        .values(numericalRows)
+        .onConflict((conflict) =>
+          conflict.column("rubricId").doUpdateSet((eb) => ({
+            minScore: eb.ref("excluded.minScore"),
+            maxScore: eb.ref("excluded.maxScore"),
+            minMarks: eb.ref("excluded.minMarks"),
+            maxMarks: eb.ref("excluded.maxMarks"),
+            reversed: eb.ref("excluded.reversed"),
+          })),
+        )
+        .execute();
+    }
+
+    if (ordinalSources.length > 0) {
+      await tx
+        .insertInto("ordinalRubric")
+        .values(ordinalSources.map((source) => ({ rubricId: source.rubricId })))
+        .onConflict((conflict) => conflict.column("rubricId").doNothing())
+        .execute();
+
+      const ordinalRubrics = await tx
+        .selectFrom("ordinalRubric")
+        .select(["id", "rubricId"])
+        .where(
+          "rubricId",
+          "in",
+          ordinalSources.map((source) => source.rubricId),
+        )
+        .execute();
+
+      const ordinalRubricIdByRubricId = new Map(
+        ordinalRubrics.map((row) => [row.rubricId, row.id]),
+      );
+      const ordinalRubricIds = ordinalRubrics.map((row) => row.id);
+
+      const existingOrdinalValues =
+        ordinalRubricIds.length === 0
+          ? []
+          : await tx
+              .selectFrom("ordinalRubricValue")
+              .select(["id", "ordinalRubricId", "label"])
+              .where("ordinalRubricId", "in", ordinalRubricIds)
+              .execute();
+
+      const validKeys = new Set(
+        ordinalSources.flatMap((source) => {
+          const ordinalRubricId = ordinalRubricIdByRubricId.get(
+            source.rubricId,
+          );
+          if (ordinalRubricId == null) {
+            return [];
+          }
+
+          return Object.keys(source.marks).map(
+            (label) => `${ordinalRubricId}::${label}`,
+          );
+        }),
+      );
+
+      const staleIds = existingOrdinalValues
+        .filter(
+          (value) => !validKeys.has(`${value.ordinalRubricId}::${value.label}`),
+        )
+        .map((value) => value.id);
+
+      if (staleIds.length > 0) {
+        await tx
+          .deleteFrom("ordinalRubricValue")
+          .where("id", "in", staleIds)
+          .execute();
+      }
+
+      const ordinalValueRows = ordinalSources.flatMap((source) => {
+        const ordinalRubricId = ordinalRubricIdByRubricId.get(source.rubricId);
+        if (ordinalRubricId == null) {
+          return [];
+        }
+
+        return Object.entries(source.marks).map(([label, marks]) => ({
+          ordinalRubricId,
+          label,
+          marks,
+        }));
+      });
+
+      if (ordinalValueRows.length > 0) {
+        await tx
+          .insertInto("ordinalRubricValue")
+          .values(ordinalValueRows)
+          .onConflict((conflict) =>
+            conflict
+              .columns(["ordinalRubricId", "label"])
+              .doUpdateSet((eb) => ({
+                marks: eb.ref("excluded.marks"),
+              })),
+          )
+          .execute();
+      }
+    }
+  });
+
+  updateTag("questions");
+  updateTag("assessments");
+  updateTag("assessments:all");
+  updateTag(`assessments:question:${requestedId}`);
+  if (originalId !== requestedId) {
+    updateTag(`assessments:question:${originalId}`);
+  }
+
+  return { id: requestedId };
+}
+
+export async function deleteManagedQuestion(
+  questionId: string,
+): Promise<{ assessmentCount: number }> {
+  const impact = await getQuestionDeleteImpact(questionId);
+
+  await db.deleteFrom("question").where("id", "=", questionId).execute();
+
+  updateTag("questions");
+  updateTag("assessments");
+  updateTag("assessments:all");
+  updateTag(`assessments:question:${questionId}`);
+
+  return impact;
 }

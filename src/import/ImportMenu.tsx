@@ -25,7 +25,7 @@ export default function ImportMenu(): ReactElement {
         onClick={handleOpen}
         endIcon={<ArrowDropDownIcon />}
       >
-        Import
+        Data
       </Button>
       <Menu
         anchorEl={anchorEl}
@@ -36,6 +36,9 @@ export default function ImportMenu(): ReactElement {
           horizontal: "left",
         }}
       >
+        <MenuItem onClick={handleClose} component="a" href="/questions">
+          Manage Questions
+        </MenuItem>
         <MenuItem onClick={handleClose} component="a" href="/import/questions">
           Import Questions
         </MenuItem>
