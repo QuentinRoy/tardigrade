@@ -7,6 +7,7 @@ import type { AssessmentRubricValue } from "../db/types";
 import RubricGradeRow from "../rubrics/RubricGradeRow";
 
 type RubricAssessmentSectionProps = {
+  savedRubrics: AssessedRubric[];
   rubrics: AssessedRubric[];
   pendingByIndex: Record<number, number>;
   disabled: boolean;
@@ -14,6 +15,7 @@ type RubricAssessmentSectionProps = {
 };
 
 export default function RubricGradeList({
+  savedRubrics,
   rubrics,
   pendingByIndex,
   disabled,
@@ -26,11 +28,13 @@ export default function RubricGradeList({
     <Grid container spacing={2} sx={{ mb: 2, alignItems: "center" }}>
       {rubrics.map((rubric, index) => {
         const isPending = (pendingByIndex[index] ?? 0) > 0;
+        const savedRubric = savedRubrics[index];
 
         return (
           <RubricGradeRow
             key={rubric.id}
             rubric={rubric}
+            savedRubric={savedRubric}
             isPending={isPending}
             disabled={disabled}
             onAssess={(assessment) => handleAssessment(index, assessment)}

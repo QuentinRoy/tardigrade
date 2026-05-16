@@ -18,6 +18,7 @@ import {
 
 type RubricGradeRowProps = {
   rubric: AssessedRubric;
+  savedRubric?: AssessedRubric;
   isPending: boolean;
   disabled: boolean;
   onAssess: (assessment: AssessmentRubricValue) => void;
@@ -25,20 +26,20 @@ type RubricGradeRowProps = {
 
 export default function RubricGradeRow({
   rubric,
+  savedRubric,
   isPending,
   disabled,
   onAssess,
 }: RubricGradeRowProps): ReactElement {
   const { description, assessment, id, label, type } = rubric;
+  const savedAssessment = savedRubric?.assessment;
   const displayLabel = label ?? id;
   const maxMarks = getRubricMaxMarks(rubric);
   const rubricBound = maxMarks === 0 ? getRubricMinMarks(rubric) : maxMarks;
   const currentMarks = assessment != null ? markRubric(rubric) : null;
-  const markerStatus = isPending
-    ? "saving"
-    : assessment != null
-      ? "assessed"
-      : "unassessed";
+  const displayAssessment = isPending ? savedAssessment : assessment;
+  const assessmentStatus =
+    displayAssessment != null ? "assessed" : "unassessed";
 
   let control: ReactElement;
 
@@ -100,7 +101,10 @@ export default function RubricGradeRow({
           py: 0.5,
         }}
       >
-        <RubricStatusMarker status={markerStatus} />
+        <RubricStatusMarker
+          assessmentStatus={assessmentStatus}
+          isSaving={isPending}
+        />
         <Box
           sx={{ display: "flex", alignItems: "center", gap: 1, flexShrink: 0 }}
         >

@@ -26,6 +26,7 @@ export type UseAssessmentSessionResult = {
   currentSubmission: Submission | undefined;
   previousSubmission: Submission | undefined;
   nextSubmission: Submission | undefined;
+  savedRubrics: AssessedRubric[];
   optimisticRubrics: AssessedRubric[];
   pendingByIndex: Record<number, number>;
   assess: (index: number, assessment: AssessmentRubricValue) => void;
@@ -103,6 +104,7 @@ export function useAssessmentSession<TError>({
     currentSubmission,
     previousSubmission,
     nextSubmission,
+    savedRubrics,
     optimisticRubrics,
     pendingByIndex,
     assess,

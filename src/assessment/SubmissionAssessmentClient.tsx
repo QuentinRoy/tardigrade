@@ -50,6 +50,7 @@ export default function SubmissionAssessmentClient({
     currentSubmission: sessionCurrentSubmission,
     previousSubmission,
     nextSubmission,
+    savedRubrics,
     optimisticRubrics,
     pendingByIndex,
     assess,
@@ -191,6 +192,7 @@ export default function SubmissionAssessmentClient({
       />
 
       <RubricGradeList
+        savedRubrics={savedRubrics}
         rubrics={optimisticRubrics}
         pendingByIndex={pendingByIndex}
         disabled={sessionCurrentSubmission == null}

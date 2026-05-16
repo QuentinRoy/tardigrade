@@ -80,6 +80,7 @@ export default function SubmissionOverviewAssessmentClient({
     currentSubmission: sessionCurrentSubmission,
     previousSubmission,
     nextSubmission,
+    savedRubrics,
     optimisticRubrics,
     pendingByIndex,
     assess,
@@ -249,9 +250,14 @@ export default function SubmissionOverviewAssessmentClient({
 
               {question.rubrics.map((rubric, localIndex) => {
                 const flatIndex = question.flatIndices[localIndex];
+                const savedRubric =
+                  flatIndex != null
+                    ? (savedRubrics[flatIndex] ?? rubric)
+                    : rubric;
                 return (
                   <RubricGradeList
                     key={rubric.id}
+                    savedRubrics={[savedRubric]}
                     rubrics={[rubric]}
                     pendingByIndex={{
                       0:
