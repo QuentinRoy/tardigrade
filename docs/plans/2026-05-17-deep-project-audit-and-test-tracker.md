@@ -259,12 +259,14 @@ Tier 2 issue is Done when:
 
 ### Execution Log
 - 2026-05-17: Initial deep audit completed. Risks R-001..R-015 registered.
+- 2026-05-17: Migrated integration tests to shared `test.extend` fixtures (`src/test/integrationTest.ts`) across assessment import/student/assessment DB suites; targeted reliability tests pass.
 
 ## 10. Change Log
 
 - 2026-05-17: Created initial living audit with severity taxonomy, risk register, and test backlog.
 - 2026-05-17: Added prioritization score model, ownership/target fields, definition-of-done criteria, and weekly maintenance ritual.
 - 2026-05-17: Added R-016 for GitHub CI integration as a Tier 0 high-priority blocking task and promoted CI gating to first execution step.
+- 2026-05-17: Added reusable integration test fixtures and migrated `src/import/saveAssessments.test.ts`, `src/import/saveStudents.test.ts`, and `src/db/assessments.test.ts` to reduce boilerplate and improve consistency.
 
 ## 11. Issue Entry Template (for future additions)
 
