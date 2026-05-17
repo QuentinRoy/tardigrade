@@ -35,7 +35,6 @@ import {
   useState,
   useTransition,
 } from "react";
-import { reorderQuestionsAction } from "./actions";
 import type { QuestionManagementItem } from "./types";
 
 type QuestionTableProps = {
@@ -43,6 +42,9 @@ type QuestionTableProps = {
   selectedQuestionId?: string;
   onSelectQuestion: (questionId: string) => void;
   onCreate: () => void;
+  onReorder: (
+    updates: Array<{ id: string; position: number }>,
+  ) => Promise<void>;
 };
 
 function getQuestionLabel(question: QuestionManagementItem): string {
@@ -141,6 +143,7 @@ export default function QuestionTable({
   selectedQuestionId,
   onSelectQuestion,
   onCreate,
+  onReorder,
 }: QuestionTableProps): ReactElement {
   const [filter, setFilter] = useState("");
   const [orderedQuestions, setOrderedQuestions] =
@@ -218,7 +221,7 @@ export default function QuestionTable({
     }));
 
     startTransition(() => {
-      void reorderQuestionsAction(updates).catch(() => {
+      void onReorder(updates).catch(() => {
         setOrderedQuestions(previousOrder);
         setReorderError("Could not save new question order. Reverted changes.");
       });

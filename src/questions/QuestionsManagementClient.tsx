@@ -9,7 +9,7 @@ import {
   useMemo,
   useState,
 } from "react";
-import { saveQuestionAction } from "./actions";
+import { reorderQuestionsAction, saveQuestionAction } from "./actions";
 import QuestionForm from "./QuestionForm";
 import QuestionTable from "./QuestionTable";
 import SelectedQuestionPane from "./SelectedQuestionPane";
@@ -70,6 +70,7 @@ export default function QuestionsManagementClient({
         <Stack direction={{ xs: "column", lg: "row" }} spacing={3}>
           <Box sx={{ flex: "1 1 0" }}>
             <QuestionTable
+              onReorder={reorderQuestionsAction}
               questions={questions}
               selectedQuestionId={selectedQuestionId}
               onSelectQuestion={(questionId) => {

@@ -1,5 +1,6 @@
 import {
   Box,
+  Button,
   Container,
   LinearProgress,
   List,
@@ -41,6 +42,11 @@ async function AssessmentPageContent() {
       <Typography component="h1" variant="h3" sx={{ mb: 3 }}>
         Assessments
       </Typography>
+      <Box sx={{ mb: 3 }}>
+        <Button href="/assessments/overview" variant="outlined">
+          Open rubric overview
+        </Button>
+      </Box>
       <Typography component="h2" variant="h5" sx={{ mb: 2 }}>
         Assess by submission
       </Typography>

@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from "@storybook/nextjs";
+import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { fn } from "storybook/test";
 import QuestionTable from "./QuestionTable";
 import type { QuestionManagementItem } from "./types";
@@ -38,6 +38,7 @@ const meta = {
     selectedQuestionId: "q1",
     onSelectQuestion: fn(),
     onCreate: fn(),
+    onReorder: fn().mockResolvedValue(undefined),
   },
 } satisfies Meta<typeof QuestionTable>;
 

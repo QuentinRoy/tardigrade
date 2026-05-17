@@ -1,5 +1,5 @@
 import { CssBaseline, createTheme, ThemeProvider } from "@mui/material";
-import type { Preview } from "@storybook/nextjs";
+import type { Preview } from "@storybook/nextjs-vite";
 import type { ReactElement, ReactNode } from "react";
 
 const theme = createTheme();
@@ -16,6 +16,9 @@ function MuiDecorator(Story: () => ReactElement): ReactNode {
 const preview: Preview = {
   decorators: [MuiDecorator],
   parameters: {
+    nextjs: {
+      appDirectory: true,
+    },
     controls: {
       matchers: {
         color: /(background|color)$/i,
