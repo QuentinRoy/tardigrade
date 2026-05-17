@@ -1,23 +1,7 @@
-import { randomUUID } from "node:crypto";
-import { promises as fs } from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-import {
-  PostgreSqlContainer,
-  type StartedPostgreSqlContainer,
-} from "@testcontainers/postgresql";
-import { CamelCasePlugin, Kysely, PostgresDialect } from "kysely";
-import { FileMigrationProvider, Migrator } from "kysely/migration";
-import { Pool } from "pg";
-import {
-  afterAll,
-  afterEach,
-  beforeAll,
-  describe,
-  expect,
-  it,
-  vi,
-} from "vitest";
+import { type Kysely } from "kysely";
+import { describe, vi } from "vitest";
+import { buildTestId } from "../test/dbIntegration";
+import { createIntegrationTest } from "../test/integrationTest";
 import type { DB } from "./types";
 
 vi.mock("server-only", () => ({}));
@@ -27,15 +11,7 @@ vi.mock("next/cache", () => ({
   updateTag: vi.fn(),
 }));
 
-let container: StartedPostgreSqlContainer;
-let db: Kysely<DB>;
-let defaultProjectId: number;
-
-let loadAssessment: typeof import("./assessments").loadAssessment;
-let saveAssessment: typeof import("./assessments").saveAssessment;
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const { test, expect } = createIntegrationTest(import.meta.url);
 
 type AssessmentFixture = {
   questionId: string;
@@ -49,57 +25,10 @@ type AssessmentFixture = {
   };
 };
 
-const fixtures: AssessmentFixture[] = [];
-
-function buildTestId(prefix: string): string {
-  return `${prefix}-${randomUUID()}`;
-}
-
-function createMigrator(dbInstance: Kysely<DB>): Migrator {
-  return new Migrator({
-    db: dbInstance,
-    provider: new FileMigrationProvider({
-      fs,
-      path,
-      migrationFolder: path.join(__dirname, "migrations"),
-    }),
-  });
-}
-
-beforeAll(async () => {
-  container = await new PostgreSqlContainer("postgres:17-alpine").start();
-
-  db = new Kysely<DB>({
-    dialect: new PostgresDialect({
-      pool: new Pool({ connectionString: container.getConnectionUri() }),
-    }),
-    plugins: [new CamelCasePlugin()],
-  });
-
-  const migrator = createMigrator(db);
-  const { error } = await migrator.migrateToLatest();
-
-  if (error != null) {
-    throw error;
-  }
-
-  defaultProjectId = await db
-    .selectFrom("project")
-    .select("id")
-    .orderBy("id", "asc")
-    .executeTakeFirstOrThrow()
-    .then((row) => row.id);
-
-  vi.doMock("./kysely", () => ({ db }));
-  ({ loadAssessment, saveAssessment } = await import("./assessments"));
-}, 120_000);
-
-afterAll(async () => {
-  await db.destroy();
-  await container.stop();
-}, 30_000);
-
-async function createAssessmentFixture(): Promise<AssessmentFixture> {
+async function createAssessmentFixture(
+  db: Kysely<DB>,
+  projectId: number,
+): Promise<AssessmentFixture> {
   const questionId = buildTestId("q");
   const studentId = buildTestId("student");
   const booleanRubricId = buildTestId("rubric-boolean");
@@ -109,7 +38,7 @@ async function createAssessmentFixture(): Promise<AssessmentFixture> {
   await db
     .insertInto("student")
     .values({
-      projectId: defaultProjectId,
+      projectId,
       id: studentId,
       lastName: "Integration",
       firstName: "Test",
@@ -119,14 +48,14 @@ async function createAssessmentFixture(): Promise<AssessmentFixture> {
   const studentRow = await db
     .selectFrom("student")
     .select(["rowId", "id"])
-    .where("projectId", "=", defaultProjectId)
+    .where("projectId", "=", projectId)
     .where("id", "=", studentId)
     .executeTakeFirstOrThrow();
 
   const submission = await db
     .insertInto("submission")
     .values({
-      projectId: defaultProjectId,
+      projectId,
       type: "individual",
       studentId: studentRow.rowId,
     })
@@ -136,7 +65,7 @@ async function createAssessmentFixture(): Promise<AssessmentFixture> {
   await db
     .insertInto("question")
     .values({
-      projectId: defaultProjectId,
+      projectId,
       id: questionId,
       label: "Integration question",
       position: 0,
@@ -148,7 +77,7 @@ async function createAssessmentFixture(): Promise<AssessmentFixture> {
     .values([
       {
         id: booleanRubricId,
-        projectId: defaultProjectId,
+        projectId,
         questionId,
         type: "boolean",
         position: 0,
@@ -156,7 +85,7 @@ async function createAssessmentFixture(): Promise<AssessmentFixture> {
       },
       {
         id: ordinalRubricId,
-        projectId: defaultProjectId,
+        projectId,
         questionId,
         type: "ordinal",
         position: 1,
@@ -164,7 +93,7 @@ async function createAssessmentFixture(): Promise<AssessmentFixture> {
       },
       {
         id: numericalRubricId,
-        projectId: defaultProjectId,
+        projectId,
         questionId,
         type: "numerical",
         position: 2,
@@ -228,12 +157,13 @@ async function createAssessmentFixture(): Promise<AssessmentFixture> {
     },
   };
 
-  fixtures.push(fixture);
-
   return fixture;
 }
 
-async function cleanupFixture(fixture: AssessmentFixture): Promise<void> {
+async function cleanupFixture(
+  db: Kysely<DB>,
+  fixture: AssessmentFixture,
+): Promise<void> {
   await db
     .deleteFrom("submission")
     .where("id", "=", Number(fixture.submissionId))
@@ -251,113 +181,138 @@ async function cleanupFixture(fixture: AssessmentFixture): Promise<void> {
 }
 
 describe("assessment DB integration", () => {
-  afterEach(async () => {
-    const pendingCleanup = [...fixtures];
-    fixtures.length = 0;
+  test("round-trips boolean, ordinal and numerical assessments", async ({
+    db,
+    createProject,
+  }) => {
+    vi.doMock("./kysely", () => ({ db }));
+    const { loadAssessment, saveAssessment } = await import("./assessments");
+    const projectId = await createProject("Assessment Integration Project");
+    const fixture = await createAssessmentFixture(db, projectId);
 
-    await Promise.all(pendingCleanup.map((fixture) => cleanupFixture(fixture)));
+    try {
+      const results = await Promise.all([
+        saveAssessment({
+          submissionId: fixture.submissionId,
+          questionId: fixture.questionId,
+          rubric: {
+            rubricId: fixture.rubricIds.boolean,
+            type: "boolean",
+            passed: true,
+          },
+        }),
+        saveAssessment({
+          submissionId: fixture.submissionId,
+          questionId: fixture.questionId,
+          rubric: {
+            rubricId: fixture.rubricIds.ordinal,
+            type: "ordinal",
+            selectedLabel: "B",
+          },
+        }),
+        saveAssessment({
+          submissionId: fixture.submissionId,
+          questionId: fixture.questionId,
+          rubric: {
+            rubricId: fixture.rubricIds.numerical,
+            type: "numerical",
+            score: 7.5,
+          },
+        }),
+      ]);
+
+      expect(results).toEqual([
+        { success: true },
+        { success: true },
+        { success: true },
+      ]);
+
+      const loaded = await loadAssessment(
+        fixture.submissionId,
+        fixture.questionId,
+      );
+
+      const byRubricId = new Map(
+        loaded.map((value) => [value.rubricId, value]),
+      );
+
+      expect(byRubricId.get(fixture.rubricIds.boolean)).toEqual({
+        rubricId: fixture.rubricIds.boolean,
+        type: "boolean",
+        passed: true,
+      });
+
+      expect(byRubricId.get(fixture.rubricIds.ordinal)).toEqual({
+        rubricId: fixture.rubricIds.ordinal,
+        type: "ordinal",
+        selectedLabel: "B",
+      });
+
+      expect(byRubricId.get(fixture.rubricIds.numerical)).toEqual({
+        rubricId: fixture.rubricIds.numerical,
+        type: "numerical",
+        score: 7.5,
+      });
+    } finally {
+      await cleanupFixture(db, fixture);
+    }
   });
 
-  it("round-trips boolean, ordinal and numerical assessments", async () => {
-    const fixture = await createAssessmentFixture();
+  test("returns a validation error for invalid ordinal label", async ({
+    db,
+    createProject,
+  }) => {
+    vi.doMock("./kysely", () => ({ db }));
+    const { saveAssessment } = await import("./assessments");
+    const projectId = await createProject("Assessment Integration Project");
+    const fixture = await createAssessmentFixture(db, projectId);
 
-    const results = await Promise.all([
-      saveAssessment({
-        submissionId: fixture.submissionId,
-        questionId: fixture.questionId,
-        rubric: {
-          rubricId: fixture.rubricIds.boolean,
-          type: "boolean",
-          passed: true,
-        },
-      }),
-      saveAssessment({
+    try {
+      const result = await saveAssessment({
         submissionId: fixture.submissionId,
         questionId: fixture.questionId,
         rubric: {
           rubricId: fixture.rubricIds.ordinal,
           type: "ordinal",
-          selectedLabel: "B",
+          selectedLabel: "Z",
         },
-      }),
-      saveAssessment({
+      });
+
+      expect(result).toEqual({
+        success: false,
+        error: "Invalid ordinal value.",
+      });
+    } finally {
+      await cleanupFixture(db, fixture);
+    }
+  });
+
+  test("returns a validation error for out-of-range numerical score", async ({
+    db,
+    createProject,
+  }) => {
+    vi.doMock("./kysely", () => ({ db }));
+    const { saveAssessment } = await import("./assessments");
+    const projectId = await createProject("Assessment Integration Project");
+    const fixture = await createAssessmentFixture(db, projectId);
+
+    try {
+      const result = await saveAssessment({
         submissionId: fixture.submissionId,
         questionId: fixture.questionId,
         rubric: {
           rubricId: fixture.rubricIds.numerical,
           type: "numerical",
-          score: 7.5,
+          score: 11,
         },
-      }),
-    ]);
+      });
 
-    expect(results).toEqual([
-      { success: true },
-      { success: true },
-      { success: true },
-    ]);
-
-    const loaded = await loadAssessment(
-      fixture.submissionId,
-      fixture.questionId,
-    );
-
-    const byRubricId = new Map(loaded.map((value) => [value.rubricId, value]));
-
-    expect(byRubricId.get(fixture.rubricIds.boolean)).toEqual({
-      rubricId: fixture.rubricIds.boolean,
-      type: "boolean",
-      passed: true,
-    });
-
-    expect(byRubricId.get(fixture.rubricIds.ordinal)).toEqual({
-      rubricId: fixture.rubricIds.ordinal,
-      type: "ordinal",
-      selectedLabel: "B",
-    });
-
-    expect(byRubricId.get(fixture.rubricIds.numerical)).toEqual({
-      rubricId: fixture.rubricIds.numerical,
-      type: "numerical",
-      score: 7.5,
-    });
-  });
-
-  it("returns a validation error for invalid ordinal label", async () => {
-    const fixture = await createAssessmentFixture();
-
-    const result = await saveAssessment({
-      submissionId: fixture.submissionId,
-      questionId: fixture.questionId,
-      rubric: {
-        rubricId: fixture.rubricIds.ordinal,
-        type: "ordinal",
-        selectedLabel: "Z",
-      },
-    });
-
-    expect(result).toEqual({
-      success: false,
-      error: "Invalid ordinal value.",
-    });
-  });
-
-  it("returns a validation error for out-of-range numerical score", async () => {
-    const fixture = await createAssessmentFixture();
-
-    const result = await saveAssessment({
-      submissionId: fixture.submissionId,
-      questionId: fixture.questionId,
-      rubric: {
-        rubricId: fixture.rubricIds.numerical,
-        type: "numerical",
-        score: 11,
-      },
-    });
-
-    expect(result).toEqual({
-      success: false,
-      error: "Score must be at most 10.",
-    });
+      expect(result).toEqual({
+        success: false,
+        error: "Score must be at most 10.",
+      });
+    } finally {
+      await cleanupFixture(db, fixture);
+    }
   });
 });

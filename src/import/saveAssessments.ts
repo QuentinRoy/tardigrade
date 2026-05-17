@@ -1,6 +1,6 @@
 import "server-only";
 import { snakeCase } from "change-case";
-import { saveAssessment } from "../db/assessments";
+import { saveAssessmentWithDb } from "../db/assessments";
 import { db } from "../db/kysely";
 import type { AssessmentRubricValue, RubricType } from "../db/types";
 import type { ImportedAssessmentRow } from "./types";
@@ -14,6 +14,12 @@ type ImportedRubricInfo = {
   type: RubricType;
   questionId: string;
   ordinalLabels: string[];
+};
+
+type PreparedAssessment = {
+  submissionId: string;
+  questionId: string;
+  rubric: AssessmentRubricValue;
 };
 
 function assertRecognizedAssessmentColumns(params: {
@@ -204,7 +210,7 @@ export async function saveAssessments(
     submission: string;
     error: string;
   }> = [];
-  let successCount = 0;
+  const preparedAssessments: PreparedAssessment[] = [];
 
   for (let rowIndex = 0; rowIndex < assessmentRows.length; rowIndex++) {
     const row = assessmentRows[rowIndex];
@@ -248,12 +254,11 @@ export async function saveAssessments(
           rubricInfo,
         });
 
-        await saveAssessment({
+        preparedAssessments.push({
           submissionId,
           questionId: rubricInfo.questionId,
           rubric: assessment,
         });
-        successCount++;
       } catch (error) {
         errorDetails.push({
           row: rowIndex + 2,
@@ -271,7 +276,21 @@ export async function saveAssessments(
     throw new Error(`Assessment import errors:\n${errorMessages}`);
   }
 
-  return {
-    assessmentCount: successCount,
-  };
+  return db.transaction().execute(async (tx) => {
+    let successCount = 0;
+
+    for (const assessment of preparedAssessments) {
+      const result = await saveAssessmentWithDb(tx, assessment);
+
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+
+      successCount++;
+    }
+
+    return {
+      assessmentCount: successCount,
+    };
+  });
 }
