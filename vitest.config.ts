@@ -21,6 +21,7 @@ export default defineConfig({
           environment: "node",
           include: [integrationPattern],
           fileParallelism: false,
+          globalSetup: ["src/test/integrationGlobalSetup.ts"],
         },
       },
       {

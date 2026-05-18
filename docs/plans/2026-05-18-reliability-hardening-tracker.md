@@ -282,6 +282,7 @@ Tier 2 issue is Done when:
 - 2026-05-18: Implemented first R-001 hardening pass: `saveAssessments` now preloads submission mappings in batch and retains single-transaction writes; added integration assertions for unknown header rejection and write-phase rollback atomicity.
 - 2026-05-18: Verified R-016 by confirming `main` branch protection enforces strict required checks (`build`, `test-integration`, `test-storybook`, `test-unit`, `check`, `check-types`); updated dashboard counts and marked M0 complete.
 - 2026-05-18: R-005 Verified — added two-project collision integration tests: `src/db/submissions.integration.test.ts` (individual + team submission isolation), `src/db/submissionProgress.integration.test.ts` (`loadSubmissionQuestionProgress` + `loadSubmissionOverviewProgress` isolation), and `src/import/saveAssessments.integration.test.ts` (assessment import doesn't leak into sibling project with same student external id); all 9 new tests pass locally.
+- 2026-05-18: Issue #54 parity update — removed Testcontainers backend switching from integration bootstrap and standardized on `TEST_DATABASE_URL` for all environments. Added an automatic local integration runner that creates an isolated Docker Compose Postgres service, waits for readiness, runs tests, and removes containers/volumes on completion; CI integration job now uses only `TEST_DATABASE_URL`.
 
 ## 11. Issue Entry Template (for future additions)
 
