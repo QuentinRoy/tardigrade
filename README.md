@@ -13,7 +13,7 @@ A Next.js app for rubric-based assessment workflows:
 - Material UI
 - PostgreSQL
 - Kysely (query + migrations)
-- Vitest + Testcontainers
+- Vitest
 - Biome (format/lint)
 
 ## Prerequisites
@@ -89,12 +89,12 @@ pnpm test:integration
 pnpm test:watch
 ```
 
-Integration test database backend:
-- Default: `test:integration` uses Testcontainers (same behavior as before).
-- Optional external backend (used in CI):
+Integration test database behavior:
+- `test:integration` runs `vitest --project=integration` directly.
+- The integration project uses Vitest global setup to auto-manage a local isolated Docker Compose Postgres service only when `TEST_DATABASE_URL` is not already set.
+- CI uses the same integration command while providing `TEST_DATABASE_URL`.
 
 ```bash
-TEST_DB_BACKEND=external \
 TEST_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/postgres \
 pnpm test:integration
 ```

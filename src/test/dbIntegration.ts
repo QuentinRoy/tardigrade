@@ -2,19 +2,12 @@ import { randomUUID } from "node:crypto";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import {
-  PostgreSqlContainer,
-  type StartedPostgreSqlContainer,
-} from "@testcontainers/postgresql";
 import { CamelCasePlugin, Kysely, PostgresDialect } from "kysely";
 import { FileMigrationProvider, Migrator } from "kysely/migration";
 import { Pool } from "pg";
 import type { DB } from "../db/types";
 
-type TestDbBackend = "testcontainers" | "external";
-
 export type StartedTestDatabase = {
-  container: StartedPostgreSqlContainer | null;
   db: Kysely<DB>;
   cleanup?: () => Promise<void>;
 };
@@ -110,21 +103,11 @@ async function dropDatabase(
   );
 }
 
-function resolveBackend(): TestDbBackend {
-  if (process.env.TEST_DB_BACKEND === "external") {
-    return "external";
-  }
-
-  return "testcontainers";
-}
-
 function readExternalAdminUrl(): URL {
   const url = process.env.TEST_DATABASE_URL;
 
   if (url == null || url.length === 0) {
-    throw new Error(
-      "TEST_DATABASE_URL must be set when TEST_DB_BACKEND=external",
-    );
+    throw new Error("TEST_DATABASE_URL must be set for integration tests");
   }
 
   return new URL(url);
@@ -179,28 +162,6 @@ async function ensureExternalTemplate(
   return externalTemplatePromise;
 }
 
-async function startTestcontainersDatabase(
-  migrationFolder: string,
-): Promise<StartedTestDatabase> {
-  const container = await new PostgreSqlContainer("postgres:17-alpine").start();
-
-  const db = new Kysely<DB>({
-    dialect: new PostgresDialect({
-      pool: new Pool({ connectionString: container.getConnectionUri() }),
-    }),
-    plugins: [new CamelCasePlugin()],
-  });
-
-  const migrator = createMigrator(db, migrationFolder);
-  const { error } = await migrator.migrateToLatest();
-
-  if (error != null) {
-    throw error;
-  }
-
-  return { container, db };
-}
-
 async function startExternalDatabase(
   migrationFolder: string,
 ): Promise<StartedTestDatabase> {
@@ -229,7 +190,6 @@ async function startExternalDatabase(
   });
 
   return {
-    container: null,
     db,
     cleanup: async () => {
       await dropDatabase(adminPool, databaseName);
@@ -241,23 +201,14 @@ async function startExternalDatabase(
 export async function startTestDatabase(
   migrationFolder: string,
 ): Promise<StartedTestDatabase> {
-  if (resolveBackend() === "external") {
-    return startExternalDatabase(migrationFolder);
-  }
-
-  return startTestcontainersDatabase(migrationFolder);
+  return startExternalDatabase(migrationFolder);
 }
 
 export async function stopTestDatabase({
   db,
-  container,
   cleanup,
 }: StartedTestDatabase): Promise<void> {
   await db.destroy();
-
-  if (container != null) {
-    await container.stop();
-  }
 
   if (cleanup != null) {
     await cleanup();
