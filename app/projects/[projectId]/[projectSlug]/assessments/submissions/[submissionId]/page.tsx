@@ -9,7 +9,10 @@ import { loadProjectByPublicId } from "@/db/projects";
 import { loadQuestions } from "@/db/questions";
 import { loadSubmissionOverviewProgress } from "@/db/submissionProgress";
 import { loadSubmissions } from "@/db/submissions";
-import { projectAssessmentsPath } from "@/projects/routes";
+import {
+  projectAssessmentSubmissionPath,
+  projectAssessmentsPath,
+} from "@/projects/routes";
 import { attachAssessment } from "@/rubrics/rubric";
 import MuiNextLink from "@/shared/MuiNextLink";
 import { getSubmissionLabel } from "@/submissions/getSubmissionLabel";
@@ -38,7 +41,11 @@ async function ProjectSubmissionPageContent({ params }: SubmissionPageProps) {
 
   if (project.slug !== projectSlug) {
     redirect(
-      `/projects/${project.publicId}/${project.slug}/assessments/submissions/${submissionId}`,
+      projectAssessmentSubmissionPath(
+        project.publicId,
+        project.slug,
+        submissionId,
+      ),
     );
   }
 
@@ -97,6 +104,8 @@ async function ProjectSubmissionPageContent({ params }: SubmissionPageProps) {
       </Box>
 
       <SubmissionOverviewAssessmentClient
+        projectId={project.publicId}
+        projectSlug={project.slug}
         currentSubmissionId={submissionId}
         submissions={submissions}
         progressBySubmissionId={progressBySubmissionId}

@@ -27,7 +27,24 @@ export function projectOverviewPath(
   projectId: string,
   projectSlug: string,
 ): string {
-  return `${projectBasePath(projectId, projectSlug)}/assessments/overview`;
+  return `${projectAssessmentsPath(projectId, projectSlug)}/overview`;
+}
+
+export function projectAssessmentSubmissionPath(
+  projectId: string,
+  projectSlug: string,
+  submissionId: string,
+): string {
+  return `${projectAssessmentsPath(projectId, projectSlug)}/submissions/${submissionId}`;
+}
+
+export function projectAssessmentSubmissionQuestionPath(
+  projectId: string,
+  projectSlug: string,
+  submissionId: string,
+  questionId: string,
+): string {
+  return `${projectAssessmentSubmissionPath(projectId, projectSlug, submissionId)}/questions/${questionId}`;
 }
 
 export function projectQuestionsPath(

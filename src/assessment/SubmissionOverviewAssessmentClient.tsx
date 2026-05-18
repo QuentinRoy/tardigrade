@@ -7,6 +7,7 @@ import NextLink from "next/link";
 import { useRouter } from "next/navigation";
 import type { ReactElement } from "react";
 import { useEffect, useMemo, useState } from "react";
+import { projectAssessmentSubmissionPath } from "@/projects/routes";
 import type { AssessmentRubricValue, Submission } from "../db/types";
 import { type AssessedRubric } from "../rubrics/rubric";
 import { type SaveError, useSaveErrors } from "../shared/SaveErrorsProvider";
@@ -32,6 +33,8 @@ type OptimisticQuestionSection = {
 };
 
 type SubmissionOverviewAssessmentClientProps = {
+  projectId: string;
+  projectSlug: string;
   questions: QuestionAssessmentSection[];
   submissions: Submission[];
   progressBySubmissionId: Record<string, { completed: number; total: number }>;
@@ -39,6 +42,8 @@ type SubmissionOverviewAssessmentClientProps = {
 };
 
 export default function SubmissionOverviewAssessmentClient({
+  projectId,
+  projectSlug,
   questions: initialQuestions,
   submissions,
   progressBySubmissionId,
@@ -98,6 +103,8 @@ export default function SubmissionOverviewAssessmentClient({
         return {
           success: false,
           error: {
+            projectId,
+            projectSlug,
             submissionId: currentSubmissionId,
             submissionLabel: currentSubmissionLabel,
             questionId: "unknown-question",
@@ -120,6 +127,8 @@ export default function SubmissionOverviewAssessmentClient({
       return {
         success: false,
         error: {
+          projectId,
+          projectSlug,
           submissionId: currentSubmissionId,
           submissionLabel: currentSubmissionLabel,
           questionId: info.questionId,
@@ -189,7 +198,9 @@ export default function SubmissionOverviewAssessmentClient({
   }, []);
 
   const navigateToSubmission = (submissionId: string) => {
-    router.push(`/assessments/submissions/${submissionId}`);
+    router.push(
+      projectAssessmentSubmissionPath(projectId, projectSlug, submissionId),
+    );
   };
 
   if (sessionCurrentSubmission == null || currentSubmission == null) {
@@ -203,6 +214,8 @@ export default function SubmissionOverviewAssessmentClient({
   return (
     <>
       <SubmissionNavigation
+        projectId={projectId}
+        projectSlug={projectSlug}
         currentSubmissionId={currentSubmissionId}
         currentSubmissionIndex={currentSubmissionIndex}
         totalSubmissions={submissions.length}
@@ -290,6 +303,8 @@ export default function SubmissionOverviewAssessmentClient({
 }
 
 function SubmissionNavigation({
+  projectId,
+  projectSlug,
   currentSubmissionId,
   currentSubmissionIndex,
   totalSubmissions,
@@ -297,6 +312,8 @@ function SubmissionNavigation({
   nextSubmissionId,
   onOpenLookup,
 }: {
+  projectId: string;
+  projectSlug: string;
   currentSubmissionId: string;
   currentSubmissionIndex: number;
   totalSubmissions: number;
@@ -308,7 +325,11 @@ function SubmissionNavigation({
     <Box sx={{ mb: 4, display: "flex", gap: 1, flexWrap: "wrap" }}>
       <Button
         component={NextLink}
-        href={`/assessments/submissions/${previousSubmissionId ?? currentSubmissionId}`}
+        href={projectAssessmentSubmissionPath(
+          projectId,
+          projectSlug,
+          previousSubmissionId ?? currentSubmissionId,
+        )}
         variant="outlined"
         disabled={previousSubmissionId == null}
       >
@@ -316,7 +337,11 @@ function SubmissionNavigation({
       </Button>
       <Button
         component={NextLink}
-        href={`/assessments/submissions/${nextSubmissionId ?? currentSubmissionId}`}
+        href={projectAssessmentSubmissionPath(
+          projectId,
+          projectSlug,
+          nextSubmissionId ?? currentSubmissionId,
+        )}
         variant="outlined"
         disabled={nextSubmissionId == null}
       >

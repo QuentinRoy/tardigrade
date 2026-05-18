@@ -6,6 +6,7 @@ import Typography from "@mui/material/Typography";
 import NextLink from "next/link";
 import { useRouter } from "next/navigation";
 import { type ReactElement, useEffect, useState } from "react";
+import { projectAssessmentSubmissionQuestionPath } from "@/projects/routes";
 import type { AssessedRubric } from "@/rubrics/rubric";
 import type { AssessmentRubricValue, Submission } from "../db/types";
 import { type SaveError, useSaveErrors } from "../shared/SaveErrorsProvider";
@@ -18,6 +19,8 @@ import { saveAssessment } from "./saveAssessment";
 import { useAssessmentSession } from "./useAssessmentSession";
 
 type SubmissionAssessmentClientProps = {
+  projectId: string;
+  projectSlug: string;
   questionId: string;
   questionLabel?: string;
   rubrics: AssessedRubric[];
@@ -27,6 +30,8 @@ type SubmissionAssessmentClientProps = {
 };
 
 export default function SubmissionAssessmentClient({
+  projectId,
+  projectSlug,
   questionId,
   questionLabel,
   rubrics: initialRubrics,
@@ -73,6 +78,8 @@ export default function SubmissionAssessmentClient({
       return {
         success: false,
         error: {
+          projectId,
+          projectSlug,
           submissionId: currentSubmissionId,
           submissionLabel: currentSubmissionLabel,
           questionId,
@@ -119,7 +126,12 @@ export default function SubmissionAssessmentClient({
 
   const navigateToSubmission = (submissionId: string) => {
     router.push(
-      `/assessments/submissions/${submissionId}/questions/${questionId}`,
+      projectAssessmentSubmissionQuestionPath(
+        projectId,
+        projectSlug,
+        submissionId,
+        questionId,
+      ),
     );
   };
 
@@ -156,7 +168,12 @@ export default function SubmissionAssessmentClient({
       <Box sx={{ mb: 4, display: "flex", gap: 1, flexWrap: "wrap" }}>
         <Button
           component={NextLink}
-          href={`/assessments/submissions/${previousSubmission?.id ?? currentSubmissionId}/questions/${questionId}`}
+          href={projectAssessmentSubmissionQuestionPath(
+            projectId,
+            projectSlug,
+            previousSubmission?.id ?? currentSubmissionId,
+            questionId,
+          )}
           prefetch={previousSubmission != null}
           variant="outlined"
           color={isCompleted ? "primary" : "secondary"}
@@ -166,7 +183,12 @@ export default function SubmissionAssessmentClient({
         </Button>
         <Button
           component={NextLink}
-          href={`/assessments/submissions/${nextSubmission?.id ?? currentSubmissionId}/questions/${questionId}`}
+          href={projectAssessmentSubmissionQuestionPath(
+            projectId,
+            projectSlug,
+            nextSubmission?.id ?? currentSubmissionId,
+            questionId,
+          )}
           prefetch={nextSubmission != null}
           variant="outlined"
           color={isCompleted ? "primary" : "secondary"}

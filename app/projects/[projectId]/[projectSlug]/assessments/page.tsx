@@ -14,7 +14,11 @@ import { loadProjectByPublicId } from "@/db/projects";
 import { loadQuestions } from "@/db/questions";
 import { loadSubmissionOverviewProgress } from "@/db/submissionProgress";
 import { loadSubmissions } from "@/db/submissions";
-import { projectOverviewPath } from "@/projects/routes";
+import {
+  projectAssessmentSubmissionPath,
+  projectAssessmentSubmissionQuestionPath,
+  projectOverviewPath,
+} from "@/projects/routes";
 import QuestionList from "@/questions/QuestionList";
 import { getSubmissionLabel } from "@/submissions/getSubmissionLabel";
 
@@ -68,7 +72,12 @@ async function ProjectAssessmentPageContent({
     ? Object.entries(grid).map(([id, { label }]) => ({
         id,
         label: label == null ? id : label,
-        href: `/projects/${project.publicId}/${project.slug}/assessments/submissions/${firstSubmissionId}/questions/${id}`,
+        href: projectAssessmentSubmissionQuestionPath(
+          project.publicId,
+          project.slug,
+          firstSubmissionId,
+          id,
+        ),
       }))
     : [];
 
@@ -97,7 +106,11 @@ async function ProjectAssessmentPageContent({
           return (
             <ListItemButton
               key={submission.id}
-              href={`/projects/${project.publicId}/${project.slug}/assessments/submissions/${submission.id}`}
+              href={projectAssessmentSubmissionPath(
+                project.publicId,
+                project.slug,
+                submission.id,
+              )}
               sx={{ mb: 1, display: "flex", alignItems: "center" }}
             >
               <ListItemText primary={getSubmissionLabel(submission)} />

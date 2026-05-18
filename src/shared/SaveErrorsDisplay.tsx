@@ -4,7 +4,7 @@ import MuiAlert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Link from "@mui/material/Link";
 import NextLink from "next/link";
-import React from "react";
+import { projectAssessmentSubmissionQuestionPath } from "@/projects/routes";
 import { useSaveErrors } from "./SaveErrorsProvider";
 
 export function SaveErrorsDisplay() {
@@ -36,7 +36,12 @@ export function SaveErrorsDisplay() {
           Failed to save assessment for{" "}
           <Link
             component={NextLink}
-            href={`/assessments/submissions/${error.submissionId}/questions/${error.questionId}`}
+            href={projectAssessmentSubmissionQuestionPath(
+              error.projectId,
+              error.projectSlug,
+              error.submissionId,
+              error.questionId,
+            )}
             color="inherit"
             sx={{ fontWeight: "bold" }}
           >
