@@ -35,6 +35,9 @@ type MigrationDB = {
     id: Generated<number>;
     rubric_id: string | number;
   };
+  project: {
+    id: Generated<number>;
+  };
 };
 
 export async function up(db: Kysely<MigrationDB>): Promise<void> {
@@ -377,6 +380,17 @@ export async function up(db: Kysely<MigrationDB>): Promise<void> {
 }
 
 export async function down(db: Kysely<MigrationDB>): Promise<void> {
+  const projects = await db
+    .selectFrom("project")
+    .select("id")
+    .limit(2)
+    .execute();
+  if (projects.length > 1) {
+    throw new Error(
+      "Cannot run down migration safely: previous schemas support at most one project, but multiple projects exist. Keep only one project, or delete all projects, before rolling back.",
+    );
+  }
+
   // Raw SQL mirrors the forward rekey operations in reverse for rollback.
   await sql`
     DROP TRIGGER IF EXISTS trg_numerical_rubric_type_match ON "numerical_rubric";
