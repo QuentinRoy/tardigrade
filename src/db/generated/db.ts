@@ -22,7 +22,7 @@ export interface Assessment {
   createdAt: Generated<Timestamp>;
   id: Generated<number>;
   projectId: Generated<number>;
-  questionId: string;
+  questionId: number;
   submissionId: number;
   updatedAt: Generated<Timestamp>;
 }
@@ -31,7 +31,7 @@ export interface BooleanRubric {
   falseMarks: Generated<Numeric>;
   id: Generated<number>;
   marks: Numeric;
-  rubricId: string;
+  rubricId: number;
 }
 
 export interface BooleanRubricAssessment {
@@ -47,7 +47,7 @@ export interface NumericalRubric {
   minMarks: Numeric;
   minScore: Numeric;
   reversed: Generated<boolean>;
-  rubricId: string;
+  rubricId: number;
 }
 
 export interface NumericalRubricAssessment {
@@ -58,7 +58,7 @@ export interface NumericalRubricAssessment {
 
 export interface OrdinalRubric {
   id: Generated<number>;
-  rubricId: string;
+  rubricId: number;
 }
 
 export interface OrdinalRubricAssessment {
@@ -80,6 +80,7 @@ export interface Question {
   label: string | null;
   position: Generated<number>;
   projectId: Generated<number>;
+  rowId: Generated<number>;
   updatedAt: Generated<Timestamp>;
 }
 
@@ -98,7 +99,8 @@ export interface Rubric {
   label: string | null;
   position: number;
   projectId: Generated<number>;
-  questionId: string;
+  questionId: number;
+  rowId: Generated<number>;
   type: RubricType;
   updatedAt: Generated<Timestamp>;
 }
@@ -107,7 +109,7 @@ export interface RubricAssessment {
   assessmentId: number;
   createdAt: Generated<Timestamp>;
   id: Generated<number>;
-  rubricId: string;
+  rubricId: number;
   type: RubricType;
   updatedAt: Generated<Timestamp>;
 }

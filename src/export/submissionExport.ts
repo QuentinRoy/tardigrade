@@ -90,34 +90,39 @@ async function loadQuestionPlan(
         .execute(),
       db
         .selectFrom("rubric")
+        .innerJoin("question", "question.rowId", "rubric.questionId")
         .where("rubric.projectId", "=", projectId)
         .select([
-          "id",
-          "questionId",
-          "label",
-          "description",
-          "position",
-          "type",
+          "rubric.id as id",
+          "question.id as questionId",
+          "rubric.label as label",
+          "rubric.description as description",
+          "rubric.position as position",
+          "rubric.type as type",
         ])
-        .orderBy("position", "asc")
+        .orderBy("rubric.position", "asc")
         .execute(),
       db
         .selectFrom("booleanRubric")
-        .innerJoin("rubric", "rubric.id", "booleanRubric.rubricId")
+        .innerJoin("rubric", "rubric.rowId", "booleanRubric.rubricId")
         .where("rubric.projectId", "=", projectId)
-        .select(["rubricId", "marks", "falseMarks"])
+        .select([
+          "rubric.id as rubricId",
+          "booleanRubric.marks as marks",
+          "booleanRubric.falseMarks as falseMarks",
+        ])
         .execute(),
       db
         .selectFrom("numericalRubric")
-        .innerJoin("rubric", "rubric.id", "numericalRubric.rubricId")
+        .innerJoin("rubric", "rubric.rowId", "numericalRubric.rubricId")
         .where("rubric.projectId", "=", projectId)
         .select([
-          "rubricId",
-          "minScore",
-          "maxScore",
-          "minMarks",
-          "maxMarks",
-          "reversed",
+          "rubric.id as rubricId",
+          "numericalRubric.minScore as minScore",
+          "numericalRubric.maxScore as maxScore",
+          "numericalRubric.minMarks as minMarks",
+          "numericalRubric.maxMarks as maxMarks",
+          "numericalRubric.reversed as reversed",
         ])
         .execute(),
       db
@@ -127,10 +132,10 @@ async function loadQuestionPlan(
           "ordinalRubricValue.ordinalRubricId",
           "ordinalRubric.id",
         )
-        .innerJoin("rubric", "rubric.id", "ordinalRubric.rubricId")
+        .innerJoin("rubric", "rubric.rowId", "ordinalRubric.rubricId")
         .where("rubric.projectId", "=", projectId)
         .select([
-          "ordinalRubric.rubricId as rubricId",
+          "rubric.id as rubricId",
           "ordinalRubricValue.label as label",
           "ordinalRubricValue.marks as marks",
         ])
@@ -233,11 +238,13 @@ export async function createSubmissionExport(
       .leftJoin("team", "team.id", "submission.teamId")
       .leftJoin("student", "student.rowId", "submission.studentId")
       .leftJoin("assessment", "assessment.submissionId", "submission.id")
+      .leftJoin("question", "question.rowId", "assessment.questionId")
       .leftJoin(
         "rubricAssessment",
         "rubricAssessment.assessmentId",
         "assessment.id",
       )
+      .leftJoin("rubric", "rubric.rowId", "rubricAssessment.rubricId")
       .leftJoin(
         "booleanRubricAssessment",
         "booleanRubricAssessment.rubricAssessmentId",
@@ -258,8 +265,8 @@ export async function createSubmissionExport(
         "submission.type as submissionType",
         "team.name as teamName",
         "student.id as studentId",
-        "assessment.questionId as questionId",
-        "rubricAssessment.rubricId as rubricId",
+        "question.id as questionId",
+        "rubric.id as rubricId",
         "booleanRubricAssessment.passed as booleanPassed",
         "ordinalRubricAssessment.selectedLabel as ordinalSelectedLabel",
         "numericalRubricAssessment.score as numericalScore",

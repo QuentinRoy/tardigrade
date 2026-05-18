@@ -72,13 +72,20 @@ async function createAssessmentFixture(
     })
     .execute();
 
-  await db
+  const question = await db
+    .selectFrom("question")
+    .select(["id", "rowId"])
+    .where("projectId", "=", projectId)
+    .where("id", "=", questionId)
+    .executeTakeFirstOrThrow();
+
+  const insertedRubrics = await db
     .insertInto("rubric")
     .values([
       {
         id: booleanRubricId,
         projectId,
-        questionId,
+        questionId: question.rowId,
         type: "boolean",
         position: 0,
         label: "Boolean rubric",
@@ -86,7 +93,7 @@ async function createAssessmentFixture(
       {
         id: ordinalRubricId,
         projectId,
-        questionId,
+        questionId: question.rowId,
         type: "ordinal",
         position: 1,
         label: "Ordinal rubric",
@@ -94,18 +101,35 @@ async function createAssessmentFixture(
       {
         id: numericalRubricId,
         projectId,
-        questionId,
+        questionId: question.rowId,
         type: "numerical",
         position: 2,
         label: "Numerical rubric",
       },
     ])
+    .returning(["id", "rowId"])
     .execute();
+
+  const rubricRowIdById = new Map(
+    insertedRubrics.map((rubric) => [rubric.id, rubric.rowId]),
+  );
+
+  const booleanRubricRowId = rubricRowIdById.get(booleanRubricId);
+  const ordinalRubricRowId = rubricRowIdById.get(ordinalRubricId);
+  const numericalRubricRowId = rubricRowIdById.get(numericalRubricId);
+
+  if (
+    booleanRubricRowId == null ||
+    ordinalRubricRowId == null ||
+    numericalRubricRowId == null
+  ) {
+    throw new Error("Expected inserted rubrics to be returned with row ids.");
+  }
 
   await db
     .insertInto("booleanRubric")
     .values({
-      rubricId: booleanRubricId,
+      rubricId: booleanRubricRowId,
       marks: 2,
     })
     .execute();
@@ -113,7 +137,7 @@ async function createAssessmentFixture(
   const ordinalRubric = await db
     .insertInto("ordinalRubric")
     .values({
-      rubricId: ordinalRubricId,
+      rubricId: ordinalRubricRowId,
     })
     .returning("id")
     .executeTakeFirstOrThrow();
@@ -137,7 +161,7 @@ async function createAssessmentFixture(
   await db
     .insertInto("numericalRubric")
     .values({
-      rubricId: numericalRubricId,
+      rubricId: numericalRubricRowId,
       minScore: 0,
       maxScore: 10,
       minMarks: 0,

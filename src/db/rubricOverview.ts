@@ -30,7 +30,8 @@ export async function loadRubricOverviewData(projectId?: number) {
 
   let assessmentQuery = db
     .selectFrom("rubricAssessment")
-    .innerJoin("assessment", "assessment.id", "rubricAssessment.assessmentId");
+    .innerJoin("assessment", "assessment.id", "rubricAssessment.assessmentId")
+    .innerJoin("rubric", "rubric.rowId", "rubricAssessment.rubricId");
 
   assessmentQuery = withProjectScope(assessmentQuery, projectId, (query, id) =>
     query.where("assessment.projectId", "=", id),
@@ -57,7 +58,7 @@ export async function loadRubricOverviewData(projectId?: number) {
       )
       .select([
         "assessment.submissionId as submissionId",
-        "rubricAssessment.rubricId as rubricId",
+        "rubric.id as rubricId",
         "rubricAssessment.type as type",
         "booleanRubricAssessment.passed as passed",
         "ordinalRubricAssessment.selectedLabel as selectedLabel",

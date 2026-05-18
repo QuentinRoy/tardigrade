@@ -48,16 +48,18 @@ export async function loadSubmissionQuestionProgress(
   const [submissions, rubricCountRow, assessmentCounts] = await Promise.all([
     submissionsQuery.select("id").execute(),
     rubricCountQuery
-      .where("questionId", "=", questionId)
+      .innerJoin("question", "question.rowId", "rubric.questionId")
+      .where("question.id", "=", questionId)
       .select((eb) => eb.fn.countAll<number>().as("count"))
       .executeTakeFirstOrThrow(),
     assessmentCountsQuery
+      .innerJoin("question", "question.rowId", "assessment.questionId")
       .leftJoin(
         "rubricAssessment",
         "rubricAssessment.assessmentId",
         "assessment.id",
       )
-      .where("assessment.questionId", "=", questionId)
+      .where("question.id", "=", questionId)
       .select((eb) => [
         "assessment.submissionId as submissionId",
         eb.fn.count<number>("rubricAssessment.id").as("completed"),
@@ -125,7 +127,7 @@ export async function loadSubmissionOverviewProgress(
   const [submissions, questions, assessments] = await Promise.all([
     submissionsQuery.select("id").execute(),
     questionsQuery
-      .leftJoin("rubric", "rubric.questionId", "question.id")
+      .leftJoin("rubric", "rubric.questionId", "question.rowId")
       .select((eb) => [
         "question.id as id",
         eb.fn.count<number>("rubric.id").as("rubricCount"),
@@ -133,6 +135,7 @@ export async function loadSubmissionOverviewProgress(
       .groupBy("question.id")
       .execute(),
     assessmentsQuery
+      .innerJoin("question", "question.rowId", "assessment.questionId")
       .leftJoin(
         "rubricAssessment",
         "rubricAssessment.assessmentId",
@@ -140,10 +143,10 @@ export async function loadSubmissionOverviewProgress(
       )
       .select((eb) => [
         "assessment.submissionId as submissionId",
-        "assessment.questionId as questionId",
+        "question.id as questionId",
         eb.fn.count<number>("rubricAssessment.id").as("assessmentCount"),
       ])
-      .groupBy(["assessment.submissionId", "assessment.questionId"])
+      .groupBy(["assessment.submissionId", "question.id"])
       .execute(),
   ]);
 

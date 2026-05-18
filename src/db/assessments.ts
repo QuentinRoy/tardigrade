@@ -27,9 +27,10 @@ export async function loadAssessment(
 
   const assessment = await db
     .selectFrom("assessment")
+    .innerJoin("question", "question.rowId", "assessment.questionId")
     .where("submissionId", "=", Number(submissionId))
-    .where("questionId", "=", questionId)
-    .select("id")
+    .where("question.id", "=", questionId)
+    .select("assessment.id as id")
     .executeTakeFirst();
 
   if (!assessment) {
@@ -38,6 +39,7 @@ export async function loadAssessment(
 
   const rubricAssessments = await db
     .selectFrom("rubricAssessment")
+    .innerJoin("rubric", "rubric.rowId", "rubricAssessment.rubricId")
     .leftJoin(
       "booleanRubricAssessment",
       "booleanRubricAssessment.rubricAssessmentId",
@@ -55,7 +57,7 @@ export async function loadAssessment(
     )
     .where("rubricAssessment.assessmentId", "=", assessment.id)
     .select([
-      "rubricAssessment.rubricId as rubricId",
+      "rubric.id as rubricId",
       "rubricAssessment.type as type",
       "booleanRubricAssessment.passed as passed",
       "ordinalRubricAssessment.selectedLabel as selectedLabel",
@@ -121,7 +123,7 @@ async function saveAssessmentWithDb(
 ): Promise<SaveAssessmentResult> {
   const rubricId = rubricValue.rubricId;
 
-  const [submission, question, rubric] = await Promise.all([
+  const [submission, question] = await Promise.all([
     queryDb
       .selectFrom("submission")
       .where("id", "=", Number(submissionId))
@@ -130,26 +132,7 @@ async function saveAssessmentWithDb(
     queryDb
       .selectFrom("question")
       .where("id", "=", questionId)
-      .select(["id", "projectId"])
-      .executeTakeFirst(),
-    queryDb
-      .selectFrom("rubric")
-      .leftJoin("ordinalRubric", "ordinalRubric.rubricId", "rubric.id")
-      .leftJoin(
-        "ordinalRubricValue",
-        "ordinalRubricValue.ordinalRubricId",
-        "ordinalRubric.id",
-      )
-      .leftJoin("numericalRubric", "numericalRubric.rubricId", "rubric.id")
-      .where("rubric.id", "=", rubricId)
-      .select([
-        "rubric.id",
-        "rubric.type",
-        "rubric.questionId",
-        "ordinalRubricValue.label",
-        "numericalRubric.minScore",
-        "numericalRubric.maxScore",
-      ])
+      .select(["id", "rowId", "projectId"])
       .executeTakeFirst(),
   ]);
 
@@ -161,9 +144,33 @@ async function saveAssessmentWithDb(
     return { success: false, error: "Submission or question not found." };
   }
 
-  if (rubric == null || rubric.questionId !== question.id) {
+  const rubric = await queryDb
+    .selectFrom("rubric")
+    .leftJoin("ordinalRubric", "ordinalRubric.rubricId", "rubric.rowId")
+    .leftJoin(
+      "ordinalRubricValue",
+      "ordinalRubricValue.ordinalRubricId",
+      "ordinalRubric.id",
+    )
+    .leftJoin("numericalRubric", "numericalRubric.rubricId", "rubric.rowId")
+    .where("rubric.id", "=", rubricId)
+    .where("rubric.projectId", "=", question.projectId)
+    .select([
+      "rubric.id",
+      "rubric.rowId",
+      "rubric.type",
+      "rubric.questionId",
+      "ordinalRubricValue.label",
+      "numericalRubric.minScore",
+      "numericalRubric.maxScore",
+    ])
+    .executeTakeFirst();
+
+  if (rubric == null || rubric.questionId !== question.rowId) {
     return { success: false, error: "Rubric not found." };
   }
+
+  const rubricRowId = rubric.rowId;
 
   if (rubric.type !== rubricValue.type) {
     return { success: false, error: "Rubric type mismatch." };
@@ -174,7 +181,7 @@ async function saveAssessmentWithDb(
     .values({
       projectId: question.projectId,
       submissionId: submission.id,
-      questionId: question.id,
+      questionId: question.rowId,
     })
     .onConflict((conflict) =>
       conflict.columns(["submissionId", "questionId"]).doNothing(),
@@ -184,7 +191,7 @@ async function saveAssessmentWithDb(
   const existingAssessment = await queryDb
     .selectFrom("assessment")
     .where("submissionId", "=", submission.id)
-    .where("questionId", "=", question.id)
+    .where("questionId", "=", question.rowId)
     .select("id")
     .executeTakeFirstOrThrow();
 
@@ -194,7 +201,7 @@ async function saveAssessmentWithDb(
     .insertInto("rubricAssessment")
     .values({
       assessmentId,
-      rubricId,
+      rubricId: rubricRowId,
       type: rubricValue.type,
     })
     .onConflict((conflict) =>
@@ -207,7 +214,7 @@ async function saveAssessmentWithDb(
   const existingRubricAssessment = await queryDb
     .selectFrom("rubricAssessment")
     .where("assessmentId", "=", assessmentId)
-    .where("rubricId", "=", rubricId)
+    .where("rubricId", "=", rubricRowId)
     .select("id")
     .executeTakeFirstOrThrow();
 
@@ -250,7 +257,7 @@ async function saveAssessmentWithDb(
         "ordinalRubric.id",
         "ordinalRubricValue.ordinalRubricId",
       )
-      .where("ordinalRubric.rubricId", "=", rubricId)
+      .where("ordinalRubric.rubricId", "=", rubricRowId)
       .select("ordinalRubricValue.label")
       .execute();
 
@@ -293,7 +300,7 @@ async function saveAssessmentWithDb(
 
     const numericalRubricData = await queryDb
       .selectFrom("numericalRubric")
-      .where("rubricId", "=", rubricId)
+      .where("rubricId", "=", rubricRowId)
       .select(["minScore", "maxScore"])
       .executeTakeFirst();
 

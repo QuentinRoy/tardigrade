@@ -50,7 +50,7 @@ async function loadGlobalAssessmentProgressFromDb(
     await Promise.all([
       submissionsQuery.select("id").execute(),
       questionsQuery
-        .leftJoin("rubric", "rubric.questionId", "question.id")
+        .leftJoin("rubric", "rubric.questionId", "question.rowId")
         .select((expressionBuilder) => [
           "question.id as id",
           expressionBuilder.fn.count<number>("rubric.id").as("rubricCount"),
@@ -58,6 +58,7 @@ async function loadGlobalAssessmentProgressFromDb(
         .groupBy("question.id")
         .execute(),
       assessmentsQuery
+        .innerJoin("question", "question.rowId", "assessment.questionId")
         .leftJoin(
           "rubricAssessment",
           "rubricAssessment.assessmentId",
@@ -65,12 +66,12 @@ async function loadGlobalAssessmentProgressFromDb(
         )
         .select((expressionBuilder) => [
           "assessment.submissionId as submissionId",
-          "assessment.questionId as questionId",
+          "question.id as questionId",
           expressionBuilder.fn
             .count<number>("rubricAssessment.id")
             .as("assessmentCount"),
         ])
-        .groupBy(["assessment.submissionId", "assessment.questionId"])
+        .groupBy(["assessment.submissionId", "question.id"])
         .execute(),
       rubricAssessmentsQuery
         .select((expressionBuilder) =>

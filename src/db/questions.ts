@@ -200,34 +200,39 @@ async function loadQuestionsFromDb(projectId?: number): Promise<QuestionRow[]> {
           .execute(),
         db
           .selectFrom("rubric")
+          .innerJoin("question", "question.rowId", "rubric.questionId")
           .where("rubric.projectId", "=", projectId)
           .select([
-            "id",
-            "questionId",
-            "position",
-            "description",
-            "label",
-            "type",
+            "rubric.id as id",
+            "question.id as questionId",
+            "rubric.position as position",
+            "rubric.description as description",
+            "rubric.label as label",
+            "rubric.type as type",
           ])
-          .orderBy("position", "asc")
+          .orderBy("rubric.position", "asc")
           .execute(),
         db
           .selectFrom("booleanRubric")
-          .innerJoin("rubric", "rubric.id", "booleanRubric.rubricId")
+          .innerJoin("rubric", "rubric.rowId", "booleanRubric.rubricId")
           .where("rubric.projectId", "=", projectId)
-          .select(["rubricId", "marks", "falseMarks"])
+          .select([
+            "rubric.id as rubricId",
+            "booleanRubric.marks as marks",
+            "booleanRubric.falseMarks as falseMarks",
+          ])
           .execute(),
         db
           .selectFrom("numericalRubric")
-          .innerJoin("rubric", "rubric.id", "numericalRubric.rubricId")
+          .innerJoin("rubric", "rubric.rowId", "numericalRubric.rubricId")
           .where("rubric.projectId", "=", projectId)
           .select([
-            "rubricId",
-            "minScore",
-            "maxScore",
-            "minMarks",
-            "maxMarks",
-            "reversed",
+            "rubric.id as rubricId",
+            "numericalRubric.minScore as minScore",
+            "numericalRubric.maxScore as maxScore",
+            "numericalRubric.minMarks as minMarks",
+            "numericalRubric.maxMarks as maxMarks",
+            "numericalRubric.reversed as reversed",
           ])
           .execute(),
         db
@@ -237,10 +242,10 @@ async function loadQuestionsFromDb(projectId?: number): Promise<QuestionRow[]> {
             "ordinalRubricValue.ordinalRubricId",
             "ordinalRubric.id",
           )
-          .innerJoin("rubric", "rubric.id", "ordinalRubric.rubricId")
+          .innerJoin("rubric", "rubric.rowId", "ordinalRubric.rubricId")
           .where("rubric.projectId", "=", projectId)
           .select([
-            "ordinalRubric.rubricId as rubricId",
+            "rubric.id as rubricId",
             "ordinalRubricValue.label as label",
             "ordinalRubricValue.marks as marks",
           ])
@@ -267,29 +272,36 @@ async function loadQuestionsFromDb(projectId?: number): Promise<QuestionRow[]> {
         .execute(),
       db
         .selectFrom("rubric")
+        .innerJoin("question", "question.rowId", "rubric.questionId")
         .select([
-          "id",
-          "questionId",
-          "position",
-          "description",
-          "label",
-          "type",
+          "rubric.id as id",
+          "question.id as questionId",
+          "rubric.position as position",
+          "rubric.description as description",
+          "rubric.label as label",
+          "rubric.type as type",
         ])
-        .orderBy("position", "asc")
+        .orderBy("rubric.position", "asc")
         .execute(),
       db
         .selectFrom("booleanRubric")
-        .select(["rubricId", "marks", "falseMarks"])
+        .innerJoin("rubric", "rubric.rowId", "booleanRubric.rubricId")
+        .select([
+          "rubric.id as rubricId",
+          "booleanRubric.marks as marks",
+          "booleanRubric.falseMarks as falseMarks",
+        ])
         .execute(),
       db
         .selectFrom("numericalRubric")
+        .innerJoin("rubric", "rubric.rowId", "numericalRubric.rubricId")
         .select([
-          "rubricId",
-          "minScore",
-          "maxScore",
-          "minMarks",
-          "maxMarks",
-          "reversed",
+          "rubric.id as rubricId",
+          "numericalRubric.minScore as minScore",
+          "numericalRubric.maxScore as maxScore",
+          "numericalRubric.minMarks as minMarks",
+          "numericalRubric.maxMarks as maxMarks",
+          "numericalRubric.reversed as reversed",
         ])
         .execute(),
       db
@@ -299,8 +311,9 @@ async function loadQuestionsFromDb(projectId?: number): Promise<QuestionRow[]> {
           "ordinalRubricValue.ordinalRubricId",
           "ordinalRubric.id",
         )
+        .innerJoin("rubric", "rubric.rowId", "ordinalRubric.rubricId")
         .select([
-          "ordinalRubric.rubricId as rubricId",
+          "rubric.id as rubricId",
           "ordinalRubricValue.label as label",
           "ordinalRubricValue.marks as marks",
         ])
@@ -405,7 +418,6 @@ export type ManagedQuestionDetails = ManagedQuestionSummary & {
 type NormalizedRubricRow = {
   sourceId: string;
   id: string;
-  questionId: string;
   position: number;
   description: string | null;
   label: string | null;
@@ -421,13 +433,11 @@ function normalizeOptionalText(value: string | undefined): string | null {
 }
 
 function toManagedRubricRows(
-  questionId: string,
   rubrics: ManagedRubricInput[],
 ): NormalizedRubricRow[] {
   return rubrics.map((rubric, position) => ({
     sourceId: rubric.previousId?.trim() || rubric.id,
     id: rubric.id,
-    questionId,
     position,
     description: normalizeOptionalText(rubric.description),
     label: normalizeOptionalText(rubric.label),
@@ -475,11 +485,12 @@ export async function loadManagedQuestions(
 ): Promise<ManagedQuestionDetails[]> {
   const countsQuery = db
     .selectFrom("assessment")
+    .innerJoin("question", "question.rowId", "assessment.questionId")
     .select(({ fn }) => [
-      "questionId",
+      "question.id as questionId",
       fn.count<number>("assessment.id").as("assessmentCount"),
     ])
-    .groupBy("questionId");
+    .groupBy("question.id");
 
   const [rows, counts] = await Promise.all([
     loadQuestionsFromDb(projectId),
@@ -513,8 +524,9 @@ export async function getQuestionDeleteImpact(
 }> {
   let query = db
     .selectFrom("assessment")
+    .innerJoin("question", "question.rowId", "assessment.questionId")
     .select(({ fn }) => [fn.count<number>("id").as("assessmentCount")])
-    .where("questionId", "=", questionId);
+    .where("question.id", "=", questionId);
 
   if (projectId != null) {
     query = query.where("assessment.projectId", "=", projectId);
@@ -543,28 +555,21 @@ export async function saveManagedQuestion(
     input.rubrics.map((rubric) => rubric.id),
   );
 
-  const normalizedRubrics = toManagedRubricRows(requestedId, input.rubrics);
+  const normalizedRubrics = toManagedRubricRows(input.rubrics);
   assertUniqueIds(
     "Rubric source ids",
     normalizedRubrics.map((rubric) => rubric.sourceId),
   );
 
   await db.transaction().execute(async (tx) => {
-    const existingQuestion = await tx
+    const scopedExistingQuestion = await tx
       .selectFrom("question")
-      .select(["id", "position"])
+      .select(["id", "position", "rowId"])
       .where("id", "=", originalId)
+      .$if(projectId != null, (query) =>
+        query.where("question.projectId", "=", projectId as number),
+      )
       .executeTakeFirst();
-
-    const scopedExistingQuestion =
-      projectId == null || existingQuestion == null
-        ? existingQuestion
-        : await tx
-            .selectFrom("question")
-            .select(["id", "position"])
-            .where("id", "=", originalId)
-            .where("question.projectId", "=", projectId)
-            .executeTakeFirst();
 
     const conflictingQuestion =
       originalId !== requestedId
@@ -572,6 +577,9 @@ export async function saveManagedQuestion(
             .selectFrom("question")
             .select("id")
             .where("id", "=", requestedId)
+            .$if(projectId != null, (query) =>
+              query.where("question.projectId", "=", projectId as number),
+            )
             .executeTakeFirst()
         : null;
 
@@ -616,10 +624,19 @@ export async function saveManagedQuestion(
         .execute();
     }
 
+    const persistedQuestion = await tx
+      .selectFrom("question")
+      .select(["id", "rowId"])
+      .where("id", "=", requestedId)
+      .$if(projectId != null, (query) =>
+        query.where("question.projectId", "=", projectId as number),
+      )
+      .executeTakeFirstOrThrow();
+
     let existingRubricsQuery = tx
       .selectFrom("rubric")
-      .select(["id", "type"])
-      .where("questionId", "=", requestedId);
+      .select(["id", "type", "rowId"])
+      .where("questionId", "=", persistedQuestion.rowId);
 
     if (projectId != null) {
       existingRubricsQuery = existingRubricsQuery.where(
@@ -638,10 +655,16 @@ export async function saveManagedQuestion(
 
     const staleRubricIds = existingRubrics
       .filter((rubric) => !referencedSourceIds.has(rubric.id))
-      .map((rubric) => rubric.id);
+      .map((rubric) => rubric.rowId);
 
     if (staleRubricIds.length > 0) {
-      await tx.deleteFrom("rubric").where("id", "in", staleRubricIds).execute();
+      await tx
+        .deleteFrom("rubric")
+        .where("rowId", "in", staleRubricIds)
+        .$if(projectId != null, (query) =>
+          query.where("rubric.projectId", "=", projectId as number),
+        )
+        .execute();
     }
 
     for (const rubric of normalizedRubrics) {
@@ -652,7 +675,7 @@ export async function saveManagedQuestion(
           .insertInto("rubric")
           .values({
             id: rubric.id,
-            questionId: requestedId,
+            questionId: persistedQuestion.rowId,
             position: rubric.position,
             description: rubric.description,
             label: rubric.label,
@@ -665,12 +688,18 @@ export async function saveManagedQuestion(
 
       const isTypeChanged = existing.type !== rubric.type;
       if (isTypeChanged) {
-        await tx.deleteFrom("rubric").where("id", "=", existing.id).execute();
+        await tx
+          .deleteFrom("rubric")
+          .where("rowId", "=", existing.rowId)
+          .$if(projectId != null, (query) =>
+            query.where("rubric.projectId", "=", projectId as number),
+          )
+          .execute();
         await tx
           .insertInto("rubric")
           .values({
             id: rubric.id,
-            questionId: requestedId,
+            questionId: persistedQuestion.rowId,
             position: rubric.position,
             description: rubric.description,
             label: rubric.label,
@@ -685,45 +714,87 @@ export async function saveManagedQuestion(
         .updateTable("rubric")
         .set({
           id: rubric.id,
-          questionId: requestedId,
+          questionId: persistedQuestion.rowId,
           position: rubric.position,
           description: rubric.description,
           label: rubric.label,
           projectId,
           type: rubric.type,
         })
-        .where("id", "=", existing.id)
+        .where("rowId", "=", existing.rowId)
+        .$if(projectId != null, (query) =>
+          query.where("rubric.projectId", "=", projectId as number),
+        )
         .execute();
     }
 
+    const rubricRows = await tx
+      .selectFrom("rubric")
+      .select(["id", "rowId"])
+      .where(
+        "id",
+        "in",
+        input.rubrics.map((rubric) => rubric.id),
+      )
+      .where("questionId", "=", persistedQuestion.rowId)
+      .$if(projectId != null, (query) =>
+        query.where("rubric.projectId", "=", projectId as number),
+      )
+      .execute();
+
+    const rubricRowIdById = new Map(
+      rubricRows.map((rubric) => [rubric.id, rubric.rowId]),
+    );
+
     const booleanRows = input.rubrics.flatMap((rubric) =>
       rubric.type === "boolean"
-        ? [
-            {
-              rubricId: rubric.id,
-              marks: rubric.marks,
-              falseMarks: rubric.falseMarks ?? 0,
-            },
-          ]
+        ? (() => {
+            const rubricRowId = rubricRowIdById.get(rubric.id);
+            if (rubricRowId == null) {
+              throw new Error(`Rubric '${rubric.id}' could not be resolved.`);
+            }
+
+            return [
+              {
+                rubricId: rubricRowId,
+                marks: rubric.marks,
+                falseMarks: rubric.falseMarks ?? 0,
+              },
+            ];
+          })()
         : [],
     );
     const numericalRows = input.rubrics.flatMap((rubric) =>
       rubric.type === "numerical"
-        ? [
-            {
-              rubricId: rubric.id,
-              minScore: rubric.minScore,
-              maxScore: rubric.maxScore,
-              minMarks: rubric.minMarks,
-              maxMarks: rubric.maxMarks,
-              reversed: rubric.reversed,
-            },
-          ]
+        ? (() => {
+            const rubricRowId = rubricRowIdById.get(rubric.id);
+            if (rubricRowId == null) {
+              throw new Error(`Rubric '${rubric.id}' could not be resolved.`);
+            }
+
+            return [
+              {
+                rubricId: rubricRowId,
+                minScore: rubric.minScore,
+                maxScore: rubric.maxScore,
+                minMarks: rubric.minMarks,
+                maxMarks: rubric.maxMarks,
+                reversed: rubric.reversed,
+              },
+            ];
+          })()
         : [],
     );
     const ordinalSources = input.rubrics.flatMap((rubric) =>
       rubric.type === "ordinal"
-        ? [{ rubricId: rubric.id, marks: rubric.marks }]
+        ? (() => {
+            const rubricRowId = rubricRowIdById.get(rubric.id);
+            if (rubricRowId == null) {
+              throw new Error(`Rubric '${rubric.id}' could not be resolved.`);
+            }
+
+            return [{ rubricId: rubricRowId, marks: rubric.marks }];
+          })()
         : [],
     );
 
