@@ -1,7 +1,7 @@
 # Project Reliability Audit and Test Tracker
 
 Status: Active
-Last Updated: 2026-05-18 (R-005 Verified)
+Last Updated: 2026-05-18 (R-003 Mitigated)
 Primary Goal: Prevent data loss/corruption (especially assessments) while progressively hardening correctness and UX safety.
 Cadence: Update at least once per week and after every reliability-related merge.
 
@@ -64,7 +64,7 @@ Note: Tier still dominates score. A Tier 0 item is always prioritized above Tier
 ## 3. Audit Dashboard
 
 Current snapshot (2026-05-18):
-- Tier 0: 3 open, 0 in progress, 2 verified
+- Tier 0: 1 open, 0 in progress, 2 verified
 - Tier 1: 6 open, 0 in progress, 0 verified
 - Tier 2: 4 open, 0 in progress, 0 verified
 
@@ -93,8 +93,8 @@ Immediate execution recommendation:
 | ID | Tier | Score | Area | Risk | Evidence | Status | Issue # | Owner | Target | Test Evidence | Next Action |
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | R-001 | Tier 0 | 100 | Import / Assessments | Assessment import can persist partial writes before reporting failure. Violates all-or-nothing policy. | src/import/saveAssessments.ts (batched submission resolution + single write transaction), src/db/assessments.ts | Mitigated | [#17](https://github.com/QuentinRoy/grading/issues/17) | Unassigned | Sprint A | `src/import/saveAssessments.test.ts`: `saveAssessments does not persist valid rows when a later row fails validation`, `saveAssessments rejects unknown columns before writing any assessment`, `saveAssessments rolls back all writes if a later transactional write fails`; local verification: `pnpm run check --fix`, `pnpm run check-types`, `pnpm run test:integration` | Run CI `test-integration` with external Postgres service and promote to Verified once green in PR checks. |
-| R-002 | Tier 0 | 80 | Data integrity constraints | Strong DB triggers/checks exist but are under-tested in integration suites. | src/db/migrations/20260513000000_init.ts, src/db/migrations/20260514000001_enforce_numerical_score_bounds.ts, src/db/migrations/20260514000002_enforce_ordinal_label_valid.ts | Open | [#18](https://github.com/QuentinRoy/grading/issues/18) | Unassigned | Sprint A | Pending | Add invariant-focused DB integration tests proving trigger/check enforcement and rollback safety. |
-| R-003 | Tier 0 | 75 | Questions/rubrics mutation | saveManagedQuestion contains complex delete/reinsert/reconcile logic with limited direct integration coverage; high chance of subtle data breakage. | src/db/questions.ts | Open | [#19](https://github.com/QuentinRoy/grading/issues/19) | Unassigned | Sprint A | Pending | Add integration matrix for rename/type-change/stale cleanup/cascade scenarios. |
+| R-002 | Tier 0 | 80 | Data integrity constraints | Strong DB triggers/checks exist but are under-tested in integration suites. | src/db/migrations/20260513000000_init.ts, src/db/migrations/20260514000001_enforce_numerical_score_bounds.ts, src/db/migrations/20260514000002_enforce_ordinal_label_valid.ts | Mitigated | [#18](https://github.com/QuentinRoy/grading/issues/18) | Unassigned | Sprint A | `src/db/constraints.integration.test.ts`: `ordinal rubric assessments accept valid labels and roll back failed transactional writes`, `numerical rubric assessments enforce score bounds and roll back failed transactional writes`, `submission owner/type check rejects invalid rows and rolls back transactional writes`, `rubric subtype triggers reject mismatched subtype rows and roll back transactional writes`; local verification: `pnpm run check --fix`, `pnpm run check-types`, `pnpm run test:integration` (21 tests passing) | Run CI `test-integration` in PR checks and promote to Verified once green. |
+| R-003 | Tier 0 | 75 | Questions/rubrics mutation | saveManagedQuestion contains complex delete/reinsert/reconcile logic with limited direct integration coverage; high chance of subtle data breakage. | src/db/questions.ts | Mitigated | [#19](https://github.com/QuentinRoy/grading/issues/19) | Unassigned | Sprint A | `src/db/questions.integration.test.ts`: `saveManagedQuestion renames question id while preserving linked assessments`, `saveManagedQuestion replaces rubric subtype data when rubric type changes`, `saveManagedQuestion removes stale rubrics that are no longer referenced`, `saveManagedQuestion replaces ordinal rubric values using the provided label set`, `deleteManagedQuestion reports impact and cascades linked assessments`; implementation fix: `src/db/questions.ts` `getQuestionDeleteImpact` now counts `assessment.id` to avoid ambiguous-column failures under joins; local verification: `pnpm run check --fix`, `pnpm run check-types`, `pnpm run test:integration` (26 tests passing) | Run CI `test-integration` in PR checks and promote to Verified once green. |
 | R-004 | Tier 0 | 64 | Concurrency | Last-write-wins semantics are desired but currently not proven under concurrent writes/import overlap. | src/db/assessments.ts, src/import/saveStudents.ts, src/import/saveQuestions.ts | Open | [#20](https://github.com/QuentinRoy/grading/issues/20) | Unassigned | Sprint B | Pending | Add race tests for concurrent writes to same rubric/submission/question and overlapping imports. |
 | R-005 | Tier 0 | 90 | Project isolation | Project scoping exists but needs stronger adversarial fixtures to prove no cross-project contamination across duplicated external IDs. | src/db/submissions.ts, src/db/submissionProgress.ts, src/import/saveStudents.ts | Verified | [#21](https://github.com/QuentinRoy/grading/issues/21) | Unassigned | Sprint A | `src/db/submissions.test.ts`: `loadSubmissions returns only individual submissions for the requested project when student ids collide across projects`, `loadSubmissions returns only team submissions for the requested project when team names collide across projects`; `src/db/submissionProgress.test.ts`: `loadSubmissionQuestionProgress counts only assessments within the requested project when question ids collide across projects`, `loadSubmissionOverviewProgress counts only questions and assessments within the requested project when question ids collide across projects`; `src/import/saveAssessments.test.ts`: `saveAssessments links assessments only to the target project even when the same student id exists in another project`; local verification: `pnpm run check-types`, `pnpm run check --fix`, all 9 new tests pass | Run CI `test-integration` and promote via PR once green. |
 | R-006 | Tier 1 | 60 | Export correctness | Streamed submission export assembly has complex state transitions; gaps may produce wrong rows/totals/order in edge cases. | src/export/submissionExport.ts, src/export/submissionExportCsv.ts | Open | [#32](https://github.com/QuentinRoy/grading/issues/32) | Unassigned | Sprint B | Pending | Add integration tests for stream boundaries, sparse assessments, totals, and ordering invariants. |
@@ -117,6 +117,8 @@ Notes:
 
 Currently present tests (not exhaustive for critical paths):
 - src/db/assessments.integration.test.ts
+- src/db/constraints.integration.test.ts
+- src/db/questions.integration.test.ts
 - src/import/saveStudents.integration.test.ts
 - src/import/importParsers.test.ts
 - src/export/submissionExportCsv.test.ts
@@ -128,7 +130,6 @@ Currently present tests (not exhaustive for critical paths):
 Notably under-covered critical modules:
 - src/import/saveAssessments.ts
 - src/import/saveQuestions.ts
-- src/db/questions.ts
 - src/export/submissionExport.ts
 - src/db/submissionProgress.ts
 - src/db/assessmentsProgress.ts
@@ -269,6 +270,8 @@ Tier 2 issue is Done when:
 - 2026-05-18: Added `test-integration` GitHub Actions job with a Postgres service and backend-switching integration helpers (`TEST_DB_BACKEND=external`) while keeping local default integration backend on Testcontainers.
 - 2026-05-18: Refactored `src/import/saveAssessments.ts` to batch submission resolution and keep all writes in one transaction; expanded `src/import/saveAssessments.test.ts` with unknown-column and forced write-phase rollback coverage. Local reliability checks pass (`check`, `check-types`, `test:integration`).
 - 2026-05-18: Audited GitHub `main` branch protection via GitHub API and confirmed strict required status checks enforce `build`, `test-integration`, `test-storybook`, `test-unit`, `check`, and `check-types` before merge.
+- 2026-05-18: Implemented R-002 constraint hardening integration suite (`src/db/constraints.integration.test.ts`) covering ordinal label validity, numerical score bounds, submission participant/type check, and rubric subtype mismatch with transactional rollback assertions; local reliability checks pass (`check --fix`, `check-types`, full `test:integration` with 21 passing tests).
+- 2026-05-18: Implemented R-003 mutation hardening integration suite (`src/db/questions.integration.test.ts`) covering question rename with linked assessments, rubric type transitions, stale rubric cleanup, ordinal value replacement semantics, and delete impact/cascade behavior. Fixed `getQuestionDeleteImpact` to count `assessment.id` explicitly and avoid ambiguous-column failures in joined queries. Local reliability checks pass (`check --fix`, `check-types`, full `test:integration` with 26 passing tests).
 
 ## 10. Change Log
 
@@ -283,6 +286,8 @@ Tier 2 issue is Done when:
 - 2026-05-18: Verified R-016 by confirming `main` branch protection enforces strict required checks (`build`, `test-integration`, `test-storybook`, `test-unit`, `check`, `check-types`); updated dashboard counts and marked M0 complete.
 - 2026-05-18: R-005 Verified — added two-project collision integration tests: `src/db/submissions.integration.test.ts` (individual + team submission isolation), `src/db/submissionProgress.integration.test.ts` (`loadSubmissionQuestionProgress` + `loadSubmissionOverviewProgress` isolation), and `src/import/saveAssessments.integration.test.ts` (assessment import doesn't leak into sibling project with same student external id); all 9 new tests pass locally.
 - 2026-05-18: Issue #54 parity update — removed Testcontainers backend switching from integration bootstrap and standardized on `TEST_DATABASE_URL` for all environments. Added an automatic local integration runner that creates an isolated Docker Compose Postgres service, waits for readiness, runs tests, and removes containers/volumes on completion; CI integration job now uses only `TEST_DATABASE_URL`.
+- 2026-05-18: Implemented R-002 mitigation by adding `src/db/constraints.integration.test.ts` with transactional rollback assertions for DB trigger/check enforcement (ordinal labels, numerical score bounds, submission type/participant ownership, and rubric subtype integrity). Local verification: `pnpm run check --fix`, `pnpm run check-types`, `pnpm run test:integration` (21/21 passing).
+- 2026-05-18: Implemented R-003 mitigation by adding `src/db/questions.integration.test.ts` with mutation-path coverage for `saveManagedQuestion`/`deleteManagedQuestion` (rename, type transition, stale cleanup, ordinal replacement, and delete cascade). Fixed joined count ambiguity in `getQuestionDeleteImpact` (`assessment.id`). Local verification: `pnpm run check --fix`, `pnpm run check-types`, `pnpm run test:integration` (26/26 passing).
 
 ## 11. Issue Entry Template (for future additions)
 

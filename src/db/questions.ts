@@ -525,7 +525,9 @@ export async function getQuestionDeleteImpact(
   let query = db
     .selectFrom("assessment")
     .innerJoin("question", "question.rowId", "assessment.questionId")
-    .select(({ fn }) => [fn.count<number>("id").as("assessmentCount")])
+    .select(({ fn }) => [
+      fn.count<number>("assessment.id").as("assessmentCount"),
+    ])
     .where("question.id", "=", questionId);
 
   if (projectId != null) {
