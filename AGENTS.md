@@ -25,6 +25,16 @@
 
 - Avoid successive asynchronous operations that can be run in parallel. For example, if you need to fetch data from multiple APIs, use `Promise.all` to fetch them concurrently instead of awaiting each one sequentially.
 
+## Database Migrations
+
+**Never modify existing migration files.** Migrations are immutable once committed — they represent a historical record of schema changes applied to real databases. Modifying an existing migration would cause a divergence between the recorded history and the actual database state on any environment that has already run it.
+
+The only exception is the migration currently being actively developed and not yet applied to any shared environment (i.e., not yet merged to the main branch and not yet run in staging/production).
+
+To change the database schema, always create a new migration file.
+
+See `src/db/migrations/README.md` for migration conventions and best practices.
+
 ## Env variables and scripting
 
 - Project use dotenvx to manage env variables (e.g. for database connection).
