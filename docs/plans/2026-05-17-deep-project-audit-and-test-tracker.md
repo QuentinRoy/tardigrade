@@ -22,6 +22,7 @@ Update workflow for each issue:
 4. Update progress counters in Section 3.
 5. Add an entry to Section 9 (Change Log).
 6. Link the related GitHub issue number in the Issue # column.
+7. When opening a PR for the mitigation, include an auto-close keyword in the PR body (for example: `Fixes #<issue>`), so the linked issue is closed automatically on merge.
 
 Weekly maintenance ritual:
 1. Refresh Section 3 dashboard counts and active sprint focus.
@@ -309,5 +310,6 @@ Use this short checklist during each update pass:
 - [ ] Every Mitigated/Verified item includes Test Evidence.
 - [ ] Score reviewed for all items touched this week.
 - [ ] GitHub issue numbers in Issue # column match each risk.
+- [ ] PR body includes an auto-close keyword for each addressed risk issue (for example: `Fixes #<issue>`).
 - [ ] Any new risks have corresponding GitHub issues created and linked.
 - [ ] Change Log entry added.
