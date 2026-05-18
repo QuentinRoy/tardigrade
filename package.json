@@ -24,6 +24,7 @@
     "db:migrate:down": "dotenvx run --convention=flow -- tsx src/db/migrate.ts down",
     "db:migrate:status": "dotenvx run --convention=flow -- tsx src/db/migrate.ts status",
     "db:migrate:up": "dotenvx run --convention=flow -- tsx src/db/migrate.ts up",
+    "db:reset": "dotenvx run --convention=flow -- tsx src/db/migrate.ts reset",
     "db:types:generate": "dotenvx run --convention=flow -- kysely-codegen --numeric-parser number --camel-case --out-file src/db/generated/db.ts"
   },
   "dependencies": {

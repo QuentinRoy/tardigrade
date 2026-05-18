@@ -22,10 +22,7 @@ export async function up(db: Kysely<unknown>): Promise<void> {
 
   await db.schema
     .createTable("student")
-    .addColumn("row_id", "integer", (column) =>
-      column.generatedAlwaysAsIdentity().primaryKey().notNull(),
-    )
-    .addColumn("id", "text", (column) => column.notNull())
+    .addColumn("id", "text", (column) => column.primaryKey().notNull())
     .addColumn("family_name", "text", (column) => column.notNull())
     .addColumn("first_name", "text", (column) => column.notNull())
     .addColumn("created_at", "timestamp(3)", (column) =>
@@ -51,7 +48,7 @@ export async function up(db: Kysely<unknown>): Promise<void> {
       column.notNull().defaultTo("individual"),
     )
     .addColumn("team_id", "integer")
-    .addColumn("student_id", "integer")
+    .addColumn("student_id", "text")
     .addForeignKeyConstraint(
       "Submission_teamId_fkey",
       ["team_id"],
@@ -63,14 +60,14 @@ export async function up(db: Kysely<unknown>): Promise<void> {
       "Submission_studentId_fkey",
       ["student_id"],
       "student",
-      ["row_id"],
+      ["id"],
       (constraint) => constraint.onDelete("set null").onUpdate("cascade"),
     )
     .execute();
 
   await db.schema
     .createTable("student_to_team")
-    .addColumn("student_id", "integer", (column) => column.notNull())
+    .addColumn("student_id", "text", (column) => column.notNull())
     .addColumn("team_id", "integer", (column) => column.notNull())
     .addPrimaryKeyConstraint("StudentToTeam_studentId_teamId_pkey", [
       "student_id",
@@ -80,7 +77,7 @@ export async function up(db: Kysely<unknown>): Promise<void> {
       "StudentToTeam_studentId_fkey",
       ["student_id"],
       "student",
-      ["row_id"],
+      ["id"],
       (constraint) => constraint.onDelete("cascade").onUpdate("cascade"),
     )
     .addForeignKeyConstraint(

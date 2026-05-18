@@ -1,5 +1,6 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
 import { Kysely, PostgresDialect } from "kysely";
 import { FileMigrationProvider, Migrator } from "kysely/migration";
@@ -70,6 +71,59 @@ async function runDown() {
   }
 }
 
+async function hardConfirm(
+  question: string,
+  expectedAnswer: string,
+): Promise<boolean> {
+  const rl = createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+
+  return new Promise((resolve) => {
+    rl.question(
+      `${question}\nType "${expectedAnswer}" to confirm: `,
+      (answer) => {
+        rl.close();
+        resolve(expectedAnswer.trim() === answer.trim());
+      },
+    );
+  });
+}
+
+async function runReset() {
+  const dbUrl = process.env.DATABASE_URL;
+  if (dbUrl == null || dbUrl.length === 0) {
+    throw new Error("DATABASE_URL is required");
+  }
+
+  const confirmed = await hardConfirm(
+    `This will permanently delete all data in the database.`,
+    "delete all data",
+  );
+
+  if (!confirmed) {
+    writeLine("Aborted.");
+    return;
+  }
+
+  const url = new URL(dbUrl);
+  const dbName = url.pathname.slice(1);
+
+  // Connect to the default postgres database to drop the target
+  url.pathname = "/postgres";
+  const adminPool = new Pool({ connectionString: url.toString() });
+
+  try {
+    await adminPool.query(`DROP DATABASE IF EXISTS "${dbName}"`);
+    writeLine(`Database "${dbName}" dropped.`);
+    await adminPool.query(`CREATE DATABASE "${dbName}"`);
+    writeLine(`Database "${dbName}" recreated.`);
+  } finally {
+    await adminPool.end();
+  }
+}
+
 async function runStatus() {
   const migrator = createMigrator();
   const results = await migrator.getMigrations();
@@ -98,7 +152,14 @@ async function main() {
     return;
   }
 
-  throw new Error('Unknown command. Use one of: "up", "down", "status".');
+  if (command === "reset") {
+    await runReset();
+    return;
+  }
+
+  throw new Error(
+    'Unknown command. Use one of: "up", "down", "status", "reset".',
+  );
 }
 
 main()
