@@ -22,6 +22,7 @@ Update workflow for each issue:
 4. Update progress counters in Section 3.
 5. Add an entry to Section 9 (Change Log).
 6. Link the related GitHub issue number in the Issue # column.
+7. When opening a PR for the mitigation, include an auto-close keyword in the PR body (for example: `Fixes #<issue>`), so the linked issue is closed automatically on merge.
 
 Weekly maintenance ritual:
 1. Refresh Section 3 dashboard counts and active sprint focus.
@@ -62,8 +63,8 @@ Note: Tier still dominates score. A Tier 0 item is always prioritized above Tier
 
 ## 3. Audit Dashboard
 
-Current snapshot (2026-05-17):
-- Tier 0: 5 open, 0 in progress, 0 verified
+Current snapshot (2026-05-18):
+- Tier 0: 4 open, 0 in progress, 0 verified
 - Tier 1: 6 open, 0 in progress, 0 verified
 - Tier 2: 4 open, 0 in progress, 0 verified
 
@@ -91,7 +92,7 @@ Immediate execution recommendation:
 
 | ID | Tier | Score | Area | Risk | Evidence | Status | Issue # | Owner | Target | Test Evidence | Next Action |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| R-001 | Tier 0 | 100 | Import / Assessments | Assessment import can persist partial writes before reporting failure. Violates all-or-nothing policy. | src/import/saveAssessments.ts (looped save + post-loop throw), src/db/assessments.ts | Open | [#17](https://github.com/QuentinRoy/grading/issues/17) | Unassigned | Sprint A | Pending | Refactor to pre-validate and execute all writes inside a single transaction; add rollback tests. |
+| R-001 | Tier 0 | 100 | Import / Assessments | Assessment import can persist partial writes before reporting failure. Violates all-or-nothing policy. | src/import/saveAssessments.ts (batched submission resolution + single write transaction), src/db/assessments.ts | Mitigated | [#17](https://github.com/QuentinRoy/grading/issues/17) | Unassigned | Sprint A | `src/import/saveAssessments.test.ts`: `saveAssessments does not persist valid rows when a later row fails validation`, `saveAssessments rejects unknown columns before writing any assessment`, `saveAssessments rolls back all writes if a later transactional write fails`; local verification: `pnpm run check --fix`, `pnpm run check-types`, `pnpm run test:integration` | Run CI `test-integration` with external Postgres service and promote to Verified once green in PR checks. |
 | R-002 | Tier 0 | 80 | Data integrity constraints | Strong DB triggers/checks exist but are under-tested in integration suites. | src/db/migrations/20260513000000_init.ts, src/db/migrations/20260514000001_enforce_numerical_score_bounds.ts, src/db/migrations/20260514000002_enforce_ordinal_label_valid.ts | Open | [#18](https://github.com/QuentinRoy/grading/issues/18) | Unassigned | Sprint A | Pending | Add invariant-focused DB integration tests proving trigger/check enforcement and rollback safety. |
 | R-003 | Tier 0 | 75 | Questions/rubrics mutation | saveManagedQuestion contains complex delete/reinsert/reconcile logic with limited direct integration coverage; high chance of subtle data breakage. | src/db/questions.ts | Open | [#19](https://github.com/QuentinRoy/grading/issues/19) | Unassigned | Sprint A | Pending | Add integration matrix for rename/type-change/stale cleanup/cascade scenarios. |
 | R-004 | Tier 0 | 64 | Concurrency | Last-write-wins semantics are desired but currently not proven under concurrent writes/import overlap. | src/db/assessments.ts, src/import/saveStudents.ts, src/import/saveQuestions.ts | Open | [#20](https://github.com/QuentinRoy/grading/issues/20) | Unassigned | Sprint B | Pending | Add race tests for concurrent writes to same rubric/submission/question and overlapping imports. |
@@ -152,7 +153,7 @@ Notably under-covered critical modules:
 - Scenarios:
   - mixed valid + invalid rows => no writes persisted
   - unknown column => no writes persisted
-  - ambiguous submitter mapping => no writes persisted
+  - write-phase transactional failure => no writes persisted
 
 3. DB invariant enforcement
 - Targets: migration triggers/checks
@@ -266,6 +267,7 @@ Tier 2 issue is Done when:
 - 2026-05-17: Migrated integration tests to shared `test.extend` fixtures (`src/test/integrationTest.ts`) across assessment import/student/assessment DB suites; targeted reliability tests pass.
 - 2026-05-17: Implemented GitHub Actions CI workflow (`.github/workflows/ci.yml`) with separate required-candidate jobs: `check-types`, `check`, and `test-unit` on pull requests and pushes to `main`.
 - 2026-05-18: Added `test-integration` GitHub Actions job with a Postgres service and backend-switching integration helpers (`TEST_DB_BACKEND=external`) while keeping local default integration backend on Testcontainers.
+- 2026-05-18: Refactored `src/import/saveAssessments.ts` to batch submission resolution and keep all writes in one transaction; expanded `src/import/saveAssessments.test.ts` with unknown-column and forced write-phase rollback coverage. Local reliability checks pass (`check`, `check-types`, `test:integration`).
 
 ## 10. Change Log
 
@@ -276,6 +278,7 @@ Tier 2 issue is Done when:
 - 2026-05-17: Added GitHub Actions workflow at `.github/workflows/ci.yml` to run `check-types`, `check`, and `test:unit` on pull requests and pushes to `main`; marked R-016 as Mitigated pending branch protection enforcement.
 - 2026-05-18: Split Vitest into `unit` and `integration` projects, added `test:integration`, introduced a backend-aware DB integration helper (`testcontainers` local default, `external` for CI), and wired `.github/workflows/ci.yml` `test-integration` to GitHub Actions Postgres service.
 - 2026-05-18: Created GitHub issues for all 16 risks (R-001..R-015, R-016) matching audit register. Issue numbers linked in Risk Register table. Added GitHub Issue Linkage guidance in Section 1.
+- 2026-05-18: Implemented first R-001 hardening pass: `saveAssessments` now preloads submission mappings in batch and retains single-transaction writes; added integration assertions for unknown header rejection and write-phase rollback atomicity.
 
 ## 11. Issue Entry Template (for future additions)
 
@@ -307,5 +310,6 @@ Use this short checklist during each update pass:
 - [ ] Every Mitigated/Verified item includes Test Evidence.
 - [ ] Score reviewed for all items touched this week.
 - [ ] GitHub issue numbers in Issue # column match each risk.
+- [ ] PR body includes an auto-close keyword for each addressed risk issue (for example: `Fixes #<issue>`).
 - [ ] Any new risks have corresponding GitHub issues created and linked.
 - [ ] Change Log entry added.

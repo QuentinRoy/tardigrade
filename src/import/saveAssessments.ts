@@ -42,35 +42,105 @@ function assertRecognizedAssessmentColumns(params: {
   }
 }
 
-async function resolveSubmissionId(params: {
+function submissionLookupKey(params: {
   submissionType: "team" | "individual";
   submitter: string;
+}): string {
+  return `${params.submissionType}:${params.submitter}`;
+}
+
+async function resolveSubmissionIdsBatch(params: {
+  rows: ImportedAssessmentRow[];
   projectId: number;
-}): Promise<string | null | "ambiguous"> {
-  const submissions =
-    params.submissionType === "team"
-      ? await db
+}): Promise<Map<string, string | null | "ambiguous">> {
+  const teamSubmitters = new Set<string>();
+  const individualSubmitters = new Set<string>();
+
+  for (const row of params.rows) {
+    if (row.submission_type === "team") {
+      teamSubmitters.add(row.submitter);
+    } else {
+      individualSubmitters.add(row.submitter);
+    }
+  }
+
+  const [teamSubmissions, individualSubmissions] = await Promise.all([
+    teamSubmitters.size > 0
+      ? db
           .selectFrom("submission")
           .innerJoin("team", "team.id", "submission.teamId")
           .where("submission.type", "=", "team")
           .where("submission.projectId", "=", params.projectId)
-          .where("team.name", "=", params.submitter)
-          .select("submission.id")
+          .where("team.name", "in", Array.from(teamSubmitters))
+          .select(["team.name as submitter", "submission.id as submissionId"])
           .execute()
-      : await db
+      : Promise.resolve([]),
+    individualSubmitters.size > 0
+      ? db
           .selectFrom("submission")
           .innerJoin("student", "student.rowId", "submission.studentId")
           .where("submission.type", "=", "individual")
           .where("submission.projectId", "=", params.projectId)
-          .where("student.id", "=", params.submitter)
-          .select("submission.id")
-          .execute();
+          .where("student.id", "in", Array.from(individualSubmitters))
+          .select(["student.id as submitter", "submission.id as submissionId"])
+          .execute()
+      : Promise.resolve([]),
+  ]);
 
-  if (submissions.length > 1) {
-    return "ambiguous";
+  const submissionIdsByKey = new Map<string, Set<string>>();
+  const resolvedByKey = new Map<string, string | null | "ambiguous">();
+
+  for (const row of params.rows) {
+    resolvedByKey.set(
+      submissionLookupKey({
+        submissionType: row.submission_type,
+        submitter: row.submitter,
+      }),
+      null,
+    );
   }
 
-  return submissions[0]?.id ? String(submissions[0].id) : null;
+  for (const submission of teamSubmissions) {
+    const key = submissionLookupKey({
+      submissionType: "team",
+      submitter: submission.submitter,
+    });
+    const existing = submissionIdsByKey.get(key);
+    if (existing) {
+      existing.add(String(submission.submissionId));
+      continue;
+    }
+
+    submissionIdsByKey.set(key, new Set([String(submission.submissionId)]));
+  }
+
+  for (const submission of individualSubmissions) {
+    const key = submissionLookupKey({
+      submissionType: "individual",
+      submitter: submission.submitter,
+    });
+    const existing = submissionIdsByKey.get(key);
+    if (existing) {
+      existing.add(String(submission.submissionId));
+      continue;
+    }
+
+    submissionIdsByKey.set(key, new Set([String(submission.submissionId)]));
+  }
+
+  for (const [key, submissionIds] of submissionIdsByKey.entries()) {
+    if (submissionIds.size > 1) {
+      resolvedByKey.set(key, "ambiguous");
+      continue;
+    }
+
+    const submissionId = submissionIds.values().next().value;
+    if (submissionId != null) {
+      resolvedByKey.set(key, submissionId);
+    }
+  }
+
+  return resolvedByKey;
 }
 
 function parseAssessmentValue(params: {
@@ -211,6 +281,10 @@ export async function saveAssessments(
     error: string;
   }> = [];
   const preparedAssessments: PreparedAssessment[] = [];
+  const submissionsByLookup = await resolveSubmissionIdsBatch({
+    rows: assessmentRows,
+    projectId,
+  });
 
   for (let rowIndex = 0; rowIndex < assessmentRows.length; rowIndex++) {
     const row = assessmentRows[rowIndex];
@@ -221,12 +295,13 @@ export async function saveAssessments(
     }
     const submissionType = row.submission_type;
     const submitter = row.submitter;
-
-    const submissionId = await resolveSubmissionId({
-      submissionType,
-      submitter,
-      projectId,
-    });
+    const submissionId =
+      submissionsByLookup.get(
+        submissionLookupKey({
+          submissionType,
+          submitter,
+        }),
+      ) ?? null;
 
     if (submissionId === "ambiguous") {
       errorDetails.push({
