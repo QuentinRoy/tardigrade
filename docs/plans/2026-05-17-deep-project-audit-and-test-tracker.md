@@ -13,12 +13,15 @@ This file is a living audit and delivery tracker. Update it whenever:
 - A mitigation lands in code.
 - Tests are added/updated.
 
+**GitHub Issue Linkage:** Each risk in Section 4 has a corresponding GitHub issue (visible in the Issue # column). These are the canonical tracking references for implementation work. Update this document and the GitHub issues in sync.
+
 Update workflow for each issue:
 1. Add or update issue entry in Section 4 (Risk Register).
 2. Link concrete evidence (file + symbol/function or SQL trigger).
 3. Define acceptance tests in Section 6.
 4. Update progress counters in Section 3.
 5. Add an entry to Section 9 (Change Log).
+6. Link the related GitHub issue number in the Issue # column.
 
 Weekly maintenance ritual:
 1. Refresh Section 3 dashboard counts and active sprint focus.
@@ -86,24 +89,24 @@ Immediate execution recommendation:
 
 ## 4. Risk Register (Living)
 
-| ID | Tier | Score | Area | Risk | Evidence | Status | Owner | Target | Test Evidence | Next Action |
-|---|---|---|---|---|---|---|---|---|---|---|
-| R-001 | Tier 0 | 100 | Import / Assessments | Assessment import can persist partial writes before reporting failure. Violates all-or-nothing policy. | src/import/saveAssessments.ts (looped save + post-loop throw), src/db/assessments.ts | Open | Unassigned | Sprint A | Pending | Refactor to pre-validate and execute all writes inside a single transaction; add rollback tests. |
-| R-002 | Tier 0 | 80 | Data integrity constraints | Strong DB triggers/checks exist but are under-tested in integration suites. | src/db/migrations/20260513000000_init.ts, src/db/migrations/20260514000001_enforce_numerical_score_bounds.ts, src/db/migrations/20260514000002_enforce_ordinal_label_valid.ts | Open | Unassigned | Sprint A | Pending | Add invariant-focused DB integration tests proving trigger/check enforcement and rollback safety. |
-| R-003 | Tier 0 | 75 | Questions/rubrics mutation | saveManagedQuestion contains complex delete/reinsert/reconcile logic with limited direct integration coverage; high chance of subtle data breakage. | src/db/questions.ts | Open | Unassigned | Sprint A | Pending | Add integration matrix for rename/type-change/stale cleanup/cascade scenarios. |
-| R-004 | Tier 0 | 64 | Concurrency | Last-write-wins semantics are desired but currently not proven under concurrent writes/import overlap. | src/db/assessments.ts, src/import/saveStudents.ts, src/import/saveQuestions.ts | Open | Unassigned | Sprint B | Pending | Add race tests for concurrent writes to same rubric/submission/question and overlapping imports. |
-| R-005 | Tier 0 | 90 | Project isolation | Project scoping exists but needs stronger adversarial fixtures to prove no cross-project contamination across duplicated external IDs. | src/db/submissions.ts, src/db/submissionProgress.ts, src/import/saveStudents.ts | Open | Unassigned | Sprint A | Pending | Add two-project collision fixtures and assert strict row/link isolation across all key joins. |
-| R-006 | Tier 1 | 60 | Export correctness | Streamed submission export assembly has complex state transitions; gaps may produce wrong rows/totals/order in edge cases. | src/export/submissionExport.ts, src/export/submissionExportCsv.ts | Open | Unassigned | Sprint B | Pending | Add integration tests for stream boundaries, sparse assessments, totals, and ordering invariants. |
-| R-007 | Tier 1 | 72 | Progress metrics | Submission/global progress aggregates are business-critical and under-covered against edge combinations (zero-rubric questions, sparse assessments). | src/db/submissionProgress.ts, src/db/assessmentsProgress.ts | Open | Unassigned | Sprint B | Pending | Add deterministic seeded tests with boundary scenarios and expected completed/total calculations. |
-| R-008 | Tier 1 | 45 | Rubric overview analytics | Class/rubric averages and completion percentages can drift if aggregation assumptions change; coverage is partial. | src/db/rubricOverviewBuilder.ts, src/db/rubricOverview.test.ts | Open | Unassigned | Sprint C | Pending | Expand test matrix for duplicate/partial/null assessment records and mixed rubric distributions. |
-| R-009 | Tier 1 | 54 | Import/export roundtrip | Export includes both assessment and marks columns; import behavior may diverge if only marks columns are present. | src/export/submissionExportCsv.ts, src/import/saveAssessments.ts, src/import/parseAssessments.ts | Open | Unassigned | Sprint B | Pending | Enforce contract test: assessment-column roundtrip preserves semantics; marks-only import behavior is explicit and validated. |
-| R-010 | Tier 1 | 36 | Numerical rubric math | markNumericalRubric boundary behavior (score range edges, reversed mode) needs broader coverage beyond current happy-path tests. | src/rubrics/rubric.ts, src/rubrics/rubric.test.ts | Open | Unassigned | Sprint C | Pending | Add boundary and invalid-input tests for score interpolation and reversed mapping. |
-| R-011 | Tier 1 | 48 | Question/rubric saves | Save paths for imported questions need tests on ID collisions, type transitions, and ordinal value replacement semantics. | src/import/saveQuestions.ts | Open | Unassigned | Sprint B | Pending | Add integration tests asserting expected DB state before/after updates, including stale value cleanup. |
-| R-012 | Tier 2 | 30 | Server action contracts | Question/import actions need explicit tests for actionable error messaging and controlled failure paths. | src/questions/actions.ts, src/import/*ImportAction.ts, src/import/actionUtils.ts | Open | Unassigned | Sprint C | Pending | Add action tests covering parse errors, validation errors, and infrastructure errors. |
-| R-013 | Tier 2 | 24 | UI optimistic save behavior | Assessment session optimistic updates and rollback/pending accounting are not explicitly tested. | src/assessment/useAssessmentSession.ts | Open | Unassigned | Sprint C | Pending | Add hook/component tests for success/failure ordering and pending counter integrity. |
-| R-014 | Tier 2 | 27 | Export routes API behavior | Route response contracts (404/400/200, headers, filenames) need route-level tests. | app/projects/[projectId]/[projectSlug]/export/questions/route.ts, app/projects/[projectId]/[projectSlug]/export/submissions/route.ts | Open | Unassigned | Sprint C | Pending | Add route tests for status and headers under valid/invalid conditions. |
-| R-015 | Tier 2 | 20 | Operational signal quality | Some paths surface generic errors; consistency of user-recoverable guidance should be tested and standardized. | app/projects/page.tsx, src/import/actionUtils.ts | Open | Unassigned | Sprint C | Pending | Add contract checks for actionable, non-internal error text and recovery guidance. |
-| R-016 | Tier 0 | 100 | Delivery pipeline / CI | GitHub CI integration is not yet defined as a required reliability gate; critical regressions could merge without automated checks. | package.json scripts (`test:unit`, `test:integration`, `check-types`, `check`), reliability goals in this audit, .github/workflows/ci.yml, src/test/dbIntegration.ts | Mitigated | Unassigned | Sprint A | `.github/workflows/ci.yml` executes `check-types`, `check`, `test-unit`, and `test-integration` on pull_request/push to `main`; integration CI path uses a GitHub Actions Postgres service with `TEST_DB_BACKEND=external`; local verification: `pnpm run check-types`, `pnpm run check`, `pnpm run test:unit`, `pnpm run test:integration`, and `TEST_DB_BACKEND=external TEST_DATABASE_URL=postgresql://postgres:postgres@localhost:55432/postgres pnpm run test:integration` | Configure main branch protection to require `check-types`, `check`, `test-unit`, and `test-integration` before merge. |
+| ID | Tier | Score | Area | Risk | Evidence | Status | Issue # | Owner | Target | Test Evidence | Next Action |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| R-001 | Tier 0 | 100 | Import / Assessments | Assessment import can persist partial writes before reporting failure. Violates all-or-nothing policy. | src/import/saveAssessments.ts (looped save + post-loop throw), src/db/assessments.ts | Open | [#17](https://github.com/QuentinRoy/grading/issues/17) | Unassigned | Sprint A | Pending | Refactor to pre-validate and execute all writes inside a single transaction; add rollback tests. |
+| R-002 | Tier 0 | 80 | Data integrity constraints | Strong DB triggers/checks exist but are under-tested in integration suites. | src/db/migrations/20260513000000_init.ts, src/db/migrations/20260514000001_enforce_numerical_score_bounds.ts, src/db/migrations/20260514000002_enforce_ordinal_label_valid.ts | Open | [#18](https://github.com/QuentinRoy/grading/issues/18) | Unassigned | Sprint A | Pending | Add invariant-focused DB integration tests proving trigger/check enforcement and rollback safety. |
+| R-003 | Tier 0 | 75 | Questions/rubrics mutation | saveManagedQuestion contains complex delete/reinsert/reconcile logic with limited direct integration coverage; high chance of subtle data breakage. | src/db/questions.ts | Open | [#19](https://github.com/QuentinRoy/grading/issues/19) | Unassigned | Sprint A | Pending | Add integration matrix for rename/type-change/stale cleanup/cascade scenarios. |
+| R-004 | Tier 0 | 64 | Concurrency | Last-write-wins semantics are desired but currently not proven under concurrent writes/import overlap. | src/db/assessments.ts, src/import/saveStudents.ts, src/import/saveQuestions.ts | Open | [#20](https://github.com/QuentinRoy/grading/issues/20) | Unassigned | Sprint B | Pending | Add race tests for concurrent writes to same rubric/submission/question and overlapping imports. |
+| R-005 | Tier 0 | 90 | Project isolation | Project scoping exists but needs stronger adversarial fixtures to prove no cross-project contamination across duplicated external IDs. | src/db/submissions.ts, src/db/submissionProgress.ts, src/import/saveStudents.ts | Open | [#21](https://github.com/QuentinRoy/grading/issues/21) | Unassigned | Sprint A | Pending | Add two-project collision fixtures and assert strict row/link isolation across all key joins. |
+| R-006 | Tier 1 | 60 | Export correctness | Streamed submission export assembly has complex state transitions; gaps may produce wrong rows/totals/order in edge cases. | src/export/submissionExport.ts, src/export/submissionExportCsv.ts | Open | [#32](https://github.com/QuentinRoy/grading/issues/32) | Unassigned | Sprint B | Pending | Add integration tests for stream boundaries, sparse assessments, totals, and ordering invariants. |
+| R-007 | Tier 1 | 72 | Progress metrics | Submission/global progress aggregates are business-critical and under-covered against edge combinations (zero-rubric questions, sparse assessments). | src/db/submissionProgress.ts, src/db/assessmentsProgress.ts | Open | [#24](https://github.com/QuentinRoy/grading/issues/24) | Unassigned | Sprint B | Pending | Add deterministic seeded tests with boundary scenarios and expected completed/total calculations. |
+| R-008 | Tier 1 | 45 | Rubric overview analytics | Class/rubric averages and completion percentages can drift if aggregation assumptions change; coverage is partial. | src/db/rubricOverviewBuilder.ts, src/db/rubricOverview.test.ts | Open | [#26](https://github.com/QuentinRoy/grading/issues/26) | Unassigned | Sprint C | Pending | Expand test matrix for duplicate/partial/null assessment records and mixed rubric distributions. |
+| R-009 | Tier 1 | 54 | Import/export roundtrip | Export includes both assessment and marks columns; import behavior may diverge if only marks columns are present. | src/export/submissionExportCsv.ts, src/import/saveAssessments.ts, src/import/parseAssessments.ts | Open | [#27](https://github.com/QuentinRoy/grading/issues/27) | Unassigned | Sprint B | Pending | Enforce contract test: assessment-column roundtrip preserves semantics; marks-only import behavior is explicit and validated. |
+| R-010 | Tier 1 | 36 | Numerical rubric math | markNumericalRubric boundary behavior (score range edges, reversed mode) needs broader coverage beyond current happy-path tests. | src/rubrics/rubric.ts, src/rubrics/rubric.test.ts | Open | [#23](https://github.com/QuentinRoy/grading/issues/23) | Unassigned | Sprint C | Pending | Add boundary and invalid-input tests for score interpolation and reversed mapping. |
+| R-011 | Tier 1 | 48 | Question/rubric saves | Save paths for imported questions need tests on ID collisions, type transitions, and ordinal value replacement semantics. | src/import/saveQuestions.ts | Open | [#25](https://github.com/QuentinRoy/grading/issues/25) | Unassigned | Sprint B | Pending | Add integration tests asserting expected DB state before/after updates, including stale value cleanup. |
+| R-012 | Tier 2 | 30 | Server action contracts | Question/import actions need explicit tests for actionable error messaging and controlled failure paths. | src/questions/actions.ts, src/import/*ImportAction.ts, src/import/actionUtils.ts | Open | [#31](https://github.com/QuentinRoy/grading/issues/31) | Unassigned | Sprint C | Pending | Add action tests covering parse errors, validation errors, and infrastructure errors. |
+| R-013 | Tier 2 | 24 | UI optimistic save behavior | Assessment session optimistic updates and rollback/pending accounting are not explicitly tested. | src/assessment/useAssessmentSession.ts | Open | [#30](https://github.com/QuentinRoy/grading/issues/30) | Unassigned | Sprint C | Pending | Add hook/component tests for success/failure ordering and pending counter integrity. |
+| R-014 | Tier 2 | 27 | Export routes API behavior | Route response contracts (404/400/200, headers, filenames) need route-level tests. | app/projects/[projectId]/[projectSlug]/export/questions/route.ts, app/projects/[projectId]/[projectSlug]/export/submissions/route.ts | Open | [#28](https://github.com/QuentinRoy/grading/issues/28) | Unassigned | Sprint C | Pending | Add route tests for status and headers under valid/invalid conditions. |
+| R-015 | Tier 2 | 20 | Operational signal quality | Some paths surface generic errors; consistency of user-recoverable guidance should be tested and standardized. | app/projects/page.tsx, src/import/actionUtils.ts | Open | [#29](https://github.com/QuentinRoy/grading/issues/29) | Unassigned | Sprint C | Pending | Add contract checks for actionable, non-internal error text and recovery guidance. |
+| R-016 | Tier 0 | 100 | Delivery pipeline / CI | GitHub CI integration is not yet defined as a required reliability gate; critical regressions could merge without automated checks. | package.json scripts (`test:unit`, `test:integration`, `check-types`, `check`), reliability goals in this audit, .github/workflows/ci.yml, src/test/dbIntegration.ts | Mitigated | [#22](https://github.com/QuentinRoy/grading/issues/22) | Unassigned | Sprint A | `.github/workflows/ci.yml` executes `check-types`, `check`, `test-unit`, and `test-integration` on pull_request/push to `main`; integration CI path uses a GitHub Actions Postgres service with `TEST_DB_BACKEND=external`; local verification: `pnpm run check-types`, `pnpm run check`, `pnpm run test:unit`, `pnpm run test:integration`, and `TEST_DB_BACKEND=external TEST_DATABASE_URL=postgresql://postgres:postgres@localhost:55432/postgres pnpm run test:integration` | Configure main branch protection to require `check-types`, `check`, `test-unit`, and `test-integration` before merge. |
 
 Notes:
 - Score values are initial estimates and must be re-evaluated each weekly update.
@@ -272,11 +275,13 @@ Tier 2 issue is Done when:
 - 2026-05-17: Added reusable integration test fixtures and migrated `src/import/saveAssessments.test.ts`, `src/import/saveStudents.test.ts`, and `src/db/assessments.test.ts` to reduce boilerplate and improve consistency.
 - 2026-05-17: Added GitHub Actions workflow at `.github/workflows/ci.yml` to run `check-types`, `check`, and `test:unit` on pull requests and pushes to `main`; marked R-016 as Mitigated pending branch protection enforcement.
 - 2026-05-18: Split Vitest into `unit` and `integration` projects, added `test:integration`, introduced a backend-aware DB integration helper (`testcontainers` local default, `external` for CI), and wired `.github/workflows/ci.yml` `test-integration` to GitHub Actions Postgres service.
+- 2026-05-18: Created GitHub issues for all 16 risks (R-001..R-015, R-016) matching audit register. Issue numbers linked in Risk Register table. Added GitHub Issue Linkage guidance in Section 1.
 
 ## 11. Issue Entry Template (for future additions)
 
 Copy this block when adding new issues:
 
+```text
 Issue ID: R-XXX
 Tier: Tier 0 | Tier 1 | Tier 2
 Score: <Impact x Likelihood x Detectability>
@@ -292,6 +297,7 @@ Next Action: <specific implementation/testing action>
 Required Tests: <test file names + scenarios>
 Date Opened: YYYY-MM-DD
 Date Updated: YYYY-MM-DD
+```
 
 ## 12. Next Review Checklist
 
@@ -300,4 +306,6 @@ Use this short checklist during each update pass:
 - [ ] Every Open/In Progress item has Owner, Target, and Next Action.
 - [ ] Every Mitigated/Verified item includes Test Evidence.
 - [ ] Score reviewed for all items touched this week.
+- [ ] GitHub issue numbers in Issue # column match each risk.
+- [ ] Any new risks have corresponding GitHub issues created and linked.
 - [ ] Change Log entry added.
