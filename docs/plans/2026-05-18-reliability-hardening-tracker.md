@@ -1,7 +1,7 @@
 # Project Reliability Audit and Test Tracker
 
 Status: Active
-Last Updated: 2026-05-18
+Last Updated: 2026-05-18 (R-005 Verified)
 Primary Goal: Prevent data loss/corruption (especially assessments) while progressively hardening correctness and UX safety.
 Cadence: Update at least once per week and after every reliability-related merge.
 
@@ -64,14 +64,14 @@ Note: Tier still dominates score. A Tier 0 item is always prioritized above Tier
 ## 3. Audit Dashboard
 
 Current snapshot (2026-05-18):
-- Tier 0: 4 open, 0 in progress, 1 verified
+- Tier 0: 3 open, 0 in progress, 2 verified
 - Tier 1: 6 open, 0 in progress, 0 verified
 - Tier 2: 4 open, 0 in progress, 0 verified
 
 Overall issue status:
 - Total tracked risks: 16
-- Verified: 1/16
-- Remaining: 15/16
+- Verified: 2/16
+- Remaining: 14/16
 
 Current sprint focus:
 - Sprint label: Reliability Sprint A (proposed)
@@ -96,7 +96,7 @@ Immediate execution recommendation:
 | R-002 | Tier 0 | 80 | Data integrity constraints | Strong DB triggers/checks exist but are under-tested in integration suites. | src/db/migrations/20260513000000_init.ts, src/db/migrations/20260514000001_enforce_numerical_score_bounds.ts, src/db/migrations/20260514000002_enforce_ordinal_label_valid.ts | Open | [#18](https://github.com/QuentinRoy/grading/issues/18) | Unassigned | Sprint A | Pending | Add invariant-focused DB integration tests proving trigger/check enforcement and rollback safety. |
 | R-003 | Tier 0 | 75 | Questions/rubrics mutation | saveManagedQuestion contains complex delete/reinsert/reconcile logic with limited direct integration coverage; high chance of subtle data breakage. | src/db/questions.ts | Open | [#19](https://github.com/QuentinRoy/grading/issues/19) | Unassigned | Sprint A | Pending | Add integration matrix for rename/type-change/stale cleanup/cascade scenarios. |
 | R-004 | Tier 0 | 64 | Concurrency | Last-write-wins semantics are desired but currently not proven under concurrent writes/import overlap. | src/db/assessments.ts, src/import/saveStudents.ts, src/import/saveQuestions.ts | Open | [#20](https://github.com/QuentinRoy/grading/issues/20) | Unassigned | Sprint B | Pending | Add race tests for concurrent writes to same rubric/submission/question and overlapping imports. |
-| R-005 | Tier 0 | 90 | Project isolation | Project scoping exists but needs stronger adversarial fixtures to prove no cross-project contamination across duplicated external IDs. | src/db/submissions.ts, src/db/submissionProgress.ts, src/import/saveStudents.ts | Open | [#21](https://github.com/QuentinRoy/grading/issues/21) | Unassigned | Sprint A | Pending | Add two-project collision fixtures and assert strict row/link isolation across all key joins. |
+| R-005 | Tier 0 | 90 | Project isolation | Project scoping exists but needs stronger adversarial fixtures to prove no cross-project contamination across duplicated external IDs. | src/db/submissions.ts, src/db/submissionProgress.ts, src/import/saveStudents.ts | Verified | [#21](https://github.com/QuentinRoy/grading/issues/21) | Unassigned | Sprint A | `src/db/submissions.test.ts`: `loadSubmissions returns only individual submissions for the requested project when student ids collide across projects`, `loadSubmissions returns only team submissions for the requested project when team names collide across projects`; `src/db/submissionProgress.test.ts`: `loadSubmissionQuestionProgress counts only assessments within the requested project when question ids collide across projects`, `loadSubmissionOverviewProgress counts only questions and assessments within the requested project when question ids collide across projects`; `src/import/saveAssessments.test.ts`: `saveAssessments links assessments only to the target project even when the same student id exists in another project`; local verification: `pnpm run check-types`, `pnpm run check --fix`, all 9 new tests pass | Run CI `test-integration` and promote via PR once green. |
 | R-006 | Tier 1 | 60 | Export correctness | Streamed submission export assembly has complex state transitions; gaps may produce wrong rows/totals/order in edge cases. | src/export/submissionExport.ts, src/export/submissionExportCsv.ts | Open | [#32](https://github.com/QuentinRoy/grading/issues/32) | Unassigned | Sprint B | Pending | Add integration tests for stream boundaries, sparse assessments, totals, and ordering invariants. |
 | R-007 | Tier 1 | 72 | Progress metrics | Submission/global progress aggregates are business-critical and under-covered against edge combinations (zero-rubric questions, sparse assessments). | src/db/submissionProgress.ts, src/db/assessmentsProgress.ts | Open | [#24](https://github.com/QuentinRoy/grading/issues/24) | Unassigned | Sprint B | Pending | Add deterministic seeded tests with boundary scenarios and expected completed/total calculations. |
 | R-008 | Tier 1 | 45 | Rubric overview analytics | Class/rubric averages and completion percentages can drift if aggregation assumptions change; coverage is partial. | src/db/rubricOverviewBuilder.ts, src/db/rubricOverview.test.ts | Open | [#26](https://github.com/QuentinRoy/grading/issues/26) | Unassigned | Sprint C | Pending | Expand test matrix for duplicate/partial/null assessment records and mixed rubric distributions. |
@@ -281,6 +281,7 @@ Tier 2 issue is Done when:
 - 2026-05-18: Created GitHub issues for all 16 risks (R-001..R-015, R-016) matching audit register. Issue numbers linked in Risk Register table. Added GitHub Issue Linkage guidance in Section 1.
 - 2026-05-18: Implemented first R-001 hardening pass: `saveAssessments` now preloads submission mappings in batch and retains single-transaction writes; added integration assertions for unknown header rejection and write-phase rollback atomicity.
 - 2026-05-18: Verified R-016 by confirming `main` branch protection enforces strict required checks (`build`, `test-integration`, `test-storybook`, `test-unit`, `check`, `check-types`); updated dashboard counts and marked M0 complete.
+- 2026-05-18: R-005 Verified — added two-project collision integration tests: `src/db/submissions.test.ts` (individual + team submission isolation), `src/db/submissionProgress.test.ts` (`loadSubmissionQuestionProgress` + `loadSubmissionOverviewProgress` isolation), and `src/import/saveAssessments.test.ts` (assessment import doesn't leak into sibling project with same student external id); all 9 new tests pass locally.
 
 ## 11. Issue Entry Template (for future additions)
 

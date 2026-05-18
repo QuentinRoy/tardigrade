@@ -294,3 +294,114 @@ test("saveAssessments rolls back all writes if a later transactional write fails
 
   expect(persistedAssessments).toHaveLength(0);
 });
+
+test("saveAssessments links assessments only to the target project even when the same student id exists in another project", async ({
+  db,
+  createProject,
+}) => {
+  const saveAssessments = await loadSaveAssessments({ db });
+
+  const projectAId = await createProject("Cross-Project Isolation A");
+  const projectBId = await createProject("Cross-Project Isolation B");
+
+  // The same student external id exists in both projects.
+  // Each project has its own question/rubric ids (to avoid saveAssessmentWithDb
+  // ambiguity on shared question text ids, which is a separate concern).
+  const sharedStudentId = "shared-student-cross-proj";
+
+  async function buildFixtureInProject(projectId: number) {
+    const questionId = buildTestId("question");
+    const rubricId = buildTestId("rubric");
+
+    await db
+      .insertInto("student")
+      .values({
+        projectId,
+        id: sharedStudentId,
+        lastName: "CrossProj",
+        firstName: "Student",
+      })
+      .execute();
+
+    const studentRow = await db
+      .selectFrom("student")
+      .select("rowId")
+      .where("projectId", "=", projectId)
+      .where("id", "=", sharedStudentId)
+      .executeTakeFirstOrThrow();
+
+    await db
+      .insertInto("submission")
+      .values({ projectId, type: "individual", studentId: studentRow.rowId })
+      .execute();
+
+    await db
+      .insertInto("question")
+      .values({ projectId, id: questionId, label: "Q", position: 0 })
+      .execute();
+
+    const question = await db
+      .selectFrom("question")
+      .select("rowId")
+      .where("projectId", "=", projectId)
+      .where("id", "=", questionId)
+      .executeTakeFirstOrThrow();
+
+    const rubricRows = await db
+      .insertInto("rubric")
+      .values({
+        id: rubricId,
+        projectId,
+        questionId: question.rowId,
+        type: "boolean",
+        position: 0,
+        label: "Correct",
+      })
+      .returning("rowId")
+      .execute();
+
+    const rubric = rubricRows[0];
+    if (rubric == null) throw new Error("Expected rubric row");
+
+    await db
+      .insertInto("booleanRubric")
+      .values({ rubricId: rubric.rowId, marks: 1, falseMarks: 0 })
+      .execute();
+
+    return { questionId, rubricId };
+  }
+
+  // Build fixtures; only capture project B's ids for the import rows
+  await buildFixtureInProject(projectAId);
+  const { questionId: questionBId, rubricId: rubricBId } =
+    await buildFixtureInProject(projectBId);
+
+  // Import assessments targeting project B only using project B's rubric column
+  const rows: ImportedAssessmentRow[] = [
+    {
+      submission_type: "individual",
+      submitter: sharedStudentId,
+      [`${questionBId}:${rubricBId}`]: "true",
+    },
+  ];
+
+  await saveAssessments(rows, projectBId);
+
+  // Project A must have zero assessments
+  const projectAAssessments = await db
+    .selectFrom("assessment")
+    .select("id")
+    .where("projectId", "=", projectAId)
+    .execute();
+
+  expect(projectAAssessments).toHaveLength(0);
+
+  // Project B must have exactly one assessment
+  const projectBAssessments = await db
+    .selectFrom("assessment")
+    .select("id")
+    .where("projectId", "=", projectBId)
+    .execute();
+
+  expect(projectBAssessments).toHaveLength(1);
+});
