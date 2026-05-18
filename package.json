@@ -11,6 +11,8 @@
     "start": "dotenvx run --convention=flow -- next start",
     "storybook": "storybook dev -p 6006",
     "storybook:build": "storybook build",
+    "storybook:browser:install": "playwright install chromium",
+    "storybook:browser:install:ci": "playwright install --with-deps chromium --only-shell",
     "test": "vitest run --project=unit --project=integration --project=storybook",
     "test:unit": "vitest run --project=unit",
     "test:integration": "vitest run --project=integration",

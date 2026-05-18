@@ -154,7 +154,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Install Playwright browsers
-        run: pnpm exec playwright install
+        run: pnpm run storybook:browser:install:ci
 
       - name: Storybook tests
         run: pnpm run test:storybook
