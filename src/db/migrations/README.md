@@ -67,7 +67,6 @@ To change the schema: **always create a new migration file.**
 
   Keep the type as narrow as possible — only include the tables and columns actually touched by that migration.
 - Prefer `generatedAlwaysAsIdentity()` over `serial` for auto-increment primary keys (PostgreSQL 10+).
-- Use `sql` tagged template literals (from `kysely`) for raw SQL that cannot be expressed with the schema builder.
 - Test your `down` function before merging — an untested rollback path is a liability.
 - Do not read or write application data inside migrations unless absolutely necessary. Schema changes only.
 - Prefer Kysely’s schema builder and query APIs for migrations. Use raw SQL only for schema changes or database features that cannot be expressed cleanly with Kysely. When raw SQL is used, keep it localized and document the reason if it is not obvious.
