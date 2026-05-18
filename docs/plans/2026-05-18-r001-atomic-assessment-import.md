@@ -3,7 +3,7 @@
 Status: Implemented (local verification complete)
 Date: 2026-05-18
 Owner: Copilot
-Related tracker: docs/plans/2026-05-17-deep-project-audit-and-test-tracker.md (R-001)
+Related tracker: docs/plans/2026-05-18-reliability-hardening-tracker.md (R-001)
 
 ## Objective
 
