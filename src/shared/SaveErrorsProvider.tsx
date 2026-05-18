@@ -1,9 +1,17 @@
 "use client";
 
-import React from "react";
+import {
+  createContext,
+  type ReactNode,
+  useCallback,
+  useContext,
+  useState,
+} from "react";
 
 export type SaveError = {
   id: string;
+  projectId: string;
+  projectSlug: string;
   questionId: string;
   submissionId: string;
   questionLabel?: string;
@@ -17,23 +25,17 @@ type SaveErrorsContextValue = {
   dismissError: (id: string) => void;
 };
 
-const SaveErrorsContext = React.createContext<SaveErrorsContextValue | null>(
-  null,
-);
+const SaveErrorsContext = createContext<SaveErrorsContextValue | null>(null);
 
-export function SaveErrorsProvider({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const [errors, setErrors] = React.useState<SaveError[]>([]);
+export function SaveErrorsProvider({ children }: { children: ReactNode }) {
+  const [errors, setErrors] = useState<SaveError[]>([]);
 
-  const addError = React.useCallback((error: Omit<SaveError, "id">) => {
+  const addError = useCallback((error: Omit<SaveError, "id">) => {
     const id = crypto.randomUUID();
     setErrors((prev) => [...prev, { ...error, id }]);
   }, []);
 
-  const dismissError = React.useCallback((id: string) => {
+  const dismissError = useCallback((id: string) => {
     setErrors((prev) => prev.filter((e) => e.id !== id));
   }, []);
 
@@ -45,7 +47,7 @@ export function SaveErrorsProvider({
 }
 
 export function useSaveErrors(): SaveErrorsContextValue {
-  const ctx = React.useContext(SaveErrorsContext);
+  const ctx = useContext(SaveErrorsContext);
   if (ctx == null) {
     throw new Error("useSaveErrors must be used within SaveErrorsProvider");
   }

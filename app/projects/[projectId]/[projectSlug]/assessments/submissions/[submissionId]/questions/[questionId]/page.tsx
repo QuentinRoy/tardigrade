@@ -10,7 +10,10 @@ import { loadProjectByPublicId } from "@/db/projects";
 import { loadQuestion } from "@/db/questions";
 import { loadSubmissionQuestionProgress } from "@/db/submissionProgress";
 import { loadSubmissions } from "@/db/submissions";
-import { projectAssessmentsPath } from "@/projects/routes";
+import {
+  projectAssessmentSubmissionQuestionPath,
+  projectAssessmentsPath,
+} from "@/projects/routes";
 import { attachAssessment } from "@/rubrics/rubric";
 import CodeSnippet from "@/shared/CodeSnippet";
 import MuiNextLink from "@/shared/MuiNextLink";
@@ -44,7 +47,12 @@ async function ProjectQuestionSubmissionPageContent({
 
   if (project.slug !== projectSlug) {
     redirect(
-      `/projects/${project.publicId}/${project.slug}/assessments/submissions/${submissionId}/questions/${questionId}`,
+      projectAssessmentSubmissionQuestionPath(
+        project.publicId,
+        project.slug,
+        submissionId,
+        questionId,
+      ),
     );
   }
 
@@ -156,6 +164,8 @@ async function SubmissionRubricSection({
   return (
     <SubmissionAssessmentClient
       key={`${questionId}-${submissionId}`}
+      projectId={project.publicId}
+      projectSlug={project.slug}
       questionId={questionId}
       questionLabel={question.label}
       rubrics={rubricsWithAssessments}
