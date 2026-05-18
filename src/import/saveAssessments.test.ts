@@ -63,22 +63,36 @@ async function createAssessmentFixture(
     })
     .execute();
 
-  await db
+  const question = await db
+    .selectFrom("question")
+    .select(["id", "rowId"])
+    .where("projectId", "=", projectId)
+    .where("id", "=", questionId)
+    .executeTakeFirstOrThrow();
+
+  const rubric = await db
     .insertInto("rubric")
     .values({
       id: rubricId,
       projectId,
-      questionId,
+      questionId: question.rowId,
       type: "boolean",
       position: 0,
       label: "Correctness",
     })
+    .returning(["id", "rowId"])
     .execute();
+
+  const createdRubric = rubric[0];
+
+  if (createdRubric == null) {
+    throw new Error("Expected rubric row to be created for fixture setup.");
+  }
 
   await db
     .insertInto("booleanRubric")
     .values({
-      rubricId,
+      rubricId: createdRubric.rowId,
       marks: 2,
       falseMarks: 0,
     })

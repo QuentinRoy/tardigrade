@@ -15,7 +15,7 @@ export async function saveQuestions(
     position,
   }));
 
-  const rubricRows = questions.flatMap((question) =>
+  const rubricSources = questions.flatMap((question) =>
     question.rubrics.map((rubric, position) => ({
       id: rubric.id,
       questionId: question.id,
@@ -26,7 +26,7 @@ export async function saveQuestions(
     })),
   );
 
-  const booleanRubricRows = questions.flatMap((question) =>
+  const booleanRubricSources = questions.flatMap((question) =>
     question.rubrics.flatMap((rubric) =>
       rubric.type === "boolean"
         ? [
@@ -40,7 +40,7 @@ export async function saveQuestions(
     ),
   );
 
-  const numericalRubricRows = questions.flatMap((question) =>
+  const numericalRubricSources = questions.flatMap((question) =>
     question.rubrics.flatMap((rubric) =>
       rubric.type === "numerical"
         ? [
@@ -71,46 +71,21 @@ export async function saveQuestions(
   );
 
   const questionIds = questionsById.map((question) => question.id);
-  const rubricIds = rubricRows.map((rubric) => rubric.id);
+  const rubricIds = rubricSources.map((rubric) => rubric.id);
   const rubricTypeById = new Map(
-    rubricRows.map((rubric) => [rubric.id, rubric.type]),
+    rubricSources.map((rubric) => [rubric.id, rubric.type]),
   );
 
   return db.transaction().execute(async (tx) => {
-    const conflictingQuestions =
-      questionIds.length === 0
-        ? []
-        : await tx
-            .selectFrom("question")
-            .select(["id", "projectId"])
-            .where("id", "in", questionIds)
-            .where("projectId", "!=", projectId)
-            .execute();
-
-    if (conflictingQuestions.length > 0) {
-      throw new Error(
-        `Question ids already belong to another project: ${conflictingQuestions.map((question) => question.id).join(", ")}`,
-      );
-    }
-
     const existingRubrics =
       rubricIds.length === 0
         ? []
         : await tx
             .selectFrom("rubric")
-            .select(["id", "type", "projectId"])
+            .select(["id", "type"])
             .where("id", "in", rubricIds)
+            .where("projectId", "=", projectId)
             .execute();
-
-    const conflictingRubrics = existingRubrics.filter(
-      (rubric) => rubric.projectId !== projectId,
-    );
-
-    if (conflictingRubrics.length > 0) {
-      throw new Error(
-        `Rubric ids already belong to another project: ${conflictingRubrics.map((rubric) => rubric.id).join(", ")}`,
-      );
-    }
 
     const rubricsToRecreate = existingRubrics.flatMap((rubric) => {
       const nextType = rubricTypeById.get(rubric.id);
@@ -125,6 +100,7 @@ export async function saveQuestions(
     if (rubricsToRecreate.length > 0) {
       await tx
         .deleteFrom("rubric")
+        .where("projectId", "=", projectId)
         .where("id", "in", rubricsToRecreate)
         .execute();
     }
@@ -134,41 +110,97 @@ export async function saveQuestions(
         .insertInto("question")
         .values(questionsById.map((question) => ({ ...question, projectId })))
         .onConflict((conflict) =>
-          conflict.column("id").doUpdateSet((expressionBuilder) => ({
-            label: expressionBuilder.ref("excluded.label"),
-            position: expressionBuilder.ref("excluded.position"),
-            projectId: expressionBuilder.ref("excluded.projectId"),
-          })),
+          conflict
+            .columns(["projectId", "id"])
+            .doUpdateSet((expressionBuilder) => ({
+              label: expressionBuilder.ref("excluded.label"),
+              position: expressionBuilder.ref("excluded.position"),
+            })),
         )
         .execute();
     }
 
+    const existingQuestions =
+      questionIds.length === 0
+        ? []
+        : await tx
+            .selectFrom("question")
+            .select(["id", "rowId"])
+            .where("projectId", "=", projectId)
+            .where("id", "in", questionIds)
+            .execute();
+
+    const questionRowIdByBusinessId = new Map(
+      existingQuestions.map((question) => [question.id, question.rowId]),
+    );
+
+    const rubricRows = rubricSources.map((rubric) => {
+      const questionRowId = questionRowIdByBusinessId.get(rubric.questionId);
+
+      if (questionRowId == null) {
+        throw new Error(
+          `Imported rubric '${rubric.id}' references unknown question '${rubric.questionId}'.`,
+        );
+      }
+
+      return {
+        id: rubric.id,
+        questionId: questionRowId,
+        position: rubric.position,
+        description: rubric.description,
+        label: rubric.label,
+        projectId,
+        type: rubric.type,
+      };
+    });
+
     if (rubricRows.length > 0) {
       await tx
         .insertInto("rubric")
-        .values(
-          rubricRows.map((rubric) => ({
-            id: rubric.id,
-            questionId: rubric.questionId,
-            position: rubric.position,
-            description: rubric.description,
-            label: rubric.label,
-            projectId,
-            type: rubric.type,
-          })),
-        )
+        .values(rubricRows)
         .onConflict((conflict) =>
-          conflict.column("id").doUpdateSet((expressionBuilder) => ({
-            questionId: expressionBuilder.ref("excluded.questionId"),
-            position: expressionBuilder.ref("excluded.position"),
-            description: expressionBuilder.ref("excluded.description"),
-            label: expressionBuilder.ref("excluded.label"),
-            projectId: expressionBuilder.ref("excluded.projectId"),
-            type: expressionBuilder.ref("excluded.type"),
-          })),
+          conflict
+            .columns(["projectId", "id"])
+            .doUpdateSet((expressionBuilder) => ({
+              questionId: expressionBuilder.ref("excluded.questionId"),
+              position: expressionBuilder.ref("excluded.position"),
+              description: expressionBuilder.ref("excluded.description"),
+              label: expressionBuilder.ref("excluded.label"),
+              type: expressionBuilder.ref("excluded.type"),
+            })),
         )
         .execute();
     }
+
+    const existingPersistedRubrics =
+      rubricIds.length === 0
+        ? []
+        : await tx
+            .selectFrom("rubric")
+            .select(["id", "rowId"])
+            .where("projectId", "=", projectId)
+            .where("id", "in", rubricIds)
+            .execute();
+
+    const rubricRowIdByBusinessId = new Map(
+      existingPersistedRubrics.map((rubric) => [rubric.id, rubric.rowId]),
+    );
+
+    const booleanRubricRows = booleanRubricSources.map((rubric) => {
+      const rubricRowId = rubricRowIdByBusinessId.get(rubric.rubricId);
+
+      if (rubricRowId == null) {
+        throw new Error(
+          `Imported boolean rubric '${rubric.rubricId}' could not be resolved.`,
+        );
+      }
+
+      return {
+        rubricId: rubricRowId,
+        marks: rubric.marks,
+        falseMarks: rubric.falseMarks,
+      };
+    });
 
     if (booleanRubricRows.length > 0) {
       await tx
@@ -182,6 +214,25 @@ export async function saveQuestions(
         )
         .execute();
     }
+
+    const numericalRubricRows = numericalRubricSources.map((rubric) => {
+      const rubricRowId = rubricRowIdByBusinessId.get(rubric.rubricId);
+
+      if (rubricRowId == null) {
+        throw new Error(
+          `Imported numerical rubric '${rubric.rubricId}' could not be resolved.`,
+        );
+      }
+
+      return {
+        rubricId: rubricRowId,
+        minScore: rubric.minScore,
+        maxScore: rubric.maxScore,
+        minMarks: rubric.minMarks,
+        maxMarks: rubric.maxMarks,
+        reversed: rubric.reversed,
+      };
+    });
 
     if (numericalRubricRows.length > 0) {
       await tx
@@ -200,22 +251,34 @@ export async function saveQuestions(
     }
 
     if (ordinalRubricSources.length > 0) {
+      const ordinalRubricRows = ordinalRubricSources.map((source) => {
+        const rubricRowId = rubricRowIdByBusinessId.get(source.rubricId);
+
+        if (rubricRowId == null) {
+          throw new Error(
+            `Imported ordinal rubric '${source.rubricId}' could not be resolved.`,
+          );
+        }
+
+        return {
+          rubricId: rubricRowId,
+        };
+      });
+
       await tx
         .insertInto("ordinalRubric")
-        .values(
-          ordinalRubricSources.map((source) => ({ rubricId: source.rubricId })),
-        )
+        .values(ordinalRubricRows)
         .onConflict((conflict) => conflict.column("rubricId").doNothing())
         .execute();
+
+      const ordinalRubricIdsToFetch = ordinalRubricRows.map(
+        (source) => source.rubricId,
+      );
 
       const upsertedOrdinalRubrics = await tx
         .selectFrom("ordinalRubric")
         .select(["id", "rubricId"])
-        .where(
-          "rubricId",
-          "in",
-          ordinalRubricSources.map((source) => source.rubricId),
-        )
+        .where("rubricId", "in", ordinalRubricIdsToFetch)
         .execute();
 
       const ordinalRubricIdByRubricId = new Map(
@@ -226,9 +289,10 @@ export async function saveQuestions(
 
       const validPairKeys = new Set(
         ordinalRubricSources.flatMap((source) => {
-          const ordinalRubricId = ordinalRubricIdByRubricId.get(
-            source.rubricId,
-          );
+          const rubricRowId = rubricRowIdByBusinessId.get(source.rubricId);
+          if (rubricRowId == null) return [];
+
+          const ordinalRubricId = ordinalRubricIdByRubricId.get(rubricRowId);
           if (ordinalRubricId == null) return [];
 
           return Object.keys(source.marks).map(
@@ -261,7 +325,10 @@ export async function saveQuestions(
       }
 
       const ordinalValueRows = ordinalRubricSources.flatMap((source) => {
-        const ordinalRubricId = ordinalRubricIdByRubricId.get(source.rubricId);
+        const rubricRowId = rubricRowIdByBusinessId.get(source.rubricId);
+        if (rubricRowId == null) return [];
+
+        const ordinalRubricId = ordinalRubricIdByRubricId.get(rubricRowId);
         if (ordinalRubricId == null) return [];
 
         return Object.entries(source.marks).map(([label, marks]) => ({

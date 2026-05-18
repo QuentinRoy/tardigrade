@@ -205,19 +205,20 @@ export async function saveAssessments(
   const [rubrics, questions] = await Promise.all([
     db
       .selectFrom("rubric")
-      .leftJoin("booleanRubric", "booleanRubric.rubricId", "rubric.id")
-      .leftJoin("ordinalRubric", "ordinalRubric.rubricId", "rubric.id")
+      .innerJoin("question", "question.rowId", "rubric.questionId")
+      .leftJoin("booleanRubric", "booleanRubric.rubricId", "rubric.rowId")
+      .leftJoin("ordinalRubric", "ordinalRubric.rubricId", "rubric.rowId")
       .leftJoin(
         "ordinalRubricValue",
         "ordinalRubricValue.ordinalRubricId",
         "ordinalRubric.id",
       )
-      .leftJoin("numericalRubric", "numericalRubric.rubricId", "rubric.id")
+      .leftJoin("numericalRubric", "numericalRubric.rubricId", "rubric.rowId")
       .where("rubric.projectId", "=", projectId)
       .select([
         "rubric.id",
         "rubric.type",
-        "rubric.questionId",
+        "question.id as questionId",
         "booleanRubric.marks",
         "ordinalRubricValue.label",
         "numericalRubric.minScore",
