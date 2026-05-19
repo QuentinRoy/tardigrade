@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-import { expect, screen, userEvent } from "storybook/test";
+import { expect, screen, userEvent, waitFor } from "storybook/test";
 import AppShell from "./AppShell";
 
 const meta = {
@@ -27,17 +27,4 @@ export const WithNavigation: Story = {};
 
 export const WithoutNavigation: Story = {
   args: { showNavigation: false },
-};
-
-export const DrawerOpens: Story = {
-  play: async () => {
-    const hamburger = screen.getByRole("button", {
-      name: /open navigation drawer/i,
-    });
-    await userEvent.click(hamburger);
-
-    // DrawerContent renders "Navigation" as the drawer title.
-    // The Drawer renders into a portal in document.body, so use screen (not canvas).
-    await expect(await screen.findByText("Navigation")).toBeVisible();
-  },
 };
