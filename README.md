@@ -128,6 +128,103 @@ pnpm db:types:generate
 3. Open `/assessments` to grade by submission or by question.
 4. Use **Export CSV** from the home page to download assessment data.
 
+## GitHub Issue and PR Conventions
+
+Issues and pull requests should be structured enough to support safe review and agent-assisted work without adding unnecessary process overhead.
+
+### Issues
+
+Use issues to capture the problem, intended behavior, and completion criteria before implementation work starts.
+
+Prefer this structure when it fits:
+
+```md
+## Problem
+
+## Current behavior
+
+## Expected behavior
+
+## Possible directions
+
+## Acceptance criteria
+
+## Non-goals
+
+## Possible follow-ups
+```
+
+Not every issue needs every section. Small bugs can be shorter. Larger features, reliability work, migrations, data-model changes, or UX changes should include enough context to make the intended scope and risks clear.
+
+Distinguish investigation issues from implementation issues:
+
+- Investigation issues should compare options, clarify constraints, document a recommendation, and create follow-up implementation issues when appropriate.
+- Implementation issues should define the behavior to build or fix, the relevant scope, and testable acceptance criteria.
+
+### Pull requests
+
+Implementation PRs should usually reference or close an issue. Use `Fixes #...` or `Closes #...` when the PR completes the issue, and use `Related to #...` when it only contributes partial work or documentation.
+
+Prefer this PR structure:
+
+```md
+## Summary
+
+## Related issue
+
+Fixes #
+
+## Plan
+
+- Plan file:
+- User validated plan: yes / explicit bypass / not applicable
+
+## Changes
+
+## Validation
+
+- [ ] pnpm run check --fix
+- [ ] pnpm run check-types
+- [ ] Focused tests:
+- [ ] Integration tests if DB/import/export/routing behavior changed:
+
+## Risk review
+
+- [ ] No existing migration was modified
+- [ ] Project isolation considered
+- [ ] Data-loss/destructive behavior considered
+- [ ] User-visible errors remain actionable
+- [ ] Docs/import/export contracts updated if affected
+
+## Notes
+```
+
+Adapt the checklist to the PR. Documentation-only PRs do not need code validation commands unless they touch executable examples, workflow files, or other checked artifacts.
+
+For code-change tasks, follow the repository agent instructions: create and validate a plan markdown file before editing unless the user explicitly opts out. The PR should link the plan file or state why no plan was needed.
+
+### Labels
+
+Labels should make triage and review easier. Apply labels to both issues and PRs when useful.
+
+Use existing labels whenever they describe the work well enough. Do not introduce new labels lightly, and do not create a new label when an existing label would already do the job. Add a new label only when it represents a recurring distinction that will meaningfully improve triage, filtering, or review.
+
+Use labels along these dimensions:
+
+- Type: what kind of work this is, such as `bug`, `feature`, `refactor`, `documentation`, or `investigation`.
+- Area: which part of the project is affected, such as `ui`, `rubrics`, `assessments`, `import`, `export`, `database`, `projects`, `ci`, `testing`, `accessibility`, or `mobile`.
+- Risk or priority: whether special review is needed, such as `reliability`, `tier-0`, `tier-1`, `security`, or `data-loss-risk`.
+- Process state: whether the work is blocked, needs design, or needs review.
+
+A typical issue or PR should have one type label when possible, one or more area labels when useful, and risk labels only when the work affects correctness, data integrity, migrations, destructive actions, authentication, security, or grading results.
+
+Examples:
+
+- Touch interaction bug in rubric editing: `bug`, `ui`, `rubrics`, `mobile`.
+- Import/export round-trip correctness issue: `reliability`, `testing`, `import`, `export`.
+- Documentation architecture investigation: `documentation`, `investigation`.
+- CI branch protection or workflow change: `ci`, `testing`.
+
 ## Import Formats
 
 ### Questions YAML
