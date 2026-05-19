@@ -13,9 +13,35 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  changes:
+    name: changes
+    runs-on: ubuntu-latest
+    outputs:
+      docs_only: ${{ steps.filter.outputs.docs_only }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Detect docs/plans-only changes
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          predicate-quantifier: every
+          filters: |
+            docs_only:
+              - 'docs/**'
+              - 'plans/**'
+              - 'README.md'
+              - 'AGENTS.md'
+              - 'CONTRIBUTING.md'
+              - 'CHANGELOG.md'
+              - 'LICENSE'
+
   check-types:
     name: check-types
     runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.docs_only != 'true'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -28,6 +54,8 @@ jobs:
   check:
     name: check
     runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.docs_only != 'true'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -40,6 +68,8 @@ jobs:
   test-unit:
     name: test-unit
     runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.docs_only != 'true'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -52,6 +82,8 @@ jobs:
   test-integration:
     name: test-integration
     runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.docs_only != 'true'
 
     services:
       postgres:
@@ -82,6 +114,8 @@ jobs:
   test-storybook:
     name: test-storybook
     runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.docs_only != 'true'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -97,7 +131,8 @@ jobs:
   build:
     name: build
     runs-on: ubuntu-latest
-    needs: [check-types, check, test-unit, test-integration, test-storybook]
+    needs: [changes, check-types, check, test-unit, test-integration, test-storybook]
+    if: needs.changes.outputs.docs_only != 'true'
 
     services:
       postgres:
@@ -128,3 +163,35 @@ jobs:
 
       - name: Build
         run: pnpm run build
+
+  ci-status:
+    name: ci-status
+    runs-on: ubuntu-latest
+    needs: [changes, check-types, check, test-unit, test-integration, test-storybook, build]
+    if: always()
+    steps:
+      - name: Verify CI outcome
+        run: |
+          if [ "${{ needs.changes.result }}" != "success" ]; then
+            echo "Change detection failed."
+            exit 1
+          fi
+
+          if [ "${{ needs.changes.outputs.docs_only }}" = "true" ]; then
+            echo "Docs/plans-only change; expensive CI jobs were skipped."
+            exit 0
+          fi
+
+          for result in \
+            "${{ needs.check-types.result }}" \
+            "${{ needs.check.result }}" \
+            "${{ needs.test-unit.result }}" \
+            "${{ needs.test-integration.result }}" \
+            "${{ needs.test-storybook.result }}" \
+            "${{ needs.build.result }}"
+          do
+            if [ "$result" != "success" ]; then
+              echo "A required CI job did not succeed: $result"
+              exit 1
+            fi
+          done
