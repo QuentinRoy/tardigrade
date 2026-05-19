@@ -1,6 +1,5 @@
 name: Bug report
 description: Report broken behavior or a regression.
-title: ""
 labels: [bug]
 body:
   - type: markdown
