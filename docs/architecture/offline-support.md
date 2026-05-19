@@ -2,26 +2,42 @@
 
 ## Status
 
-Design note / architecture audit.
+Design note / architecture audit for #64, "Investigate optional offline grading mode".
 
-This document audits possible approaches for adding offline support to the grading app, with a focus on storing and synchronizing assessments edited in the browser.
+This is an investigation note, not an implementation plan. It documents a possible long-term direction for optional offline grading support. It should be read as separate from, and lower priority than, the more immediate reliability work tracked in #63 around preventing silent grading-progress loss when the server is unavailable.
 
-The current recommendation is:
+In other words:
+
+- #63 should protect users from losing work when online saves fail;
+- #64 asks whether the app should eventually support a more complete optional offline grading workflow;
+- this document audits what that future workflow could look like, and which implementation approaches would be reasonable.
+
+The current recommendation, if #64 is eventually implemented, is:
 
 > Keep PostgreSQL as the canonical server-side source of truth, and add a browser-side IndexedDB store with an explicit local assessment outbox.
 
-In practice, that means:
+In practice, that would mean:
 
-- use a Service Worker / Workbox-style setup to make the app shell load offline;
 - use IndexedDB, probably through Dexie, for local project and assessment data;
 - store local grading edits as durable domain commands in an outbox;
 - replay those commands to the server when connectivity returns;
 - keep explicit UI states for local save, sync, conflict, and failure;
+- optionally add Service Worker / Workbox support if the app shell itself should load while offline;
 - avoid duplicating the whole domain model or pretending the browser and server databases are the same thing.
 
 ## Context
 
 The grading app is a rubric-based assessment tool. It imports project data, lets a grader assess submissions against rubric items, tracks grading progress, and exports results.
+
+Issue #64 is about a possible optional offline grading mode. The motivating workflow is:
+
+- assessment changes are stored locally;
+- grading remains usable without a server connection;
+- changes are queued;
+- synchronization occurs automatically when connectivity returns;
+- conflicts, if any, are detected and surfaced.
+
+This is related to reliability, but it is a larger scope than simply preventing data loss when a save request fails. A smaller reliability fix might queue failed edits or warn users before they navigate away. A real offline mode implies local project data, local assessment state, synchronization, conflict handling, and UI semantics for local-vs-server state.
 
 Offline support is valuable because grading may happen:
 
@@ -39,8 +55,14 @@ Assessment data is high-value data. Losing edits is worse than showing slightly 
 
 ## Goals
 
+For #64, the goal would be to allow grading work to continue while disconnected or while the server is temporarily unavailable, with synchronization occurring later.
+
+More concretely:
+
 - Allow graders to continue editing assessment values when offline or temporarily disconnected.
 - Persist unsynced assessment edits durably in the browser.
+- Queue assessment changes explicitly rather than keeping them only in memory.
+- Synchronize queued changes when connectivity returns.
 - Keep the server-side PostgreSQL database as the canonical source of truth.
 - Avoid silently losing or overwriting grades.
 - Avoid building two unrelated domain models.
@@ -64,6 +86,8 @@ At least for the first offline implementation, this should not try to provide:
 
 Offline support should initially be scoped to project snapshots and assessment edits.
 
+This should also not replace the simpler protections tracked in #63. If a minimal data-loss prevention fix is needed, it should probably happen first, even if the eventual offline design is broader.
+
 ## Summary recommendation
 
 Use:
@@ -76,7 +100,7 @@ Browser local DB:
   IndexedDB via Dexie
 
 Offline app loading:
-  Service Worker / Workbox or equivalent
+  Service Worker / Workbox or equivalent, only if broader offline app-shell support is needed
 
 Sync model:
   Explicit assessment mutation outbox
@@ -138,7 +162,7 @@ The browser store should not mirror the entire server schema table-for-table unl
 
 ### 1. Offline app shell
 
-The application shell should be available offline so that a grader can reopen the app even without connectivity.
+The application shell only needs to be available offline if the goal is a complete offline mode where a grader can reopen the app while disconnected.
 
 This is typically handled with:
 
@@ -150,6 +174,8 @@ This is typically handled with:
 This layer should only be responsible for loading the app. It should not be the main place where assessment data is stored.
 
 Do not store assessment data in the Cache API. The Cache API is for HTTP responses and assets, not for domain data.
+
+For a first #64 implementation, app-shell offline support can be deferred if the narrower target is only to protect edits made during a temporary connection loss while the app is already open.
 
 ### 2. Browser local database
 
@@ -430,6 +456,18 @@ type AssessmentRevision = {
 A command should include the base revision that the client saw when the edit was made.
 
 This allows the server to detect stale edits.
+
+## Relationship with #63
+
+The offline architecture described here is broader than the immediate data-loss protection in #63.
+
+A likely sequencing is:
+
+1. First, implement #63-level safeguards: failed save detection, visible errors, and protection against silently losing in-memory edits when the server is unavailable.
+2. Then, if offline grading remains desirable, implement a small durable client-side queue for assessment edits.
+3. Only later, consider full optional offline mode with project snapshots, app-shell caching, and conflict resolution.
+
+This document mainly describes steps 2 and 3. It should not be interpreted as saying that #63 requires a full offline architecture.
 
 ## Conflict strategy
 
@@ -1104,21 +1142,52 @@ The Cache API is for HTTP requests/responses. It is appropriate for assets and m
 
 ## Recommended phased implementation
 
-### Phase 1: Safe offline draft mode
+### Phase 0: Immediate data-loss protection (#63)
 
 Goal:
 
-> Users can grade offline for an already-opened/downloaded project, and changes are saved locally until synced.
+> Prevent silent loss of grading progress when the server is unavailable, without implementing a full offline mode.
+
+This could include:
+
+- clear failed-save detection;
+- visible error state when a save fails;
+- retry affordance;
+- navigation/reload warning while unsaved or failed changes exist;
+- possibly a minimal in-memory or local fallback for failed edits.
+
+This phase is not the same as #64, but it should likely come first.
+
+### Phase 1: Durable local queue for assessment edits
+
+Goal:
+
+> Assessment changes made while the app is open are saved locally if the server is temporarily unavailable, then retried later.
 
 Scope:
 
-- project snapshot stored in IndexedDB;
 - assessment edits stored locally;
 - outbox commands stored locally;
 - sync on reconnect/app open/manual retry;
 - visible sync status;
 - local backup export;
 - block final export if unsynced changes exist.
+
+This phase may not require full app-shell offline support yet.
+
+### Phase 2: Safe optional offline grading mode
+
+Goal:
+
+> Users can grade offline for an already-opened/downloaded project, and changes are saved locally until synced.
+
+Additional scope:
+
+- project snapshot stored in IndexedDB;
+- offline project availability state;
+- explicit "available offline" or equivalent behavior;
+- app can render grading screens from local project data;
+- synchronization updates both local state and server state.
 
 Implementation pieces:
 
@@ -1150,7 +1219,7 @@ Tests:
 - accepted command clears dirty state;
 - local backup includes all pending commands.
 
-### Phase 2: Conflict and audit hardening
+### Phase 3: Conflict and audit hardening
 
 Goal:
 
@@ -1197,20 +1266,21 @@ type ResolveAssessmentConflictCommand =
     };
 ```
 
-### Phase 3: Broader offline support
+### Phase 4: Broader offline support
 
-Only after Phase 1 and Phase 2 are stable, consider:
+Only after the previous phases are stable, consider:
 
 - offline project selection from previously opened projects;
 - offline comments;
 - offline rubric browsing;
 - offline progress dashboard;
 - offline export draft;
-- pre-download project for offline use.
+- pre-download project for offline use;
+- app-shell loading through Service Worker / Workbox.
 
 Be careful with offline project/rubric editing. Changes to rubric structure can invalidate assessment commands. It is much safer to make rubric/project configuration online-only initially.
 
-### Phase 4: Re-evaluate heavier local-first frameworks
+### Phase 5: Re-evaluate heavier local-first frameworks
 
 If the custom Dexie/outbox approach becomes insufficient, re-evaluate:
 
@@ -1577,7 +1647,7 @@ Expected behavior:
 
 ## Decision
 
-For the first implementation, use:
+For #64, if optional offline grading mode is eventually implemented, use:
 
 ```txt
 Dexie + IndexedDB + local assessment projection + mutation outbox + server sync endpoint.
