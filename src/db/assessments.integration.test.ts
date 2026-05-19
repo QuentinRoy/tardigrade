@@ -14,6 +14,7 @@ vi.mock("next/cache", () => ({
 const { test, expect } = createIntegrationTest(import.meta.url);
 
 type AssessmentFixture = {
+  projectId: number;
   questionId: string;
   studentId: string;
   studentRowId: number;
@@ -25,15 +26,28 @@ type AssessmentFixture = {
   };
 };
 
+type AssessmentFixtureOptions = {
+  questionId?: string;
+  rubricIds?: {
+    boolean: string;
+    ordinal: string;
+    numerical: string;
+  };
+};
+
 async function createAssessmentFixture(
   db: Kysely<DB>,
   projectId: number,
+  options?: AssessmentFixtureOptions,
 ): Promise<AssessmentFixture> {
-  const questionId = buildTestId("q");
+  const questionId = options?.questionId ?? buildTestId("q");
   const studentId = buildTestId("student");
-  const booleanRubricId = buildTestId("rubric-boolean");
-  const ordinalRubricId = buildTestId("rubric-ordinal");
-  const numericalRubricId = buildTestId("rubric-numerical");
+  const booleanRubricId =
+    options?.rubricIds?.boolean ?? buildTestId("rubric-boolean");
+  const ordinalRubricId =
+    options?.rubricIds?.ordinal ?? buildTestId("rubric-ordinal");
+  const numericalRubricId =
+    options?.rubricIds?.numerical ?? buildTestId("rubric-numerical");
 
   await db
     .insertInto("student")
@@ -170,6 +184,7 @@ async function createAssessmentFixture(
     .execute();
 
   const fixture = {
+    projectId,
     questionId,
     studentId,
     studentRowId: studentRow.rowId,
@@ -195,6 +210,7 @@ async function cleanupFixture(
 
   await db
     .deleteFrom("question")
+    .where("projectId", "=", fixture.projectId)
     .where("id", "=", fixture.questionId)
     .execute();
 
@@ -304,7 +320,8 @@ describe("assessment DB integration", () => {
 
       expect(result).toEqual({
         success: false,
-        error: "Invalid ordinal value.",
+        error:
+          "That option is no longer available. Reload and choose another option.",
       });
     } finally {
       await cleanupFixture(db, fixture);
@@ -333,10 +350,120 @@ describe("assessment DB integration", () => {
 
       expect(result).toEqual({
         success: false,
-        error: "Score must be at most 10.",
+        error: "Enter a score of at most 10.",
       });
     } finally {
       await cleanupFixture(db, fixture);
+    }
+  });
+
+  test("saves assessments in the correct project when question and rubric ids collide", async ({
+    db,
+    createProject,
+  }) => {
+    vi.doMock("./kysely", () => ({ db }));
+    const { loadAssessment, saveAssessment } = await import("./assessments");
+    const projectA = await createProject("Assessment Collision Project A");
+    const projectB = await createProject("Assessment Collision Project B");
+    const sharedQuestionId = buildTestId("shared-question");
+    const sharedRubricIds = {
+      boolean: buildTestId("shared-rubric-boolean"),
+      ordinal: buildTestId("shared-rubric-ordinal"),
+      numerical: buildTestId("shared-rubric-numerical"),
+    };
+
+    let fixtureA: AssessmentFixture | null = null;
+    let fixtureB: AssessmentFixture | null = null;
+
+    try {
+      fixtureA = await createAssessmentFixture(db, projectA, {
+        questionId: sharedQuestionId,
+        rubricIds: sharedRubricIds,
+      });
+      fixtureB = await createAssessmentFixture(db, projectB, {
+        questionId: sharedQuestionId,
+        rubricIds: sharedRubricIds,
+      });
+
+      const result = await saveAssessment({
+        submissionId: fixtureB.submissionId,
+        questionId: fixtureB.questionId,
+        rubric: {
+          rubricId: fixtureB.rubricIds.boolean,
+          type: "boolean",
+          passed: true,
+        },
+      });
+
+      expect(result).toEqual({ success: true });
+
+      const projectBAssessment = await loadAssessment(
+        fixtureB.submissionId,
+        fixtureB.questionId,
+      );
+      expect(projectBAssessment).toEqual([
+        {
+          rubricId: fixtureB.rubricIds.boolean,
+          type: "boolean",
+          passed: true,
+        },
+      ]);
+
+      const projectAAssessment = await loadAssessment(
+        fixtureA.submissionId,
+        fixtureA.questionId,
+      );
+      expect(projectAAssessment).toEqual([]);
+    } finally {
+      if (fixtureB != null) {
+        await cleanupFixture(db, fixtureB);
+      }
+
+      if (fixtureA != null) {
+        await cleanupFixture(db, fixtureA);
+      }
+    }
+  });
+
+  test("rejects cross-project submission and question combinations", async ({
+    db,
+    createProject,
+  }) => {
+    vi.doMock("./kysely", () => ({ db }));
+    const { saveAssessment } = await import("./assessments");
+    const projectA = await createProject("Assessment Isolation Project A");
+    const projectB = await createProject("Assessment Isolation Project B");
+
+    let fixtureA: AssessmentFixture | null = null;
+    let fixtureB: AssessmentFixture | null = null;
+
+    try {
+      fixtureA = await createAssessmentFixture(db, projectA);
+      fixtureB = await createAssessmentFixture(db, projectB);
+
+      const result = await saveAssessment({
+        submissionId: fixtureA.submissionId,
+        questionId: fixtureB.questionId,
+        rubric: {
+          rubricId: fixtureB.rubricIds.boolean,
+          type: "boolean",
+          passed: true,
+        },
+      });
+
+      expect(result).toEqual({
+        success: false,
+        error:
+          "We couldn't match this grade to the selected student work. Reload and try again. If this keeps happening, report this issue.",
+      });
+    } finally {
+      if (fixtureB != null) {
+        await cleanupFixture(db, fixtureB);
+      }
+
+      if (fixtureA != null) {
+        await cleanupFixture(db, fixtureA);
+      }
     }
   });
 });

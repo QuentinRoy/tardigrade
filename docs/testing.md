@@ -33,3 +33,11 @@ pnpm run test:integration
 ```
 
 When `TEST_DATABASE_URL` is set, global setup skips Docker Compose and uses that database.
+
+## User-Facing Error Assertions
+
+When tests cover user-visible errors, prefer plain-language assertions that include a clear recovery step (for example: reload and retry, edit the input and retry, or report the issue if it persists).
+
+For critical save flows, keep integration coverage for these messages so regressions are caught when query scoping or validation rules change.
+
+For future i18n support, avoid scattering one-off message strings across unrelated modules. Keep message ownership centralized per feature area so migration to translation keys is straightforward.
