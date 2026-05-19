@@ -1,0 +1,70 @@
+name: Bug report
+description: Report broken behavior or a regression.
+title: ""
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template for observed broken behavior. Keep the issue short when the bug is simple, but include enough context to reproduce and verify the fix.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What is broken? Why does it matter?
+      placeholder: Describe the bug and its impact.
+    validations:
+      required: true
+
+  - type: textarea
+    id: current-behavior
+    attributes:
+      label: Current behavior
+      description: What happens now?
+      placeholder: Describe the observed behavior.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected behavior
+      description: What should happen instead?
+      placeholder: Describe the intended behavior.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction / context
+      description: Steps, environment, screenshots, logs, or links that help reproduce or understand the issue.
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+
+  - type: textarea
+    id: possible-directions
+    attributes:
+      label: Possible directions
+      description: Optional notes about likely causes or possible fixes.
+      placeholder: Optional.
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance criteria
+      description: What must be true for this issue to be considered fixed?
+      value: |
+        - [ ]
+    validations:
+      required: true
+
+  - type: textarea
+    id: labels
+    attributes:
+      label: Labels to consider
+      description: Add existing area/risk labels when useful. Do not introduce new labels lightly when existing labels already fit.
+      placeholder: ui, rubrics, import, export, database, testing, reliability, etc.
