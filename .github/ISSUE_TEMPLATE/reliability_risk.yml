@@ -1,0 +1,48 @@
+name: Reliability risk
+description: Track a correctness, data safety, or regression-prevention risk.
+title: "[Tier ?] R-???: "
+labels: [reliability]
+body:
+  - type: textarea
+    id: risk
+    attributes:
+      label: Risk
+      description: What could go wrong, and why does it matter?
+    validations:
+      required: true
+
+  - type: input
+    id: score
+    attributes:
+      label: Score
+      description: Optional risk score or priority rationale.
+      placeholder: Impact x Likelihood x Detectability
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Relevant files, tests, user reports, audit notes, or links.
+      value: |
+        -
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance criteria
+      value: |
+        - [ ]
+    validations:
+      required: true
+
+  - type: textarea
+    id: related-audit
+    attributes:
+      label: Related audit / plan
+      description: Link the reliability tracker, plan file, or investigation if applicable.
+
+  - type: textarea
+    id: labels
+    attributes:
+      label: Labels to consider
+      description: Add existing tier, area, or testing labels when useful. Do not introduce new labels lightly when existing labels already fit.
