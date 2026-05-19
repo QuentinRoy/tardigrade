@@ -21,6 +21,10 @@
 - Never surface framework/internal control-flow errors (for example `NEXT_REDIRECT`) to users.
 - Every user-visible error should include a clear recovery path (for example "edit the input and retry", "reload and retry", or "contact support if the problem persists").
 
+## Architecture
+
+- For elements that require DOM IDs, such as `aria-controls` / target `id` pairs or form inputs / labels, prefer React `useId()` over hard-coded global IDs to avoid collisions. Derived IDs are acceptable when multiple related IDs are needed, for example `${id}-name` and `${id}-email`. However, do **not** use `useId()` for React list keys, database IDs, persisted identifiers, or IDs that must remain stable across sessions.
+
 ## Performance
 
 - Avoid successive asynchronous operations that can be run in parallel. For example, if you need to fetch data from multiple APIs, use `Promise.all` to fetch them concurrently instead of awaiting each one sequentially.
