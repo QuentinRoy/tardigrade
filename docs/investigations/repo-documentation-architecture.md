@@ -549,23 +549,62 @@ Completed
 Abandoned
 ```
 
-Current recommendation (Option A): keep plan history and avoid deletion by default.
+Plans can be deleted or moved to `plans/completed/` when no longer useful. They do not need to remain pristine.
 
-Under Option A:
+### Aborted plans
 
-- active plans stay in `plans/active/`;
-- completed plans move to `plans/completed/`;
-- abandoned plans are marked explicitly, but retained until there is a clearer archival policy.
+Plans are temporary execution artifacts. An aborted plan should not remain in `plans/active/`.
 
-Alternative hypothesis (Option B): allow selective deletion of non-relevant plans after triage.
+When a plan is abandoned, choose the lightest useful outcome:
 
-Option B is still under investigation. It may reduce clutter, but it risks losing implementation context that can still help future agent-assisted work.
+- delete it if it contains no reusable information;
+- close the related issue or PR as not planned or superseded, with a short explanation;
+- extract reusable findings into an investigation, design doc, or ADR if the work revealed durable constraints or trade-offs;
+- move it to `plans/abandoned/` only when the failed approach is likely to be revisited and the original checklist remains useful historical context.
 
-Ambiguity to resolve in follow-up investigation:
+The default should be to extract durable knowledge, then remove the abandoned execution plan. A failed checklist is usually less useful than a short note in the relevant issue, PR, investigation, or design document.
 
-- how abandoned plans should be represented (`Status: Abandoned` only, or status plus naming/tagging convention);
-- whether abandoned plans should live alongside completed plans or under a separate archival location;
-- what minimum metadata is required before any plan can be considered non-relevant.
+If `plans/abandoned/` is used, abandoned plans must start with explicit warning metadata:
+
+```md
+Status: Abandoned
+Date: YYYY-MM-DD
+Related: #issue, PR #number
+Abandoned date: YYYY-MM-DD
+Reason: ...
+Superseded by: #issue, PR #number, or document path
+```
+
+They should also include a short warning:
+
+```md
+Do not implement this plan as written. It is preserved only to document a rejected or superseded approach.
+```
+
+Do not create ADRs for abandoned plans unless the abandonment itself represents a durable architectural decision. Prefer an investigation section such as “Rejected approaches” or “Dead ends” for failed options.
+
+Good abandoned-plan outcomes:
+
+```txt
+plans/active/feature-x.md
+  -> delete, because the plan was never used and contains no reusable information
+
+plans/active/feature-y.md
+  -> close related PR as superseded by PR #123
+
+plans/active/feature-z.md
+  -> extract findings to docs/investigations/feature-z.md
+  -> delete the plan
+
+plans/active/feature-w.md
+  -> plans/abandoned/feature-w.md
+  -> only if the failed approach is likely to be revisited
+```
+
+The goal is to avoid both extremes:
+
+- losing useful context from failed work;
+- accumulating stale plans that agents may mistake for current instructions.
 
 ## Agent-specific documentation
 
@@ -921,8 +960,7 @@ Mitigation:
 
 - Should this repository use `docs/architecture/` at all, or replace it with the more specific `adr/`, `design/`, and `investigations/` categories?
 - Should active plans be required for every code change, or only for non-trivial changes?
-- For plans lifecycle, should the repository keep Option A (retain plans, no deletion by default), or adopt Option B (allow selective deletion after triage)?
-- Where should abandoned plans live in practice: within `plans/completed/`, within a separate archival location, or with another status/location model?
+- Should `plans/completed/` be kept long-term, or should completed plans usually be deleted after merge?
 - Should `AGENTS.md` be the only agent instruction file, or should there also be tool-specific files for Copilot, Claude Code, or Cursor?
 - Should documentation status be free text or a small controlled vocabulary?
 - Should PR templates ask whether docs, ADRs, or plans were updated?
