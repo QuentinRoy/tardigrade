@@ -4,6 +4,14 @@ This document defines conventions used for repository collaboration artifacts su
 
 GitHub is currently the platform used by this repository, but these conventions are intended to remain portable across repository hosting platforms.
 
+## Templates
+
+Issue and PR templates are intended to provide useful structure where it improves consistency or reduces missing information.
+
+Templates should guide contributors, not force information that may be unknown or encourage placeholder content.
+
+Use structured templates when information is consistently expected (for example bug reports or feature requests). Prefer free-form issues when work varies substantially or when a template could encourage unsupported assumptions or artificial relationships.
+
 ## Labels
 
 Labels are shared across issues and pull/merge requests.
