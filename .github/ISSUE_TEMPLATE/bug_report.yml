@@ -61,9 +61,8 @@ body:
     validations:
       required: true
 
-  - type: textarea
-    id: labels
+  - type: markdown
     attributes:
-      label: Labels to consider
-      description: Add existing area/risk labels when useful. Do not introduce new labels lightly when existing labels already fit.
-      placeholder: ui, rubrics, import, export, database, testing, reliability, etc.
+      value: |
+        Labels are metadata. Do not list labels in the issue body.
+        Apply existing labels in GitHub UI/CLI (for example: `gh issue edit <number> --add-label <label>`).

@@ -44,8 +44,7 @@ body:
       label: Non-goals
       description: What should intentionally remain out of scope?
 
-  - type: textarea
-    id: labels
+  - type: markdown
     attributes:
       label: Labels to consider
       description: Prefer existing area/risk labels. Add a new label only when it is likely to be reused and improves triage or review.

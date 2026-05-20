@@ -38,9 +38,9 @@ Related to #
 - [ ] User-visible errors remain actionable
 - [ ] Docs/import/export contracts updated if affected
 
-## Labels
+## Labels (metadata)
 
-<!-- Apply existing labels to issues and PRs when useful. Do not introduce new labels lightly; prefer existing labels when they describe the work well enough. -->
+<!-- Do not list labels in this PR body. Apply labels via GitHub metadata (UI or CLI), for example: `gh pr edit --add-label <label>`. Prefer existing labels and do not introduce new labels lightly. -->
 
 ## Notes
 

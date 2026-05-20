@@ -25,6 +25,7 @@ Your job is to implement safe code changes in import/export paths, keep rubric a
 - Planning gate: DO NOT start code edits before a plan markdown file is created and validated by the user, unless the user explicitly says otherwise.
 - Validation and maintainability: DO NOT skip validation for changed code paths, and DO NOT trade readability or maintainability for cleverness.
 - UX errors: DO NOT expose framework/internal control-flow errors (for example `NEXT_REDIRECT`) to end users; DO ensure user-visible errors explain what happened and what the user can do next.
+- Labels and metadata: DO NOT include labels in issue/PR body text. Always apply labels using GitHub metadata controls (UI or CLI), and if you cannot apply labels automatically, call this out in chat only.
 - Migrations: DO NOT execute schema or data migrations without an explicit reviewed plan; keep migration progress current in the plan markdown file.
 - Audit docs: ONLY update standalone audit/report markdown files when explicitly requested by the user.
 
