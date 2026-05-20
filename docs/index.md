@@ -25,12 +25,14 @@ Implementation plans for a chosen approach.
 Durable facts about current system behavior, formats, and contracts.
 
 - [Database migrations](reference/database-migrations.md)
+- [Testing conventions](reference/testing-conventions.md)
 - Add new reference docs under `docs/reference/`.
 
 ## Guides
 
 Procedural how-to documentation for humans.
 
+- [Running integration tests](guides/running-integration-tests.md)
 - Add new guides under `docs/guides/`.
 
 ## Execution plans
