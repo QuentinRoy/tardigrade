@@ -8,9 +8,9 @@ GitHub is currently the platform used by this repository, but these conventions 
 
 Issue and PR templates are intended to provide useful structure where it improves consistency or reduces missing information.
 
-Templates should guide contributors, not force information that may be unknown or encourage placeholder content.
+In most cases, existing templates should be used.
 
-Use structured templates when information is consistently expected (for example bug reports or feature requests). Prefer free-form issues when work varies substantially or when a template could encourage unsupported assumptions or artificial relationships.
+Templates should guide contributors, but sections should not be completed with invented information solely to satisfy the template. If a section is not applicable or the information is unknown, explicitly state that rather than introducing unsupported assumptions or artificial relationships.
 
 ## Labels
 
