@@ -1,0 +1,46 @@
+name: General issue
+description: Propose a feature, task, investigation, or other non-bug issue.
+title: ""
+body:
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: What motivates this issue?
+    validations:
+      required: true
+
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+      description: What should be true when this is done?
+    validations:
+      required: true
+
+  - type: textarea
+    id: direction
+    attributes:
+      label: Possible direction
+      description: Optional implementation notes, options to investigate, constraints, or relevant code paths.
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance criteria
+      value: |
+        - [ ]
+    validations:
+      required: true
+
+  - type: textarea
+    id: non-goals
+    attributes:
+      label: Non-goals
+      description: What should intentionally remain out of scope?
+
+  - type: markdown
+    attributes:
+      value: |
+        Labels are metadata. Do not list labels in the issue body.
+        Apply existing labels in GitHub UI/CLI (for example: `gh issue edit <number> --add-label <label>`).
