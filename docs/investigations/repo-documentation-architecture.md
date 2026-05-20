@@ -551,6 +551,61 @@ Abandoned
 
 Plans can be deleted or moved to `plans/completed/` when no longer useful. They do not need to remain pristine.
 
+### Aborted plans
+
+Plans are temporary execution artifacts. An aborted plan should not remain in `plans/active/`.
+
+When a plan is abandoned, choose the lightest useful outcome:
+
+- delete it if it contains no reusable information;
+- close the related issue or PR as not planned or superseded, with a short explanation;
+- extract reusable findings into an investigation, design doc, or ADR if the work revealed durable constraints or trade-offs;
+- move it to `plans/abandoned/` only when the failed approach is likely to be revisited and the original checklist remains useful historical context.
+
+The default should be to extract durable knowledge, then remove the abandoned execution plan. A failed checklist is usually less useful than a short note in the relevant issue, PR, investigation, or design document.
+
+If `plans/abandoned/` is used, abandoned plans must start with explicit warning metadata:
+
+```md
+Status: Abandoned
+Date: YYYY-MM-DD
+Related: #issue, PR #number
+Abandoned date: YYYY-MM-DD
+Reason: ...
+Superseded by: #issue, PR #number, or document path
+```
+
+They should also include a short warning:
+
+```md
+Do not implement this plan as written. It is preserved only to document a rejected or superseded approach.
+```
+
+Do not create ADRs for abandoned plans unless the abandonment itself represents a durable architectural decision. Prefer an investigation section such as “Rejected approaches” or “Dead ends” for failed options.
+
+Good abandoned-plan outcomes:
+
+```txt
+plans/active/feature-x.md
+  -> delete, because the plan was never used and contains no reusable information
+
+plans/active/feature-y.md
+  -> close related PR as superseded by PR #123
+
+plans/active/feature-z.md
+  -> extract findings to docs/investigations/feature-z.md
+  -> delete the plan
+
+plans/active/feature-w.md
+  -> plans/abandoned/feature-w.md
+  -> only if the failed approach is likely to be revisited
+```
+
+The goal is to avoid both extremes:
+
+- losing useful context from failed work;
+- accumulating stale plans that agents may mistake for current instructions.
+
 ## Agent-specific documentation
 
 ### AGENTS.md
@@ -782,14 +837,12 @@ README.md
 AGENTS.md
 
 docs/
-  index.md
   investigations/
-    offline-grading-mode.md
-    repo-documentation-architecture.md
   adr/
   design/
   reference/
   guides/
+  index.md
 
 plans/
   active/
