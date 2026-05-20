@@ -6,9 +6,23 @@ Related issue: #99
 
 This document captures current investigation results around terminology and domain modeling.
 
-This document is intentionally not exhaustive or final. Future work and discoveries are expected.
+This document is intentionally not exhaustive or final.
+
+Purpose:
+- preserve rationale
+- track evolving thinking
+- avoid issue descriptions becoming design documents
+- provide a reference for contributors and coding agents
+
+Future work and discoveries are expected.
+
+---
 
 ## Current working model
+
+Status: Working assumption
+Confidence: Medium
+Decision owner: TBD
 
 Question -> Rubric -> Mark -> Question grade -> Final grade
 
@@ -16,7 +30,13 @@ Current understanding: a rubric itself appears to represent a single grading dim
 
 Avoid introducing criterion or rubric row terminology unless an actual hierarchy exists.
 
+---
+
 ## Group terminology
+
+Status: Proposed
+Confidence: Medium
+Decision owner: TBD
 
 Working direction: prefer group over team.
 
@@ -29,18 +49,30 @@ Reasons:
 Potential direction:
 Student -> Group -> Assessment
 
+---
+
 ## Individual versus grouped assessment
+
+Status: Investigation
+Confidence: Low
+Decision owner: TBD
 
 Current UI distinguishes them.
 
 Potential direction:
 Persistence uses Group as the assessment target.
-UI can distinguish singleton groups from multi-student groups.
+UI distinguishes singleton groups from multi-student groups.
 
 Guiding principle:
 Do not force workflow distinctions into persistence unless they represent stable domain invariants.
 
+---
+
 ## Mark versus grade
+
+Status: Proposed
+Confidence: Medium
+Decision owner: TBD
 
 Current concern:
 Boolean and ordinal rubrics directly produce grading values while numerical rubrics introduce score.
@@ -62,7 +94,13 @@ Final grade:
 Raw score:
 - optional measured value for some rubric implementations
 
+---
+
 ## Weighting
+
+Status: Investigation
+Confidence: Low
+Decision owner: TBD
 
 Potential direction:
 Rubric results provide mark and weight.
@@ -73,6 +111,10 @@ Open questions:
 - whether weighting belongs at rubric or question level
 - whether normalization is useful
 
+---
+
 ## Notes
 
-This document represents current thinking, not decisions.
+This document captures current thinking, not decisions.
+
+When discussions evolve, update this investigation rather than growing issue #99 indefinitely.
