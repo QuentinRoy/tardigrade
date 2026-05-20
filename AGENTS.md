@@ -1,5 +1,10 @@
 # Instructions for Agents
 
+## Repository workflow conventions
+
+- Treat `README.md` as the canonical source for GitHub issue, pull request, label, and repository workflow conventions.
+- Before creating or modifying GitHub issues, labels, issue templates, or pull requests, consult the relevant README conventions instead of duplicating taxonomy or checklist rules here.
+
 ## Styling
 
 - Use vertical spacing in one direction only: prefer bottom spacing over top spacing.
