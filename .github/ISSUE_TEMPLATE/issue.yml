@@ -1,12 +1,16 @@
-name: General issue
-description: Propose a feature, task, investigation, or other non-bug issue.
-title: ""
+name: Task / Investigation
+description: Track planned work, technical debt, refactoring, or questions to investigate.
 body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template for work that is not a bug and not primarily a new product capability.
+
   - type: textarea
     id: context
     attributes:
       label: Context
-      description: What motivates this issue?
+      description: What motivates this task or investigation?
     validations:
       required: true
 
@@ -22,12 +26,13 @@ body:
     id: direction
     attributes:
       label: Possible direction
-      description: Optional implementation notes, options to investigate, constraints, or relevant code paths.
+      description: Optional implementation notes, questions to investigate, constraints, or relevant code paths.
 
   - type: textarea
     id: acceptance-criteria
     attributes:
       label: Acceptance criteria
+      description: What must be true for this issue to be considered done?
       value: |
         - [ ]
     validations:
@@ -41,6 +46,6 @@ body:
 
   - type: markdown
     attributes:
-      value: |
-        Labels are metadata. Do not list labels in the issue body.
-        Apply existing labels in GitHub UI/CLI (for example: `gh issue edit <number> --add-label <label>`).
+      label: Labels to consider
+      description: Prefer existing area/risk labels. Add a new label only when it is likely to be reused and improves triage or review.
+      placeholder: ui, rubrics, import, export, database, testing, reliability, etc.

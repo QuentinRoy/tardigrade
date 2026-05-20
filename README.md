@@ -134,27 +134,16 @@ Issues and pull requests should be structured enough to support safe review and 
 
 ### Issues
 
-Use issues to capture the problem, intended behavior, and completion criteria before implementation work starts.
+Use the repository issue templates when creating issues:
 
-Prefer this structure when it fits:
+- **Bug report**: broken behavior or regressions. Automatically applies `bug`.
+- **Feature request**: new capabilities or workflow improvements. Automatically applies `feature`.
+- **Task / Investigation**: planned work, technical debt, refactoring, or questions to investigate before implementation.
+- **Blank issue**: uncategorized notes, discussions, or edge cases that do not fit the structured templates.
 
-```md
-## Problem
+Prefer the structured templates when they fit. Use blank issues as an escape hatch, not as the default path around the templates.
 
-## Current behavior
-
-## Expected behavior
-
-## Possible directions
-
-## Acceptance criteria
-
-## Non-goals
-
-## Possible follow-ups
-```
-
-Not every issue needs every section. Small bugs can be shorter. Larger features, reliability work, migrations, data-model changes, or UX changes should include enough context to make the intended scope and risks clear.
+Issue descriptions should capture the problem, intended behavior, and completion criteria before implementation work starts. Not every issue needs every section. Small bugs can be shorter. Larger features, reliability work, migrations, data-model changes, or UX changes should include enough context to make the intended scope and risks clear.
 
 Distinguish investigation issues from implementation issues:
 
@@ -205,7 +194,7 @@ For code-change tasks, follow the repository agent instructions: create and vali
 
 ### Labels
 
-Labels should make triage and review easier. Apply labels to both issues and PRs when useful.
+Labels should make triage and review easier. Apply labels to both issues and PRs when useful. Issue templates apply some type labels automatically, but additional labels may still be useful.
 
 Use existing labels whenever they describe the work well enough. Do not introduce new labels lightly, and do not create a new label when an existing label would already do the job. Add a new label only when it represents a recurring distinction that will meaningfully improve triage, filtering, or review.
 
