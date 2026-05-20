@@ -4,9 +4,9 @@ Related issue: #99
 
 ## Status
 
-This document captures current investigation results around terminology and domain modeling.
+This document is the entry point for current investigation results around terminology and domain modeling.
 
-This document is intentionally not exhaustive or final.
+It is intentionally not exhaustive or final. It contains observations, hypotheses, and candidate directions. Presence here does not imply adoption.
 
 Purpose:
 - preserve rationale
@@ -20,7 +20,7 @@ Future work and discoveries are expected.
 
 ---
 
-## How to read this document
+## How to read investigation documents
 
 Status labels:
 - Working assumption: currently useful model, not yet formally decided
@@ -33,7 +33,14 @@ Confidence labels:
 - Medium: reasonable current direction, but still needs validation
 - Low: speculative or incomplete
 
-This document is not an ADR. When a direction becomes stable enough, extract it into a focused decision record.
+These documents are not ADRs. When a direction becomes stable enough, implemented, or referenced as policy by code or documentation, extract it into a focused decision record and leave a summary here.
+
+---
+
+## Related investigations
+
+- [Assessment target model](./assessment-target-model.md)
+- [Mark, grade and weighting model](./mark-grade-weighting-model.md)
 
 ---
 
@@ -225,224 +232,6 @@ No recommendation yet.
 
 ---
 
-## Group terminology
-
-Status: Proposed
-Confidence: Medium
-Decision owner: TBD
-
-Working direction:
-Prefer group over team.
-
-Reasons:
-- naturally represents one or many students
-- avoids implying persistent collaboration
-- aligns with educational workflows
-- singleton groups work naturally
-- covers binômes, trinômes, lab groups and ad hoc assessment groups
-- may align better with imported Moodle groups
-
-Potential direction:
-Student -> Group -> Assessment
-
-Singleton-group rationale:
-A group of size 1 can represent an individual assessment target.
-
-This may avoid persistent branching such as:
-- StudentAssessment versus GroupAssessment
-- individual target versus team target
-- isStudent / isGroup checks in core grading logic
-
-Instead:
-Assessment targets a group.
-The UI can present singleton groups as individual assessments.
-
-Future-proofing examples:
-- individual grading
-- pair grading
-- peer-review groups
-- temporary evaluation groups
-- imported Moodle groups
-- anonymous review groups
-
-Open questions:
-- Are there future cases where group and team become distinct?
-- Are imported Moodle groups the same concept as assessment groups?
-- Should group be a core persistence concept or a derived assessment target?
-
----
-
-## Individual versus grouped assessment
-
-Status: Investigation
-Confidence: Low
-Decision owner: TBD
-
-Current UI distinguishes individual and grouped assessments.
-
-This distinction appears useful at the workflow/presentation layer:
-- display
-- search
-- lookup
-- organization
-- imports
-- labels
-- actions
-
-Potential persistence direction:
-AssessmentTarget = Group
-Group = one or more students
-
-Potential presentation direction:
-Group size 1 -> individual assessment UI
-Group size greater than 1 -> grouped assessment UI
-
-Guiding principle:
-Do not force workflow distinctions into persistence unless they represent stable domain invariants.
-
-This principle may apply beyond this specific case. UI modes and workflow affordances do not always need separate database models.
-
-Examples:
-- individual assessment UI
-- grouped assessment UI
-- anonymous assessment UI
-- peer-review assessment UI
-
-These may be presentation/workflow variants over a simpler assessment target model.
-
-Open questions:
-- Which queries require distinct persistence?
-- Is the distinction mostly workflow driven?
-- Would a unified persistence model simplify imports, exports, sharing and grading logic?
-- Where should the distinction be reintroduced for user clarity?
-
-Rejected or deferred:
-- Separate persistence-level individual and group assessment models, unless evidence shows this distinction is a stable domain invariant.
-
----
-
-## Mark versus grade
-
-Status: Proposed
-Confidence: Medium
-Decision owner: TBD
-
-Current concern:
-Boolean and ordinal rubrics directly produce grading values while numerical rubrics currently introduce score.
-
-Potential direction:
-All rubric types produce Mark.
-Score becomes optional.
-
-Examples:
-
-Boolean:
-true -> mark = 2
-
-Ordinal:
-Très bien -> mark = 4.5
-
-Numerical:
-12 identified networks -> mark = 4
-
-Motivating numerical example:
-A numerical rubric may ask how many subnetworks were correctly identified.
-The observed value might be 12.
-The rubric then maps that observed value to a mark of 4 out of 4.
-
-Flow:
-raw score 12 -> mark 4 -> question grade -> final grade
-
-Definitions:
-
-Mark:
-- value produced by a rubric
-- may be positive, negative or asymmetric
-- contributes to a question grade
-
-Question grade:
-- aggregation of rubric marks for a question
-
-Final grade:
-- overall result
-
-Raw score:
-- optional measured value used internally by some rubric implementations
-- should not become the general term for rubric-produced grading values
-
-Reasoning:
-Avoid numerical rubrics behaving fundamentally differently from boolean and ordinal rubrics.
-
-Rejected or deferred:
-- Using score as the common output of all rubrics.
-- Treating score and mark as interchangeable.
-- Treating rubric-level mark and aggregate grade as the same concept.
-
-Open questions:
-- Should user-facing terminology use note, mark, grade, score or context-specific labels?
-- Should the code use finalGrade only when intermediate grades exist?
-- Is question grade the right term, or should it be assessment grade?
-
----
-
-## Weighting and scaling
-
-Status: Investigation
-Confidence: Low
-Decision owner: TBD
-
-Problem:
-Changing grading importance currently risks becoming rubric-specific.
-
-Examples:
-- modify numerical score mappings
-- modify ordinal label values
-- modify boolean marks
-
-Potential direction:
-Rubric results expose:
-- mark
-- weight
-
-Question grade becomes weighted aggregation.
-
-Potential aggregation:
-Question grade = sum(mark * weight)
-
-Potential benefits:
-- consistent behavior across rubric types
-- post-assessment tuning becomes more generic
-- avoids special handling for numerical rubrics
-- supports analytics and exports more consistently
-
-Normalization concern:
-Do not make normalization foundational too early.
-
-Problem examples:
-Human-readable mark ranges may be:
-- 0..4
-- -2..0
-- -1..2
-
-Normalizing these to 0..1 or -1..1 may obscure meaning and make UI/debugging harder.
-
-Potential direction:
-Keep mark and weight primary.
-Treat normalization as derived if needed for analytics.
-
-Open questions:
-- handling negative/asymmetric rubrics
-- whether weighting belongs at rubric or question level
-- whether normalization is useful
-- whether normalization should remain derived only
-- whether weighted aggregation is compatible with malus-style rubrics
-
-Rejected or deferred:
-- Normalization-first model.
-- Forcing all rubrics into 0..1 or -1..1 as the primary representation.
-
----
-
 ## Identifiers
 
 Status: Investigation
@@ -548,4 +337,4 @@ It prevents future contributors and agents from reintroducing discarded terminol
 
 This document captures current thinking, not final decisions.
 
-When discussions evolve, update this investigation rather than growing issue #99 indefinitely.
+When discussions evolve, update this investigation or a focused child investigation rather than growing issue #99 indefinitely.
