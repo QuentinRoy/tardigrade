@@ -24,6 +24,7 @@ Implementation plans for a chosen approach.
 
 Durable facts about current system behavior, formats, and contracts.
 
+- [Database migrations](reference/database-migrations.md)
 - Add new reference docs under `docs/reference/`.
 
 ## Guides
