@@ -14,9 +14,11 @@ Templates should guide contributors, but sections should not be completed with i
 
 ## Draft pull requests
 
-Draft pull requests may use TODO lists to track incomplete implementation work, validation steps, or open questions.
+Draft pull requests may use short TODO lists to track immediate incomplete implementation work, validation steps, or open questions.
 
-TODO lists are useful when a draft PR is still evolving and the remaining work is concrete. They should not replace issue descriptions, acceptance criteria, or follow-up issues when those are the better long-term record.
+Keep TODO lists lightweight. If the remaining work becomes large enough to need substantial planning, create or link a plan document under `plans/*.md`. Plan documents remain the preferred place for non-trivial planning.
+
+TODO lists should not replace issue descriptions, acceptance criteria, follow-up issues, or plan documents when those are the better long-term record.
 
 Before marking a PR as ready for review, resolve or remove temporary TODO items where possible.
 
