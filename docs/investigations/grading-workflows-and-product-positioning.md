@@ -1,16 +1,18 @@
-# Investigation: grading workflows and Dumbgrade product positioning
+# Investigation: grading workflows and product positioning
 
 Status: Current investigation
 Date: 2026-05-22
 Related: #112
 
+Note: "Dumbgrade" is currently used informally as a working project name and may change.
+
 ## Question
 
-What problem is Dumbgrade actually trying to solve, who is it for, and where should its scope boundaries sit?
+What problem is this project actually trying to solve, who is it for, and where should its scope boundaries sit?
 
 ## Executive summary
 
-Dumbgrade originated from frustrations with spreadsheet-based grading workflows.
+This project originated from frustrations with spreadsheet-based grading workflows.
 
 Current intuition suggests that spreadsheet workflows may be the primary practical competitor, while LMS platforms may often be closer to integration targets.
 
@@ -60,7 +62,7 @@ Weaknesses:
 - difficult collaboration;
 - grading-specific workflows are implicit.
 
-Possible Dumbgrade direction:
+Possible project direction:
 
 Keep spreadsheet flexibility while replacing spreadsheet fragility.
 
@@ -92,13 +94,13 @@ Open questions:
 
 - Which workflows do they solve well?
 - Which frustrations remain?
-- Which ideas should Dumbgrade intentionally avoid?
+- Which ideas should the project intentionally avoid?
 
 ## Open questions
 
 - Which frustrations are broadly shared?
 - Which workflows matter most?
-- What should Dumbgrade own versus integrate with?
+- What should the project own versus integrate with?
 - Which collaboration needs are common?
 
 ## Potential next steps
