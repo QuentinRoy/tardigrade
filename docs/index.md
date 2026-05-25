@@ -4,9 +4,26 @@ This repository keeps docs small and purpose-built. Use this page to find the ri
 
 ## Investigations
 
-Open-ended audits and option analysis.
+Open-ended audits and option analysis. Investigations may contain hypotheses and candidate directions; they are not accepted decisions unless later captured in an ADR or implemented in code/tests.
 
+### Product and domain investigations
+
+- [Grading workflows and product positioning](investigations/grading-workflows-and-product-positioning.md)
+- [Domain terminology audit](investigations/domain-terminology-audit.md)
+- [Assessment target model](investigations/assessment-target-model.md)
+- [Mark, grade and weighting model](investigations/mark-grade-weighting-model.md)
+
+### Technical architecture investigations
+
+- [Source structure and technical debt audit](investigations/source-structure-and-tech-debt-audit.md)
+- [Investigation overlap audit](investigations/investigation-overlap-audit.md)
+- [Offline support and local assessment storage](investigations/offline-support.md)
 - [Repository documentation architecture](investigations/repo-documentation-architecture.md)
+- [Agent instruction architecture audit](investigations/agent-instruction-architecture-audit.md)
+
+### Workflow convention investigations
+
+- [Commit message conventions](investigations/commit-message-conventions.md)
 
 ## ADRs
 
@@ -44,5 +61,6 @@ Temporary work artifacts for agent-assisted implementation.
 
 ## Notes
 
-- Keep the investigation in `docs/investigations/` until a decision is durable enough for an ADR.
+- Keep investigations in `docs/investigations/` until a decision is durable enough for an ADR.
 - Prefer the smallest document type that captures the needed context.
+- Use the [investigation overlap audit](investigations/investigation-overlap-audit.md) when a topic appears to span multiple current investigations.
