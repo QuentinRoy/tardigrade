@@ -2,6 +2,18 @@
 
 This repository keeps docs small and purpose-built. Use this page to find the right document type quickly.
 
+## Placement check
+
+When adding or moving repository guidance, use the smallest document type that fits:
+
+- Agent-operational rules and mandatory reminders belong in `AGENTS.md`.
+- Human workflow guidance belongs in `docs/guides/`.
+- Durable facts about current system behavior belong in `docs/reference/`.
+- Durable architecture decisions belong in `docs/adr/`.
+- Chosen implementation designs belong in `docs/design/`.
+- Open-ended audits and option analysis belong in `docs/investigations/`.
+- Temporary execution plans belong in `plans/active/` until completed.
+
 ## Investigations
 
 Open-ended audits and option analysis. Investigations may contain hypotheses and candidate directions; they are not accepted decisions unless later captured in an ADR or implemented in code/tests.
