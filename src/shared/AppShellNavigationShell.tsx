@@ -1,8 +1,7 @@
 "use client";
 
 import { Toolbar } from "@mui/material";
-import Box from "@mui/material/Box";
-import SwipeableDrawer from "@mui/material/SwipeableDrawer";
+import Drawer from "@mui/material/Drawer";
 import { usePathname } from "next/navigation";
 import { type ReactNode, useId } from "react";
 import { projectDashboardPath } from "@/projects/routes";
@@ -19,7 +18,6 @@ type AppShellNavigationShellProps = {
   drawerOpen: boolean;
   onOpenDrawer: () => void;
   onCloseDrawer: () => void;
-  topSpace?: number;
 };
 
 export default function AppShellNavigationShell({
@@ -27,7 +25,6 @@ export default function AppShellNavigationShell({
   drawerOpen,
   onOpenDrawer,
   onCloseDrawer,
-  topSpace = 0,
 }: AppShellNavigationShellProps): ReactNode {
   const pathname = usePathname();
   const projectRouteContext = getProjectRouteContext(pathname);
@@ -36,9 +33,6 @@ export default function AppShellNavigationShell({
       ? displayProjectName(projectRouteContext.projectSlug)
       : "BonPoint";
   const drawerId = useId();
-  const iOS =
-    typeof navigator !== "undefined" &&
-    /iPad|iPhone|iPod/.test(navigator.userAgent);
 
   return (
     <>
@@ -62,23 +56,22 @@ export default function AppShellNavigationShell({
       />
 
       {showNavigation && (
-        <SwipeableDrawer
+        // Intentionally use non-swipeable Drawer.
+        // Swipe gestures conflict with browser navigation
+        // on iPad/Safari and opening via the hamburger
+        // button is the intended interaction path.
+        <Drawer
           anchor="left"
           open={drawerOpen}
-          onOpen={onOpenDrawer}
           onClose={onCloseDrawer}
-          disableBackdropTransition={!iOS}
-          disableDiscovery={iOS}
-          disableSwipeToOpen={iOS}
-          ModalProps={{ keepMounted: true }}
           slotProps={{
             paper: {
               "aria-label": "Project navigation",
               id: drawerId,
-              sx: (theme) => ({
+              sx: {
                 width: APP_SHELL_DRAWER_WIDTH,
                 boxSizing: "border-box",
-              }),
+              },
             },
           }}
         >
@@ -88,7 +81,7 @@ export default function AppShellNavigationShell({
             projectRouteContext={projectRouteContext}
             onDismiss={onCloseDrawer}
           />
-        </SwipeableDrawer>
+        </Drawer>
       )}
     </>
   );
