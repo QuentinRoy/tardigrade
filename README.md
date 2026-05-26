@@ -34,7 +34,7 @@ pnpm install
 
 ```bash
 POSTGRES_USER=grading
-POSTGRES_PASSWORD=grading_dev_password
+POSTGRES_PASSWORD=<local-password>
 POSTGRES_DB=grading
 POSTGRES_PORT=5432
 DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:${POSTGRES_PORT}/${POSTGRES_DB}
@@ -209,5 +209,5 @@ Rules:
 ## Notes
 
 - Environment variables are loaded through dotenvx in package scripts.
-- Db migrations are handled by Kysely in `src/db/migrate.ts`.
-- Storybook component tests run with the normal Vitest suite via `pnpm test`; use `pnpm test-storybook` for the Storybook project alone.
+- Database migrations are handled by Kysely in `src/db/migrate.ts`; see [Database migrations](docs/reference/database-migrations.md) for migration conventions.
+- Storybook component tests run with the normal Vitest suite via `pnpm test`; use `pnpm test:storybook` for the Storybook project alone.
