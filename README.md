@@ -71,22 +71,22 @@ pnpm db:down
 ### App and UI
 
 ```bash
-pnpm dev
-pnpm build
-pnpm start
-pnpm storybook
-pnpm storybook:build
+pnpm dev              # Start the Next.js development server.
+pnpm build            # Build the production app.
+pnpm start            # Start the built production app.
+pnpm storybook        # Start Storybook locally.
+pnpm storybook:build  # Build the static Storybook site.
 ```
 
 ### Quality
 
 ```bash
-pnpm check --fix
-pnpm check-types
-pnpm test
-pnpm test:unit
-pnpm test:integration
-pnpm test:watch
+pnpm check --fix       # Format and lint with Biome, applying safe fixes.
+pnpm check-types       # Run TypeScript type checks.
+pnpm test              # Run the default test suite.
+pnpm test:unit         # Run unit tests only.
+pnpm test:integration  # Run integration tests only.
+pnpm test:watch        # Run tests in watch mode.
 ```
 
 See [Running integration tests](docs/guides/running-integration-tests.md) for local and CI database behavior.
@@ -94,16 +94,14 @@ See [Running integration tests](docs/guides/running-integration-tests.md) for lo
 ### Database
 
 ```bash
-pnpm db:up
-pnpm db:down
-pnpm db:logs
+pnpm db:up              # Start the local PostgreSQL container.
+pnpm db:down            # Stop the local PostgreSQL container.
+pnpm db:logs            # Show local PostgreSQL logs.
 
-pnpm db:migrate:status
-pnpm db:migrate:up
-pnpm db:migrate:down
-pnpm db:types:generate
-
-pnpm db:types:generate
+pnpm db:migrate:status  # Show migration status.
+pnpm db:migrate:up      # Apply pending migrations.
+pnpm db:migrate:down    # Roll back the latest migration.
+pnpm db:types:generate  # Regenerate database types.
 ```
 
 ## App Workflow
