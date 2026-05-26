@@ -1,4 +1,4 @@
-# Investigation: overlap between ongoing investigations and active plans
+# Investigation: overlap between ongoing investigations and planning artifacts
 
 Status: Current investigation
 Date: 2026-05-25
@@ -7,9 +7,9 @@ Related: #115, #117, PR #116
 
 ## Question
 
-How does the new source-structure and technical-debt audit overlap with the repository's other ongoing investigations and active plans, and which artifact should own which part of the reasoning?
+How do the source-structure audit, other ongoing investigations, open roadmap issues, and planning artifacts overlap, and which artifact should own which part of the reasoning?
 
-This document exists to prevent investigations, issues, and active plans from becoming contradictory or duplicative as more audits are added.
+This document exists to prevent investigations, issues, and plans from becoming contradictory or duplicative as more audits are added.
 
 ## Executive summary
 
@@ -19,7 +19,8 @@ The source-structure audit overlaps most strongly with:
 2. grading workflow and product positioning;
 3. loading, caching, and offline-support investigations;
 4. repository documentation and agent-instruction investigations;
-5. active reliability and read/write-separation plans.
+5. the reliability hardening plan;
+6. the read-write separation investigation.
 
 The overlap is mostly healthy if ownership is clear:
 
@@ -27,16 +28,19 @@ The overlap is mostly healthy if ownership is clear:
 - product-positioning investigations should own workflow/product-scope questions;
 - offline/caching investigations should own persistence, sync, and freshness behavior questions;
 - the source-structure audit should own concrete code seams, module splits, and refactor candidates;
-- active plans should own executable sequencing for work that is ready to be carried out;
+- the reliability plan should own reliability risks, priority, status, and test evidence;
+- the read-write separation investigation should own the proposed direction for separating write paths from read projections;
+- active plans should own executable sequencing only when work is ready to be carried out;
 - documentation investigations should own how these artifacts are organized and linked.
 
-The main risk is that source-structure, reliability, and read/write-separation artifacts all touch the same code hotspots. They should be read together, but they should not silently override one another.
+The main risk is that source-structure, reliability, and read-write-separation artifacts all touch the same code hotspots. They should be read together, but they should not silently override one another.
 
 ## Existing artifact set reviewed
 
 Current investigation documents considered:
 
 - `docs/investigations/source-structure-and-tech-debt-audit.md`
+- `docs/investigations/read-write-separation-and-schema-change-resilience.md`
 - `docs/investigations/domain-terminology-audit.md`
 - `docs/investigations/assessment-target-model.md`
 - `docs/investigations/mark-grade-weighting-model.md`
@@ -49,7 +53,6 @@ Current investigation documents considered:
 Current active plans considered:
 
 - `plans/active/reliability-hardening.md`
-- `plans/active/read-write-separation-and-schema-change-resilience.md`
 
 ## Overlap map
 
@@ -60,15 +63,15 @@ Current active plans considered:
 | Student/team/group/submission model | Submission read models, progress, imports | `assessment-target-model.md` | Assessment target doc owns conceptual model; source audit owns current code friction |
 | Mark/grade/score/weighting | Progress, rubric overview, numeric rubric editing | `mark-grade-weighting-model.md` | Mark/grade doc owns semantics; source audit owns duplicated calculations and code seams |
 | Spreadsheet replacement/import/export philosophy | Import preview, export streaming, explicit operations | `grading-workflows-and-product-positioning.md` | Product doc owns workflow philosophy; source audit owns implementation quality |
-| Offline/local-first storage | Commands, transaction-friendly APIs, local project snapshots | `offline-support.md` | Offline doc owns offline architecture; source audit should keep command seams compatible |
-| Loading/caching/revalidation | Project loaders, cache tags, grading page read models | #59 and future caching investigation/design | Caching investigation owns freshness strategy; source audit owns refactor seams that enable it |
+| Offline/local-first storage | Commands, transaction-friendly APIs, local project snapshots | `offline-support.md` | Offline doc owns offline architecture; source audit/read-write investigation should keep command seams compatible |
+| Loading/caching/revalidation | Project loaders, cache tags, grading page read models | #59 and future caching investigation/design | Caching investigation owns freshness strategy; source audit/read-write investigation own refactor seams that enable it |
 | Reliability risks and test evidence | Export/progress/import/assessment save seams | `plans/active/reliability-hardening.md` | Reliability plan owns risk priority/status/evidence; source audit owns structural causes and refactor candidates |
-| Read/write separation | Command/write paths and read projections | `plans/active/read-write-separation-and-schema-change-resilience.md` | Read/write plan owns execution strategy; source audit owns broader technical debt context |
+| Read/write separation | Command/write paths and read projections | `read-write-separation-and-schema-change-resilience.md` | Read-write investigation owns proposed direction; smaller active plans should own concrete execution later |
 | Documentation lifecycle | Investigation vs ADR vs design vs plan | `repo-documentation-architecture.md` | Documentation architecture owns lifecycle; individual docs should state their status clearly |
 | Agent guidance | How agents find/use audits and plans | `agent-instruction-architecture-audit.md` | Agent docs own instruction strategy; investigations/plans should not become implicit agent instructions |
 | Commit style | PR/commit naming | `commit-message-conventions.md` | No meaningful overlap |
 
-## Active plan overlap analysis
+## Planning artifact overlap analysis
 
 ### 1. Reliability hardening plan
 
@@ -111,13 +114,13 @@ Reliability and DX work may accidentally compete. A source cleanup might seem at
 
 When implementation touches a reliability-risk area, PRs should link both the relevant issue and the reliability plan row where appropriate.
 
-### 2. Read/write separation and schema-change resilience plan
+### 2. Read-write separation and schema-change resilience investigation
 
-#### Existing plan scope
+#### Existing investigation scope
 
-`plans/active/read-write-separation-and-schema-change-resilience.md` proposes separating write-side command/persistence paths from read-side projection/reporting paths.
+`docs/investigations/read-write-separation-and-schema-change-resilience.md` proposes separating write-side command/persistence paths from read-side projection/reporting paths.
 
-It owns the proposed execution strategy for:
+It owns the proposed direction for:
 
 - write-side command/repository boundaries;
 - read projection modules for export/progress/overview/rubric analytics;
@@ -126,7 +129,7 @@ It owns the proposed execution strategy for:
 
 #### Overlap with source-structure audit
 
-The source audit rediscovered many of the same code hotspots, but with a broader DX lens. The read/write plan is narrower and more implementation-oriented.
+The source audit rediscovered many of the same code hotspots, but with a broader DX lens. The read-write separation investigation is narrower and focused on one architectural direction.
 
 Strongly overlapping hotspots:
 
@@ -141,16 +144,15 @@ Strongly overlapping hotspots:
 
 #### Risk
 
-The read/write plan can look like the accepted architecture, but it is still proposed. It also references terminology and folder-boundary decisions that may be affected by the terminology, product, and source-structure investigations.
+The read-write separation investigation can look like the accepted architecture, but it remains exploratory/proposed. It also references terminology and folder-boundary decisions that may be affected by the terminology, product, and source-structure investigations.
 
 #### Recommended boundary
 
-- Read/write plan owns execution strategy if/when this becomes the next refactor track.
+- Read-write separation investigation owns the proposed direction and rationale.
 - #115/source audit owns the broader source-structure investigation.
-- #117 owns the sequencing decision across docs cleanup, route context, read/write separation, and reliability work.
+- #117 owns the sequencing decision across docs cleanup, route context, read-write separation, and reliability work.
 - #51 owns database identifier naming that may affect read/write boundaries.
-
-Before large implementation work begins, decide whether the read/write plan should remain in `plans/active/`, move to `docs/design/`, or move to `docs/investigations/`.
+- Concrete execution should be captured later in smaller active plans, not by treating this investigation as the implementation plan.
 
 ## Detailed investigation overlap analysis
 
@@ -508,7 +510,7 @@ Keep the source audit as an investigation. When a concrete direction is chosen, 
 
 #### Documentation index implication
 
-`docs/index.md` lists current investigations, but active plans may still need clearer cross-linking when they overlap with investigations.
+`docs/index.md` lists current investigations, but planning artifacts may still need clearer cross-linking when they overlap with investigations.
 
 ### 8. Agent instruction architecture audit
 
@@ -523,9 +525,9 @@ README.md -> onboarding and contributor workflow overview
 docs/* -> durable knowledge
 ```
 
-#### Overlap with source-structure audit and active plans
+#### Overlap with source-structure audit and plans
 
-The source audit and active plans discuss code organization and agent-safe refactors. They are likely to be read by agents doing future refactors.
+The source audit and planning artifacts discuss code organization and agent-safe refactors. They are likely to be read by agents doing future refactors.
 
 #### Risk
 
@@ -547,7 +549,7 @@ For source-structure refactors, consult docs/investigations/source-structure-and
 
 Commit-message conventions concern commit and PR message style.
 
-#### Overlap with source-structure audit and active plans
+#### Overlap with source-structure audit and plans
 
 No meaningful conceptual overlap.
 
@@ -562,7 +564,7 @@ No source-audit change needed.
 
 ### Risk 1: terminology drift
 
-The source audit and read/write plan propose concrete names. Existing terminology docs have not converged. This can cause premature naming lock-in.
+The source audit and read-write separation investigation propose concrete names. Existing terminology docs have not converged. This can cause premature naming lock-in.
 
 Mitigation:
 
@@ -572,17 +574,17 @@ Mitigation:
 
 ### Risk 2: caching work hidden inside structure work
 
-The source audit and read/write plan propose loader/read-model refactors that would affect caching. #59 needs a deeper freshness/loading strategy.
+The source audit and read-write separation investigation propose loader/read-model refactors that would affect caching. #59 needs a deeper freshness/loading strategy.
 
 Mitigation:
 
 - create or link a dedicated caching/loading investigation;
-- keep source audit and read/write plan focused on code seams;
+- keep source audit and read-write investigation focused on code seams;
 - do not decide route loading behavior only from source-structure concerns.
 
 ### Risk 3: offline-compatible command boundaries missed
 
-The source audit and read/write plan propose splitting commands from DB modules. Offline support has stronger requirements for serializable commands and outbox replay.
+The source audit and read-write separation investigation propose splitting commands from DB modules. Offline support has stronger requirements for serializable commands and outbox replay.
 
 Mitigation:
 
@@ -600,14 +602,15 @@ Mitigation:
 - split implementation work only after workflow behavior is accepted;
 - phrase parse-preview-confirm as a candidate direction until accepted.
 
-### Risk 5: active plans become stale or over-canonical
+### Risk 5: planning artifacts become stale or over-canonical
 
-`plans/active/read-write-separation-and-schema-change-resilience.md` was proposed before the newer source-structure and overlap audits. It contains valuable implementation direction, but active plans should not silently become final architecture.
+The read-write separation document was proposed before the newer source-structure and overlap audits. It contains valuable implementation direction, but it should not silently become final architecture.
 
 Mitigation:
 
-- keep #117 as the roadmap issue that reconciles active plans before execution;
-- refresh active plans before implementation;
+- keep #117 as the roadmap issue that reconciles planning artifacts before execution;
+- use `docs/investigations/` for proposed directions that are not being executed;
+- create smaller `plans/active/...` files only when implementation starts;
 - promote accepted design decisions into `docs/design/` or ADRs when appropriate.
 
 ## Recommended future document ownership
@@ -622,9 +625,9 @@ Mitigation:
 - candidate source tree shapes;
 - follow-up implementation issues.
 
-### Read/write separation plan owns
+### Read-write separation investigation owns
 
-- execution strategy for separating write paths from read projections;
+- proposed direction for separating write paths from read projections;
 - candidate phase order for write-side and read-side extraction;
 - schema-change-resilience goals;
 - implementation guardrails for that refactor track.
@@ -691,8 +694,8 @@ This investigation does not yet exist as a dedicated docs file, but #59 strongly
 ## Candidate next steps
 
 1. Keep #117 as the lightweight roadmap issue for sequencing DX, documentation, and refactor work.
-2. Refresh `plans/active/read-write-separation-and-schema-change-resilience.md` before using it for implementation.
-3. Decide whether the read/write plan should remain in `plans/active/`, move to `docs/design/`, or move to `docs/investigations/`.
+2. Use `docs/investigations/read-write-separation-and-schema-change-resilience.md` as a proposed direction, not as an active implementation plan.
+3. Create a smaller active plan only when starting a concrete extraction, such as assessment save or question/rubric save.
 4. Create a dedicated caching/loading investigation for #59 if source/read-model refactors proceed.
 5. When implementation starts, create focused issues rather than using #115 as one giant refactor task.
 6. Extract ADRs only after decisions converge, especially for:
@@ -700,4 +703,4 @@ This investigation does not yet exist as a dedicated docs file, but #59 strongly
    - identifier naming convention;
    - assessment command boundary;
    - source organization convention;
-   - accepted read/write separation conventions.
+   - accepted read-write separation conventions.
