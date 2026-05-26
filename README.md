@@ -105,7 +105,7 @@ pnpm db:logs                        # Show local PostgreSQL logs.
 pnpm db:migrate:status              # Show migration status.
 pnpm db:migrate:up                  # Apply pending migrations.
 pnpm db:migrate:down                # Roll back the latest migration.
-pnpm db:reset                       # Reset the local database through the migration script.
+pnpm db:reset                       # Reinitialize the local DB without applying migrations.
 pnpm db:types:generate              # Regenerate database types.
 ```
 
