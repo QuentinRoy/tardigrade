@@ -7,7 +7,7 @@ This repository keeps docs small and purpose-built. Use this page to find the ri
 When adding or moving repository guidance, use the smallest document type that fits:
 
 - Agent-operational rules and mandatory reminders belong in `AGENTS.md`.
-- Human workflow guidance belongs in `docs/guides/`.
+- Workflow guidance belongs in `docs/guides/`.
 - Durable facts about current system behavior belong in `docs/reference/`.
 - Durable architecture decisions belong in `docs/adr/`.
 - Chosen implementation designs belong in `docs/design/`.
