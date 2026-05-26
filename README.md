@@ -34,7 +34,7 @@ pnpm install
 
 ```bash
 POSTGRES_USER=grading
-POSTGRES_PASSWORD=grading_dev_password
+POSTGRES_PASSWORD=<local-password>
 POSTGRES_DB=grading
 POSTGRES_PORT=5432
 DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:${POSTGRES_PORT}/${POSTGRES_DB}
@@ -71,22 +71,26 @@ pnpm db:down
 ### App and UI
 
 ```bash
-pnpm dev
-pnpm build
-pnpm start
-pnpm storybook
-pnpm storybook:build
+pnpm dev                            # Start the Next.js development server.
+pnpm build                          # Build the production app.
+pnpm start                          # Start the built production app.
+pnpm storybook                      # Start Storybook locally.
+pnpm storybook:build                # Build the static Storybook site.
+pnpm storybook:browser:install      # Install the Chromium browser used by Storybook tests.
+pnpm storybook:browser:install:ci   # Install the CI Chromium shell and system dependencies.
 ```
 
 ### Quality
 
 ```bash
-pnpm check --fix
-pnpm check-types
-pnpm test
-pnpm test:unit
-pnpm test:integration
-pnpm test:watch
+pnpm check                          # Check formatting and linting with Biome.
+pnpm check --fix                    # Format and lint with Biome, applying safe fixes.
+pnpm check-types                    # Run TypeScript type checks.
+pnpm test                           # Run the default test suite.
+pnpm test:unit                      # Run unit tests only.
+pnpm test:integration               # Run integration tests only.
+pnpm test:storybook                 # Run Storybook component tests only.
+pnpm test:watch                     # Run tests in watch mode.
 ```
 
 See [Running integration tests](docs/guides/running-integration-tests.md) for local and CI database behavior.
@@ -94,16 +98,15 @@ See [Running integration tests](docs/guides/running-integration-tests.md) for lo
 ### Database
 
 ```bash
-pnpm db:up
-pnpm db:down
-pnpm db:logs
+pnpm db:up                          # Start the local PostgreSQL container.
+pnpm db:down                        # Stop the local PostgreSQL container.
+pnpm db:logs                        # Show local PostgreSQL logs.
 
-pnpm db:migrate:status
-pnpm db:migrate:up
-pnpm db:migrate:down
-pnpm db:types:generate
-
-pnpm db:types:generate
+pnpm db:migrate:status              # Show migration status.
+pnpm db:migrate:up                  # Apply pending migrations.
+pnpm db:migrate:down                # Roll back the latest migration.
+pnpm db:reset                       # Reinitialize the local DB without applying migrations.
+pnpm db:types:generate              # Regenerate database types.
 ```
 
 ## App Workflow
@@ -113,91 +116,9 @@ pnpm db:types:generate
 3. Open `/assessments` to grade by submission or by question.
 4. Use **Export CSV** from the home page to download assessment data.
 
-## GitHub Issue and PR Conventions
+## Collaboration Conventions
 
-Issues and pull requests should be structured enough to support safe review and agent-assisted work without adding unnecessary process overhead.
-
-### Issues
-
-Use the repository issue templates when creating issues:
-
-- **Bug report**: broken behavior or regressions. Automatically applies `bug`.
-- **Feature request**: new capabilities or workflow improvements. Automatically applies `feature`.
-- **Task / Investigation**: planned work, technical debt, refactoring, or questions to investigate before implementation.
-- **Blank issue**: uncategorized notes, discussions, or edge cases that do not fit the structured templates.
-
-Prefer the structured templates when they fit. Use blank issues as an escape hatch, not as the default path around the templates.
-
-Issue descriptions should capture the problem, intended behavior, and completion criteria before implementation work starts. Not every issue needs every section. Small bugs can be shorter. Larger features, reliability work, migrations, data-model changes, or UX changes should include enough context to make the intended scope and risks clear.
-
-Distinguish investigation issues from implementation issues:
-
-- Investigation issues should compare options, clarify constraints, document a recommendation, and create follow-up implementation issues when appropriate.
-- Implementation issues should define the behavior to build or fix, the relevant scope, and testable acceptance criteria.
-
-### Pull requests
-
-Implementation PRs should usually reference or close an issue. Use `Fixes #...` or `Closes #...` when the PR completes the issue, and use `Related to #...` when it only contributes partial work or documentation.
-
-Prefer this PR structure:
-
-```md
-## Summary
-
-## Related issue
-
-Fixes #
-
-## Plan
-
-- Plan file:
-- User validated plan: yes / explicit bypass / not applicable
-
-## Changes
-
-## Validation
-
-- [ ] pnpm run check --fix
-- [ ] pnpm run check-types
-- [ ] Focused tests:
-- [ ] Integration tests if DB/import/export/routing behavior changed:
-
-## Risk review
-
-- [ ] No existing migration was modified
-- [ ] Project isolation considered
-- [ ] Data-loss/destructive behavior considered
-- [ ] User-visible errors remain actionable
-- [ ] Docs/import/export contracts updated if affected
-
-## Notes
-```
-
-Adapt the checklist to the PR. Documentation-only PRs do not need code validation commands unless they touch executable examples, workflow files, or other checked artifacts.
-
-For code-change tasks, follow the repository agent instructions: create and validate a plan markdown file before editing unless the user explicitly opts out. The PR should link the plan file or state why no plan was needed.
-
-### Labels
-
-Labels should make triage and review easier. Apply labels to both issues and PRs when useful. Issue templates apply some type labels automatically, but additional labels may still be useful.
-
-Use existing labels whenever they describe the work well enough. Do not introduce new labels lightly, and do not create a new label when an existing label would already do the job. Add a new label only when it represents a recurring distinction that will meaningfully improve triage, filtering, or review.
-
-Use labels along these dimensions:
-
-- Type: what kind of work this is, such as `bug`, `feature`, `refactor`, `documentation`, or `investigation`.
-- Area: which part of the project is affected, such as `ui`, `rubrics`, `assessments`, `import`, `export`, `database`, `projects`, `ci`, `testing`, `accessibility`, or `mobile`.
-- Risk or priority: whether special review is needed, such as `reliability`, `tier-0`, `tier-1`, `security`, or `data-loss-risk`.
-- Process state: whether the work is blocked, needs design, or needs review.
-
-A typical issue or PR should have one type label when possible, one or more area labels when useful, and risk labels only when the work affects correctness, data integrity, migrations, destructive actions, authentication, security, or grading results.
-
-Examples:
-
-- Touch interaction bug in rubric editing: `bug`, `ui`, `rubrics`, `mobile`.
-- Import/export round-trip correctness issue: `reliability`, `testing`, `import`, `export`.
-- Documentation architecture investigation: `documentation`, `investigation`.
-- CI branch protection or workflow change: `ci`, `testing`.
+Use the canonical workflow guidance in [docs/guides/issue-and-pr-conventions.md](docs/guides/issue-and-pr-conventions.md) for issue, PR, and label conventions. That document owns the detailed templates, label guidance, and planning notes.
 
 ## Import Formats
 
@@ -288,5 +209,5 @@ Rules:
 ## Notes
 
 - Environment variables are loaded through dotenvx in package scripts.
-- Db migrations are handled by Kysely in `src/db/migrate.ts`.
-- Storybook component tests run with the normal Vitest suite via `pnpm test`; use `pnpm test-storybook` for the Storybook project alone.
+- Database migrations are handled by Kysely in `src/db/migrate.ts`; see [Database migrations](docs/reference/database-migrations.md) for migration conventions.
+- Storybook component tests run with the normal Vitest suite via `pnpm test`; use `pnpm test:storybook` for the Storybook project alone.

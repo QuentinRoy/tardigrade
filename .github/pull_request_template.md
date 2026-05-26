@@ -10,10 +10,10 @@ Related to #
 
 ## Plan
 
-<!-- For code-change tasks, link the plan file required by AGENTS.md unless the user explicitly opted out. Documentation-only changes may use "not applicable". -->
+<!-- For non-trivial code-change tasks, link the relevant plan file when one exists or explain why no plan was needed. Documentation-only changes may use "not applicable". -->
 
 - Plan file:
-- User validated plan: yes / explicit bypass / not applicable
+- User validated plan: yes / explicit opt-out / not applicable
 
 ## Changes
 

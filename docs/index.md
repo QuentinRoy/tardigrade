@@ -2,6 +2,36 @@
 
 This repository keeps docs small and purpose-built. Use this page to find the right document type quickly.
 
+## Placement check
+
+When adding or moving repository guidance, use the smallest document type that fits:
+
+- Agent-operational rules and mandatory reminders belong in `AGENTS.md`.
+- Workflow guidance belongs in `docs/guides/`.
+- Durable facts about current system behavior belong in `docs/reference/`.
+- Durable architecture decisions belong in `docs/adr/`.
+- Chosen implementation designs belong in `docs/design/`.
+- Open-ended audits and option analysis belong in `docs/investigations/`.
+- Temporary execution plans belong in `plans/active/` until completed.
+
+## Document lifecycle
+
+Use date-prefixed filenames for time-bound documents:
+
+- `docs/investigations/YYYY-MM-DD-topic.md`
+- `docs/design/YYYY-MM-DD-topic.md` when the design is tied to a specific implementation effort
+- `plans/active/YYYY-MM-DD-topic.md`
+- `plans/completed/YYYY-MM-DD-topic.md`
+
+Do not date-prefix stable canonical documents by default, such as guides, reference docs, and ADRs.
+
+Time-bound documents should include lifecycle metadata near the top:
+
+- `Status: Active | Completed | Superseded | Archived`
+- `Date: YYYY-MM-DD`
+- `Resolution: ...`
+- `Follow-up: None | ...`
+
 ## Investigations
 
 Open-ended audits and option analysis. Investigations may contain hypotheses and candidate directions; they are not accepted decisions unless later captured in an ADR or implemented in code/tests.
@@ -20,7 +50,7 @@ Open-ended audits and option analysis. Investigations may contain hypotheses and
 - [Read-write separation and schema-change resilience](investigations/read-write-separation-and-schema-change-resilience.md)
 - [Offline support and local assessment storage](investigations/offline-support.md)
 - [Repository documentation architecture](investigations/repo-documentation-architecture.md)
-- [Agent instruction architecture audit](investigations/agent-instruction-architecture-audit.md)
+- [Agent instruction architecture audit](investigations/2026-05-26-agent-instruction-architecture-audit.md)
 
 ### Workflow convention investigations
 
@@ -50,6 +80,7 @@ Durable facts about current system behavior, formats, and contracts.
 
 Procedural how-to documentation for humans.
 
+- [Issue and PR conventions](guides/issue-and-pr-conventions.md)
 - [Running integration tests](guides/running-integration-tests.md)
 - Add new guides under `docs/guides/`.
 
