@@ -50,7 +50,7 @@ Open-ended audits and option analysis. Investigations may contain hypotheses and
 - [Read-write separation and schema-change resilience](investigations/read-write-separation-and-schema-change-resilience.md)
 - [Offline support and local assessment storage](investigations/offline-support.md)
 - [Repository documentation architecture](investigations/repo-documentation-architecture.md)
-- [Agent instruction architecture audit](investigations/agent-instruction-architecture-audit.md)
+- [Agent instruction architecture audit](investigations/2026-05-26-agent-instruction-architecture-audit.md)
 
 ### Workflow convention investigations
 
