@@ -14,6 +14,24 @@ When adding or moving repository guidance, use the smallest document type that f
 - Open-ended audits and option analysis belong in `docs/investigations/`.
 - Temporary execution plans belong in `plans/active/` until completed.
 
+## Document lifecycle
+
+Use date-prefixed filenames for time-bound documents:
+
+- `docs/investigations/YYYY-MM-DD-topic.md`
+- `docs/design/YYYY-MM-DD-topic.md` when the design is tied to a specific implementation effort
+- `plans/active/YYYY-MM-DD-topic.md`
+- `plans/completed/YYYY-MM-DD-topic.md`
+
+Do not date-prefix stable canonical documents by default, such as guides, reference docs, and ADRs.
+
+Time-bound documents should include lifecycle metadata near the top:
+
+- `Status: Active | Completed | Superseded | Archived`
+- `Date: YYYY-MM-DD`
+- `Resolution: ...`
+- `Follow-up: None | ...`
+
 ## Investigations
 
 Open-ended audits and option analysis. Investigations may contain hypotheses and candidate directions; they are not accepted decisions unless later captured in an ADR or implemented in code/tests.
