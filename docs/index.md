@@ -50,6 +50,7 @@ Durable facts about current system behavior, formats, and contracts.
 
 Procedural how-to documentation for humans.
 
+- [Issue and PR conventions](guides/issue-and-pr-conventions.md)
 - [Running integration tests](guides/running-integration-tests.md)
 - Add new guides under `docs/guides/`.
 
