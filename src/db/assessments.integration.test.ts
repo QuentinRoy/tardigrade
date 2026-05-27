@@ -56,12 +56,12 @@ async function createAssessmentFixture(
 
   const questionId = options?.questionId ?? buildTestId("q");
   const studentId = buildTestId("student");
-  const booleanRubricId = options?.rubricIds?.boolean ??
-    buildTestId("rubric-boolean");
-  const ordinalRubricId = options?.rubricIds?.ordinal ??
-    buildTestId("rubric-ordinal");
-  const numericalRubricId = options?.rubricIds?.numerical ??
-    buildTestId("rubric-numerical");
+  const booleanRubricId =
+    options?.rubricIds?.boolean ?? buildTestId("rubric-boolean");
+  const ordinalRubricId =
+    options?.rubricIds?.ordinal ?? buildTestId("rubric-ordinal");
+  const numericalRubricId =
+    options?.rubricIds?.numerical ?? buildTestId("rubric-numerical");
 
   await db
     .insertInto("student")

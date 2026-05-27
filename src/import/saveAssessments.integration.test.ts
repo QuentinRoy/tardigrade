@@ -116,9 +116,10 @@ async function loadSaveAssessments(params: {
 
   if (params.saveAssessmentWithDbMock) {
     vi.doMock("../db/assessments", async () => {
-      const actual = await vi.importActual<typeof import("../db/assessments")>(
-        "../db/assessments",
-      );
+      const actual =
+        await vi.importActual<typeof import("../db/assessments")>(
+          "../db/assessments",
+        );
 
       return {
         ...actual,
@@ -127,7 +128,7 @@ async function loadSaveAssessments(params: {
           input: SaveAssessmentParams,
         ) =>
           params.saveAssessmentWithDbMock?.(queryDb, input) ??
-            Promise.resolve({ success: true }),
+          Promise.resolve({ success: true }),
       };
     });
   } else {
@@ -248,9 +249,10 @@ test("saveAssessments rolls back all writes if a later transactional write fails
   const saveAssessments = await loadSaveAssessments({
     db,
     saveAssessmentWithDbMock: async (queryDb, input) => {
-      const actual = await vi.importActual<typeof import("../db/assessments")>(
-        "../db/assessments",
-      );
+      const actual =
+        await vi.importActual<typeof import("../db/assessments")>(
+          "../db/assessments",
+        );
 
       callCount += 1;
       if (callCount === 2) {

@@ -87,9 +87,9 @@ async function createDatabaseFromTemplate(
   templateName: string,
 ): Promise<void> {
   await adminPool.query(
-    `create database ${quoteIdentifier(databaseName)} template ${
-      quoteIdentifier(templateName)
-    }`,
+    `create database ${quoteIdentifier(databaseName)} template ${quoteIdentifier(
+      templateName,
+    )}`,
   );
 }
 
