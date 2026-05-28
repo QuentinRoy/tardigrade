@@ -1,15 +1,26 @@
 import "server-only";
+import { once } from "node:events";
+import { stringify } from "csv-stringify";
 import {
   buildAssessmentKey,
   buildSubmissionExportHeaders,
-  buildSubmissionExportRow,
-  type ExportAssessedQuestionPlan,
+  buildSubmissionExportRecord,
   type ExportOptions,
   type ExportQuestionPlan,
+  type SubmissionExportAssessmentValue,
+  type SubmissionExportDataRow,
+  type SubmissionExportQuestionData,
+  type SubmissionExportRecord,
+  type SubmissionExportRubricData,
 } from "@/export/submissionExportCsv";
 import { db } from "../db/kysely";
 import type { AssessmentRubricValue, SubmissionSubmitter } from "../db/types";
-import { attachAssessment } from "../rubrics/rubric";
+import {
+  type AssessedRubric,
+  attachAssessment,
+  markRubric,
+} from "../rubrics/rubric";
+import { assertNever } from "../utils/utils";
 
 function toNumber(value: string | number): number {
   if (typeof value === "number") return value;
@@ -49,10 +60,11 @@ function toSubmissionSubmitter(params: {
   };
 }
 
-async function assertSubmissionInvariants(projectId: number) {
+async function assertSubmissionInvariants(projectId: string) {
   const invalidSubmissions = await db
-    .selectFrom("submission")
-    .where("submission.projectId", "=", projectId)
+    .selectFrom("project")
+    .where("project.id", "=", projectId)
+    .leftJoin("submission", "project.rowId", "submission.projectId")
     .select((expressionBuilder) => expressionBuilder.fn.countAll().as("count"))
     .where((expressionBuilder) =>
       expressionBuilder.or([
@@ -64,7 +76,7 @@ async function assertSubmissionInvariants(projectId: number) {
           expressionBuilder("type", "=", "individual"),
           expressionBuilder("studentId", "is", null),
         ]),
-      ]),
+      ])
     )
     .executeTakeFirstOrThrow();
 
@@ -77,36 +89,29 @@ async function assertSubmissionInvariants(projectId: number) {
   }
 }
 
-async function resolveProjectRowId(projectId: string): Promise<number> {
-  const project = await db
-    .selectFrom("project")
-    .select("rowId")
-    .where("id", "=", projectId)
-    .executeTakeFirstOrThrow();
-
-  return project.rowId;
-}
-
 async function loadQuestionPlan(
-  projectId: number,
+  projectId: string,
 ): Promise<ExportQuestionPlan[]> {
+  const { rowId: projectRowId } = await db
+    .selectFrom("project")
+    .where("project.id", "=", projectId)
+    .select("project.rowId")
+    .executeTakeFirstOrThrow();
   const [questions, rubrics, booleanRubrics, numericalRubrics, ordinalMarks] =
     await Promise.all([
       db
         .selectFrom("question")
-        .where("question.projectId", "=", projectId)
-        .select(["id", "label", "position"])
+        .where("question.projectId", "=", projectRowId)
+        .select(["id", "position"])
         .orderBy("position", "asc")
         .execute(),
       db
         .selectFrom("rubric")
         .innerJoin("question", "question.rowId", "rubric.questionId")
-        .where("rubric.projectId", "=", projectId)
+        .where("rubric.projectId", "=", projectRowId)
         .select([
           "rubric.id as id",
           "question.id as questionId",
-          "rubric.label as label",
-          "rubric.description as description",
           "rubric.position as position",
           "rubric.type as type",
         ])
@@ -115,7 +120,7 @@ async function loadQuestionPlan(
       db
         .selectFrom("booleanRubric")
         .innerJoin("rubric", "rubric.rowId", "booleanRubric.rubricId")
-        .where("rubric.projectId", "=", projectId)
+        .where("rubric.projectId", "=", projectRowId)
         .select([
           "rubric.id as rubricId",
           "booleanRubric.marks as marks",
@@ -125,7 +130,7 @@ async function loadQuestionPlan(
       db
         .selectFrom("numericalRubric")
         .innerJoin("rubric", "rubric.rowId", "numericalRubric.rubricId")
-        .where("rubric.projectId", "=", projectId)
+        .where("rubric.projectId", "=", projectRowId)
         .select([
           "rubric.id as rubricId",
           "numericalRubric.minScore as minScore",
@@ -143,7 +148,7 @@ async function loadQuestionPlan(
           "ordinalRubric.id",
         )
         .innerJoin("rubric", "rubric.rowId", "ordinalRubric.rubricId")
-        .where("rubric.projectId", "=", projectId)
+        .where("rubric.projectId", "=", projectRowId)
         .select([
           "rubric.id as rubricId",
           "ordinalRubricValue.label as label",
@@ -177,10 +182,7 @@ async function loadQuestionPlan(
 
   return questions.map((question) => ({
     id: question.id,
-    label: question.label ?? question.id,
     rubrics: (rubricsByQuestionId.get(question.id) ?? []).map((rubric) => {
-      const rubricLabel = rubric.label ?? rubric.description ?? rubric.id;
-
       if (rubric.type === "boolean") {
         const booleanRubric = booleanRubricById.get(rubric.id);
         if (booleanRubric == null) {
@@ -190,7 +192,6 @@ async function loadQuestionPlan(
         }
         return {
           id: rubric.id,
-          label: rubricLabel,
           type: "boolean" as const,
           marks: toNumber(booleanRubric.marks),
           falseMarks: toNumber(booleanRubric.falseMarks),
@@ -201,7 +202,6 @@ async function loadQuestionPlan(
         const marks = ordinalMarksByRubricId.get(rubric.id) ?? [];
         return {
           id: rubric.id,
-          label: rubricLabel,
           type: "ordinal" as const,
           marks: Object.fromEntries(
             marks.map((item) => [item.label, toNumber(item.marks)]),
@@ -217,7 +217,6 @@ async function loadQuestionPlan(
       }
       return {
         id: rubric.id,
-        label: rubricLabel,
         type: "numerical" as const,
         minScore: toNumber(numericalRubric.minScore),
         maxScore: toNumber(numericalRubric.maxScore),
@@ -229,24 +228,93 @@ async function loadQuestionPlan(
   }));
 }
 
-export async function createSubmissionExport(
-  options: ExportOptions,
-  projectId: string,
-): Promise<{
-  headers: string[];
-  rows: AsyncGenerator<string[]>;
+export async function createSubmissionExport(projectId: string): Promise<{
+  questions: ExportQuestionPlan[];
+  rows: AsyncGenerator<SubmissionExportDataRow>;
 }> {
-  const projectRowId = await resolveProjectRowId(projectId);
+  await assertSubmissionInvariants(projectId);
 
-  await assertSubmissionInvariants(projectRowId);
+  const questions = await loadQuestionPlan(projectId);
 
-  const questions = await loadQuestionPlan(projectRowId);
-  const headers = buildSubmissionExportHeaders(questions, options);
+  function getAssessmentValue(
+    rubric: AssessedRubric,
+  ): SubmissionExportAssessmentValue | undefined {
+    if (rubric.assessment == null) {
+      return undefined;
+    }
 
-  async function* rows(): AsyncGenerator<string[]> {
+    switch (rubric.type) {
+      case "boolean": {
+        return rubric.assessment.passed;
+      }
+      case "ordinal": {
+        return rubric.assessment.selectedLabel;
+      }
+      case "numerical": {
+        return rubric.assessment.score;
+      }
+      default: {
+        return assertNever(rubric);
+      }
+    }
+  }
+
+  function buildQuestionData(
+    valuesByKey: Map<string, AssessmentRubricValue>,
+  ): SubmissionExportQuestionData[] {
+    return questions.map((question) => ({
+      questionId: question.id,
+      rubrics: question.rubrics.map((rubric) => {
+        const assessedRubric = attachAssessment(
+          rubric,
+          valuesByKey.get(buildAssessmentKey(question.id, rubric.id)),
+        );
+
+        const rowRubric: SubmissionExportRubricData = {
+          rubricId: rubric.id,
+        };
+
+        const assessment = getAssessmentValue(assessedRubric);
+        if (assessment != null) {
+          rowRubric.assessment = assessment;
+        }
+
+        if (assessedRubric.assessment != null) {
+          rowRubric.marks = markRubric(assessedRubric);
+        }
+
+        return rowRubric;
+      }),
+    }));
+  }
+
+  function buildCurrentSubmissionExportRow(params: {
+    submissionId: number;
+    submissionType: "team" | "individual" | null;
+    teamName: string | null;
+    studentId: string | null;
+    valuesByKey: Map<string, AssessmentRubricValue>;
+  }): SubmissionExportDataRow {
+    if (params.submissionType == null) {
+      throw new Error("Missing submission type while streaming export.");
+    }
+
+    return {
+      submission: toSubmissionSubmitter({
+        id: String(params.submissionId),
+        type: params.submissionType,
+        teamName: params.teamName,
+        studentId: params.studentId,
+      }),
+      questions: buildQuestionData(params.valuesByKey),
+    };
+  }
+
+  async function* rows(): AsyncGenerator<SubmissionExportDataRow> {
     const stream = db
-      .selectFrom("submission")
-      .where("submission.projectId", "=", projectRowId)
+      .selectFrom("project")
+      .where("project.id", "=", projectId)
+      .leftJoin("submission", "project.rowId", "submission.projectId")
       .leftJoin("team", "team.id", "submission.teamId")
       .leftJoin("student", "student.rowId", "submission.studentId")
       .leftJoin("assessment", "assessment.submissionId", "submission.id")
@@ -299,33 +367,12 @@ export async function createSubmissionExport(
         currentSubmissionId != null &&
         row.submissionId !== currentSubmissionId
       ) {
-        if (currentSubmissionType == null) {
-          throw new Error("Missing submission type while streaming export.");
-        }
-
-        const assessedQuestions: ExportAssessedQuestionPlan[] = questions.map(
-          (question) => ({
-            ...question,
-            rubrics: question.rubrics.map((rubric) =>
-              attachAssessment(
-                rubric,
-                currentValuesByKey.get(
-                  buildAssessmentKey(question.id, rubric.id),
-                ),
-              ),
-            ),
-          }),
-        );
-
-        yield buildSubmissionExportRow({
-          submission: toSubmissionSubmitter({
-            id: String(currentSubmissionId),
-            type: currentSubmissionType,
-            teamName: currentTeamName,
-            studentId: currentStudentId,
-          }),
-          questions: assessedQuestions,
-          options,
+        yield buildCurrentSubmissionExportRow({
+          submissionId: currentSubmissionId,
+          submissionType: currentSubmissionType,
+          teamName: currentTeamName,
+          studentId: currentStudentId,
+          valuesByKey: currentValuesByKey,
         });
 
         currentValuesByKey = new Map<string, AssessmentRubricValue>();
@@ -370,39 +417,103 @@ export async function createSubmissionExport(
     }
 
     if (currentSubmissionId != null) {
-      if (currentSubmissionType == null) {
-        throw new Error("Missing submission type while finalizing export.");
-      }
-
-      const assessedQuestions: ExportAssessedQuestionPlan[] = questions.map(
-        (question) => ({
-          ...question,
-          rubrics: question.rubrics.map((rubric) =>
-            attachAssessment(
-              rubric,
-              currentValuesByKey.get(
-                buildAssessmentKey(question.id, rubric.id),
-              ),
-            ),
-          ),
-        }),
-      );
-
-      yield buildSubmissionExportRow({
-        submission: toSubmissionSubmitter({
-          id: String(currentSubmissionId),
-          type: currentSubmissionType,
-          teamName: currentTeamName,
-          studentId: currentStudentId,
-        }),
-        questions: assessedQuestions,
-        options,
+      yield buildCurrentSubmissionExportRow({
+        submissionId: currentSubmissionId,
+        submissionType: currentSubmissionType,
+        teamName: currentTeamName,
+        studentId: currentStudentId,
+        valuesByKey: currentValuesByKey,
       });
     }
   }
 
-  return {
+  return { questions, rows: rows() };
+}
+
+async function* toSubmissionExportRecords(params: {
+  rows: AsyncIterable<SubmissionExportDataRow>;
+  options: ExportOptions;
+}): AsyncGenerator<SubmissionExportRecord> {
+  for await (const row of params.rows) {
+    yield buildSubmissionExportRecord({ row, options: params.options });
+  }
+}
+
+export function createCsvSubmissionExportDataStream(params: {
+  questions: ExportQuestionPlan[];
+  rows: AsyncIterable<SubmissionExportDataRow>;
+  options: ExportOptions;
+}): ReadableStream<Uint8Array> {
+  const headers = buildSubmissionExportHeaders(
+    params.questions,
+    params.options,
+  );
+
+  return createCsvSubmissionExportStream({
     headers,
-    rows: rows(),
-  };
+    rows: toSubmissionExportRecords({
+      rows: params.rows,
+      options: params.options,
+    }),
+  });
+}
+
+export function createCsvSubmissionExportStream(exportData: {
+  headers: string[];
+  rows: AsyncIterable<SubmissionExportRecord>;
+}): ReadableStream<Uint8Array> {
+  const encoder = new TextEncoder();
+
+  return new ReadableStream<Uint8Array>({
+    async start(controller) {
+      const stringifier = stringify({
+        header: true,
+        columns: exportData.headers,
+      });
+
+      stringifier.on("data", (chunk: string | Buffer) => {
+        if (typeof chunk === "string") {
+          controller.enqueue(encoder.encode(chunk));
+          return;
+        }
+
+        controller.enqueue(new Uint8Array(chunk));
+      });
+
+      stringifier.on("end", () => {
+        controller.close();
+      });
+
+      stringifier.on("error", (error) => {
+        controller.error(error);
+      });
+
+      try {
+        for await (const row of exportData.rows) {
+          if (!stringifier.write(row)) {
+            await once(stringifier, "drain");
+          }
+        }
+
+        stringifier.end();
+      } catch (error) {
+        const streamError = error instanceof Error
+          ? error
+          : new Error("Failed to stream submission CSV.");
+        stringifier.destroy(streamError);
+      }
+    },
+  });
+}
+
+export async function createCsvSubmissionExport(
+  options: ExportOptions,
+  projectId: string,
+): Promise<ReadableStream<Uint8Array>> {
+  const exportData = await createSubmissionExport(projectId);
+  return createCsvSubmissionExportDataStream({
+    questions: exportData.questions,
+    rows: exportData.rows,
+    options,
+  });
 }
