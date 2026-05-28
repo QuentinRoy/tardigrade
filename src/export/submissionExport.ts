@@ -76,7 +76,7 @@ async function assertSubmissionInvariants(projectId: string) {
           expressionBuilder("type", "=", "individual"),
           expressionBuilder("studentId", "is", null),
         ]),
-      ])
+      ]),
     )
     .executeTakeFirstOrThrow();
 
@@ -500,9 +500,10 @@ export function createCsvSubmissionExportStream(exportData: {
 
         stringifier.end();
       } catch (error) {
-        const streamError = error instanceof Error
-          ? error
-          : new Error("Failed to stream submission CSV.");
+        const streamError =
+          error instanceof Error
+            ? error
+            : new Error("Failed to stream submission CSV.");
         stringifier.destroy(streamError);
       }
     },
