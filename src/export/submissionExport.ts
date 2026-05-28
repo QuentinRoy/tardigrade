@@ -1,6 +1,14 @@
 import "server-only";
 import { once } from "node:events";
 import { stringify } from "csv-stringify";
+import { db } from "../db/kysely";
+import type { AssessmentRubricValue, SubmissionSubmitter } from "../db/types";
+import {
+  type AssessedRubric,
+  attachAssessment,
+  markRubric,
+} from "../rubrics/rubric";
+import { assertNever } from "../utils/utils";
 import {
   buildAssessmentKey,
   buildSubmissionExportHeaders,
@@ -12,15 +20,7 @@ import {
   type SubmissionExportQuestionData,
   type SubmissionExportRecord,
   type SubmissionExportRubricData,
-} from "@/export/submissionExportCsv";
-import { db } from "../db/kysely";
-import type { AssessmentRubricValue, SubmissionSubmitter } from "../db/types";
-import {
-  type AssessedRubric,
-  attachAssessment,
-  markRubric,
-} from "../rubrics/rubric";
-import { assertNever } from "../utils/utils";
+} from "./submissionExportCsv";
 
 function toNumber(value: string | number): number {
   if (typeof value === "number") return value;
@@ -76,7 +76,7 @@ async function assertSubmissionInvariants(projectId: string) {
           expressionBuilder("type", "=", "individual"),
           expressionBuilder("studentId", "is", null),
         ]),
-      ]),
+      ])
     )
     .executeTakeFirstOrThrow();
 
@@ -469,6 +469,9 @@ export function createCsvSubmissionExportStream(exportData: {
       const stringifier = stringify({
         header: true,
         columns: exportData.headers,
+        cast: {
+          boolean: (value: boolean) => String(value),
+        },
       });
 
       stringifier.on("data", (chunk: string | Buffer) => {
@@ -497,10 +500,9 @@ export function createCsvSubmissionExportStream(exportData: {
 
         stringifier.end();
       } catch (error) {
-        const streamError =
-          error instanceof Error
-            ? error
-            : new Error("Failed to stream submission CSV.");
+        const streamError = error instanceof Error
+          ? error
+          : new Error("Failed to stream submission CSV.");
         stringifier.destroy(streamError);
       }
     },

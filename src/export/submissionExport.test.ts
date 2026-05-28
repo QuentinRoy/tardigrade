@@ -1,4 +1,8 @@
+import { vi } from "vitest";
 import { describe, expect, it } from "vitest";
+
+vi.mock("server-only", () => ({}));
+
 import { createCsvSubmissionExportDataStream } from "./submissionExport";
 import type {
   ExportQuestionPlan,
