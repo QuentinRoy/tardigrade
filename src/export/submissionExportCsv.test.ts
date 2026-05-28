@@ -208,7 +208,7 @@ describe("submission CSV ordering", () => {
           includeRubricAssessment: false,
           includeRubricMarks: false,
         },
-      })
+      }),
     ).toThrow("Submission sub-team has type team but no team is linked.");
   });
 

@@ -16,7 +16,8 @@ describe("parseExportOptions", () => {
   });
 
   it("throws on invalid include", () => {
-    expect(() => parseExportOptions(new URLSearchParams("include=foo")))
-      .toThrow("Invalid include option: foo");
+    expect(() =>
+      parseExportOptions(new URLSearchParams("include=foo")),
+    ).toThrow("Invalid include option: foo");
   });
 });
