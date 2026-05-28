@@ -1,8 +1,4 @@
 import type { Rubric, SubmissionSubmitter } from "@/db/types";
-import { type AssessedRubric, markRubric } from "../rubrics/rubric";
-import { assertNever } from "../utils/utils";
-
-export type ExportInclude = "rubric-assessment" | "rubric-marks";
 
 export type ExportOptions = {
   includeRubricAssessment: boolean;
@@ -14,27 +10,20 @@ type RubricOfType<TType extends Rubric["type"]> = Extract<
   { type: TType }
 >;
 
-type ExportRubricLabel = {
-  label: string;
-};
+type ExportBooleanRubricPlan = Pick<
+  RubricOfType<"boolean">,
+  "id" | "type" | "marks" | "falseMarks"
+>;
 
-type ExportBooleanRubricPlan = ExportRubricLabel &
-  Pick<RubricOfType<"boolean">, "id" | "type" | "marks" | "falseMarks">;
+type ExportOrdinalRubricPlan = Pick<
+  RubricOfType<"ordinal">,
+  "id" | "type" | "marks"
+>;
 
-type ExportOrdinalRubricPlan = ExportRubricLabel &
-  Pick<RubricOfType<"ordinal">, "id" | "type" | "marks">;
-
-type ExportNumericalRubricPlan = ExportRubricLabel &
-  Pick<
-    RubricOfType<"numerical">,
-    | "id"
-    | "type"
-    | "minScore"
-    | "maxScore"
-    | "minMarks"
-    | "maxMarks"
-    | "reversed"
-  >;
+type ExportNumericalRubricPlan = Pick<
+  RubricOfType<"numerical">,
+  "id" | "type" | "minScore" | "maxScore" | "minMarks" | "maxMarks" | "reversed"
+>;
 
 export type ExportRubricPlan =
   | ExportBooleanRubricPlan
@@ -43,36 +32,37 @@ export type ExportRubricPlan =
 
 export type ExportQuestionPlan = {
   id: string;
-  label: string;
   rubrics: ExportRubricPlan[];
 };
 
-export type ExportAssessedQuestionPlan = {
-  id: string;
-  label: string;
-  rubrics: AssessedRubric[];
+export type SubmissionExportAssessmentValue = string | number | boolean;
+
+export type SubmissionExportRubricData = {
+  rubricId: string;
+  assessment?: SubmissionExportAssessmentValue;
+  marks?: number;
 };
 
-export function parseExportOptions(
-  searchParams: URLSearchParams,
-): ExportOptions {
-  const includes = searchParams.getAll("include");
+export type SubmissionExportQuestionData = {
+  questionId: string;
+  rubrics: SubmissionExportRubricData[];
+};
 
-  const includeSet = new Set<ExportInclude>();
-  for (const include of includes) {
-    if (include === "rubric-assessment" || include === "rubric-marks") {
-      includeSet.add(include);
-      continue;
-    }
+export type SubmissionExportDataRow = {
+  submission: SubmissionSubmitter;
+  questions: SubmissionExportQuestionData[];
+};
 
-    throw new Error(`Invalid include option: ${include}`);
-  }
+export type SubmissionExportValue =
+  | string
+  | number
+  | boolean
+  | null
+  | undefined;
 
-  return {
-    includeRubricAssessment: includeSet.has("rubric-assessment"),
-    includeRubricMarks: includeSet.has("rubric-marks"),
-  };
-}
+export type SubmissionExportRecord = {
+  [columnName: string]: SubmissionExportValue;
+};
 
 export function buildAssessmentKey(
   questionId: string,
@@ -139,37 +129,18 @@ export function buildSubmissionExportHeaders(
   return headers;
 }
 
-function getRubricAssessmentDisplay(rubric: AssessedRubric): string {
-  if (rubric.assessment == null) {
-    return "";
-  }
-
-  switch (rubric.type) {
-    case "boolean": {
-      return rubric.assessment.passed ? "true" : "false";
-    }
-    case "ordinal": {
-      return rubric.assessment.selectedLabel;
-    }
-    case "numerical": {
-      return String(rubric.assessment.score);
-    }
-    default: {
-      return assertNever(rubric);
-    }
-  }
-}
-
-export function buildSubmissionExportRow(params: {
-  submission: SubmissionSubmitter;
-  questions: ExportAssessedQuestionPlan[];
+export function buildSubmissionExportRecord(params: {
+  row: SubmissionExportDataRow;
   options: ExportOptions;
-}): string[] {
-  const { submission, questions, options } = params;
-  const row: string[] = [
-    submission.type,
-    getSubmissionExportIdentifier(submission),
-  ];
+}): SubmissionExportRecord {
+  const {
+    row: { submission, questions },
+    options,
+  } = params;
+  const row: SubmissionExportRecord = {
+    submission_type: submission.type,
+    submitter: getSubmissionExportIdentifier(submission),
+  };
 
   let grandTotalMarks = 0;
   let hasMissingAssessment = false;
@@ -179,36 +150,42 @@ export function buildSubmissionExportRow(params: {
     let isQuestionFullyAssessed = true;
 
     for (const rubric of question.rubrics) {
-      const rubricMarks =
-        rubric.assessment != null ? markRubric(rubric) : undefined;
-
       if (rubric.assessment == null) {
         isQuestionFullyAssessed = false;
       }
 
       if (options.includeRubricAssessment) {
-        row.push(getRubricAssessmentDisplay(rubric));
+        const assessmentValue = rubric.assessment;
+        if (assessmentValue != null) {
+          row[getAssessmentColumnName(question.questionId, rubric.rubricId)] =
+            assessmentValue;
+        }
       }
 
       if (options.includeRubricMarks) {
-        row.push(rubricMarks != null ? String(rubricMarks) : "");
+        if (rubric.marks != null) {
+          row[getMarksColumnName(question.questionId, rubric.rubricId)] =
+            rubric.marks;
+        }
       }
 
-      if (rubricMarks != null) {
-        questionTotalMarks += rubricMarks;
+      if (rubric.marks != null) {
+        questionTotalMarks += rubric.marks;
       }
     }
 
     if (isQuestionFullyAssessed) {
       grandTotalMarks += questionTotalMarks;
-      row.push(String(questionTotalMarks));
+      row[question.questionId] = questionTotalMarks;
       continue;
     }
 
     hasMissingAssessment = true;
-    row.push("");
   }
 
-  row.push(hasMissingAssessment ? "" : String(grandTotalMarks));
+  if (!hasMissingAssessment) {
+    row.grand_total_marks = grandTotalMarks;
+  }
+
   return row;
 }

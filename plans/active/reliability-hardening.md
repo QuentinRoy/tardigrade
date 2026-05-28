@@ -227,7 +227,7 @@ Notably under-covered critical modules:
 
 These are behavior-preserving refactors intended only to make tests deterministic and reduce risk:
 - Extract pure normalization/validation phase from src/import/saveAssessments.ts.
-- Separate export stream state machine steps in src/export/submissionExport.ts.
+- Separate export stream state machine steps in src/export/submissionExport.ts; request-option parsing now lives in route layer.
 - Introduce shared DB fixture builders for project/question/rubric/submission/assessment setup.
 - Add small domain helpers for repeated aggregate logic to reduce brittle integration-only verification.
 

@@ -2,48 +2,22 @@ import { describe, expect, it } from "vitest";
 import type { SubmissionSubmitter } from "@/db/types";
 import {
   buildSubmissionExportHeaders,
-  buildSubmissionExportRow,
-  type ExportAssessedQuestionPlan,
-  parseExportOptions,
+  buildSubmissionExportRecord,
 } from "./submissionExportCsv";
-
-describe("parseExportOptions", () => {
-  it("parses repeated include params", () => {
-    const options = parseExportOptions(
-      new URLSearchParams(
-        "include=rubric-assessment&include=rubric-marks&include=rubric-assessment",
-      ),
-    );
-
-    expect(options).toEqual({
-      includeRubricAssessment: true,
-      includeRubricMarks: true,
-    });
-  });
-
-  it("throws on invalid include", () => {
-    expect(() =>
-      parseExportOptions(new URLSearchParams("include=foo")),
-    ).toThrow("Invalid include option: foo");
-  });
-});
 
 describe("submission CSV ordering", () => {
   const questions = [
     {
       id: "q1",
-      label: "Q1",
       rubrics: [
         {
           id: "r1",
-          label: "R1",
           type: "boolean" as const,
           marks: 2,
           falseMarks: -1,
         },
         {
           id: "r2",
-          label: "R2",
           type: "ordinal" as const,
           marks: { A: 3, B: 1 },
         },
@@ -51,11 +25,9 @@ describe("submission CSV ordering", () => {
     },
     {
       id: "q2",
-      label: "Q2",
       rubrics: [
         {
           id: "r3",
-          label: "R3",
           type: "numerical" as const,
           minScore: 0,
           maxScore: 10,
@@ -67,124 +39,75 @@ describe("submission CSV ordering", () => {
     },
   ];
 
-  const fullyAssessedQuestions: ExportAssessedQuestionPlan[] = [
+  const fullyAssessedQuestions = [
     {
-      id: "q1",
-      label: "Q1",
+      questionId: "q1",
       rubrics: [
         {
-          id: "r1",
-          label: "R1",
-          type: "boolean",
+          rubricId: "r1",
+          assessment: true,
           marks: 2,
-          falseMarks: -1,
-          assessment: { passed: true },
         },
         {
-          id: "r2",
-          label: "R2",
-          type: "ordinal",
-          marks: { A: 3, B: 1 },
-          assessment: { selectedLabel: "B" },
+          rubricId: "r2",
+          assessment: "B",
+          marks: 1,
         },
       ],
     },
     {
-      id: "q2",
-      label: "Q2",
+      questionId: "q2",
       rubrics: [
         {
-          id: "r3",
-          label: "R3",
-          type: "numerical",
-          minScore: 0,
-          maxScore: 10,
-          minMarks: 0,
-          maxMarks: 5,
-          reversed: false,
-          assessment: { score: 8 },
+          rubricId: "r3",
+          assessment: 8,
+          marks: 4,
         },
       ],
     },
   ];
 
-  const failedBooleanQuestions: ExportAssessedQuestionPlan[] = [
+  const failedBooleanQuestions = [
     {
-      id: "q1",
-      label: "Q1",
+      questionId: "q1",
       rubrics: [
         {
-          id: "r1",
-          label: "R1",
-          type: "boolean",
-          marks: 2,
-          falseMarks: -1,
-          assessment: { passed: false },
+          rubricId: "r1",
+          assessment: false,
+          marks: -1,
         },
         {
-          id: "r2",
-          label: "R2",
-          type: "ordinal",
-          marks: { A: 3, B: 1 },
-          assessment: null,
+          rubricId: "r2",
         },
       ],
     },
     {
-      id: "q2",
-      label: "Q2",
+      questionId: "q2",
       rubrics: [
         {
-          id: "r3",
-          label: "R3",
-          type: "numerical",
-          minScore: 0,
-          maxScore: 10,
-          minMarks: 0,
-          maxMarks: 5,
-          reversed: false,
-          assessment: null,
+          rubricId: "r3",
         },
       ],
     },
   ];
 
-  const unassessedQuestions: ExportAssessedQuestionPlan[] = [
+  const unassessedQuestions = [
     {
-      id: "q1",
-      label: "Q1",
+      questionId: "q1",
       rubrics: [
         {
-          id: "r1",
-          label: "R1",
-          type: "boolean",
-          marks: 2,
-          falseMarks: -1,
-          assessment: null,
+          rubricId: "r1",
         },
         {
-          id: "r2",
-          label: "R2",
-          type: "ordinal",
-          marks: { A: 3, B: 1 },
-          assessment: null,
+          rubricId: "r2",
         },
       ],
     },
     {
-      id: "q2",
-      label: "Q2",
+      questionId: "q2",
       rubrics: [
         {
-          id: "r3",
-          label: "R3",
-          type: "numerical",
-          minScore: 0,
-          maxScore: 10,
-          minMarks: 0,
-          maxMarks: 5,
-          reversed: false,
-          assessment: null,
+          rubricId: "r3",
         },
       ],
     },
@@ -211,73 +134,76 @@ describe("submission CSV ordering", () => {
     ]);
   });
 
-  it("builds row values with question totals and grand total", () => {
-    const row = buildSubmissionExportRow({
-      submission: {
-        id: "sub-1",
-        type: "individual",
-        studentId: "stu-123",
+  it("builds sparse record values with question totals and grand total", () => {
+    const row = buildSubmissionExportRecord({
+      row: {
+        submission: {
+          id: "sub-1",
+          type: "individual",
+          studentId: "stu-123",
+        },
+        questions: fullyAssessedQuestions,
       },
-      questions: fullyAssessedQuestions,
       options: {
         includeRubricAssessment: true,
         includeRubricMarks: true,
       },
     });
 
-    expect(row).toEqual([
-      "individual",
-      "stu-123",
-      "true",
-      "2",
-      "B",
-      "1",
-      "3",
-      "8",
-      "4",
-      "4",
-      "7",
-    ]);
+    expect(row).toMatchInlineSnapshot(`
+      {
+        "grand_total_marks": 7,
+        "q1": 3,
+        "q1:r1": true,
+        "q1:r1:marks": 2,
+        "q1:r2": "B",
+        "q1:r2:marks": 1,
+        "q2": 4,
+        "q2:r3": 8,
+        "q2:r3:marks": 4,
+        "submission_type": "individual",
+        "submitter": "stu-123",
+      }
+    `);
   });
 
   it("uses falseMarks when a boolean rubric is not passed", () => {
-    const row = buildSubmissionExportRow({
-      submission: {
-        id: "sub-1",
-        type: "individual",
-        studentId: "stu-123",
+    const row = buildSubmissionExportRecord({
+      row: {
+        submission: {
+          id: "sub-1",
+          type: "individual",
+          studentId: "stu-123",
+        },
+        questions: failedBooleanQuestions,
       },
-      questions: failedBooleanQuestions,
       options: {
         includeRubricAssessment: true,
         includeRubricMarks: true,
       },
     });
 
-    expect(row).toEqual([
-      "individual",
-      "stu-123",
-      "false",
-      "-1",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-    ]);
+    expect(row).toMatchInlineSnapshot(`
+      {
+        "q1:r1": false,
+        "q1:r1:marks": -1,
+        "submission_type": "individual",
+        "submitter": "stu-123",
+      }
+    `);
   });
 
   it("throws when submission type invariant is broken", () => {
     expect(() =>
-      buildSubmissionExportRow({
-        submission: {
-          id: "sub-team",
-          type: "team",
-          teamName: "",
+      buildSubmissionExportRecord({
+        row: {
+          submission: {
+            id: "sub-team",
+            type: "team",
+            teamName: "",
+          },
+          questions: unassessedQuestions,
         },
-        questions: unassessedQuestions,
         options: {
           includeRubricAssessment: false,
           includeRubricMarks: false,
@@ -287,20 +213,27 @@ describe("submission CSV ordering", () => {
   });
 
   it("uses team name as submitter for team submissions", () => {
-    const row = buildSubmissionExportRow({
-      submission: {
-        id: "sub-team-1",
-        type: "team",
-        teamName: "Team A",
+    const row = buildSubmissionExportRecord({
+      row: {
+        submission: {
+          id: "sub-team-1",
+          type: "team",
+          teamName: "Team A",
+        },
+        questions: unassessedQuestions,
       },
-      questions: unassessedQuestions,
       options: {
         includeRubricAssessment: true,
         includeRubricMarks: false,
       },
     });
 
-    expect(row).toEqual(["team", "Team A", "", "", "", "", "", ""]);
+    expect(row).toMatchInlineSnapshot(`
+      {
+        "submission_type": "team",
+        "submitter": "Team A",
+      }
+    `);
   });
 
   it("requires student id for individual submissions at the type level", () => {
@@ -310,11 +243,9 @@ describe("submission CSV ordering", () => {
     >;
 
     // @ts-expect-error missing studentId for individual submission
-    const invalidIndividualSubmitter: IndividualSubmitter = {
+    const _invalidIndividualSubmitter: IndividualSubmitter = {
       id: "sub-ind-1",
       type: "individual",
     };
-
-    expect(invalidIndividualSubmitter).toBeDefined();
   });
 });

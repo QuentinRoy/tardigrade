@@ -1,7 +1,6 @@
-import { stringify } from "csv-stringify/sync";
 import { loadProjectByPublicId } from "@/db/projects";
-import { createSubmissionExport } from "@/export/submissionExport";
-import { parseExportOptions } from "@/export/submissionExportCsv";
+import { createCsvSubmissionExport } from "@/export/submissionExport";
+import { parseExportOptions } from "./exportOptions";
 
 type RouteParams = {
   params: Promise<{
@@ -31,25 +30,7 @@ export async function GET(
     return Response.json({ error: message }, { status: 400 });
   }
 
-  const exportData = await createSubmissionExport(options, project.id);
-
-  const body = new ReadableStream<Uint8Array>({
-    async start(controller) {
-      const encoder = new TextEncoder();
-
-      try {
-        controller.enqueue(encoder.encode(stringify([exportData.headers])));
-
-        for await (const row of exportData.rows) {
-          controller.enqueue(encoder.encode(stringify([row])));
-        }
-
-        controller.close();
-      } catch (error) {
-        controller.error(error);
-      }
-    },
-  });
+  const body = await createCsvSubmissionExport(options, project.id);
 
   const now = new Date();
   const y = now.getUTCFullYear();
