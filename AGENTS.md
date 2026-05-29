@@ -68,6 +68,9 @@ Investigations and active plans can guide work, but they do not override higher-
 - Run repository checks after changes:
   - `pnpm run check --fix`
   - `pnpm run check-types`
+  - `pnpm test:unit <changed-file-stem>` for each changed source file — vitest matches by path stem (e.g. `src/projects/projectPaths` runs `projectPaths.test.ts`).
+  - `src/db/` tests are not mirrored per source file; use `pnpm test src/db/` for any change under `src/db/`. Integration tests spin up Docker.
+  - `pnpm test:storybook <changed-stories-stem>` when `.stories.tsx` files are affected — vitest runs Storybook in headless mode via Playwright, no separate server needed.
 
 - Treat lint and type errors as issues to resolve rather than obstacles to bypass.
 
