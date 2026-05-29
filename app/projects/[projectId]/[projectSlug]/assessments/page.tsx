@@ -15,9 +15,9 @@ import { loadQuestions } from "@/db/questions";
 import { loadSubmissionOverviewProgress } from "@/db/submissionProgress";
 import { loadSubmissions } from "@/db/submissions";
 import {
-  projectAssessmentSubmissionPath,
-  projectAssessmentSubmissionQuestionPath,
-  projectOverviewPath,
+	projectAssessmentSubmissionPath,
+	projectAssessmentSubmissionQuestionPath,
+	projectOverviewPath,
 } from "@/projects/projectPaths";
 import QuestionList from "@/questions/QuestionList";
 import { getSubmissionLabel } from "@/submissions/getSubmissionLabel";
@@ -48,7 +48,7 @@ async function ProjectAssessmentPageContent({
 	"use cache";
 	cacheTag("assessments");
 
-  const project = await loadProjectByPublicId(projectId, { required: true });
+	const project = await loadProjectByPublicId(projectId, { required: true });
 
 	if (project.slug !== projectSlug) {
 		redirect(projectOverviewPath(project.id, project.slug));

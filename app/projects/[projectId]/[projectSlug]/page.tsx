@@ -4,8 +4,8 @@ import GlobalAssessmentSummary from "@/assessment/GlobalAssessmentSummary";
 import { loadGlobalAssessmentProgress } from "@/db/assessmentsProgress";
 import { loadProjectByPublicId } from "@/db/projects";
 import {
-  projectAssessmentsPath,
-  projectDashboardPath,
+	projectAssessmentsPath,
+	projectDashboardPath,
 } from "@/projects/projectPaths";
 
 type ProjectDashboardPageProps = {
@@ -17,7 +17,7 @@ export default async function ProjectDashboardPage({
 }: ProjectDashboardPageProps) {
 	const { projectId, projectSlug } = await params;
 
-  const project = await loadProjectByPublicId(projectId, { required: true });
+	const project = await loadProjectByPublicId(projectId, { required: true });
 
 	if (project.slug !== projectSlug) {
 		redirect(projectDashboardPath(project.id, project.slug));

@@ -54,8 +54,8 @@ export default function ProjectAssessmentsOverviewPage({
 async function ProjectAssessmentsOverviewPageContent({
 	params,
 }: ProjectAssessmentsOverviewPageProps): Promise<ReactElement> {
-  const { projectId, projectSlug } = await params;
-  const project = await loadProjectByPublicId(projectId, { required: true });
+	const { projectId, projectSlug } = await params;
+	const project = await loadProjectByPublicId(projectId, { required: true });
 
 	if (project.slug !== projectSlug) {
 		redirect(projectDashboardPath(project.id, project.slug));

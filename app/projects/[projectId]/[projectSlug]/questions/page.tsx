@@ -16,8 +16,8 @@ type ProjectQuestionsPageProps = {
 export default async function ProjectQuestionsPage({
 	params,
 }: ProjectQuestionsPageProps) {
-  const { projectId, projectSlug } = await params;
-  const project = await loadProjectByPublicId(projectId, { required: true });
+	const { projectId, projectSlug } = await params;
+	const project = await loadProjectByPublicId(projectId, { required: true });
 
 	if (project.slug !== projectSlug) {
 		redirect(projectQuestionsPath(project.id, project.slug));

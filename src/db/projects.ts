@@ -52,7 +52,7 @@ export async function loadProjects(): Promise<ProjectSummary[]> {
 }
 
 async function loadProjectCached(
-  publicId: string,
+	publicId: string,
 ): Promise<ProjectSummary | undefined> {
 	"use cache";
 	cacheTags(CACHE_TAGS.projects, projectCacheTag(publicId));
@@ -72,22 +72,22 @@ async function loadProjectCached(
 }
 
 export async function loadProjectByPublicId(
-  publicId: string,
-  options: { required: true },
+	publicId: string,
+	options: { required: true },
 ): Promise<ProjectSummary>;
 export async function loadProjectByPublicId(
-  publicId: string,
-  options?: { required?: false },
+	publicId: string,
+	options?: { required?: false },
 ): Promise<ProjectSummary | undefined>;
 export async function loadProjectByPublicId(
-  publicId: string,
-  { required = false }: { required?: boolean } = {},
+	publicId: string,
+	{ required = false }: { required?: boolean } = {},
 ): Promise<ProjectSummary | undefined> {
-  const project = await loadProjectCached(publicId);
-  if (project == null && required) {
-    throw new Error(`Unexpected: project not found: ${publicId}`);
-  }
-  return project;
+	const project = await loadProjectCached(publicId);
+	if (project == null && required) {
+		throw new Error(`Unexpected: project not found: ${publicId}`);
+	}
+	return project;
 }
 
 export async function createProject(input: {

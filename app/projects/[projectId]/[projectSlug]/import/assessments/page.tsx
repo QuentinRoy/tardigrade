@@ -12,8 +12,8 @@ type ProjectImportAssessmentsPageProps = {
 export default async function ProjectImportAssessmentsPage({
 	params,
 }: ProjectImportAssessmentsPageProps) {
-  const { projectId, projectSlug } = await params;
-  const project = await loadProjectByPublicId(projectId, { required: true });
+	const { projectId, projectSlug } = await params;
+	const project = await loadProjectByPublicId(projectId, { required: true });
 
 	if (project.slug !== projectSlug) {
 		redirect(projectImportAssessmentsPath(project.id, project.slug));

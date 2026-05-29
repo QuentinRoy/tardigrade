@@ -12,8 +12,8 @@ type ProjectImportStudentsPageProps = {
 export default async function ProjectImportStudentsPage({
 	params,
 }: ProjectImportStudentsPageProps) {
-  const { projectId, projectSlug } = await params;
-  const project = await loadProjectByPublicId(projectId, { required: true });
+	const { projectId, projectSlug } = await params;
+	const project = await loadProjectByPublicId(projectId, { required: true });
 
 	if (project.slug !== projectSlug) {
 		redirect(projectImportStudentsPath(project.id, project.slug));
