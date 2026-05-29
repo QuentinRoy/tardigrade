@@ -53,6 +53,48 @@ assignReviewer({ submissionId, reviewerId });
 transferAssessment({ sourceProjectId, targetProjectId });
 ```
 
+Avoid over-nesting. Named-object parameters should make the call site clearer, not create deep configuration shapes. Prefer the shallowest object that gives meaningful names to ambiguous arguments:
+
+```ts
+// Prefer
+recordAssessment({
+  submissionId,
+  criterionId,
+  score,
+  comment,
+});
+
+// Avoid
+recordAssessment({
+  target: {
+    submission: { id: submissionId },
+    criterion: { id: criterionId },
+  },
+  value: {
+    score,
+    comment,
+  },
+});
+```
+
+Nest only when the nested value is a real domain concept, reusable shape, or boundary:
+
+```ts
+createQuestion({
+  projectId,
+  content: {
+    title,
+    prompt,
+  },
+  scoring: {
+    maxPoints,
+    rubric,
+  },
+});
+```
+
+Do not add wrapper objects such as `data`, `payload`, `params`, or `options` inside an already named parameter object unless they clarify a real distinction.
+
 Before adding positional parameters, check whether the call site would still be clear if arguments were variables rather than literals. If not, use a named object.
 
 This is a readability convention, not an absolute rule. Do not contort small local utilities, callbacks required by third-party APIs, or strongly conventional helpers just to satisfy it.
