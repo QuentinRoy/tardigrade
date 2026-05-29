@@ -3,13 +3,13 @@ import Container from "@mui/material/Container";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { notFound, redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 import type { ReactElement } from "react";
 import RubricAnalyticsTable from "@/assessment/RubricAnalyticsTable";
 import StudentMatrix from "@/assessment/StudentMatrix";
 import { loadProjectByPublicId } from "@/db/projects";
 import { loadRubricOverviewData } from "@/db/rubricOverview";
-import { projectDashboardPath } from "@/projects/routes";
+import { projectDashboardPath } from "@/projects/projectPaths";
 
 function formatMarks(value: number | null): string {
 	if (value == null || Number.isNaN(value)) {
@@ -54,12 +54,8 @@ export default function ProjectAssessmentsOverviewPage({
 async function ProjectAssessmentsOverviewPageContent({
 	params,
 }: ProjectAssessmentsOverviewPageProps): Promise<ReactElement> {
-	const { projectId, projectSlug } = await params;
-	const project = await loadProjectByPublicId(projectId);
-
-	if (project == null) {
-		notFound();
-	}
+  const { projectId, projectSlug } = await params;
+  const project = await loadProjectByPublicId(projectId, { required: true });
 
 	if (project.slug !== projectSlug) {
 		redirect(projectDashboardPath(project.id, project.slug));

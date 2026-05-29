@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
-	projectAssessmentSubmissionPath,
-	projectAssessmentSubmissionQuestionPath,
-	projectAssessmentsPath,
-	projectOverviewPath,
-} from "./routes";
+  projectAssessmentSubmissionPath,
+  projectAssessmentSubmissionQuestionPath,
+  projectAssessmentsPath,
+  projectOverviewPath,
+} from "./projectPaths";
 
 describe("project assessment routes", () => {
 	const projectId = "proj_123";

@@ -1,10 +1,23 @@
+import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
+import { loadProjectByPublicId } from "@/db/projects";
 import AppShell from "@/shared/AppShell";
 
-type ProjectScopedLayoutProps = { children: ReactNode };
+type ProjectScopedLayoutProps = {
+  children: ReactNode;
+  params: Promise<{ projectId: string }>;
+};
 
-export default function ProjectScopedLayout({
-	children,
+export default async function ProjectScopedLayout({
+  children,
+  params,
 }: ProjectScopedLayoutProps) {
-	return <AppShell showNavigation>{children}</AppShell>;
+  const { projectId } = await params;
+  const project = await loadProjectByPublicId(projectId);
+  if (project == null) notFound();
+  return (
+    <AppShell showNavigation projectName={project.name}>
+      {children}
+    </AppShell>
+  );
 }

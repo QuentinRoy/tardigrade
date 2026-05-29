@@ -3,31 +3,37 @@ import { useState } from "react";
 import { expect, screen, userEvent, waitFor } from "storybook/test";
 import AppShellNavigationShell from "./AppShellNavigationShell";
 
-type NavigationShellStoryArgs = { showNavigation: boolean };
+type NavigationShellStoryArgs = {
+  showNavigation: boolean;
+  projectName: string;
+};
 
 function ControlledNavigationShell({
-	showNavigation,
+  showNavigation,
+  projectName,
 }: NavigationShellStoryArgs) {
 	const [drawerOpen, setDrawerOpen] = useState<boolean>(false);
 
-	return (
-		<AppShellNavigationShell
-			showNavigation={showNavigation}
-			drawerOpen={drawerOpen}
-			onOpenDrawer={() => setDrawerOpen(true)}
-			onCloseDrawer={() => setDrawerOpen(false)}
-		/>
-	);
+  return (
+    <AppShellNavigationShell
+      {...(showNavigation
+        ? { showNavigation: true, projectName }
+        : { showNavigation: false })}
+      drawerOpen={drawerOpen}
+      onOpenDrawer={() => setDrawerOpen(true)}
+      onCloseDrawer={() => setDrawerOpen(false)}
+    />
+  );
 }
 
 const meta = {
-	title: "Shared/AppShellNavigationShell",
-	component: ControlledNavigationShell,
-	parameters: {
-		layout: "fullscreen",
-		nextjs: { navigation: { pathname: "/projects/123/test-project" } },
-	},
-	args: { showNavigation: true },
+  title: "Shared/AppShellNavigationShell",
+  component: ControlledNavigationShell,
+  parameters: {
+    layout: "fullscreen",
+    nextjs: { navigation: { pathname: "/projects/123/test-project" } },
+  },
+  args: { showNavigation: true, projectName: "CS 101" },
 } satisfies Meta<typeof ControlledNavigationShell>;
 
 export default meta;

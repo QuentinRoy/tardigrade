@@ -4,7 +4,7 @@ import MuiAlert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Link from "@mui/material/Link";
 import NextLink from "next/link";
-import { projectAssessmentSubmissionQuestionPath } from "@/projects/routes";
+import { projectAssessmentSubmissionQuestionPath } from "@/projects/projectPaths";
 import { useSaveErrors } from "./SaveErrorsProvider";
 
 export function SaveErrorsDisplay() {

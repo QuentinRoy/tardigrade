@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { loadProjects } from "@/db/projects";
-import { projectDashboardPath } from "@/projects/routes";
+import { projectDashboardPath } from "@/projects/projectPaths";
 
 export default async function HomePage() {
 	const projects = await loadProjects();

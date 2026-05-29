@@ -51,8 +51,8 @@ export async function loadProjects(): Promise<ProjectSummary[]> {
 	return rows.map(toProjectSummary);
 }
 
-export async function loadProjectByPublicId(
-	publicId: string,
+async function loadProjectCached(
+  publicId: string,
 ): Promise<ProjectSummary | undefined> {
 	"use cache";
 	cacheTags(CACHE_TAGS.projects, projectCacheTag(publicId));
@@ -69,6 +69,25 @@ export async function loadProjectByPublicId(
 	}
 
 	return toProjectSummary(row);
+}
+
+export async function loadProjectByPublicId(
+  publicId: string,
+  options: { required: true },
+): Promise<ProjectSummary>;
+export async function loadProjectByPublicId(
+  publicId: string,
+  options?: { required?: false },
+): Promise<ProjectSummary | undefined>;
+export async function loadProjectByPublicId(
+  publicId: string,
+  { required = false }: { required?: boolean } = {},
+): Promise<ProjectSummary | undefined> {
+  const project = await loadProjectCached(publicId);
+  if (project == null && required) {
+    throw new Error(`Unexpected: project not found: ${publicId}`);
+  }
+  return project;
 }
 
 export async function createProject(input: {

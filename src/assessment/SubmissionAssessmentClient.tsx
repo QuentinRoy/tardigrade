@@ -6,7 +6,7 @@ import Typography from "@mui/material/Typography";
 import NextLink from "next/link";
 import { useRouter } from "next/navigation";
 import { type ReactElement, useEffect, useState } from "react";
-import { projectAssessmentSubmissionQuestionPath } from "@/projects/routes";
+import { projectAssessmentSubmissionQuestionPath } from "@/projects/projectPaths";
 import type { AssessedRubric } from "@/rubrics/rubric";
 import type { AssessmentRubricValue, Submission } from "../db/types";
 import { type SaveError, useSaveErrors } from "../shared/SaveErrorsProvider";

@@ -9,16 +9,16 @@ import {
 	Typography,
 } from "@mui/material";
 import { cacheTag } from "next/cache";
-import { notFound, redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 import { loadProjectByPublicId } from "@/db/projects";
 import { loadQuestions } from "@/db/questions";
 import { loadSubmissionOverviewProgress } from "@/db/submissionProgress";
 import { loadSubmissions } from "@/db/submissions";
 import {
-	projectAssessmentSubmissionPath,
-	projectAssessmentSubmissionQuestionPath,
-	projectOverviewPath,
-} from "@/projects/routes";
+  projectAssessmentSubmissionPath,
+  projectAssessmentSubmissionQuestionPath,
+  projectOverviewPath,
+} from "@/projects/projectPaths";
 import QuestionList from "@/questions/QuestionList";
 import { getSubmissionLabel } from "@/submissions/getSubmissionLabel";
 
@@ -48,11 +48,7 @@ async function ProjectAssessmentPageContent({
 	"use cache";
 	cacheTag("assessments");
 
-	const project = await loadProjectByPublicId(projectId);
-
-	if (project == null) {
-		notFound();
-	}
+  const project = await loadProjectByPublicId(projectId, { required: true });
 
 	if (project.slug !== projectSlug) {
 		redirect(projectOverviewPath(project.id, project.slug));

@@ -1,12 +1,12 @@
 import { Button, Container, Stack, Typography } from "@mui/material";
-import { notFound, redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 import GlobalAssessmentSummary from "@/assessment/GlobalAssessmentSummary";
 import { loadGlobalAssessmentProgress } from "@/db/assessmentsProgress";
 import { loadProjectByPublicId } from "@/db/projects";
 import {
-	projectAssessmentsPath,
-	projectDashboardPath,
-} from "@/projects/routes";
+  projectAssessmentsPath,
+  projectDashboardPath,
+} from "@/projects/projectPaths";
 
 type ProjectDashboardPageProps = {
 	params: Promise<{ projectId: string; projectSlug: string }>;
@@ -17,11 +17,7 @@ export default async function ProjectDashboardPage({
 }: ProjectDashboardPageProps) {
 	const { projectId, projectSlug } = await params;
 
-	const project = await loadProjectByPublicId(projectId);
-
-	if (project == null) {
-		notFound();
-	}
+  const project = await loadProjectByPublicId(projectId, { required: true });
 
 	if (project.slug !== projectSlug) {
 		redirect(projectDashboardPath(project.id, project.slug));

@@ -7,7 +7,7 @@ import NextLink from "next/link";
 import { useRouter } from "next/navigation";
 import type { ReactElement } from "react";
 import { useEffect, useMemo, useState } from "react";
-import { projectAssessmentSubmissionPath } from "@/projects/routes";
+import { projectAssessmentSubmissionPath } from "@/projects/projectPaths";
 import type { AssessmentRubricValue, Submission } from "../db/types";
 import { type AssessedRubric } from "../rubrics/rubric";
 import { type SaveError, useSaveErrors } from "../shared/SaveErrorsProvider";

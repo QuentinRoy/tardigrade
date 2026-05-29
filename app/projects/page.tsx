@@ -12,7 +12,7 @@ import {
 } from "@mui/material";
 import { redirect } from "next/navigation";
 import { createProject, loadProjects } from "@/db/projects";
-import { projectDashboardPath } from "@/projects/routes";
+import { projectDashboardPath } from "@/projects/projectPaths";
 import AppShell from "@/shared/AppShell";
 
 function isNextRedirectError(error: unknown): boolean {
