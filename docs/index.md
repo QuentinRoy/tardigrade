@@ -52,7 +52,7 @@ Open-ended audits and option analysis. Investigations may contain hypotheses and
 - [Repository documentation architecture](investigations/repository-documentation-architecture.md)
 - [Agent instruction architecture audit](investigations/2026-05-26-agent-instruction-architecture-audit.md)
 
-### Workflow convention investigations
+### Completed workflow convention investigations
 
 - [Commit message conventions](investigations/commit-message-conventions.md)
 
@@ -80,6 +80,7 @@ Durable facts about current system behavior, formats, and contracts.
 
 Procedural how-to documentation for humans.
 
+- [Commit message conventions](guides/commit-message-conventions.md)
 - [Issue and PR conventions](guides/issue-and-pr-conventions.md)
 - [Running integration tests](guides/running-integration-tests.md)
 - [TypeScript API design](guides/typescript-api-design.md)
