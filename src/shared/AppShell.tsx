@@ -9,29 +9,29 @@ import AppShellNavigationShell from "./AppShellNavigationShell";
 type AppShellProps = { children: ReactNode; showNavigation?: boolean };
 
 export default function AppShell({
-  children,
-  showNavigation = true,
+	children,
+	showNavigation = true,
 }: AppShellProps) {
-  const [drawerOpen, setDrawerOpen] = useState<boolean>(false);
+	const [drawerOpen, setDrawerOpen] = useState<boolean>(false);
 
-  return (
-    <Box sx={{ display: "flex", minHeight: "100vh" }}>
-      <Suspense
-        fallback={<AppShellLoadingShell showNavigation={showNavigation} />}
-      >
-        <AppShellNavigationShell
-          showNavigation={showNavigation}
-          drawerOpen={drawerOpen}
-          onOpenDrawer={() => setDrawerOpen(true)}
-          onCloseDrawer={() => setDrawerOpen(false)}
-        />
-      </Suspense>
+	return (
+		<Box sx={{ display: "flex", minHeight: "100vh" }}>
+			<Suspense
+				fallback={<AppShellLoadingShell showNavigation={showNavigation} />}
+			>
+				<AppShellNavigationShell
+					showNavigation={showNavigation}
+					drawerOpen={drawerOpen}
+					onOpenDrawer={() => setDrawerOpen(true)}
+					onCloseDrawer={() => setDrawerOpen(false)}
+				/>
+			</Suspense>
 
-      <Box component="main" sx={{ flexGrow: 1, minWidth: 0 }}>
-        {/* This is used as spacer */}
-        <Toolbar />
-        {children}
-      </Box>
-    </Box>
-  );
+			<Box component="main" sx={{ flexGrow: 1, minWidth: 0 }}>
+				{/* This is used as spacer */}
+				<Toolbar />
+				{children}
+			</Box>
+		</Box>
+	);
 }

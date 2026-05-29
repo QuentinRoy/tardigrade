@@ -1,7 +1,7 @@
 import { type Kysely, sql } from "kysely";
 
 export async function up(db: Kysely<unknown>): Promise<void> {
-  await sql`
+	await sql`
     CREATE OR REPLACE FUNCTION enforce_ordinal_label_valid()
     RETURNS trigger
     LANGUAGE plpgsql
@@ -32,28 +32,28 @@ export async function up(db: Kysely<unknown>): Promise<void> {
     EXECUTE FUNCTION enforce_ordinal_label_valid();
   `.execute(db);
 
-  await db.schema.dropIndex("OrdinalRubricValue_ordinalRubricId_idx").execute();
+	await db.schema.dropIndex("OrdinalRubricValue_ordinalRubricId_idx").execute();
 
-  await db.schema
-    .createIndex("OrdinalRubricValue_ordinalRubricId_label_idx")
-    .on("ordinal_rubric_value")
-    .columns(["ordinal_rubric_id", "label"])
-    .execute();
+	await db.schema
+		.createIndex("OrdinalRubricValue_ordinalRubricId_label_idx")
+		.on("ordinal_rubric_value")
+		.columns(["ordinal_rubric_id", "label"])
+		.execute();
 }
 
 export async function down(db: Kysely<unknown>): Promise<void> {
-  await sql`
+	await sql`
     DROP TRIGGER IF EXISTS trg_ordinal_label_valid ON "ordinal_rubric_assessment";
     DROP FUNCTION IF EXISTS enforce_ordinal_label_valid();
   `.execute(db);
 
-  await db.schema
-    .dropIndex("OrdinalRubricValue_ordinalRubricId_label_idx")
-    .execute();
+	await db.schema
+		.dropIndex("OrdinalRubricValue_ordinalRubricId_label_idx")
+		.execute();
 
-  await db.schema
-    .createIndex("OrdinalRubricValue_ordinalRubricId_idx")
-    .on("ordinal_rubric_value")
-    .columns(["ordinal_rubric_id"])
-    .execute();
+	await db.schema
+		.createIndex("OrdinalRubricValue_ordinalRubricId_idx")
+		.on("ordinal_rubric_value")
+		.columns(["ordinal_rubric_id"])
+		.execute();
 }

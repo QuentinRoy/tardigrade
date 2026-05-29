@@ -3,11 +3,11 @@ import { fn } from "storybook/test";
 import NumericalGradeControl from "./NumericalGradeControl";
 
 const meta = {
-  title: "Rubrics/NumericalGradeControl",
-  component: NumericalGradeControl,
-  tags: ["autodocs"],
-  parameters: { layout: "centered" },
-  args: { onAssess: fn(), disabled: false, minScore: 0, maxScore: 10 },
+	title: "Rubrics/NumericalGradeControl",
+	component: NumericalGradeControl,
+	tags: ["autodocs"],
+	parameters: { layout: "centered" },
+	args: { onAssess: fn(), disabled: false, minScore: 0, maxScore: 10 },
 } satisfies Meta<typeof NumericalGradeControl>;
 
 export default meta;

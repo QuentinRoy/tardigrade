@@ -7,24 +7,24 @@ import { parseAssessmentsCsv } from "./parseAssessments";
 import { saveAssessments } from "./saveAssessments";
 
 export async function assessmentsImportAction(
-  projectId: string,
-  _previousState: ImportState,
-  formData: FormData,
+	projectId: string,
+	_previousState: ImportState,
+	formData: FormData,
 ): Promise<ImportState> {
-  const assessmentsCsv = String(formData.get("assessmentsCsv") ?? "");
+	const assessmentsCsv = String(formData.get("assessmentsCsv") ?? "");
 
-  try {
-    const assessments = await parseAssessmentsCsv(assessmentsCsv);
-    const result = await saveAssessments(assessments, projectId);
+	try {
+		const assessments = await parseAssessmentsCsv(assessmentsCsv);
+		const result = await saveAssessments(assessments, projectId);
 
-    revalidateTag("assessments", "max");
-    revalidateTag("assessments:all", "max");
+		revalidateTag("assessments", "max");
+		revalidateTag("assessments:all", "max");
 
-    return {
-      status: "success",
-      message: `Imported ${result.assessmentCount} assessments.`,
-    };
-  } catch (error) {
-    return toImportErrorState(error);
-  }
+		return {
+			status: "success",
+			message: `Imported ${result.assessmentCount} assessments.`,
+		};
+	} catch (error) {
+		return toImportErrorState(error);
+	}
 }

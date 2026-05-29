@@ -1,22 +1,22 @@
 import type { ExportOptions } from "@/export/submissionExportCsv";
 
 export function parseExportOptions(
-  searchParams: URLSearchParams,
+	searchParams: URLSearchParams,
 ): ExportOptions {
-  const includes = searchParams.getAll("include");
+	const includes = searchParams.getAll("include");
 
-  const includeSet = new Set<"rubric-assessment" | "rubric-marks">();
-  for (const include of includes) {
-    if (include === "rubric-assessment" || include === "rubric-marks") {
-      includeSet.add(include);
-      continue;
-    }
+	const includeSet = new Set<"rubric-assessment" | "rubric-marks">();
+	for (const include of includes) {
+		if (include === "rubric-assessment" || include === "rubric-marks") {
+			includeSet.add(include);
+			continue;
+		}
 
-    throw new Error(`Invalid include option: ${include}`);
-  }
+		throw new Error(`Invalid include option: ${include}`);
+	}
 
-  return {
-    includeRubricAssessment: includeSet.has("rubric-assessment"),
-    includeRubricMarks: includeSet.has("rubric-marks"),
-  };
+	return {
+		includeRubricAssessment: includeSet.has("rubric-assessment"),
+		includeRubricMarks: includeSet.has("rubric-marks"),
+	};
 }

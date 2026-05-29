@@ -19,9 +19,9 @@ import { type Kysely, sql } from "kysely";
  */
 
 export async function up(db: Kysely<unknown>): Promise<void> {
-  // If student.row_id already exists, this DB was initialized from the bad init
-  // migration (fa6f8c8e) and is already in the target state. Skip.
-  const { rows } = await sql<{ exists: boolean }>`
+	// If student.row_id already exists, this DB was initialized from the bad init
+	// migration (fa6f8c8e) and is already in the target state. Skip.
+	const { rows } = await sql<{ exists: boolean }>`
     SELECT EXISTS (
       SELECT 1 FROM information_schema.columns
       WHERE table_schema = 'public'
@@ -30,31 +30,31 @@ export async function up(db: Kysely<unknown>): Promise<void> {
     ) AS exists
   `.execute(db);
 
-  if (rows[0]?.exists) {
-    return;
-  }
+	if (rows[0]?.exists) {
+		return;
+	}
 
-  // Step 1: Add row_id to student as an auto-increment column (not PK yet).
-  // PostgreSQL auto-populates existing rows with sequential values starting from 1.
-  await db.schema
-    .alterTable("student")
-    .addColumn("row_id", "integer", (col) =>
-      col.generatedAlwaysAsIdentity().notNull(),
-    )
-    .execute();
+	// Step 1: Add row_id to student as an auto-increment column (not PK yet).
+	// PostgreSQL auto-populates existing rows with sequential values starting from 1.
+	await db.schema
+		.alterTable("student")
+		.addColumn("row_id", "integer", (col) =>
+			col.generatedAlwaysAsIdentity().notNull(),
+		)
+		.execute();
 
-  // Step 2+: Perform the complex restructuring with raw SQL.
-  // This is justified because:
-  // - We're changing the primary key and FK column types simultaneously
-  // - Kysely's schema builder doesn't cleanly express this pattern
-  // - Raw SQL is localized and clearly commented
-  //
-  // We use DROP COLUMN ... CASCADE rather than dropping FK/PK constraints by name.
-  // The init migration creates FK constraints inline in CREATE TABLE, which may result
-  // in auto-generated names that differ from what we'd expect. CASCADE automatically
-  // drops all dependent objects (FK constraints, unique indexes, composite PKs, and
-  // check constraints) regardless of their names.
-  await sql`
+	// Step 2+: Perform the complex restructuring with raw SQL.
+	// This is justified because:
+	// - We're changing the primary key and FK column types simultaneously
+	// - Kysely's schema builder doesn't cleanly express this pattern
+	// - Raw SQL is localized and clearly commented
+	//
+	// We use DROP COLUMN ... CASCADE rather than dropping FK/PK constraints by name.
+	// The init migration creates FK constraints inline in CREATE TABLE, which may result
+	// in auto-generated names that differ from what we'd expect. CASCADE automatically
+	// drops all dependent objects (FK constraints, unique indexes, composite PKs, and
+	// check constraints) regardless of their names.
+	await sql`
     -- Add temp INTEGER columns before dropping the old TEXT ones
     ALTER TABLE "submission"
     ADD COLUMN "student_row_id" INTEGER;
@@ -144,8 +144,8 @@ export async function up(db: Kysely<unknown>): Promise<void> {
 }
 
 export async function down(db: Kysely<unknown>): Promise<void> {
-  // Reverse: restore TEXT student_id columns and revert to id as PK
-  await sql`
+	// Reverse: restore TEXT student_id columns and revert to id as PK
+	await sql`
     -- Add temp TEXT columns to restore old student_id values
     ALTER TABLE "submission"
     ADD COLUMN "student_id_text" TEXT;

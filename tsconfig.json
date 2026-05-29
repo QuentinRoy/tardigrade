@@ -1,35 +1,35 @@
 {
-  "compilerOptions": {
-    "paths": { "@/*": ["./src/*"] },
+	"compilerOptions": {
+		"paths": { "@/*": ["./src/*"] },
 
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "allowJs": true,
-    "resolveJsonModule": true,
-    "moduleDetection": "force",
-    "isolatedModules": true,
-    "verbatimModuleSyntax": true,
-    "target": "esnext",
-    "lib": ["dom", "dom.iterable", "esnext"],
-    "strict": true,
-    "noUncheckedIndexedAccess": true,
-    "noImplicitOverride": true,
-    "forceConsistentCasingInFileNames": true,
-    "module": "preserve",
-    "noEmit": true,
-    "moduleResolution": "bundler",
-    "jsx": "react-jsx",
-    "incremental": true,
-    "erasableSyntaxOnly": true,
-    "plugins": [{ "name": "next" }],
-    "strictNullChecks": true
-  },
-  "include": [
-    "**/*.ts",
-    "**/*.tsx",
-    "next-env.d.ts",
-    ".next/types/**/*.ts",
-    ".next/dev/types/**/*.ts"
-  ],
-  "exclude": ["node_modules"]
+		"esModuleInterop": true,
+		"skipLibCheck": true,
+		"allowJs": true,
+		"resolveJsonModule": true,
+		"moduleDetection": "force",
+		"isolatedModules": true,
+		"verbatimModuleSyntax": true,
+		"target": "esnext",
+		"lib": ["dom", "dom.iterable", "esnext"],
+		"strict": true,
+		"noUncheckedIndexedAccess": true,
+		"noImplicitOverride": true,
+		"forceConsistentCasingInFileNames": true,
+		"module": "preserve",
+		"noEmit": true,
+		"moduleResolution": "bundler",
+		"jsx": "react-jsx",
+		"incremental": true,
+		"erasableSyntaxOnly": true,
+		"plugins": [{ "name": "next" }],
+		"strictNullChecks": true
+	},
+	"include": [
+		"**/*.ts",
+		"**/*.tsx",
+		"next-env.d.ts",
+		".next/types/**/*.ts",
+		".next/dev/types/**/*.ts"
+	],
+	"exclude": ["node_modules"]
 }

@@ -1,7 +1,7 @@
 import { type Kysely, sql } from "kysely";
 
 export async function up(db: Kysely<unknown>): Promise<void> {
-  await sql`
+	await sql`
     CREATE OR REPLACE FUNCTION enforce_numerical_score_bounds()
     RETURNS trigger
     LANGUAGE plpgsql
@@ -36,7 +36,7 @@ export async function up(db: Kysely<unknown>): Promise<void> {
 }
 
 export async function down(db: Kysely<unknown>): Promise<void> {
-  await sql`
+	await sql`
     DROP TRIGGER IF EXISTS trg_numerical_score_bounds ON "numerical_rubric_assessment";
     DROP FUNCTION IF EXISTS enforce_numerical_score_bounds();
   `.execute(db);

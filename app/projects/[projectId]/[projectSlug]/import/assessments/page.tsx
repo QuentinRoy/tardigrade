@@ -6,28 +6,28 @@ import { assessmentsImportAction } from "@/import/assessmentsImportAction";
 import { projectImportAssessmentsPath } from "@/projects/routes";
 
 type ProjectImportAssessmentsPageProps = {
-  params: Promise<{ projectId: string; projectSlug: string }>;
+	params: Promise<{ projectId: string; projectSlug: string }>;
 };
 
 export default async function ProjectImportAssessmentsPage({
-  params,
+	params,
 }: ProjectImportAssessmentsPageProps) {
-  const { projectId, projectSlug } = await params;
-  const project = await loadProjectByPublicId(projectId);
+	const { projectId, projectSlug } = await params;
+	const project = await loadProjectByPublicId(projectId);
 
-  if (project == null) {
-    notFound();
-  }
+	if (project == null) {
+		notFound();
+	}
 
-  if (project.slug !== projectSlug) {
-    redirect(projectImportAssessmentsPath(project.id, project.slug));
-  }
+	if (project.slug !== projectSlug) {
+		redirect(projectImportAssessmentsPath(project.id, project.slug));
+	}
 
-  return (
-    <Suspense>
-      <AssessmentsImportForm
-        action={assessmentsImportAction.bind(null, project.id)}
-      />
-    </Suspense>
-  );
+	return (
+		<Suspense>
+			<AssessmentsImportForm
+				action={assessmentsImportAction.bind(null, project.id)}
+			/>
+		</Suspense>
+	);
 }

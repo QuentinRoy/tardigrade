@@ -4,75 +4,75 @@ import { loadQuestions } from "@/db/questions";
 import { CACHE_TAGS, cacheTags } from "./cacheTags";
 import { db } from "./kysely";
 import {
-  buildRubricOverviewData,
-  type RubricOverviewAssessmentRecord,
+	buildRubricOverviewData,
+	type RubricOverviewAssessmentRecord,
 } from "./rubricOverviewBuilder";
 import { loadSubmissions } from "./submissions";
 
 export type {
-  RubricOverviewData,
-  RubricOverviewPopupDetails,
-  RubricOverviewRow,
-  RubricOverviewStudentCell,
-  RubricOverviewStudentRow,
-  RubricOverviewSummary,
+	RubricOverviewData,
+	RubricOverviewPopupDetails,
+	RubricOverviewRow,
+	RubricOverviewStudentCell,
+	RubricOverviewStudentRow,
+	RubricOverviewSummary,
 } from "./rubricOverviewBuilder";
 
 export async function loadRubricOverviewData(projectId?: string) {
-  "use cache";
-  cacheTags(
-    CACHE_TAGS.questions,
-    CACHE_TAGS.submissions,
-    CACHE_TAGS.assessments,
-  );
-  cacheLife({ revalidate: 60 });
+	"use cache";
+	cacheTags(
+		CACHE_TAGS.questions,
+		CACHE_TAGS.submissions,
+		CACHE_TAGS.assessments,
+	);
+	cacheLife({ revalidate: 60 });
 
-  let assessmentQuery = db
-    .selectFrom("rubricAssessment")
-    .innerJoin("assessment", "assessment.id", "rubricAssessment.assessmentId")
-    .innerJoin("rubric", "rubric.rowId", "rubricAssessment.rubricId");
+	let assessmentQuery = db
+		.selectFrom("rubricAssessment")
+		.innerJoin("assessment", "assessment.id", "rubricAssessment.assessmentId")
+		.innerJoin("rubric", "rubric.rowId", "rubricAssessment.rubricId");
 
-  if (projectId != null) {
-    assessmentQuery = assessmentQuery.where(
-      "assessment.projectId",
-      "in",
-      db.selectFrom("project").select("rowId").where("id", "=", projectId),
-    );
-  }
+	if (projectId != null) {
+		assessmentQuery = assessmentQuery.where(
+			"assessment.projectId",
+			"in",
+			db.selectFrom("project").select("rowId").where("id", "=", projectId),
+		);
+	}
 
-  const [submissions, questionGrid, assessmentRecords] = await Promise.all([
-    loadSubmissions(projectId),
-    loadQuestions(projectId),
-    assessmentQuery
-      .leftJoin(
-        "booleanRubricAssessment",
-        "booleanRubricAssessment.rubricAssessmentId",
-        "rubricAssessment.id",
-      )
-      .leftJoin(
-        "ordinalRubricAssessment",
-        "ordinalRubricAssessment.rubricAssessmentId",
-        "rubricAssessment.id",
-      )
-      .leftJoin(
-        "numericalRubricAssessment",
-        "numericalRubricAssessment.rubricAssessmentId",
-        "rubricAssessment.id",
-      )
-      .select([
-        "assessment.submissionId as submissionId",
-        "rubric.id as rubricId",
-        "rubricAssessment.type as type",
-        "booleanRubricAssessment.passed as passed",
-        "ordinalRubricAssessment.selectedLabel as selectedLabel",
-        "numericalRubricAssessment.score as score",
-      ])
-      .execute(),
-  ]);
+	const [submissions, questionGrid, assessmentRecords] = await Promise.all([
+		loadSubmissions(projectId),
+		loadQuestions(projectId),
+		assessmentQuery
+			.leftJoin(
+				"booleanRubricAssessment",
+				"booleanRubricAssessment.rubricAssessmentId",
+				"rubricAssessment.id",
+			)
+			.leftJoin(
+				"ordinalRubricAssessment",
+				"ordinalRubricAssessment.rubricAssessmentId",
+				"rubricAssessment.id",
+			)
+			.leftJoin(
+				"numericalRubricAssessment",
+				"numericalRubricAssessment.rubricAssessmentId",
+				"rubricAssessment.id",
+			)
+			.select([
+				"assessment.submissionId as submissionId",
+				"rubric.id as rubricId",
+				"rubricAssessment.type as type",
+				"booleanRubricAssessment.passed as passed",
+				"ordinalRubricAssessment.selectedLabel as selectedLabel",
+				"numericalRubricAssessment.score as score",
+			])
+			.execute(),
+	]);
 
-  return buildRubricOverviewData({
-    submissions,
-    questionGrid,
-    assessmentRecords: assessmentRecords as RubricOverviewAssessmentRecord[],
-  });
+	return buildRubricOverviewData({
+		submissions,
+		questionGrid,
+		assessmentRecords: assessmentRecords as RubricOverviewAssessmentRecord[],
+	});
 }

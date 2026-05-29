@@ -3,19 +3,19 @@ import { fn } from "storybook/test";
 import OrdinalGradeControl from "./OrdinalGradeControl";
 
 const exampleMarks = {
-  Excellent: 4,
-  Good: 3,
-  Satisfactory: 2,
-  Poor: 1,
-  Absent: 0,
+	Excellent: 4,
+	Good: 3,
+	Satisfactory: 2,
+	Poor: 1,
+	Absent: 0,
 };
 
 const meta = {
-  title: "Rubrics/OrdinalGradeControl",
-  component: OrdinalGradeControl,
-  tags: ["autodocs"],
-  parameters: { layout: "centered" },
-  args: { onAssess: fn(), disabled: false, marks: exampleMarks },
+	title: "Rubrics/OrdinalGradeControl",
+	component: OrdinalGradeControl,
+	tags: ["autodocs"],
+	parameters: { layout: "centered" },
+	args: { onAssess: fn(), disabled: false, marks: exampleMarks },
 } satisfies Meta<typeof OrdinalGradeControl>;
 
 export default meta;
@@ -27,7 +27,7 @@ export const Unset: Story = {};
 export const Selected: Story = { args: { value: "Good" } };
 
 export const Disabled: Story = {
-  args: { value: "Satisfactory", disabled: true },
+	args: { value: "Satisfactory", disabled: true },
 };
 
 export const TwoValues: Story = { args: { marks: { Pass: 1, Fail: 0 } } };

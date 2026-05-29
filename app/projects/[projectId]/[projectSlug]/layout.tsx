@@ -4,7 +4,7 @@ import AppShell from "@/shared/AppShell";
 type ProjectScopedLayoutProps = { children: ReactNode };
 
 export default function ProjectScopedLayout({
-  children,
+	children,
 }: ProjectScopedLayoutProps) {
-  return <AppShell showNavigation>{children}</AppShell>;
+	return <AppShell showNavigation>{children}</AppShell>;
 }

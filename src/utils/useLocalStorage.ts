@@ -9,32 +9,32 @@ type LocalStorageChangeEvent = CustomEvent<{ key: string }>;
 type Updater<T> = T | ((current: T) => T);
 
 type UseLocalStorageOptions<T> = {
-  serialize?: (value: T) => string;
-  deserialize?: (raw: string) => T;
+	serialize?: (value: T) => string;
+	deserialize?: (raw: string) => T;
 };
 
 function tryDeserialize<T>(
-  raw: string | null,
-  fallback: T,
-  deserialize: (raw: string) => T,
+	raw: string | null,
+	fallback: T,
+	deserialize: (raw: string) => T,
 ): T {
-  if (raw == null) {
-    return fallback;
-  }
+	if (raw == null) {
+		return fallback;
+	}
 
-  try {
-    return deserialize(raw);
-  } catch {
-    return fallback;
-  }
+	try {
+		return deserialize(raw);
+	} catch {
+		return fallback;
+	}
 }
 
 function defaultSerialize<T>(value: T): string {
-  return JSON.stringify(value);
+	return JSON.stringify(value);
 }
 
 function defaultDeserialize<T>(raw: string): T {
-  return JSON.parse(raw) as T;
+	return JSON.parse(raw) as T;
 }
 
 /**
@@ -52,96 +52,96 @@ function defaultDeserialize<T>(raw: string): T {
  * re-snapshot cycles. Define them at module scope, or memoize them, before passing in.
  */
 export function useLocalStorage<T>(
-  key: string,
-  fallback: T,
-  options?: UseLocalStorageOptions<T>,
+	key: string,
+	fallback: T,
+	options?: UseLocalStorageOptions<T>,
 ): [T, (value: Updater<T>) => void] {
-  const serialize = options?.serialize ?? defaultSerialize<T>;
-  const deserialize = options?.deserialize ?? defaultDeserialize<T>;
+	const serialize = options?.serialize ?? defaultSerialize<T>;
+	const deserialize = options?.deserialize ?? defaultDeserialize<T>;
 
-  const snapshotCacheRef = useRef<{ raw: string | null; value: T } | null>(
-    null,
-  );
+	const snapshotCacheRef = useRef<{ raw: string | null; value: T } | null>(
+		null,
+	);
 
-  const subscribe = useCallback(
-    (onStoreChange: () => void) => {
-      if (typeof window === "undefined") {
-        return () => {};
-      }
+	const subscribe = useCallback(
+		(onStoreChange: () => void) => {
+			if (typeof window === "undefined") {
+				return () => {};
+			}
 
-      const onStorage = (event: StorageEvent) => {
-        if (event.key == null || event.key === key) {
-          onStoreChange();
-        }
-      };
+			const onStorage = (event: StorageEvent) => {
+				if (event.key == null || event.key === key) {
+					onStoreChange();
+				}
+			};
 
-      const onLocalStorageChange = (event: Event) => {
-        const customEvent = event as LocalStorageChangeEvent;
-        if (customEvent.detail?.key === key) {
-          onStoreChange();
-        }
-      };
+			const onLocalStorageChange = (event: Event) => {
+				const customEvent = event as LocalStorageChangeEvent;
+				if (customEvent.detail?.key === key) {
+					onStoreChange();
+				}
+			};
 
-      window.addEventListener("storage", onStorage);
-      window.addEventListener(LOCAL_STORAGE_CHANGE_EVENT, onLocalStorageChange);
+			window.addEventListener("storage", onStorage);
+			window.addEventListener(LOCAL_STORAGE_CHANGE_EVENT, onLocalStorageChange);
 
-      return () => {
-        window.removeEventListener("storage", onStorage);
-        window.removeEventListener(
-          LOCAL_STORAGE_CHANGE_EVENT,
-          onLocalStorageChange,
-        );
-      };
-    },
-    [key],
-  );
+			return () => {
+				window.removeEventListener("storage", onStorage);
+				window.removeEventListener(
+					LOCAL_STORAGE_CHANGE_EVENT,
+					onLocalStorageChange,
+				);
+			};
+		},
+		[key],
+	);
 
-  const getSnapshot = useCallback(() => {
-    if (typeof window === "undefined") {
-      return fallback;
-    }
+	const getSnapshot = useCallback(() => {
+		if (typeof window === "undefined") {
+			return fallback;
+		}
 
-    const raw = window.localStorage.getItem(key);
-    const cache = snapshotCacheRef.current;
+		const raw = window.localStorage.getItem(key);
+		const cache = snapshotCacheRef.current;
 
-    if (cache != null && cache.raw === raw) {
-      return cache.value;
-    }
+		if (cache != null && cache.raw === raw) {
+			return cache.value;
+		}
 
-    const value = tryDeserialize(raw, fallback, deserialize);
+		const value = tryDeserialize(raw, fallback, deserialize);
 
-    snapshotCacheRef.current = { raw, value };
+		snapshotCacheRef.current = { raw, value };
 
-    return value;
-  }, [key, fallback, deserialize]);
+		return value;
+	}, [key, fallback, deserialize]);
 
-  const value = useSyncExternalStore(subscribe, getSnapshot, () => fallback);
+	const value = useSyncExternalStore(subscribe, getSnapshot, () => fallback);
 
-  const setValue = useCallback(
-    (nextValue: Updater<T>) => {
-      if (typeof window === "undefined") {
-        return;
-      }
+	const setValue = useCallback(
+		(nextValue: Updater<T>) => {
+			if (typeof window === "undefined") {
+				return;
+			}
 
-      const previousRaw = window.localStorage.getItem(key);
-      const current = tryDeserialize(previousRaw, fallback, deserialize);
-      const resolved =
-        typeof nextValue === "function"
-          ? (nextValue as (currentValue: T) => T)(current)
-          : nextValue;
+			const previousRaw = window.localStorage.getItem(key);
+			const current = tryDeserialize(previousRaw, fallback, deserialize);
+			const resolved =
+				typeof nextValue === "function"
+					? (nextValue as (currentValue: T) => T)(current)
+					: nextValue;
 
-      const nextRaw = serialize(resolved);
-      if (previousRaw === nextRaw) {
-        return;
-      }
+			const nextRaw = serialize(resolved);
+			if (previousRaw === nextRaw) {
+				return;
+			}
 
-      window.localStorage.setItem(key, nextRaw);
-      window.dispatchEvent(
-        new CustomEvent(LOCAL_STORAGE_CHANGE_EVENT, { detail: { key } }),
-      );
-    },
-    [key, fallback, deserialize, serialize],
-  );
+			window.localStorage.setItem(key, nextRaw);
+			window.dispatchEvent(
+				new CustomEvent(LOCAL_STORAGE_CHANGE_EVENT, { detail: { key } }),
+			);
+		},
+		[key, fallback, deserialize, serialize],
+	);
 
-  return [value, setValue];
+	return [value, setValue];
 }

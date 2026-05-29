@@ -3,9 +3,9 @@ import { assessmentRowsSchema } from "./schemas";
 import type { ImportedAssessmentRow } from "./types";
 
 export async function parseAssessmentsCsv(
-  content: string,
+	content: string,
 ): Promise<ImportedAssessmentRow[]> {
-  const rows = parseCSV(content, { columns: true, skip_empty_lines: true });
+	const rows = parseCSV(content, { columns: true, skip_empty_lines: true });
 
-  return assessmentRowsSchema.parse(rows);
+	return assessmentRowsSchema.parse(rows);
 }

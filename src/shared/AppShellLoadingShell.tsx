@@ -6,7 +6,7 @@ import AppShellTopBar from "./AppShellTopBar";
 type AppShellLoadingShellProps = { showNavigation: boolean };
 
 export default function AppShellLoadingShell({
-  showNavigation,
+	showNavigation,
 }: AppShellLoadingShellProps): ReactNode {
-  return <AppShellTopBar title={showNavigation ? "Project" : "BonPoint"} />;
+	return <AppShellTopBar title={showNavigation ? "Project" : "BonPoint"} />;
 }

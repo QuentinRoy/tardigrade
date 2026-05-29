@@ -6,9 +6,9 @@
 import type { ColumnType } from "kysely";
 
 export type Generated<T> =
-  T extends ColumnType<infer S, infer I, infer U>
-    ? ColumnType<S, I | undefined, U>
-    : ColumnType<T, T | undefined, T>;
+	T extends ColumnType<infer S, infer I, infer U>
+		? ColumnType<S, I | undefined, U>
+		: ColumnType<T, T | undefined, T>;
 
 export type Numeric = ColumnType<number, number | string, number | string>;
 
@@ -19,149 +19,149 @@ export type SubmissionType = "individual" | "team";
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
 
 export interface Assessment {
-  createdAt: Generated<Timestamp>;
-  id: Generated<number>;
-  projectId: number;
-  questionId: number;
-  submissionId: number;
-  updatedAt: Generated<Timestamp>;
+	createdAt: Generated<Timestamp>;
+	id: Generated<number>;
+	projectId: number;
+	questionId: number;
+	submissionId: number;
+	updatedAt: Generated<Timestamp>;
 }
 
 export interface BooleanRubric {
-  falseMarks: Generated<Numeric>;
-  id: Generated<number>;
-  marks: Numeric;
-  rubricId: number;
+	falseMarks: Generated<Numeric>;
+	id: Generated<number>;
+	marks: Numeric;
+	rubricId: number;
 }
 
 export interface BooleanRubricAssessment {
-  id: Generated<number>;
-  passed: boolean;
-  rubricAssessmentId: number;
+	id: Generated<number>;
+	passed: boolean;
+	rubricAssessmentId: number;
 }
 
 export interface NumericalRubric {
-  id: Generated<number>;
-  maxMarks: Numeric;
-  maxScore: Numeric;
-  minMarks: Numeric;
-  minScore: Numeric;
-  reversed: Generated<boolean>;
-  rubricId: number;
+	id: Generated<number>;
+	maxMarks: Numeric;
+	maxScore: Numeric;
+	minMarks: Numeric;
+	minScore: Numeric;
+	reversed: Generated<boolean>;
+	rubricId: number;
 }
 
 export interface NumericalRubricAssessment {
-  id: Generated<number>;
-  rubricAssessmentId: number;
-  score: Numeric;
+	id: Generated<number>;
+	rubricAssessmentId: number;
+	score: Numeric;
 }
 
 export interface OrdinalRubric {
-  id: Generated<number>;
-  rubricId: number;
+	id: Generated<number>;
+	rubricId: number;
 }
 
 export interface OrdinalRubricAssessment {
-  id: Generated<number>;
-  rubricAssessmentId: number;
-  selectedLabel: string;
+	id: Generated<number>;
+	rubricAssessmentId: number;
+	selectedLabel: string;
 }
 
 export interface OrdinalRubricValue {
-  id: Generated<number>;
-  label: string;
-  marks: Numeric;
-  ordinalRubricId: number;
+	id: Generated<number>;
+	label: string;
+	marks: Numeric;
+	ordinalRubricId: number;
 }
 
 export interface Project {
-  createdAt: Generated<Timestamp>;
-  id: string;
-  name: string;
-  rowId: Generated<number>;
-  updatedAt: Generated<Timestamp>;
+	createdAt: Generated<Timestamp>;
+	id: string;
+	name: string;
+	rowId: Generated<number>;
+	updatedAt: Generated<Timestamp>;
 }
 
 export interface Question {
-  createdAt: Generated<Timestamp>;
-  id: string;
-  label: string | null;
-  position: Generated<number>;
-  projectId: number;
-  rowId: Generated<number>;
-  updatedAt: Generated<Timestamp>;
+	createdAt: Generated<Timestamp>;
+	id: string;
+	label: string | null;
+	position: Generated<number>;
+	projectId: number;
+	rowId: Generated<number>;
+	updatedAt: Generated<Timestamp>;
 }
 
 export interface Rubric {
-  createdAt: Generated<Timestamp>;
-  description: string | null;
-  id: string;
-  label: string | null;
-  position: number;
-  projectId: number;
-  questionId: number;
-  rowId: Generated<number>;
-  type: RubricType;
-  updatedAt: Generated<Timestamp>;
+	createdAt: Generated<Timestamp>;
+	description: string | null;
+	id: string;
+	label: string | null;
+	position: number;
+	projectId: number;
+	questionId: number;
+	rowId: Generated<number>;
+	type: RubricType;
+	updatedAt: Generated<Timestamp>;
 }
 
 export interface RubricAssessment {
-  assessmentId: number;
-  createdAt: Generated<Timestamp>;
-  id: Generated<number>;
-  rubricId: number;
-  type: RubricType;
-  updatedAt: Generated<Timestamp>;
+	assessmentId: number;
+	createdAt: Generated<Timestamp>;
+	id: Generated<number>;
+	rubricId: number;
+	type: RubricType;
+	updatedAt: Generated<Timestamp>;
 }
 
 export interface Student {
-  createdAt: Generated<Timestamp>;
-  firstName: string;
-  id: string;
-  lastName: string;
-  projectId: number;
-  rowId: Generated<number>;
-  updatedAt: Generated<Timestamp>;
+	createdAt: Generated<Timestamp>;
+	firstName: string;
+	id: string;
+	lastName: string;
+	projectId: number;
+	rowId: Generated<number>;
+	updatedAt: Generated<Timestamp>;
 }
 
 export interface StudentToTeam {
-  studentId: number;
-  teamId: number;
+	studentId: number;
+	teamId: number;
 }
 
 export interface Submission {
-  createdAt: Generated<Timestamp>;
-  id: Generated<number>;
-  projectId: number;
-  studentId: number | null;
-  teamId: number | null;
-  type: Generated<SubmissionType>;
-  updatedAt: Generated<Timestamp>;
+	createdAt: Generated<Timestamp>;
+	id: Generated<number>;
+	projectId: number;
+	studentId: number | null;
+	teamId: number | null;
+	type: Generated<SubmissionType>;
+	updatedAt: Generated<Timestamp>;
 }
 
 export interface Team {
-  createdAt: Generated<Timestamp>;
-  id: Generated<number>;
-  name: string;
-  projectId: number;
-  updatedAt: Generated<Timestamp>;
+	createdAt: Generated<Timestamp>;
+	id: Generated<number>;
+	name: string;
+	projectId: number;
+	updatedAt: Generated<Timestamp>;
 }
 
 export interface DB {
-  assessment: Assessment;
-  booleanRubric: BooleanRubric;
-  booleanRubricAssessment: BooleanRubricAssessment;
-  numericalRubric: NumericalRubric;
-  numericalRubricAssessment: NumericalRubricAssessment;
-  ordinalRubric: OrdinalRubric;
-  ordinalRubricAssessment: OrdinalRubricAssessment;
-  ordinalRubricValue: OrdinalRubricValue;
-  project: Project;
-  question: Question;
-  rubric: Rubric;
-  rubricAssessment: RubricAssessment;
-  student: Student;
-  studentToTeam: StudentToTeam;
-  submission: Submission;
-  team: Team;
+	assessment: Assessment;
+	booleanRubric: BooleanRubric;
+	booleanRubricAssessment: BooleanRubricAssessment;
+	numericalRubric: NumericalRubric;
+	numericalRubricAssessment: NumericalRubricAssessment;
+	ordinalRubric: OrdinalRubric;
+	ordinalRubricAssessment: OrdinalRubricAssessment;
+	ordinalRubricValue: OrdinalRubricValue;
+	project: Project;
+	question: Question;
+	rubric: Rubric;
+	rubricAssessment: RubricAssessment;
+	student: Student;
+	studentToTeam: StudentToTeam;
+	submission: Submission;
+	team: Team;
 }

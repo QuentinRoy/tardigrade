@@ -3,20 +3,20 @@ import { Suspense } from "react";
 import CodeSnippet from "./CodeSnippet";
 
 const meta = {
-  title: "Shared/CodeSnippet",
-  component: CodeSnippet,
-  tags: ["autodocs"],
-  parameters: { layout: "centered" },
-  argTypes: {
-    language: {
-      control: "text",
-      description:
-        "Syntax highlighting language (e.g., typescript, bash, python)",
-    },
-  },
-  args: {
-    language: "typescript",
-    children: `type Grade = {
+	title: "Shared/CodeSnippet",
+	component: CodeSnippet,
+	tags: ["autodocs"],
+	parameters: { layout: "centered" },
+	argTypes: {
+		language: {
+			control: "text",
+			description:
+				"Syntax highlighting language (e.g., typescript, bash, python)",
+		},
+	},
+	args: {
+		language: "typescript",
+		children: `type Grade = {
   value: number;
   label: "A" | "B" | "C" | "D";
 };
@@ -35,14 +35,14 @@ function calculateGrade(score: number): Grade {
 }
 
 const grade = calculateGrade(85);`,
-  },
-  decorators: [
-    (Story) => (
-      <Suspense fallback={<div>Loading...</div>}>
-        <Story />
-      </Suspense>
-    ),
-  ],
+	},
+	decorators: [
+		(Story) => (
+			<Suspense fallback={<div>Loading...</div>}>
+				<Story />
+			</Suspense>
+		),
+	],
 } satisfies Meta<typeof CodeSnippet>;
 
 export default meta;
@@ -52,23 +52,23 @@ type Story = StoryObj<typeof meta>;
 export const TypeScript: Story = {};
 
 export const Bash: Story = {
-  args: { language: "bash", children: `pnpm prisma generate` },
+	args: { language: "bash", children: `pnpm prisma generate` },
 };
 
 export const Python: Story = {
-  args: {
-    language: "python",
-    children: `def fibonacci(n):
+	args: {
+		language: "python",
+		children: `def fibonacci(n):
     if n <= 1:
         return n
     return fibonacci(n - 1) + fibonacci(n - 2)`,
-  },
+	},
 };
 
 export const Css: Story = {
-  args: {
-    language: "css",
-    children: `.container {
+	args: {
+		language: "css",
+		children: `.container {
   display: flex;
   flex-direction: column;
 }
@@ -85,5 +85,5 @@ export const Css: Story = {
 .button:hover {
   background-color: darkblue;
 }`,
-  },
+	},
 };

@@ -1,32 +1,32 @@
 import { type Generated, type Kysely, sql } from "kysely";
 
 type MigrationDB = {
-  assessment: {
-    id: Generated<number>;
-    project_id: number;
-    question_id: string | number;
-    submission_id: number;
-  };
-  boolean_rubric: { id: Generated<number>; rubric_id: string | number };
-  numerical_rubric: { id: Generated<number>; rubric_id: string | number };
-  ordinal_rubric: { id: Generated<number>; rubric_id: string | number };
-  question: { id: string; project_id: number; row_id: Generated<number> };
-  rubric: {
-    id: string;
-    project_id: number;
-    question_id: string | number;
-    row_id: Generated<number>;
-  };
-  rubric_assessment: {
-    assessment_id: number;
-    id: Generated<number>;
-    rubric_id: string | number;
-  };
-  project: { id: Generated<number> };
+	assessment: {
+		id: Generated<number>;
+		project_id: number;
+		question_id: string | number;
+		submission_id: number;
+	};
+	boolean_rubric: { id: Generated<number>; rubric_id: string | number };
+	numerical_rubric: { id: Generated<number>; rubric_id: string | number };
+	ordinal_rubric: { id: Generated<number>; rubric_id: string | number };
+	question: { id: string; project_id: number; row_id: Generated<number> };
+	rubric: {
+		id: string;
+		project_id: number;
+		question_id: string | number;
+		row_id: Generated<number>;
+	};
+	rubric_assessment: {
+		assessment_id: number;
+		id: Generated<number>;
+		rubric_id: string | number;
+	};
+	project: { id: Generated<number> };
 };
 
 export async function up(db: Kysely<MigrationDB>): Promise<void> {
-  const { rows } = await sql<{ exists: boolean }>`
+	const { rows } = await sql<{ exists: boolean }>`
     SELECT EXISTS (
       SELECT 1 FROM information_schema.columns
       WHERE table_schema = 'public'
@@ -35,27 +35,27 @@ export async function up(db: Kysely<MigrationDB>): Promise<void> {
     ) AS exists
   `.execute(db);
 
-  if (rows[0]?.exists) {
-    return;
-  }
+	if (rows[0]?.exists) {
+		return;
+	}
 
-  await db.schema
-    .alterTable("question")
-    .addColumn("row_id", "integer", (col) =>
-      col.generatedAlwaysAsIdentity().notNull(),
-    )
-    .execute();
+	await db.schema
+		.alterTable("question")
+		.addColumn("row_id", "integer", (col) =>
+			col.generatedAlwaysAsIdentity().notNull(),
+		)
+		.execute();
 
-  await db.schema
-    .alterTable("rubric")
-    .addColumn("row_id", "integer", (col) =>
-      col.generatedAlwaysAsIdentity().notNull(),
-    )
-    .execute();
+	await db.schema
+		.alterTable("rubric")
+		.addColumn("row_id", "integer", (col) =>
+			col.generatedAlwaysAsIdentity().notNull(),
+		)
+		.execute();
 
-  // Raw SQL is used here because this migration performs an atomic FK/PK
-  // transition with data backfill across multiple dependent tables.
-  await sql`
+	// Raw SQL is used here because this migration performs an atomic FK/PK
+	// transition with data backfill across multiple dependent tables.
+	await sql`
     ALTER TABLE "rubric"
     ADD COLUMN "question_row_id" INTEGER;
 
@@ -365,19 +365,19 @@ export async function up(db: Kysely<MigrationDB>): Promise<void> {
 }
 
 export async function down(db: Kysely<MigrationDB>): Promise<void> {
-  const projects = await db
-    .selectFrom("project")
-    .select("id")
-    .limit(2)
-    .execute();
-  if (projects.length > 1) {
-    throw new Error(
-      "Cannot run down migration safely: previous schemas support at most one project, but multiple projects exist. Keep only one project, or delete all projects, before rolling back.",
-    );
-  }
+	const projects = await db
+		.selectFrom("project")
+		.select("id")
+		.limit(2)
+		.execute();
+	if (projects.length > 1) {
+		throw new Error(
+			"Cannot run down migration safely: previous schemas support at most one project, but multiple projects exist. Keep only one project, or delete all projects, before rolling back.",
+		);
+	}
 
-  // Raw SQL mirrors the forward rekey operations in reverse for rollback.
-  await sql`
+	// Raw SQL mirrors the forward rekey operations in reverse for rollback.
+	await sql`
     DROP TRIGGER IF EXISTS trg_numerical_rubric_type_match ON "numerical_rubric";
     DROP TRIGGER IF EXISTS trg_ordinal_rubric_type_match ON "ordinal_rubric";
     DROP TRIGGER IF EXISTS trg_boolean_rubric_type_match ON "boolean_rubric";

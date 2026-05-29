@@ -9,79 +9,79 @@ export type { RubricType, SubmissionType };
 type ProgressMetric = { completed: number; total: number };
 
 export type GlobalAssessmentProgress = {
-  submissions: ProgressMetric;
-  questions: ProgressMetric;
-  rubrics: ProgressMetric;
+	submissions: ProgressMetric;
+	questions: ProgressMetric;
+	rubrics: ProgressMetric;
 };
 
 type SubmissionBase = { id: string; type: SubmissionType };
 
 type SubmissionDisplay = {
-  displayLabel?: string;
-  memberNames?: string[];
-  searchKeys?: string[];
+	displayLabel?: string;
+	memberNames?: string[];
+	searchKeys?: string[];
 };
 
 export type Submission =
-  | Simplify<
-      SubmissionDisplay &
-        SubmissionBase & {
-          type: "individual";
-          studentName: string;
-          teamName?: undefined;
-        }
-    >
-  | Simplify<
-      SubmissionDisplay &
-        SubmissionBase & {
-          type: "team";
-          studentName?: undefined;
-          teamName: string;
-        }
-    >;
+	| Simplify<
+			SubmissionDisplay &
+				SubmissionBase & {
+					type: "individual";
+					studentName: string;
+					teamName?: undefined;
+				}
+	  >
+	| Simplify<
+			SubmissionDisplay &
+				SubmissionBase & {
+					type: "team";
+					studentName?: undefined;
+					teamName: string;
+				}
+	  >;
 
 export type SubmissionSubmitter =
-  | Simplify<
-      SubmissionBase & {
-        type: "individual";
-        studentId: string;
-        teamName?: undefined;
-      }
-    >
-  | Simplify<
-      SubmissionBase & { type: "team"; studentId?: undefined; teamName: string }
-    >;
+	| Simplify<
+			SubmissionBase & {
+				type: "individual";
+				studentId: string;
+				teamName?: undefined;
+			}
+	  >
+	| Simplify<
+			SubmissionBase & { type: "team"; studentId?: undefined; teamName: string }
+	  >;
 
 type RubricBase = {
-  id: string;
-  description?: string | undefined;
-  label?: string | undefined;
-  type: RubricType;
+	id: string;
+	description?: string | undefined;
+	label?: string | undefined;
+	type: RubricType;
 };
 
 export type Rubric =
-  | Simplify<
-      RubricBase & { type: "boolean"; marks: number; falseMarks: number }
-    >
-  | Simplify<RubricBase & { type: "ordinal"; marks: Record<string, number> }>
-  | Simplify<
-      RubricBase & {
-        type: "numerical";
-        minScore: number;
-        maxScore: number;
-        minMarks: number;
-        maxMarks: number;
-        reversed: boolean;
-      }
-    >;
+	| Simplify<
+			RubricBase & { type: "boolean"; marks: number; falseMarks: number }
+	  >
+	| Simplify<RubricBase & { type: "ordinal"; marks: Record<string, number> }>
+	| Simplify<
+			RubricBase & {
+				type: "numerical";
+				minScore: number;
+				maxScore: number;
+				minMarks: number;
+				maxMarks: number;
+				reversed: boolean;
+			}
+	  >;
 
 type AssessmentRubricValueBase = { rubricId: string; type: RubricType };
 export type AssessmentRubricValue =
-  | Simplify<AssessmentRubricValueBase & { type: "boolean"; passed: boolean }>
-  | Simplify<
-      AssessmentRubricValueBase & { type: "ordinal"; selectedLabel: string }
-    >
-  | Simplify<AssessmentRubricValueBase & { type: "numerical"; score: number }>;
+	| Simplify<AssessmentRubricValueBase & { type: "boolean"; passed: boolean }>
+	| Simplify<
+			AssessmentRubricValueBase & { type: "ordinal"; selectedLabel: string }
+	  >
+	| Simplify<AssessmentRubricValueBase & { type: "numerical"; score: number }>;
 
 export type Question = { label?: string; rubrics: Rubric[]; solution?: string };
 

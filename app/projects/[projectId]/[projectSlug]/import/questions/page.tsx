@@ -6,28 +6,28 @@ import { questionsImportAction } from "@/import/questionsImportAction";
 import { projectImportQuestionsPath } from "@/projects/routes";
 
 type ProjectImportQuestionsPageProps = {
-  params: Promise<{ projectId: string; projectSlug: string }>;
+	params: Promise<{ projectId: string; projectSlug: string }>;
 };
 
 export default async function ProjectImportQuestionsPage({
-  params,
+	params,
 }: ProjectImportQuestionsPageProps) {
-  const { projectId, projectSlug } = await params;
-  const project = await loadProjectByPublicId(projectId);
+	const { projectId, projectSlug } = await params;
+	const project = await loadProjectByPublicId(projectId);
 
-  if (project == null) {
-    notFound();
-  }
+	if (project == null) {
+		notFound();
+	}
 
-  if (project.slug !== projectSlug) {
-    redirect(projectImportQuestionsPath(project.id, project.slug));
-  }
+	if (project.slug !== projectSlug) {
+		redirect(projectImportQuestionsPath(project.id, project.slug));
+	}
 
-  return (
-    <Suspense>
-      <QuestionsImportForm
-        action={questionsImportAction.bind(null, project.id)}
-      />
-    </Suspense>
-  );
+	return (
+		<Suspense>
+			<QuestionsImportForm
+				action={questionsImportAction.bind(null, project.id)}
+			/>
+		</Suspense>
+	);
 }

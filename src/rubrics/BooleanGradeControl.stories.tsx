@@ -3,11 +3,11 @@ import { fn } from "storybook/test";
 import BooleanGradeControl from "./BooleanGradeControl";
 
 const meta = {
-  title: "Rubrics/BooleanGradeControl",
-  component: BooleanGradeControl,
-  tags: ["autodocs"],
-  parameters: { layout: "centered" },
-  args: { onAssess: fn(), disabled: false },
+	title: "Rubrics/BooleanGradeControl",
+	component: BooleanGradeControl,
+	tags: ["autodocs"],
+	parameters: { layout: "centered" },
+	args: { onAssess: fn(), disabled: false },
 } satisfies Meta<typeof BooleanGradeControl>;
 
 export default meta;
