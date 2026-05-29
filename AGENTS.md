@@ -4,6 +4,7 @@
 
 - Treat `docs/guides/issue-and-pr-conventions.md` as the canonical source for GitHub issue, pull request, label, and repository workflow conventions.
 - Before creating or modifying GitHub issues, labels, issue templates, or pull requests, consult the documented conventions instead of duplicating taxonomy or checklist rules here.
+- Use `docs/guides/commit-message-conventions.md` for commit titles and squash merge titles. Prefer `<area>: <imperative summary>`; do not invent new commit styles or use full Conventional Commits unless explicitly requested.
 - Use existing issue and pull request templates in most cases.
 - If a template section is not applicable or the information is unknown, state that explicitly. Do not invent information solely to satisfy the template.
 - Do not create unsupported relationships between issues, pull requests, milestones, or roadmap items.
