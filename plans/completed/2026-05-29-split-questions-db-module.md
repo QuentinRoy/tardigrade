@@ -1,7 +1,6 @@
-Status: Active
+Status: Implemented
 Date: 2026-05-29
-Resolution: Pending implementation and verification
-Follow-up: Move to plans/completed after merge
+Resolution: Implemented and verified on docs/split-questions-plan-117 on 2026-06-01. All verification gates pass.
 
 # Split src/db/questions.ts Behavior-Preservingly (Issue #117)
 
@@ -39,18 +38,18 @@ Excluded:
 
 This section is a direct checklist to verify no planning decision is lost during implementation.
 
-- [ ] API shrink now (not deferred).
-- [ ] Module names are exactly:
+- [x] API shrink now (not deferred).
+- [x] Module names are exactly:
 	- src/db/questionsRead.ts
 	- src/db/questionsManaged.ts
 	- src/db/questionsCommands.ts
-- [ ] Read APIs require projectId.
-- [ ] getQuestionDeleteImpact remains public from managed module.
-- [ ] deleteManagedQuestion is decoupled from impact lookup.
-- [ ] deleteManagedQuestion returns { deleted: boolean }.
-- [ ] No assessment-count payload in delete action response.
-- [ ] deleteQuestionAction has truthful dual messaging.
-- [ ] Test suite includes deleted true/false outcomes and action messaging.
+- [x] Read APIs require projectId.
+- [x] getQuestionDeleteImpact remains public from managed module.
+- [x] deleteManagedQuestion is decoupled from impact lookup.
+- [x] deleteManagedQuestion returns { deleted: boolean }.
+- [x] No assessment-count payload in delete action response.
+- [x] deleteQuestionAction has truthful dual messaging.
+- [x] Test suite includes deleted true/false outcomes and action messaging.
 
 ## Concrete File Change Map
 
@@ -310,30 +309,40 @@ Invariant checks:
 
 This plan is complete when all conditions below are true:
 
-- [ ] Split modules created and used as planned.
-- [ ] Facade narrowed to agreed exports.
-- [ ] All read APIs enforce required projectId.
-- [ ] deleteManagedQuestion returns { deleted: boolean }.
-- [ ] deleteQuestionAction dual messaging implemented and tested.
-- [ ] No assessment-count payload in delete contract.
-- [ ] Required checks and tests pass locally.
-- [ ] Plan status updated and moved to plans/completed with completion notes.
+- [x] Split modules created and used as planned.
+- [x] Facade narrowed to agreed exports.
+- [x] All read APIs enforce required projectId.
+- [x] deleteManagedQuestion returns { deleted: boolean }.
+- [x] deleteQuestionAction dual messaging implemented and tested.
+- [x] No assessment-count payload in delete contract.
+- [x] Required checks and tests pass locally.
+- [ ] Plan status updated and moved to plans/completed with completion notes. (Status updated; move to plans/completed deferred to merge per Follow-up.)
+
+## Completion Notes (2026-06-01)
+
+- Split into `src/db/questionsRead.ts` (reads + shared `loadQuestionsFromDb`, `toRubric`, `resolveProjectRowId`), `src/db/questionsManaged.ts` (managed reads + types + `getQuestionDeleteImpact`), and `src/db/questionsCommands.ts` (save/delete/reorder). Facade `src/db/questions.ts` re-exports only `loadQuestions`, `loadQuestion`, `saveManagedQuestion`, `deleteManagedQuestion`, `reorderQuestions`.
+- Import graph is acyclic: read (leaf) ← managed ← commands ← facade.
+- Read APIs (`loadQuestions`, `loadQuestion`, `loadManagedQuestions`) now require `projectId`; the dead unscoped read branch in `loadQuestionsFromDb` was removed. `loadRubricOverviewData` was tightened to require `projectId` as a cascade (sole caller already passed `project.id`).
+- `deleteManagedQuestion` no longer performs an impact lookup; returns `{ deleted: boolean }` from `numDeletedRows`. `deleteQuestionAction` branches on `deleted` with truthful dual messaging and no assessment-count payload.
+- Bug fixed in passing (in-scope, Slice B): `loadManagedQuestions` had a duplicate `project` join introduced in c1eea97 (broken whenever `projectId` was provided, no test covered it). Required-`projectId` contract collapsed the `$if`/throw into a single clean scoped join; new managed-seam parity tests now cover it.
+- Call-site migration: `app/.../questions/page.tsx` imports `loadManagedQuestions` from `@/db/questionsManaged`; all other importers stayed on the facade.
+- Verification: `pnpm run check --fix`, `pnpm run check-types`, `pnpm test src/db/` (33 passed), `pnpm test src/questions/` (11 passed), and `pnpm run build` all pass.
 
 ## Implementation Sequence Checklist
 
 Use this as the execution order during coding:
 
-1. [ ] Baseline capture and call-site map.
-2. [ ] Slice A RED test.
-3. [ ] Slice A GREEN extraction.
-4. [ ] Slice B RED test.
-5. [ ] Slice B GREEN extraction.
-6. [ ] Slice C RED test.
-7. [ ] Slice C GREEN extraction.
-8. [ ] Facade narrowing and import migration.
-9. [ ] Action contract changes and action tests.
-10. [ ] Full verification run.
-11. [ ] Final checklist pass and plan archival prep.
+1. [x] Baseline capture and call-site map.
+2. [x] Slice A RED test.
+3. [x] Slice A GREEN extraction.
+4. [x] Slice B RED test.
+5. [x] Slice B GREEN extraction.
+6. [x] Slice C RED test.
+7. [x] Slice C GREEN extraction.
+8. [x] Facade narrowing and import migration.
+9. [x] Action contract changes and action tests.
+10. [x] Full verification run.
+11. [x] Final checklist pass; archival deferred to merge per Follow-up.
 
 ## Risks and Mitigations
 

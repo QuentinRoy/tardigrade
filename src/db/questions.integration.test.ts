@@ -28,11 +28,15 @@ async function loadQuestionsModuleWithDb(db: Kysely<DB>) {
 	vi.resetModules();
 	vi.doMock("./kysely", () => ({ db }));
 
-	const questionsModule = await import("./questions");
+	const [read, managed, commands] = await Promise.all([
+		import("./questionsRead"),
+		import("./questionsManaged"),
+		import("./questionsCommands"),
+	]);
 
 	vi.doUnmock("./kysely");
 
-	return questionsModule;
+	return { ...read, ...managed, ...commands };
 }
 
 type AssessedBooleanFixture = {
@@ -500,7 +504,7 @@ test("saveManagedQuestion replaces ordinal rubric values using the provided labe
 	]);
 });
 
-test("deleteManagedQuestion reports impact and cascades linked assessments", async () => {
+test("deleteManagedQuestion reports deletion and cascades linked assessments", async () => {
 	await using db = await createTestDb();
 	const { deleteManagedQuestion } = await loadQuestionsModuleWithDb(db);
 
@@ -508,7 +512,7 @@ test("deleteManagedQuestion reports impact and cascades linked assessments", asy
 	const fixture = await createAssessedBooleanQuestionFixture(db, project.rowId);
 
 	const result = await deleteManagedQuestion(fixture.questionId, project.id);
-	expect(result).toEqual({ assessmentCount: 1 });
+	expect(result).toEqual({ deleted: true });
 
 	const questionRows = await db
 		.selectFrom("question")
@@ -525,6 +529,44 @@ test("deleteManagedQuestion reports impact and cascades linked assessments", asy
 
 	expect(questionRows).toHaveLength(0);
 	expect(assessmentRows).toHaveLength(0);
+});
+
+test("deleteManagedQuestion returns deleted false when no question matches in project", async () => {
+	await using db = await createTestDb();
+	const { deleteManagedQuestion } = await loadQuestionsModuleWithDb(db);
+
+	await using project = await createProject(
+		db,
+		"Managed Delete Missing Project",
+	);
+	const missingId = buildTestId("question-missing");
+
+	const result = await deleteManagedQuestion(missingId, project.id);
+
+	expect(result).toEqual({ deleted: false });
+});
+
+test("deleteManagedQuestion deletes a question that has no assessments", async () => {
+	await using db = await createTestDb();
+	const { deleteManagedQuestion } = await loadQuestionsModuleWithDb(db);
+
+	await using project = await createProject(
+		db,
+		"Managed Delete Standalone Project",
+	);
+	const question = await createQuestion(db, project.rowId, 0);
+
+	const result = await deleteManagedQuestion(question.id, project.id);
+	expect(result).toEqual({ deleted: true });
+
+	const questionRows = await db
+		.selectFrom("question")
+		.select("rowId")
+		.where("projectId", "=", project.rowId)
+		.where("id", "=", question.id)
+		.execute();
+
+	expect(questionRows).toHaveLength(0);
 });
 
 test("reorderQuestions updates positions for the provided questions", async () => {
@@ -647,4 +689,99 @@ test("reorderQuestions throws when the same id is provided more than once", asyn
 
 	const positions = await getQuestionPositions(db, project.rowId);
 	expect(positions).toEqual({ [question.id]: 0 });
+});
+
+test("loadQuestions returns scoped grid and loadQuestion returns a single question", async () => {
+	await using db = await createTestDb();
+	const { loadQuestions, loadQuestion } = await loadQuestionsModuleWithDb(db);
+
+	await using project = await createProject(db, "Read Seam Project");
+	await using otherProject = await createProject(db, "Read Seam Other Project");
+	const fixture = await createAssessedBooleanQuestionFixture(db, project.rowId);
+	await createAssessedBooleanQuestionFixture(db, otherProject.rowId);
+
+	const grid = await loadQuestions(project.id);
+
+	expect(Object.keys(grid)).toEqual([fixture.questionId]);
+	expect(grid[fixture.questionId]).toEqual({
+		label: "Managed question",
+		rubrics: [
+			{
+				id: fixture.rubricId,
+				label: "Correct",
+				description: undefined,
+				type: "boolean",
+				marks: 2,
+				falseMarks: 0,
+			},
+		],
+	});
+
+	const question = await loadQuestion(fixture.questionId, project.id);
+	expect(question).toEqual(grid[fixture.questionId]);
+
+	const missing = await loadQuestion(fixture.questionId, otherProject.id);
+	expect(missing).toBeUndefined();
+});
+
+test("loadManagedQuestions returns scoped summaries with assessment and rubric counts", async () => {
+	await using db = await createTestDb();
+	const { loadManagedQuestions } = await loadQuestionsModuleWithDb(db);
+
+	await using project = await createProject(db, "Managed Read Project");
+	await using otherProject = await createProject(
+		db,
+		"Managed Read Other Project",
+	);
+	const fixture = await createAssessedBooleanQuestionFixture(db, project.rowId);
+	await createAssessedBooleanQuestionFixture(db, otherProject.rowId);
+
+	const managed = await loadManagedQuestions(project.id);
+
+	expect(managed).toEqual([
+		{
+			id: fixture.questionId,
+			label: "Managed question",
+			position: 0,
+			assessmentCount: 1,
+			rubricCount: 1,
+			question: {
+				label: "Managed question",
+				rubrics: [
+					{
+						id: fixture.rubricId,
+						label: "Correct",
+						description: undefined,
+						type: "boolean",
+						marks: 2,
+						falseMarks: 0,
+					},
+				],
+			},
+		},
+	]);
+});
+
+test("loadManagedQuestions returns zero assessment count for unassessed questions", async () => {
+	await using db = await createTestDb();
+	const { loadManagedQuestions } = await loadQuestionsModuleWithDb(db);
+
+	await using project = await createProject(
+		db,
+		"Managed Read Unassessed Project",
+	);
+	const question = await createQuestion(db, project.rowId, 0);
+
+	const managed = await loadManagedQuestions(project.id);
+
+	expect(managed).toEqual([
+		{
+			id: question.id,
+			label: "Question 0",
+			position: 0,
+			assessmentCount: 0,
+			rubricCount: 0,
+			question: { label: "Question 0", rubrics: [] },
+		},
+	]);
 });

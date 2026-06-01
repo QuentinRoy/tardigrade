@@ -1,5 +1,5 @@
 import { loadProjectByPublicId } from "@/db/projects";
-import { loadManagedQuestions } from "@/db/questions";
+import { loadManagedQuestions } from "@/db/questionsManaged";
 import { canonicalProjectRedirect } from "@/projects/canonicalProjectRedirect";
 import {
 	deleteQuestionAction,

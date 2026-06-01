@@ -18,7 +18,7 @@ export type {
 	RubricOverviewSummary,
 } from "./rubricOverviewBuilder";
 
-export async function loadRubricOverviewData(projectId?: string) {
+export async function loadRubricOverviewData(projectId: string) {
 	"use cache";
 	cacheTags(
 		CACHE_TAGS.questions,
@@ -27,18 +27,15 @@ export async function loadRubricOverviewData(projectId?: string) {
 	);
 	cacheLife({ revalidate: 60 });
 
-	let assessmentQuery = db
+	const assessmentQuery = db
 		.selectFrom("rubricAssessment")
 		.innerJoin("assessment", "assessment.id", "rubricAssessment.assessmentId")
-		.innerJoin("rubric", "rubric.rowId", "rubricAssessment.rubricId");
-
-	if (projectId != null) {
-		assessmentQuery = assessmentQuery.where(
+		.innerJoin("rubric", "rubric.rowId", "rubricAssessment.rubricId")
+		.where(
 			"assessment.projectId",
 			"in",
 			db.selectFrom("project").select("rowId").where("id", "=", projectId),
 		);
-	}
 
 	const [submissions, questionGrid, assessmentRecords] = await Promise.all([
 		loadSubmissions(projectId),

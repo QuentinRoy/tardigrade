@@ -54,11 +54,16 @@ export async function deleteQuestionAction(
 			};
 		}
 
-		const result = await deleteManagedQuestion(payload.questionId, projectId);
+		const { deleted } = await deleteManagedQuestion(
+			payload.questionId,
+			projectId,
+		);
 
 		return {
 			status: "success",
-			message: `Deleted question ${payload.questionId} and ${result.assessmentCount} related assessments.`,
+			message: deleted
+				? `Deleted question ${payload.questionId}.`
+				: `Question ${payload.questionId} was already removed.`,
 		};
 	} catch (error) {
 		const { fieldErrors, formErrors } = toQuestionsValidationError(error);
