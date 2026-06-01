@@ -12,7 +12,10 @@ async function loadAssessmentsWithDb(db: Kysely<DB>) {
 	vi.resetModules();
 	using _kyselyMock = vi.doMock("./kysely", () => ({ db }));
 
-	return await import("./assessments.ts");
+	const { loadAssessment } = await import("./assessments.ts");
+	const { saveAssessment } = await import("./assessmentMutations.ts");
+
+	return { loadAssessment, saveAssessment };
 }
 
 type AssessmentFixture = {
@@ -212,6 +215,36 @@ async function cleanupFixture(
 }
 
 describe("assessment DB integration", () => {
+	// Next caching is not active under vitest, so assert the observable seam: that
+	// loadAssessment declares "assessments:all" alongside its granular tag. Bulk
+	// imports only bust the coarse tag, so without this declaration the per-question
+	// grading view would serve stale data after an assessment import.
+	test("loadAssessment declares the assessments:all fallback tag", async () => {
+		await using db = await createTestDb();
+		const { loadAssessment } = await loadAssessmentsWithDb(db);
+		const { cacheTag } = await import("next/cache");
+		await using project = await createProject(
+			db,
+			"Assessment Cache Tag Project",
+		);
+		const fixture = await createAssessmentFixture(db, project.id);
+
+		try {
+			await loadAssessment(fixture.submissionId, fixture.questionId);
+
+			const declaredTags = vi
+				.mocked(cacheTag)
+				.mock.calls.map((call) => call[0]);
+
+			expect(declaredTags).toContain("assessments:all");
+			expect(declaredTags).toContain(
+				`assessments:${fixture.submissionId}:${fixture.questionId}`,
+			);
+		} finally {
+			await cleanupFixture(db, fixture);
+		}
+	});
+
 	test("round-trips boolean, ordinal and numerical assessments", async () => {
 		await using db = await createTestDb();
 		const { loadAssessment, saveAssessment } = await loadAssessmentsWithDb(db);

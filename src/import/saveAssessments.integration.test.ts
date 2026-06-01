@@ -1,9 +1,10 @@
 import { type Kysely } from "kysely";
 import { expect, test, vi } from "vitest";
 import type {
+	AssessmentWriteDb,
 	SaveAssessmentParams,
 	SaveAssessmentResult,
-} from "#db/assessments.ts";
+} from "#db/assessmentMutations.ts";
 import type { DB } from "#db/generated/db.ts";
 import { buildTestId, createTestDb } from "#test/dbIntegration.ts";
 import { createProject } from "#test/projects.ts";
@@ -98,38 +99,37 @@ async function createAssessmentFixture(
 
 async function loadSaveAssessments(params: {
 	db: Kysely<DB>;
-	saveAssessmentWithDbMock?: (
-		db: Kysely<DB>,
+	saveAssessmentMock?: (
 		input: SaveAssessmentParams,
+		opts?: { db?: AssessmentWriteDb },
 	) => Promise<SaveAssessmentResult>;
 }): Promise<typeof import("./saveAssessments.ts").saveAssessments> {
 	vi.resetModules();
 	vi.doMock("../db/kysely", () => ({ db: params.db }));
 
-	if (params.saveAssessmentWithDbMock) {
-		vi.doMock("../db/assessments", async () => {
-			const actual =
-				await vi.importActual<typeof import("#db/assessments.ts")>(
-					"../db/assessments",
-				);
+	if (params.saveAssessmentMock) {
+		vi.doMock("../db/assessmentMutations", async () => {
+			const actual = await vi.importActual<
+				typeof import("#db/assessmentMutations.ts")
+			>("../db/assessmentMutations");
 
 			return {
 				...actual,
-				saveAssessmentWithDb: (
-					queryDb: Kysely<DB>,
+				saveAssessment: (
 					input: SaveAssessmentParams,
+					opts?: { db?: AssessmentWriteDb },
 				) =>
-					params.saveAssessmentWithDbMock?.(queryDb, input) ??
+					params.saveAssessmentMock?.(input, opts) ??
 					Promise.resolve({ success: true }),
 			};
 		});
 	} else {
-		vi.doUnmock("../db/assessments");
+		vi.doUnmock("../db/assessmentMutations");
 	}
 
 	const { saveAssessments } = await import("./saveAssessments.ts");
 
-	vi.doUnmock("../db/assessments");
+	vi.doUnmock("../db/assessmentMutations");
 	vi.doUnmock("../db/kysely");
 
 	return saveAssessments;
@@ -240,11 +240,10 @@ test("saveAssessments rolls back all writes if a later transactional write fails
 	let callCount = 0;
 	const saveAssessments = await loadSaveAssessments({
 		db,
-		saveAssessmentWithDbMock: async (queryDb, input) => {
-			const actual =
-				await vi.importActual<typeof import("#db/assessments.ts")>(
-					"../db/assessments",
-				);
+		saveAssessmentMock: async (input, opts) => {
+			const actual = await vi.importActual<
+				typeof import("#db/assessmentMutations.ts")
+			>("../db/assessmentMutations");
 
 			callCount += 1;
 			if (callCount === 2) {
@@ -254,7 +253,7 @@ test("saveAssessments rolls back all writes if a later transactional write fails
 				};
 			}
 
-			return actual.saveAssessmentWithDb(queryDb, input);
+			return actual.saveAssessment(input, opts);
 		},
 	});
 
@@ -293,7 +292,7 @@ test("saveAssessments links assessments only to the target project even when the
 	const projectBPublicId = projectB.id;
 
 	// The same student external id exists in both projects.
-	// Each project has its own question/rubric ids (to avoid saveAssessmentWithDb
+	// Each project has its own question/rubric ids (to avoid saveAssessment
 	// ambiguity on shared question text ids, which is a separate concern).
 	const sharedStudentId = "shared-student-cross-proj";
 

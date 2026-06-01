@@ -1,6 +1,6 @@
 import "server-only";
 import { snakeCase } from "change-case";
-import { saveAssessmentWithDb } from "#db/assessments.ts";
+import { saveAssessment } from "#db/assessmentMutations.ts";
 import { db } from "#db/kysely.ts";
 import type { AssessmentRubricValue, RubricType } from "#db/types.ts";
 import type { ImportedAssessmentRow } from "./types.ts";
@@ -347,7 +347,7 @@ export async function saveAssessments(
 		let successCount = 0;
 
 		for (const assessment of preparedAssessments) {
-			const result = await saveAssessmentWithDb(tx, assessment);
+			const result = await saveAssessment(assessment, { db: tx });
 
 			if (!result.success) {
 				throw new Error(result.error);
