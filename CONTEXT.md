@@ -68,6 +68,20 @@ _Avoid_: forcing fixture consumers to handle row IDs when the public identifier 
 Boundary contract changes use hard cutover per module, not dual-accept signatures.
 _Avoid_: temporary number-or-string APIs that prolong identifier ambiguity
 
+### Question authoring
+
+**Question**:
+The gradeable shape — a label plus its **Rubrics** (and optional solution) — consumed when assessing, exporting, or scoring a submission. What a question _is_ at grading time.
+_Avoid_: question definition (when meaning the gradeable shape)
+
+**Question Definition**:
+The authored/configured representation of a **Question** surfaced in the management UI: the Question plus definition-level metadata such as position, linked-assessment count, and delete impact. What an author _edits_.
+_Avoid_: managed question, ManagedQuestion
+
+**Rubric Definition**:
+The authored/configured representation of a **Rubric** within a **Question Definition** — its full marks configuration and metadata as edited by an author.
+_Avoid_: managed rubric, ManagedRubric
+
 ## Flagged Ambiguities
 
 - project id: previously overloaded in discussion and code. Resolution: Project ID means public identifier by default. Project Row ID must be named explicitly and is DB-internal only.

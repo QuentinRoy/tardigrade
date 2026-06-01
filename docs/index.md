@@ -63,6 +63,7 @@ Short records of durable architecture decisions.
 - [0001 Centralise project slug canonicalisation](adr/0001-centralise-slug-canonicalisation.md)
 - [0002 `src/db` is infrastructure; features own persistence](adr/0002-db-is-infrastructure-features-own-persistence.md)
 - [0003 Node subpath imports with mandatory `.ts` extensions](adr/0003-node-subpath-imports-and-ts-extensions.md)
+- [0004 Avoid barrel files](adr/0004-avoid-barrel-files.md)
 - Add new ADRs under `docs/adr/`.
 
 ## Designs
