@@ -47,7 +47,7 @@ Current investigation documents considered:
 - `docs/investigations/grading-workflows-and-product-positioning.md`
 - `docs/investigations/offline-support.md`
 - `docs/investigations/repo-documentation-architecture.md`
-- `docs/investigations/agent-instruction-architecture-audit.md`
+- `docs/investigations/2026-05-26-agent-instruction-architecture-audit.md`
 - `docs/investigations/commit-message-conventions.md`
 
 Current active plans considered:
@@ -68,7 +68,7 @@ Current active plans considered:
 | Reliability risks and test evidence | Export/progress/import/assessment save seams | `plans/active/reliability-hardening.md` | Reliability plan owns risk priority/status/evidence; source audit owns structural causes and refactor candidates |
 | Read/write separation | Command/write paths and read projections | `read-write-separation-and-schema-change-resilience.md` | Read-write investigation owns proposed direction; smaller active plans should own concrete execution later |
 | Documentation lifecycle | Investigation vs ADR vs design vs plan | `repo-documentation-architecture.md` | Documentation architecture owns lifecycle; individual docs should state their status clearly |
-| Agent guidance | How agents find/use audits and plans | `agent-instruction-architecture-audit.md` | Agent docs own instruction strategy; investigations/plans should not become implicit agent instructions |
+| Agent guidance | How agents find/use audits and plans | `2026-05-26-agent-instruction-architecture-audit.md` | Agent docs own instruction strategy; investigations/plans should not become implicit agent instructions |
 | Commit style | PR/commit naming | `commit-message-conventions.md` | No meaningful overlap |
 
 ## Planning artifact overlap analysis
@@ -516,7 +516,7 @@ Keep the source audit as an investigation. When a concrete direction is chosen, 
 
 #### Existing investigation scope
 
-`agent-instruction-architecture-audit.md` owns how repository instructions should be organized so agents can follow conventions without duplicated or conflicting guidance. It recommends:
+`2026-05-26-agent-instruction-architecture-audit.md` owns how repository instructions should be organized so agents can follow conventions without duplicated or conflicting guidance. It recommends:
 
 ```txt
 AGENTS.md -> short operational rules and navigation
