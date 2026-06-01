@@ -37,17 +37,16 @@ export type RubricEditorValue =
 			reversed: boolean;
 	  };
 
-export type QuestionManagementItem = {
+export type QuestionDefinitionSummary = {
 	id: string;
 	label?: string | undefined;
 	position: number;
 	assessmentCount: number;
-	rubricCount: number;
 	question: { label?: string | undefined; rubrics: Rubric[] };
 };
 
 export function toEditorValue(
-	item: QuestionManagementItem,
+	item: QuestionDefinitionSummary,
 ): QuestionEditorValue {
 	return {
 		id: item.id,

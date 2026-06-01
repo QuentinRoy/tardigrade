@@ -1,15 +1,14 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { fn } from "storybook/test";
 import QuestionTable from "./QuestionTable.tsx";
-import type { QuestionManagementItem } from "./types.ts";
+import type { QuestionDefinitionSummary } from "./types.ts";
 
-const sampleQuestions: QuestionManagementItem[] = [
+const sampleQuestions: QuestionDefinitionSummary[] = [
 	{
 		id: "q1",
 		label: "Correctness",
 		position: 0,
 		assessmentCount: 12,
-		rubricCount: 2,
 		question: { label: "Correctness", rubrics: [] },
 	},
 	{
@@ -17,7 +16,6 @@ const sampleQuestions: QuestionManagementItem[] = [
 		label: "Code Quality",
 		position: 1,
 		assessmentCount: 8,
-		rubricCount: 3,
 		question: { label: "Code Quality", rubrics: [] },
 	},
 ];

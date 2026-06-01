@@ -5,10 +5,10 @@ import { findDuplicateGroups } from "#utils/utils.ts";
 import { CACHE_TAGS, updateTags } from "./cacheTags.ts";
 import { db } from "./kysely.ts";
 import type {
-	ManagedQuestionInput,
-	ManagedRubricInput,
-} from "./questionsManaged.ts";
-import { resolveProjectRowId } from "./questionsRead.ts";
+	QuestionDefinitionInput,
+	RubricDefinitionInput,
+} from "./questionDefinitions.ts";
+import { resolveProjectRowId } from "./questions.ts";
 import type { RubricType } from "./types.ts";
 
 type NormalizedRubricRow = {
@@ -28,8 +28,8 @@ function normalizeOptionalText(value: string | undefined): string | null {
 	return trimmed;
 }
 
-function toManagedRubricRows(
-	rubrics: ManagedRubricInput[],
+function toRubricDefinitionRows(
+	rubrics: RubricDefinitionInput[],
 ): NormalizedRubricRow[] {
 	return rubrics.map((rubric, position) => ({
 		sourceId: rubric.previousId?.trim() || rubric.id,
@@ -65,8 +65,8 @@ function assertUniqueIds(label: string, ids: string[]): void {
 	throw new QuestionsValidationError({ fieldErrors: { rubrics } });
 }
 
-export async function saveManagedQuestion(
-	input: ManagedQuestionInput,
+export async function saveQuestionDefinition(
+	input: QuestionDefinitionInput,
 	projectId: string,
 ): Promise<{ id: string }> {
 	const projectRowId = await resolveProjectRowId(projectId);
@@ -83,7 +83,7 @@ export async function saveManagedQuestion(
 		input.rubrics.map((rubric) => rubric.id),
 	);
 
-	const normalizedRubrics = toManagedRubricRows(input.rubrics);
+	const normalizedRubrics = toRubricDefinitionRows(input.rubrics);
 	assertUniqueIds(
 		"Rubric source ids",
 		normalizedRubrics.map((rubric) => rubric.sourceId),
@@ -435,7 +435,7 @@ export async function saveManagedQuestion(
 	return { id: requestedId };
 }
 
-export async function deleteManagedQuestion(
+export async function deleteQuestionDefinition(
 	questionId: string,
 	projectId: string,
 ): Promise<{ deleted: boolean }> {

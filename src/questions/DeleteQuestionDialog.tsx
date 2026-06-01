@@ -15,7 +15,7 @@ import {
 import { type ReactElement, useMemo, useState } from "react";
 import { useFormStatus } from "react-dom";
 import type { QuestionsActionState } from "./state.ts";
-import type { QuestionManagementItem } from "./types.ts";
+import type { QuestionDefinitionSummary } from "./types.ts";
 import {
 	buildDeleteConfirmationPhrase,
 	matchesDeleteConfirmation,
@@ -23,7 +23,7 @@ import {
 
 type DeleteQuestionDialogProps = {
 	open: boolean;
-	question?: QuestionManagementItem | undefined;
+	question?: QuestionDefinitionSummary | undefined;
 	action: (formData: FormData) => void;
 	actionState: QuestionsActionState;
 	onClose: () => void;

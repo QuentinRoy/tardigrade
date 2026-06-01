@@ -2,13 +2,15 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
-const deleteManagedQuestion = vi.fn();
-const saveManagedQuestion = vi.fn();
+const deleteQuestionDefinition = vi.fn();
+const saveQuestionDefinition = vi.fn();
 const reorderQuestions = vi.fn();
 
-vi.mock("#db/questions.ts", () => ({
-	deleteManagedQuestion: (...args: unknown[]) => deleteManagedQuestion(...args),
-	saveManagedQuestion: (...args: unknown[]) => saveManagedQuestion(...args),
+vi.mock("#db/questionDefinitionMutations.ts", () => ({
+	deleteQuestionDefinition: (...args: unknown[]) =>
+		deleteQuestionDefinition(...args),
+	saveQuestionDefinition: (...args: unknown[]) =>
+		saveQuestionDefinition(...args),
 	reorderQuestions: (...args: unknown[]) => reorderQuestions(...args),
 }));
 
@@ -34,7 +36,7 @@ describe("deleteQuestionAction", () => {
 	});
 
 	it("returns a success message when a question is deleted", async () => {
-		deleteManagedQuestion.mockResolvedValue({ deleted: true });
+		deleteQuestionDefinition.mockResolvedValue({ deleted: true });
 
 		const result = await deleteQuestionAction(
 			"project-1",
@@ -49,7 +51,7 @@ describe("deleteQuestionAction", () => {
 	});
 
 	it("returns a neutral no-op message when nothing was deleted", async () => {
-		deleteManagedQuestion.mockResolvedValue({ deleted: false });
+		deleteQuestionDefinition.mockResolvedValue({ deleted: false });
 
 		const result = await deleteQuestionAction(
 			"project-1",
@@ -64,7 +66,7 @@ describe("deleteQuestionAction", () => {
 	});
 
 	it("does not include assessment counts in the delete response", async () => {
-		deleteManagedQuestion.mockResolvedValue({ deleted: true });
+		deleteQuestionDefinition.mockResolvedValue({ deleted: true });
 
 		const result = await deleteQuestionAction(
 			"project-1",
@@ -94,6 +96,6 @@ describe("deleteQuestionAction", () => {
 		);
 
 		expect(result.status).toBe("error");
-		expect(deleteManagedQuestion).not.toHaveBeenCalled();
+		expect(deleteQuestionDefinition).not.toHaveBeenCalled();
 	});
 });

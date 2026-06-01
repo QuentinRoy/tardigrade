@@ -17,12 +17,12 @@ import type { QuestionsActionState } from "./state.ts";
 import { initialQuestionsActionState } from "./state.ts";
 import {
 	createEmptyQuestionEditorValue,
-	type QuestionManagementItem,
+	type QuestionDefinitionSummary,
 	toEditorValue,
 } from "./types.ts";
 
 type QuestionsManagementClientProps = {
-	questions: QuestionManagementItem[];
+	questions: QuestionDefinitionSummary[];
 	saveAction: (
 		state: QuestionsActionState,
 		formData: FormData,

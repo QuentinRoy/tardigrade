@@ -13,7 +13,6 @@ const meta = {
 			label: "Correctness",
 			position: 0,
 			assessmentCount: 5,
-			rubricCount: 2,
 			question: { label: "Correctness", rubrics: [] },
 		},
 		action: fn(),

@@ -4,10 +4,10 @@ import {
 	loadQuestionsFromDb,
 	resolveProjectRowId,
 	toRubric,
-} from "./questionsRead.ts";
+} from "./questions.ts";
 import type { Question } from "./types.ts";
 
-export type ManagedRubricInput =
+export type RubricDefinitionInput =
 	| {
 			previousId?: string | undefined;
 			id: string;
@@ -38,28 +38,27 @@ export type ManagedRubricInput =
 			reversed: boolean;
 	  };
 
-export type ManagedQuestionInput = {
+export type QuestionDefinitionInput = {
 	originalId?: string | undefined;
 	id: string;
 	label?: string | undefined;
-	rubrics: ManagedRubricInput[];
+	rubrics: RubricDefinitionInput[];
 };
 
-export type ManagedQuestionSummary = {
+export type QuestionDefinitionSummary = {
 	id: string;
 	label?: string | undefined;
 	position: number;
 	assessmentCount: number;
-	rubricCount: number;
 };
 
-export type ManagedQuestionDetails = ManagedQuestionSummary & {
+export type QuestionDefinitionDetails = QuestionDefinitionSummary & {
 	question: Question;
 };
 
-export async function loadManagedQuestions(
+export async function loadQuestionDefinitions(
 	projectId: string,
-): Promise<ManagedQuestionDetails[]> {
+): Promise<QuestionDefinitionDetails[]> {
 	const [rows, counts] = await Promise.all([
 		loadQuestionsFromDb(projectId),
 		db
@@ -84,7 +83,6 @@ export async function loadManagedQuestions(
 		label: row.label ?? undefined,
 		position,
 		assessmentCount: assessmentCountByQuestionId.get(row.id) ?? 0,
-		rubricCount: row.rubrics.length,
 		question: {
 			label: row.label ?? undefined,
 			rubrics: row.rubrics.map(toRubric),
@@ -92,7 +90,7 @@ export async function loadManagedQuestions(
 	}));
 }
 
-export async function getQuestionDeleteImpact(
+export async function getQuestionDefinitionDeleteImpact(
 	questionId: string,
 	projectId: string,
 ): Promise<{ assessmentCount: number }> {

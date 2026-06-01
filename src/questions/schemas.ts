@@ -3,7 +3,7 @@ import { z } from "zod";
 const idSchema = z.string().trim().min(1, "Id is required");
 const previousIdSchema = idSchema.optional();
 
-const managedBooleanRubricSchema = z.object({
+const booleanRubricDefinitionSchema = z.object({
 	previousId: previousIdSchema,
 	id: idSchema,
 	description: z.string().trim().optional(),
@@ -13,7 +13,7 @@ const managedBooleanRubricSchema = z.object({
 	falseMarks: z.number().optional(),
 });
 
-const managedOrdinalRubricSchema = z.object({
+const ordinalRubricDefinitionSchema = z.object({
 	previousId: previousIdSchema,
 	id: idSchema,
 	description: z.string().trim().optional(),
@@ -22,7 +22,7 @@ const managedOrdinalRubricSchema = z.object({
 	marks: z.record(z.string(), z.number()),
 });
 
-const managedNumericalRubricSchema = z.object({
+const numericalRubricDefinitionSchema = z.object({
 	previousId: previousIdSchema,
 	id: idSchema,
 	description: z.string().trim().optional(),
@@ -35,18 +35,18 @@ const managedNumericalRubricSchema = z.object({
 	reversed: z.boolean(),
 });
 
-const managedRubricSchema = z.discriminatedUnion("type", [
-	managedBooleanRubricSchema,
-	managedOrdinalRubricSchema,
-	managedNumericalRubricSchema,
+const rubricDefinitionSchema = z.discriminatedUnion("type", [
+	booleanRubricDefinitionSchema,
+	ordinalRubricDefinitionSchema,
+	numericalRubricDefinitionSchema,
 ]);
 
-export const managedQuestionSchema = z
+export const questionDefinitionSchema = z
 	.object({
 		originalId: idSchema.optional(),
 		id: idSchema,
 		label: z.string().trim().optional(),
-		rubrics: z.array(managedRubricSchema),
+		rubrics: z.array(rubricDefinitionSchema),
 	})
 	.superRefine((question, ctx) => {
 		const rubricIds = new Map<string, number[]>();
@@ -73,7 +73,7 @@ export const managedQuestionSchema = z
 			if (indexes.length > 1) {
 				for (const index of indexes) {
 					ctx.addIssue({
-						code: z.ZodIssueCode.custom,
+						code: "custom",
 						message: "Rubric ids must be unique.",
 						path: ["rubrics", index, "id"],
 					});
@@ -85,7 +85,7 @@ export const managedQuestionSchema = z
 			if (indexes.length > 1) {
 				for (const index of indexes) {
 					ctx.addIssue({
-						code: z.ZodIssueCode.custom,
+						code: "custom",
 						message: "Rubric source ids must be unique.",
 						path: ["rubrics", index, "id"],
 					});
@@ -100,13 +100,15 @@ export const deleteQuestionSchema = z.object({
 	expectedPhrase: z.string(),
 });
 
-export type ManagedQuestionPayload = z.output<typeof managedQuestionSchema>;
+export type QuestionDefinitionPayload = z.output<
+	typeof questionDefinitionSchema
+>;
 
-export function parseManagedQuestionPayload(
+export function parseQuestionDefinitionPayload(
 	raw: string,
-): ManagedQuestionPayload {
+): QuestionDefinitionPayload {
 	const parsed = JSON.parse(raw) as unknown;
-	return managedQuestionSchema.parse(parsed);
+	return questionDefinitionSchema.parse(parsed);
 }
 
 export function parseDeletePayload(

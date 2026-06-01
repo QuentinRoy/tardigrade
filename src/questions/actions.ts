@@ -1,15 +1,15 @@
 "use server";
 
 import {
-	deleteManagedQuestion,
+	deleteQuestionDefinition,
 	reorderQuestions,
-	saveManagedQuestion,
-} from "#db/questions.ts";
+	saveQuestionDefinition,
+} from "#db/questionDefinitionMutations.ts";
 import { toQuestionsValidationError } from "./errors.ts";
 import {
 	matchesDeleteConfirmation,
 	parseDeletePayload,
-	parseManagedQuestionPayload,
+	parseQuestionDefinitionPayload,
 } from "./schemas.ts";
 import { type QuestionsActionState } from "./state.ts";
 
@@ -21,8 +21,8 @@ export async function saveQuestionAction(
 	const payloadRaw = String(formData.get("payload") ?? "{}");
 
 	try {
-		const payload = parseManagedQuestionPayload(payloadRaw);
-		const result = await saveManagedQuestion(payload, projectId);
+		const payload = parseQuestionDefinitionPayload(payloadRaw);
+		const result = await saveQuestionDefinition(payload, projectId);
 
 		return { status: "success", message: `Saved question ${result.id}.` };
 	} catch (error) {
@@ -54,7 +54,7 @@ export async function deleteQuestionAction(
 			};
 		}
 
-		const { deleted } = await deleteManagedQuestion(
+		const { deleted } = await deleteQuestionDefinition(
 			payload.questionId,
 			projectId,
 		);

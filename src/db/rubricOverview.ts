@@ -9,15 +9,6 @@ import {
 } from "./rubricOverviewBuilder.ts";
 import { loadSubmissions } from "./submissions.ts";
 
-export type {
-	RubricOverviewData,
-	RubricOverviewPopupDetails,
-	RubricOverviewRow,
-	RubricOverviewStudentCell,
-	RubricOverviewStudentRow,
-	RubricOverviewSummary,
-} from "./rubricOverviewBuilder.ts";
-
 export async function loadRubricOverviewData(projectId: string) {
 	"use cache";
 	cacheTags(

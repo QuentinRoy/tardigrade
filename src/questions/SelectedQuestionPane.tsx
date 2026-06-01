@@ -13,10 +13,10 @@ import {
 import { type ReactElement, useActionState, useState } from "react";
 import DeleteQuestionDialog from "./DeleteQuestionDialog.tsx";
 import { initialQuestionsActionState } from "./state.ts";
-import type { QuestionManagementItem } from "./types.ts";
+import type { QuestionDefinitionSummary } from "./types.ts";
 
 type SelectedQuestionPaneProps = {
-	question?: QuestionManagementItem | undefined;
+	question?: QuestionDefinitionSummary | undefined;
 	deleteAction: (
 		state: import("./state.ts").QuestionsActionState,
 		formData: FormData,
@@ -71,8 +71,8 @@ export default function SelectedQuestionPane({
 						id: {question.id}
 					</Typography>
 					<Typography color="text.secondary" sx={{ mb: 2 }}>
-						{question.rubricCount} rubrics, {question.assessmentCount} linked
-						assessments
+						{question.question.rubrics.length} rubrics,{" "}
+						{question.assessmentCount} linked assessments
 					</Typography>
 					<List
 						dense

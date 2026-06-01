@@ -35,10 +35,10 @@ import {
 	useState,
 	useTransition,
 } from "react";
-import type { QuestionManagementItem } from "./types.ts";
+import type { QuestionDefinitionSummary } from "./types.ts";
 
 type QuestionTableProps = {
-	questions: QuestionManagementItem[];
+	questions: QuestionDefinitionSummary[];
 	selectedQuestionId?: string | undefined;
 	onSelectQuestion: (questionId: string) => void;
 	onCreate: () => void;
@@ -47,12 +47,12 @@ type QuestionTableProps = {
 	) => Promise<void>;
 };
 
-function getQuestionLabel(question: QuestionManagementItem): string {
+function getQuestionLabel(question: QuestionDefinitionSummary): string {
 	return question.label?.trim() || question.id;
 }
 
 type DraggableQuestionItemProps = {
-	question: QuestionManagementItem;
+	question: QuestionDefinitionSummary;
 	isSelected: boolean;
 	isDragInProgress: boolean;
 	onSelectQuestion: (questionId: string) => void;
@@ -96,7 +96,10 @@ const DraggableQuestionItem = memo(function DraggableQuestionItem({
 			}}
 			secondaryAction={
 				<Stack direction="row" spacing={1}>
-					<Chip size="small" label={`${question.rubricCount} rubrics`} />
+					<Chip
+						size="small"
+						label={`${question.question.rubrics.length} rubrics`}
+					/>
 					<Chip
 						size="small"
 						label={`${question.assessmentCount} assessments`}
@@ -145,7 +148,7 @@ export default function QuestionTable({
 }: QuestionTableProps): ReactElement {
 	const [filter, setFilter] = useState("");
 	const [orderedQuestions, setOrderedQuestions] =
-		useState<QuestionManagementItem[]>(questions);
+		useState<QuestionDefinitionSummary[]>(questions);
 	const [reorderError, setReorderError] = useState<string | null>(null);
 	const [isDragInProgress, setIsDragInProgress] = useState(false);
 	const [isPending, startTransition] = useTransition();
@@ -191,7 +194,7 @@ export default function QuestionTable({
 		reordered.splice(overIndex, 0, moved);
 
 		const filteredIds = new Set(filtered.map((q) => q.id));
-		const reorderedAll: QuestionManagementItem[] = [];
+		const reorderedAll: QuestionDefinitionSummary[] = [];
 		let filteredCursor = 0;
 
 		// Keep non-filtered items in their relative order and reorder only the visible subset.
