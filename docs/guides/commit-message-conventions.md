@@ -32,6 +32,7 @@ migrations
 import
 export
 assessments
+questions
 rubrics
 projects
 tests
