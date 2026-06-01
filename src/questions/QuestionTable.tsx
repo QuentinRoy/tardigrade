@@ -35,10 +35,10 @@ import {
 	useState,
 	useTransition,
 } from "react";
-import type { QuestionDefinitionSummary } from "./types.ts";
+import type { QuestionDefinition } from "#db/types.ts";
 
 type QuestionTableProps = {
-	questions: QuestionDefinitionSummary[];
+	questions: QuestionDefinition[];
 	selectedQuestionId?: string | undefined;
 	onSelectQuestion: (questionId: string) => void;
 	onCreate: () => void;
@@ -47,19 +47,19 @@ type QuestionTableProps = {
 	) => Promise<void>;
 };
 
-function getQuestionLabel(question: QuestionDefinitionSummary): string {
-	return question.label?.trim() || question.id;
+function getQuestionLabel(definition: QuestionDefinition): string {
+	return definition.question.label?.trim() || definition.id;
 }
 
 type DraggableQuestionItemProps = {
-	question: QuestionDefinitionSummary;
+	definition: QuestionDefinition;
 	isSelected: boolean;
 	isDragInProgress: boolean;
 	onSelectQuestion: (questionId: string) => void;
 };
 
 const DraggableQuestionItem = memo(function DraggableQuestionItem({
-	question,
+	definition,
 	isSelected,
 	isDragInProgress,
 	onSelectQuestion,
@@ -71,7 +71,7 @@ const DraggableQuestionItem = memo(function DraggableQuestionItem({
 		transform,
 		transition,
 		isDragging,
-	} = useSortable({ id: question.id });
+	} = useSortable({ id: definition.id });
 
 	const style = {
 		transform: CSS.Transform.toString(transform),
@@ -98,11 +98,11 @@ const DraggableQuestionItem = memo(function DraggableQuestionItem({
 				<Stack direction="row" spacing={1}>
 					<Chip
 						size="small"
-						label={`${question.question.rubrics.length} rubrics`}
+						label={`${definition.question.rubrics.length} rubrics`}
 					/>
 					<Chip
 						size="small"
-						label={`${question.assessmentCount} assessments`}
+						label={`${definition.assessmentCount} assessments`}
 					/>
 				</Stack>
 			}
@@ -123,7 +123,7 @@ const DraggableQuestionItem = memo(function DraggableQuestionItem({
 			</Box>
 			<ListItemButton
 				selected={false}
-				onClick={() => onSelectQuestion(question.id)}
+				onClick={() => onSelectQuestion(definition.id)}
 				sx={{
 					flex: 1,
 					backgroundColor: "transparent",
@@ -131,8 +131,8 @@ const DraggableQuestionItem = memo(function DraggableQuestionItem({
 				}}
 			>
 				<ListItemText
-					primary={getQuestionLabel(question)}
-					secondary={`id: ${question.id}`}
+					primary={getQuestionLabel(definition)}
+					secondary={`id: ${definition.id}`}
 				/>
 			</ListItemButton>
 		</ListItem>
@@ -148,7 +148,7 @@ export default function QuestionTable({
 }: QuestionTableProps): ReactElement {
 	const [filter, setFilter] = useState("");
 	const [orderedQuestions, setOrderedQuestions] =
-		useState<QuestionDefinitionSummary[]>(questions);
+		useState<QuestionDefinition[]>(questions);
 	const [reorderError, setReorderError] = useState<string | null>(null);
 	const [isDragInProgress, setIsDragInProgress] = useState(false);
 	const [isPending, startTransition] = useTransition();
@@ -164,9 +164,9 @@ export default function QuestionTable({
 			return orderedQuestions;
 		}
 
-		return orderedQuestions.filter((question) => {
+		return orderedQuestions.filter((definition) => {
 			const haystack =
-				`${question.id} ${question.label ?? ""}`.toLocaleLowerCase();
+				`${definition.id} ${definition.question.label ?? ""}`.toLocaleLowerCase();
 			return haystack.includes(query);
 		});
 	}, [filter, orderedQuestions]);
@@ -194,7 +194,7 @@ export default function QuestionTable({
 		reordered.splice(overIndex, 0, moved);
 
 		const filteredIds = new Set(filtered.map((q) => q.id));
-		const reorderedAll: QuestionDefinitionSummary[] = [];
+		const reorderedAll: QuestionDefinition[] = [];
 		let filteredCursor = 0;
 
 		// Keep non-filtered items in their relative order and reorder only the visible subset.
@@ -281,12 +281,12 @@ export default function QuestionTable({
 							items={filtered.map((q) => q.id)}
 							strategy={verticalListSortingStrategy}
 						>
-							{filtered.map((question) => {
-								const isSelected = question.id === selectedQuestionId;
+							{filtered.map((definition) => {
+								const isSelected = definition.id === selectedQuestionId;
 								return (
 									<DraggableQuestionItem
-										key={question.id}
-										question={question}
+										key={definition.id}
+										definition={definition}
 										isSelected={isSelected}
 										isDragInProgress={isDragInProgress}
 										onSelectQuestion={onSelectQuestion}

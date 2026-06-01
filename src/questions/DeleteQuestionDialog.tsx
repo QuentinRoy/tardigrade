@@ -14,8 +14,8 @@ import {
 } from "@mui/material";
 import { type ReactElement, useMemo, useState } from "react";
 import { useFormStatus } from "react-dom";
+import type { QuestionDefinition } from "#db/types.ts";
 import type { QuestionsActionState } from "./state.ts";
-import type { QuestionDefinitionSummary } from "./types.ts";
 import {
 	buildDeleteConfirmationPhrase,
 	matchesDeleteConfirmation,
@@ -23,7 +23,7 @@ import {
 
 type DeleteQuestionDialogProps = {
 	open: boolean;
-	question?: QuestionDefinitionSummary | undefined;
+	definition?: QuestionDefinition | undefined;
 	action: (formData: FormData) => void;
 	actionState: QuestionsActionState;
 	onClose: () => void;
@@ -46,7 +46,7 @@ function DeleteButton({ disabled }: { disabled: boolean }): ReactElement {
 
 export default function DeleteQuestionDialog({
 	open,
-	question,
+	definition,
 	action,
 	actionState,
 	onClose,
@@ -54,18 +54,21 @@ export default function DeleteQuestionDialog({
 	const [confirmationText, setConfirmationText] = useState("");
 
 	const expectedPhrase = useMemo(() => {
-		if (question == null) {
+		if (definition == null) {
 			return "";
 		}
 
-		return buildDeleteConfirmationPhrase(question.id, question.assessmentCount);
-	}, [question]);
+		return buildDeleteConfirmationPhrase(
+			definition.id,
+			definition.assessmentCount,
+		);
+	}, [definition]);
 
 	const isMatch = matchesDeleteConfirmation(confirmationText, expectedPhrase);
 	const confirmationError = actionState.fieldErrors?.confirmationText;
 
 	const payload = JSON.stringify({
-		questionId: question?.id,
+		questionId: definition?.id,
 		confirmationText,
 		expectedPhrase,
 	});
@@ -80,11 +83,11 @@ export default function DeleteQuestionDialog({
 			<DialogTitle>Delete Question</DialogTitle>
 			<DialogContent>
 				<Stack spacing={2} sx={{ pt: 1 }}>
-					{question == null ? null : (
+					{definition == null ? null : (
 						<>
 							<Typography>
-								This will delete question <strong>{question.id}</strong> and
-								cascade delete <strong>{question.assessmentCount}</strong>{" "}
+								This will delete question <strong>{definition.id}</strong> and
+								cascade delete <strong>{definition.assessmentCount}</strong>{" "}
 								linked assessments.
 							</Typography>
 							<Typography color="text.secondary">
@@ -120,7 +123,7 @@ export default function DeleteQuestionDialog({
 								<Button variant="outlined" onClick={handleClose}>
 									Cancel
 								</Button>
-								<DeleteButton disabled={question == null || !isMatch} />
+								<DeleteButton disabled={definition == null || !isMatch} />
 							</DialogActions>
 						</Stack>
 					</form>

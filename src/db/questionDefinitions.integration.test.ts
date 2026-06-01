@@ -23,7 +23,7 @@ async function loadQuestionDefinitionsWithDb(db: Kysely<DB>) {
 	return await import("./questionDefinitions.ts");
 }
 
-test("loadQuestionDefinitions returns scoped summaries with assessment counts", async () => {
+test("loadQuestionDefinitions returns scoped definitions with assessment counts", async () => {
 	await using db = await createTestDb();
 	const { loadQuestionDefinitions } = await loadQuestionDefinitionsWithDb(db);
 
@@ -40,7 +40,6 @@ test("loadQuestionDefinitions returns scoped summaries with assessment counts", 
 	expect(definitions).toEqual([
 		{
 			id: fixture.questionId,
-			label: "Boolean question",
 			position: 0,
 			assessmentCount: 1,
 			question: {
@@ -75,7 +74,6 @@ test("loadQuestionDefinitions returns zero assessment count for unassessed quest
 	expect(definitions).toEqual([
 		{
 			id: question.id,
-			label: "Question 0",
 			position: 0,
 			assessmentCount: 0,
 			question: { label: "Question 0", rubrics: [] },

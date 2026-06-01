@@ -9,20 +9,17 @@ import {
 	useMemo,
 	useState,
 } from "react";
+import type { QuestionDefinition } from "#db/types.ts";
 import { reorderQuestionsAction, saveQuestionAction } from "./actions.ts";
 import QuestionForm from "./QuestionForm.tsx";
 import QuestionTable from "./QuestionTable.tsx";
 import SelectedQuestionPane from "./SelectedQuestionPane.tsx";
 import type { QuestionsActionState } from "./state.ts";
 import { initialQuestionsActionState } from "./state.ts";
-import {
-	createEmptyQuestionEditorValue,
-	type QuestionDefinitionSummary,
-	toEditorValue,
-} from "./types.ts";
+import { createEmptyQuestionEditorValue, toEditorValue } from "./types.ts";
 
 type QuestionsManagementClientProps = {
-	questions: QuestionDefinitionSummary[];
+	questions: QuestionDefinition[];
 	saveAction: (
 		state: QuestionsActionState,
 		formData: FormData,
@@ -53,8 +50,8 @@ export default function QuestionsManagementClient({
 		initialQuestionsActionState,
 	);
 
-	const selectedQuestion = useMemo(
-		() => questions.find((question) => question.id === selectedQuestionId),
+	const selectedDefinition = useMemo(
+		() => questions.find((definition) => definition.id === selectedQuestionId),
 		[questions, selectedQuestionId],
 	);
 
@@ -102,11 +99,11 @@ export default function QuestionsManagementClient({
 							<QuestionForm
 								mode={mode}
 								originalQuestionId={
-									mode === "edit" ? selectedQuestion?.id : undefined
+									mode === "edit" ? selectedDefinition?.id : undefined
 								}
 								initialValue={
-									mode === "edit" && selectedQuestion != null
-										? toEditorValue(selectedQuestion)
+									mode === "edit" && selectedDefinition != null
+										? toEditorValue(selectedDefinition)
 										: createEmptyQuestionEditorValue()
 								}
 								action={saveFormAction}
@@ -115,7 +112,7 @@ export default function QuestionsManagementClient({
 							/>
 						) : (
 							<SelectedQuestionPane
-								question={selectedQuestion}
+								definition={selectedDefinition}
 								deleteAction={deleteAction}
 								onEdit={() => setMode("edit")}
 								onDeleteSuccess={() => {

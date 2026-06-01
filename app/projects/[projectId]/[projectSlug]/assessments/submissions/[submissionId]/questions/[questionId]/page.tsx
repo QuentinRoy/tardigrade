@@ -93,12 +93,6 @@ async function QuestionHeaderSection({
 				<Typography component="h1" variant="h4" gutterBottom>
 					{question.label ?? questionId}
 				</Typography>
-
-				{question.solution && (
-					<Box sx={{ mb: 2 }}>
-						<CodeSnippet>{question.solution}</CodeSnippet>
-					</Box>
-				)}
 			</Box>
 		</>
 	);

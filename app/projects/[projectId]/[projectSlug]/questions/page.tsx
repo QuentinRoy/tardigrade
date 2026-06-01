@@ -31,13 +31,7 @@ export default async function ProjectQuestionsPage({
 			saveAction={saveQuestionAction.bind(null, project.id)}
 			deleteAction={deleteQuestionAction.bind(null, project.id)}
 			reorderAction={reorderQuestionsAction.bind(null, project.id)}
-			questions={questions.map((question) => ({
-				id: question.id,
-				label: question.label,
-				position: question.position,
-				assessmentCount: question.assessmentCount,
-				question: question.question,
-			}))}
+			questions={questions}
 		/>
 	);
 }

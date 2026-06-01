@@ -11,12 +11,12 @@ import {
 	Typography,
 } from "@mui/material";
 import { type ReactElement, useActionState, useState } from "react";
+import type { QuestionDefinition } from "#db/types.ts";
 import DeleteQuestionDialog from "./DeleteQuestionDialog.tsx";
 import { initialQuestionsActionState } from "./state.ts";
-import type { QuestionDefinitionSummary } from "./types.ts";
 
 type SelectedQuestionPaneProps = {
-	question?: QuestionDefinitionSummary | undefined;
+	definition?: QuestionDefinition | undefined;
 	deleteAction: (
 		state: import("./state.ts").QuestionsActionState,
 		formData: FormData,
@@ -26,7 +26,7 @@ type SelectedQuestionPaneProps = {
 };
 
 export default function SelectedQuestionPane({
-	question,
+	definition,
 	deleteAction,
 	onEdit,
 	onDeleteSuccess,
@@ -47,39 +47,43 @@ export default function SelectedQuestionPane({
 				<Typography component="h2" variant="h5" sx={{ flex: 1 }}>
 					Selected Question
 				</Typography>
-				<Button variant="outlined" disabled={question == null} onClick={onEdit}>
+				<Button
+					variant="outlined"
+					disabled={definition == null}
+					onClick={onEdit}
+				>
 					Edit
 				</Button>
 				<Button
 					variant="outlined"
 					color="error"
-					disabled={question == null}
+					disabled={definition == null}
 					onClick={() => setDeleteOpen(true)}
 				>
 					Delete
 				</Button>
 			</Stack>
 
-			{question == null ? (
+			{definition == null ? (
 				<Alert severity="info">Select a question to inspect details.</Alert>
 			) : (
 				<Box>
 					<Typography sx={{ mb: 1 }}>
-						<strong>{question.label ?? question.id}</strong>
+						<strong>{definition.question.label ?? definition.id}</strong>
 					</Typography>
 					<Typography color="text.secondary" sx={{ mb: 1 }}>
-						id: {question.id}
+						id: {definition.id}
 					</Typography>
 					<Typography color="text.secondary" sx={{ mb: 2 }}>
-						{question.question.rubrics.length} rubrics,{" "}
-						{question.assessmentCount} linked assessments
+						{definition.question.rubrics.length} rubrics,{" "}
+						{definition.assessmentCount} linked assessments
 					</Typography>
 					<List
 						dense
 						disablePadding
 						sx={{ border: 1, borderColor: "divider", borderRadius: 1 }}
 					>
-						{question.question.rubrics.map((rubric) => (
+						{definition.question.rubrics.map((rubric) => (
 							<ListItem key={rubric.id} divider>
 								<ListItemText
 									primary={rubric.label ?? rubric.id}
@@ -93,7 +97,7 @@ export default function SelectedQuestionPane({
 
 			<DeleteQuestionDialog
 				open={deleteOpen}
-				question={question}
+				definition={definition}
 				action={deleteFormAction}
 				actionState={deleteState}
 				onClose={() => setDeleteOpen(false)}

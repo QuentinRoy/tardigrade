@@ -5,7 +5,7 @@ import {
 	resolveProjectRowId,
 	toRubric,
 } from "./questions.ts";
-import type { Question } from "./types.ts";
+import type { QuestionDefinition } from "./types.ts";
 
 export type RubricDefinitionInput =
 	| {
@@ -45,20 +45,9 @@ export type QuestionDefinitionInput = {
 	rubrics: RubricDefinitionInput[];
 };
 
-export type QuestionDefinitionSummary = {
-	id: string;
-	label?: string | undefined;
-	position: number;
-	assessmentCount: number;
-};
-
-export type QuestionDefinitionDetails = QuestionDefinitionSummary & {
-	question: Question;
-};
-
 export async function loadQuestionDefinitions(
 	projectId: string,
-): Promise<QuestionDefinitionDetails[]> {
+): Promise<QuestionDefinition[]> {
 	const [rows, counts] = await Promise.all([
 		loadQuestionsFromDb(projectId),
 		db
@@ -80,7 +69,6 @@ export async function loadQuestionDefinitions(
 
 	return rows.map((row, position) => ({
 		id: row.id,
-		label: row.label ?? undefined,
 		position,
 		assessmentCount: assessmentCountByQuestionId.get(row.id) ?? 0,
 		question: {

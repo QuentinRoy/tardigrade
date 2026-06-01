@@ -83,10 +83,15 @@ export type AssessmentRubricValue =
 	  >
 	| Simplify<AssessmentRubricValueBase & { type: "numerical"; score: number }>;
 
-export type Question = {
-	label?: string | undefined;
-	rubrics: Rubric[];
-	solution?: string | undefined;
-};
+export type Question = { label?: string | undefined; rubrics: Rubric[] };
 
 export type Grid = { [id: string]: Question };
+
+// A Question plus the definition-level metadata an author edits in the
+// management UI (see CONTEXT.md: "Question Definition").
+export type QuestionDefinition = {
+	id: string;
+	position: number;
+	assessmentCount: number;
+	question: Question;
+};

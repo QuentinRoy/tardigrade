@@ -8,9 +8,8 @@ const meta = {
 	tags: ["autodocs"],
 	args: {
 		open: true,
-		question: {
+		definition: {
 			id: "q1",
-			label: "Correctness",
 			position: 0,
 			assessmentCount: 5,
 			question: { label: "Correctness", rubrics: [] },
