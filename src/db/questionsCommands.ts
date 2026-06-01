@@ -1,6 +1,7 @@
 import "server-only";
 import { sql } from "kysely";
 import { QuestionsValidationError } from "@/questions/errors";
+import { findDuplicateGroups } from "../utils/utils";
 import { CACHE_TAGS, updateTags } from "./cacheTags";
 import { db } from "./kysely";
 import type {
@@ -41,28 +42,21 @@ function toManagedRubricRows(
 }
 
 function assertUniqueIds(label: string, ids: string[]): void {
-	const counts = new Map<string, number[]>();
-
-	ids.forEach((id, index) => {
+	const duplicateGroups = findDuplicateGroups(ids, (id) => {
 		const key = id.trim();
-		if (key.length === 0) {
-			return;
-		}
-
-		const indexes = counts.get(key) ?? [];
-		indexes.push(index);
-		counts.set(key, indexes);
+		return key.length === 0 ? undefined : key;
 	});
 
-	const duplicateIndexes = [...counts.values()].filter(
-		(indexes) => indexes.length > 1,
-	);
-	if (duplicateIndexes.length === 0) {
+	if (duplicateGroups.length === 0) {
 		return;
 	}
 
-	const rubrics = ids.map(() => ({}) as { id?: string });
-	for (const indexes of duplicateIndexes) {
+	const rubrics = Array.from(
+		{ length: ids.length },
+		() => ({}) as { id?: string },
+	);
+
+	for (const { indexes } of duplicateGroups) {
 		for (const index of indexes) {
 			rubrics[index] = { id: `${label} must be unique.` };
 		}
@@ -491,7 +485,9 @@ export async function reorderQuestions(
 	const duplicateIds = findDuplicates(questionIds);
 	if (duplicateIds.length > 0) {
 		throw new Error(
-			`Each question can only be reordered once per request. Duplicated question ids: ${duplicateIds.join(", ")}.`,
+			`Each question can only be reordered once per request. Duplicated question ids: ${duplicateIds.join(
+				", ",
+			)}.`,
 		);
 	}
 
@@ -520,7 +516,9 @@ export async function reorderQuestions(
 			const foundIds = new Set(updated.map((row) => row.id));
 			const missingIds = questionIds.filter((id) => !foundIds.has(id));
 			throw new Error(
-				`Some questions were not found in this project: ${missingIds.join(", ")}.`,
+				`Some questions were not found in this project: ${missingIds.join(
+					", ",
+				)}.`,
 			);
 		}
 	});
