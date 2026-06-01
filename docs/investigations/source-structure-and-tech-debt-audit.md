@@ -5,6 +5,37 @@ Date: 2026-05-25
 Last updated: 2026-06-01
 Related: #115, #99, #59, #51, #68, #110
 
+## Table of contents
+
+- [Question](#question)
+- [Executive summary](#executive-summary)
+- [Relationship to other investigations](#relationship-to-other-investigations)
+- [Principles used in this audit](#principles-used-in-this-audit)
+- [Finding 1: project route context and slug handling](#finding-1-project-route-context-and-slug-handling)
+- [Finding 2: project-scoped pages repeat route resolution](#finding-2-project-scoped-pages-repeat-route-resolution)
+- [Finding 3: submission overview assessment loading is too fragmented](#finding-3-submission-overview-assessment-loading-is-too-fragmented)
+- [Finding 4: question-specific grading page cache boundaries need review](#finding-4-question-specific-grading-page-cache-boundaries-need-review)
+- [Finding 5: question definition persistence has been split](#finding-5-question-definition-persistence-has-been-split)
+- [Finding 6: assessment reads and writes have been split, but ADR 0002 relocation remains](#finding-6-assessment-reads-and-writes-have-been-split-but-adr-0002-relocation-remains)
+- [Finding 7: domain types are mixed with generated database types](#finding-7-domain-types-are-mixed-with-generated-database-types)
+- [Finding 8: question and rubric read-model assembly is duplicated](#finding-8-question-and-rubric-read-model-assembly-is-duplicated)
+- [Finding 9: progress and analytics duplicate completion semantics](#finding-9-progress-and-analytics-duplicate-completion-semantics)
+- [Finding 10: export submissions is a correctness-sensitive state machine that needs smaller seams](#finding-10-export-submissions-is-a-correctness-sensitive-state-machine-that-needs-smaller-seams)
+- [Finding 11: import flows should move toward parse-preview-confirm](#finding-11-import-flows-should-move-toward-parse-preview-confirm)
+- [Finding 12: app shell navigation mixes route parsing, navigation structure, local storage, and export behavior](#finding-12-app-shell-navigation-mixes-route-parsing-navigation-structure-local-storage-and-export-behavior)
+- [Finding 13: numeric rubric editing parses too eagerly](#finding-13-numeric-rubric-editing-parses-too-eagerly)
+- [Finding 14: grading clients duplicate stable workflow behavior](#finding-14-grading-clients-duplicate-stable-workflow-behavior)
+- [Finding 15: server actions are colocated with workflows, but their contracts need clearer boundaries](#finding-15-server-actions-are-colocated-with-workflows-but-their-contracts-need-clearer-boundaries)
+- [Finding 16: cache tags and invalidation are useful but scattered](#finding-16-cache-tags-and-invalidation-are-useful-but-scattered)
+- [Finding 17: `shared` is too broad as an ownership bucket](#finding-17-shared-is-too-broad-as-an-ownership-bucket)
+- [Finding 18: route handlers are thinner; export internals remain the main split candidate](#finding-18-route-handlers-are-thinner-export-internals-remain-the-main-split-candidate)
+- [Finding 19: several components are reasonably split and should not be over-refactored](#finding-19-several-components-are-reasonably-split-and-should-not-be-over-refactored)
+- [Candidate target shape](#candidate-target-shape)
+- [Prioritized rewrite backlog](#prioritized-rewrite-backlog)
+- [Follow-up issue candidates](#follow-up-issue-candidates)
+- [Open questions](#open-questions)
+- [Non-goals](#non-goals)
+
 ## Question
 
 Which parts of the current source code should be rewritten, split, or reorganized to improve developer experience, reduce technical debt, improve performance where relevant, and make future changes safer?
