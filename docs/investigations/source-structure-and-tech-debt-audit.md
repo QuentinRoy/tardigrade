@@ -740,91 +740,104 @@ buildDatedFilename({ prefix, slug, extension })
 ```
 
 The export state machine is the more important rewrite.
-
 ## Finding 19: several components are reasonably split and should not be over-refactored
 
-Not everything needs rewriting.
+Not everything needs rewriting or relocation.
 
 Examples that look reasonably scoped:
 
-- `RubricEditorList` dispatches to rubric-type-specific editor components and owns list operations;
-- `QuestionForm` mostly coordinates draft state, payload creation, errors, and form submission;
+- RubricEditorList dispatches to rubric-type-specific editor components and owns list operations;
+- QuestionForm mostly coordinates draft state, payload creation, errors, and form submission;
 - type-specific rubric editor components are small;
-- `BaseImportForm` is a reusable UI shell rather than a correctness-critical mixed persistence module.
+- BaseImportForm is a reusable UI shell rather than a correctness-critical mixed persistence module.
 
-The goal should be to split overloaded correctness-sensitive modules first, not to maximize the number of files.
+The goal should be to split overloaded correctness-sensitive modules first, not to maximize the number of files. Some files are slightly broad but still locally understandable. These should not be reorganized only to satisfy a target tree.
 
-## Candidate target shape
+This matters because source reorganization and file splitting are different operations:
 
-This is not a final decision. It is a concrete shape that reflects the current audit findings while treating `src/db` as interim for feature persistence.
+- reorganization changes ownership and import direction;
+- splitting changes local responsibility boundaries inside an owner.
+
+A file can be in the right place but need splitting later. A file can also be internally acceptable but live in the wrong ownership folder. The audit should keep these concerns separate so that future work does not combine behavior-preserving moves, responsibility splits, and product changes in the same PR.
+
+## Finding 20: file reorganization should establish ownership before further splitting
+
+### Current behavior
+
+Some files still live in folders that reflect historical placement rather than ownership. The most important example is `src/db`: it still contains feature-specific persistence and read-model code, even though ADR 0002 defines `src/db` as database infrastructure only.
+
+This affects projects as well as questions and assessments. For example, project loading and creation currently live under `src/db`, but they include project-specific behavior such as public-id generation, project summary mapping, slug derivation, and cache invalidation. That is project persistence, not database infrastructure.
+
+### Why this matters
+
+Future splitting work should happen in the right ownership location. If overburdened files are split while they remain under `src/db`, the result may be cleaner locally but still structurally wrong. It can also make the later ADR 0002 relocation harder because there will be more files to move and more import paths to rewrite.
+
+The next source-structure step should therefore prioritize behavior-preserving file reorganization before further fine-grained splitting, especially for feature persistence currently living under `src/db`.
+
+### Relationship to ADR 0002
+
+ADR 0002 is the reference for the target ownership boundary:
+
+```txt
+src/db/
+  kysely.ts
+  generated/
+  migrations/
+  cacheTags.ts
+```
+
+Feature-specific read models, write commands, validation, domain/read-model types, and user-facing errors should live in the owning feature folder.
+
+This investigation should remain the practical migration reference for applying ADR 0002 across the current source tree. It can decide sequencing and concrete file moves, while ADR 0002 defines the direction.
+
+### Candidate direction
+
+Move feature persistence to owner folders with minimal behavior change before doing deeper splits.
+
+Possible target shape:
 
 ```txt
 src/
+  projects/
+    projects.ts
+    projectPaths.ts
+    canonicalProjectRedirect.ts
+
   assessment/
-    assessmentSummary.ts
-    assessmentTypes.ts
-    assessmentReadModel.ts
+    assessments.ts
     assessmentMutations.ts
+    assessmentSummary.ts
     useAssessmentSession.ts
-    useSubmissionQuickJumpShortcut.ts
-    SubmissionNavigation.tsx
-    SubmissionAssessmentClient.tsx
-    SubmissionOverviewAssessmentClient.tsx
-    RubricGradeList.tsx
 
   questions/
-    types.ts
-    schemas.ts
-    actions.ts
+    questions.ts
     questionDefinitions.ts
     questionDefinitionMutations.ts
-    QuestionsManagementClient.tsx
-    QuestionForm.tsx
-    RubricEditorList.tsx
-
-  import/
-    parseAssessments.ts
-    prepareAssessmentImport.ts
-    assessmentImportResult.ts
-    savePreparedAssessments.ts
-    AssessmentsImportForm.tsx
-    BaseImportForm.tsx
-    actionUtils.ts
-
-  export/
-    submissionExportOptions.ts
-    submissionExportPlan.ts
-    submissionAssessmentRows.ts
-    groupSubmissionRows.ts
-    submissionExportCsv.ts
-    submissionExport.ts
-    questionsExport.ts
-    http.ts
-    filenames.ts
-
-  projects/
-    canonicalProjectRedirect.ts
-    projectPaths.ts
-
-  rubrics/
-    rubric.ts
-    rubricMarking.ts
-    rubricAssessment.ts
-
-  submissions/
-    getSubmissionLabel.ts
-    submissionNavigation.ts
-    quickJumpSearch.ts
+    schemas.ts
+    actions.ts
 
   db/
     kysely.ts
     generated/
     migrations/
     cacheTags.ts
-    projects.ts
 ```
 
-The current code may keep already-split modules under `src/db` temporarily, but this target shape should remain visible so the interim state does not become permanent by accident.
+This keeps the structure flat. It does not require immediately introducing `repository`, `service`, or nested technical folders. Those can be added later only where local complexity justifies them.
+
+### Suggested sequencing
+
+1. Move project persistence out of `src/db` into `src/projects`.
+2. Move question and question-definition persistence out of `src/db` into `src/questions`.
+3. Move assessment reads and mutations out of `src/db` into `src/assessment`.
+4. Keep `src/db` focused on Kysely setup, generated DB types, migrations, and cache-tag infrastructure.
+5. After the moves, reassess which files still need internal splitting.
+
+### Caution
+
+These moves should be behavior-preserving. Avoid combining relocation with query rewrites, new abstractions, import-preview UI, terminology changes, or cache-policy changes unless the change is required to preserve behavior.
+
+The immediate value is to make ownership match ADR 0002 so that future splitting happens in the right place.
 
 ## Prioritized rewrite backlog
 
