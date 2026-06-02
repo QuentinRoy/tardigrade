@@ -263,7 +263,16 @@ Do not keep a long-lived re-export shim from `src/db/types.ts` to feature folder
 
 A short-lived shim is acceptable only inside one PR if it makes the migration safer, and should be removed before the PR is merged if possible.
 
-## Step 6: move shared UI separately
+## Step 6: move shared UI separately — Done
+
+Status: Completed 2026-06-02.
+
+Moved all 14 files from `src/shared/` into a flat `src/ui/` (no nested technical
+folders, per the implementation notes below; the nested `app-shell/`/`feedback/`/`code/`
+grouping in the suggested moves was not used). Internal relative imports between the
+moved files stayed valid; repointed the seven `#shared/` consumer imports across `app/`
+and `src/` to `#ui/`. Behavior unchanged; `check`, `check-types`, and the moved
+Storybook tests (AppShell, AppShellNavigationShell, CodeSnippet) green.
 
 Move `src/shared` to `src/ui` in a separate PR from the persistence relocation.
 

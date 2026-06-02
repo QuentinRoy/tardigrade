@@ -13,7 +13,7 @@ import {
 import { redirect } from "next/navigation";
 import { projectDashboardPath } from "#projects/projectPaths.ts";
 import { createProject, loadProjects } from "#projects/projects.ts";
-import AppShell from "#shared/AppShell.tsx";
+import AppShell from "#ui/AppShell.tsx";
 
 function isNextRedirectError(error: unknown): boolean {
 	if (typeof error !== "object" || error == null || !("digest" in error)) {

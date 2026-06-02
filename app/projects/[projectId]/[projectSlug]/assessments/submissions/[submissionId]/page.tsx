@@ -11,9 +11,9 @@ import { projectAssessmentsPath } from "#projects/projectPaths.ts";
 import { loadProjectByPublicId } from "#projects/projects.ts";
 import { loadQuestions } from "#questions/questions.ts";
 import { attachAssessment } from "#rubrics/rubric.ts";
-import MuiNextLink from "#shared/MuiNextLink.tsx";
 import { getSubmissionLabel } from "#submissions/getSubmissionLabel.ts";
 import { loadSubmissions } from "#submissions/submissions.ts";
+import MuiNextLink from "#ui/MuiNextLink.tsx";
 
 type PageParams = {
 	projectId: string;
