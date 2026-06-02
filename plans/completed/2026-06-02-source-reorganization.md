@@ -1,8 +1,24 @@
 # Plan: reorganize source ownership before further splitting
 
-Status: Active
+Status: Completed
 Date: 2026-06-02
+Completed: 2026-06-02
 Related: #115, ADR 0002, docs/investigations/source-structure-and-tech-debt-audit.md
+
+## Outcome
+
+All six steps landed in a single PR (#137) on `refactor/source-reorganization`
+as sequential behavior-preserving commits (`db93bbd`, `4923c12`, `1c81efc`,
+`d188467`, `55a6bc0`, `5fe7c6f`), rather than the per-step PRs the original
+"Suggested PR sequence" below proposed. Feature-owned persistence,
+read models, and feature-facing types now live in `src/projects`, `src/submissions`,
+`src/questions`, `src/assessments`, and `src/rubrics`. `src/db/types.ts` was deleted
+(no shim), and `src/db` is back to database infrastructure only: `kysely.ts`,
+`generated/`, `migrations/`, `migrate.ts`, `cacheTags.ts`, `projectScope.ts`, plus
+the `constraints` and `migrations` integration tests. `src/shared` was renamed to a
+flat `src/ui`. All moves were behavior-preserving; checks and affected tests stayed
+green. ADR 0002 ownership now matches across the source tree, so future splitting
+can happen in the owning feature folder rather than under `src/db`.
 
 ## Goal
 

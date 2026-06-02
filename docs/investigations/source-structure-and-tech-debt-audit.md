@@ -2,7 +2,7 @@
 
 Status: Current investigation
 Date: 2026-05-25
-Last updated: 2026-06-01
+Last updated: 2026-06-02
 Related: #115, #99, #59, #51, #68, #110
 
 ## Table of contents
@@ -15,8 +15,8 @@ Related: #115, #99, #59, #51, #68, #110
 - [Finding 2: project-scoped pages repeat route resolution](#finding-2-project-scoped-pages-repeat-route-resolution)
 - [Finding 3: submission overview assessment loading is too fragmented](#finding-3-submission-overview-assessment-loading-is-too-fragmented)
 - [Finding 4: question-specific grading page cache boundaries need review](#finding-4-question-specific-grading-page-cache-boundaries-need-review)
-- [Finding 5: question definition persistence has been split](#finding-5-question-definition-persistence-has-been-split)
-- [Finding 6: assessment reads and writes have been split, but ADR 0002 relocation remains](#finding-6-assessment-reads-and-writes-have-been-split-but-adr-0002-relocation-remains)
+- [Finding 5: question definition persistence has been split and relocated](#finding-5-question-definition-persistence-has-been-split-and-relocated)
+- [Finding 6: assessment reads and writes have been split and relocated](#finding-6-assessment-reads-and-writes-have-been-split-and-relocated)
 - [Finding 7: clarify raw database types versus feature-facing types](#finding-7-clarify-raw-database-types-versus-feature-facing-types)
 - [Finding 8: question and rubric read-model assembly is duplicated](#finding-8-question-and-rubric-read-model-assembly-is-duplicated)
 - [Finding 9: progress and analytics duplicate completion semantics](#finding-9-progress-and-analytics-duplicate-completion-semantics)
@@ -27,7 +27,7 @@ Related: #115, #99, #59, #51, #68, #110
 - [Finding 14: grading clients duplicate stable workflow behavior](#finding-14-grading-clients-duplicate-stable-workflow-behavior)
 - [Finding 15: server actions are colocated with workflows, but their contracts need clearer boundaries](#finding-15-server-actions-are-colocated-with-workflows-but-their-contracts-need-clearer-boundaries)
 - [Finding 16: cache tags and invalidation are useful but scattered](#finding-16-cache-tags-and-invalidation-are-useful-but-scattered)
-- [Finding 17: `shared` is too broad as an ownership bucket](#finding-17-shared-is-too-broad-as-an-ownership-bucket)
+- [Finding 17: `shared` bucket renamed to `src/ui`](#finding-17-shared-bucket-renamed-to-srcui)
 - [Finding 18: route handlers are thinner; export internals remain the main split candidate](#finding-18-route-handlers-are-thinner-export-internals-remain-the-main-split-candidate)
 - [Finding 19: several components are reasonably split and should not be over-refactored](#finding-19-several-components-are-reasonably-split-and-should-not-be-over-refactored)
 - [Finding 20: file reorganization should establish ownership before further splitting](#finding-20-file-reorganization-should-establish-ownership-before-further-splitting)
@@ -49,13 +49,10 @@ Resolved or largely resolved since the first audit:
 3. project-scoped routes now have a layout-level existence gate;
 4. stale project-slug redirects are centralized through `canonicalProjectRedirect`;
 5. question definition reads and mutations have been split;
-6. assessment reads and assessment writes have been split, with a transaction-friendly write API.
+6. assessment reads and assessment writes have been split, with a transaction-friendly write API;
+7. the ADR 0002 source reorganization has landed: feature-owned persistence, read models, and feature-facing types now live in `src/projects`, `src/submissions`, `src/questions`, `src/assessments`, and `src/rubrics`; `src/db/types.ts` was deleted; `src/db` is database infrastructure only; and the historical `src/shared` bucket was renamed to a flat `src/ui` (see `plans/completed/2026-06-02-source-reorganization.md`).
 
-The highest-value remaining work is now concentrated around two related but distinct concerns.
-
-First, the source tree should be reorganized so ownership matches ADR 0002 before further splitting creates more files in the wrong location. In particular, feature-owned persistence and read models should move out of `src/db` for projects, submissions, questions, and assessments.
-
-Second, once ownership is clearer, the remaining local seams can be addressed:
+With ownership now matching ADR 0002, the highest-value remaining work is the local seam cleanup that was previously gated on the reorganization:
 
 1. submission overview assessment loading;
 2. assessment import parse/prepare/write boundaries and unmatched-submission policy;
@@ -67,7 +64,7 @@ Second, once ownership is clearer, the remaining local seams can be addressed:
 8. app shell decomposition;
 9. numeric rubric editing.
 
-The recurring problem is still mixed responsibility, but the concrete instances have changed. The recent question and assessment splits deliberately deferred ADR 0002 compliance so that the files could first be split by responsibility inside `src/db`. That deferral should not be read as a low-priority decision. Moving feature-owned persistence and read models out of `src/db` remains important and should be the next source-structure step, so future splitting happens in the right ownership location.
+The recurring problem is still mixed responsibility, but the concrete instances have changed. The question and assessment splits deliberately deferred ADR 0002 compliance so that the files could first be split by responsibility inside `src/db`; that relocation has since landed, so future splitting now happens in the owning feature folder rather than under `src/db`. The remaining seams below are about local responsibility boundaries inside those owners, not ownership.
 
 ## Relationship to other investigations
 
@@ -148,16 +145,11 @@ Likely extraction candidates:
 
 Next route files should remain in `app/`. Plain path builders live in `src/projects/projectPaths.ts`.
 
-### Keep `src/db` as an accepted interim home, not the target state
+### `src/db` is now database infrastructure only
 
-ADR 0002 points toward `src/db` eventually becoming database infrastructure only, with features owning their read models, write commands, domain types, and validation schemas.
+ADR 0002 points toward `src/db` being database infrastructure only, with features owning their read models, write commands, domain types, and validation schemas. As of the 2026-06-02 source reorganization, that target state has been reached: feature persistence and read models now live in their owning feature folders, and `src/db` holds only `kysely.ts`, `generated/`, `migrations/`, `migrate.ts`, `cacheTags.ts`, `projectScope.ts`, and database integration tests.
 
-The recent question and assessment splits intentionally kept persistence under `src/db` as an interim step. That was a pragmatic sequencing decision, not a change in architectural direction. The current audit should distinguish two kinds of work:
-
-1. near-term seam cleanup inside the current `src/db` modules when that reduces risk immediately;
-2. soonish ADR 0002 follow-up work that relocates question and assessment persistence into feature-owned modules once the internal splits are stable.
-
-For new work, avoid adding more feature logic to `src/db` unless it is part of the current interim split. For follow-up work, prefer moving already-split modules to feature ownership over doing more elaborate decomposition inside `src/db`.
+For new work, do not add feature logic to `src/db`. Feature read models, write commands, validation, and domain/read-model types belong in the owning feature folder, which may call `src/db` infrastructure entry points. Remaining seam cleanup (read models, mutation internals, completion semantics) should happen in those feature folders.
 
 ## Finding 1: project route context and slug handling
 
@@ -293,84 +285,53 @@ Can every repeated read be deduplicated manually?
 
 Extract a loader only if it clarifies semantics without hiding cache behavior, reduces real query duplication not handled by cache, gives a better test seam for the full page model, and does not collapse useful cache boundaries.
 
-## Finding 5: question definition persistence has been split
+## Finding 5: question definition persistence has been split and relocated
 
 ### Current status
 
-Largely resolved as an internal split, but not resolved against ADR 0002.
+Resolved.
 
-The original audit described `src/db/questions.ts` as an overgrown mixed-responsibility module. That is no longer the right framing. Question definition reads and mutations have been split into the current question/question-definition modules.
+The original audit described `src/db/questions.ts` as an overgrown mixed-responsibility module. Question definition reads and mutations were first split, then relocated into `src/questions` during the 2026-06-02 source reorganization, satisfying ADR 0002.
 
 ### Current structure
 
-The landed structure uses the current naming rather than the earlier planned `questionsManaged` name:
+Question persistence now lives in the feature folder alongside its UI-facing schemas, actions, and types:
 
 ```txt
-src/db/questions.ts
-src/db/questionDefinitions.ts
-src/db/questionDefinitionMutations.ts
+src/questions/questions.ts
+src/questions/questionDefinitions.ts
+src/questions/questionDefinitionMutations.ts
 src/questions/types.ts
 src/questions/schemas.ts
 src/questions/actions.ts
 ```
 
-### Remaining concern
-
-The current split is a useful intermediate state, but question definition persistence still lives under `src/db`. ADR 0002 compliance was deferred during the split and should remain a soonish follow-up.
-
-Remaining checks should focus on whether the current seams are clear enough to make relocation straightforward:
+The seams are:
 
 - `questions.ts` owns general question/rubric read models;
 - `questionDefinitions.ts` owns management-facing question definition reads;
 - `questionDefinitionMutations.ts` owns save/delete/reorder mutations;
-- `src/questions/*` owns UI-facing schemas, actions, and management UI.
+- the rest of `src/questions/*` owns UI-facing schemas, actions, and management UI.
 
 ### Recommendation
 
-Do not keep the old broad split candidate as active work. Replace it with two follow-ups:
+The ownership relocation is done. The only remaining follow-up is to review the current question-definition split after a few changes have landed, and split further inside `src/questions` only if review or test pain justifies it.
 
-1. review the current question-definition split after a few changes have landed;
-2. plan the ADR 0002 relocation of question persistence from `src/db` to feature-owned modules.
-
-Further decomposition inside `src/db` should only happen if it reduces risk before the relocation. Otherwise, prefer making the relocation the next structural step.
-
-## Finding 6: assessment reads and writes have been split, but ADR 0002 relocation remains
+## Finding 6: assessment reads and writes have been split and relocated
 
 ### Current status
 
-Partially resolved as an internal split, but not resolved against ADR 0002.
+Resolved against ADR 0002.
 
-The original audit described `src/db/assessments.ts` as mixing assessment loading, validation, persistence, command semantics, transaction support, and cache invalidation. That exact finding is stale. Assessment reads and writes have since been split, and the assessment write path has a transaction-friendly API.
+The original audit described `src/db/assessments.ts` as mixing assessment loading, validation, persistence, command semantics, transaction support, and cache invalidation. Assessment reads and writes were first split, then relocated into `src/assessments` during the 2026-06-02 source reorganization.
 
 ### Current behavior
 
-Assessment reads live separately from assessment mutations. The mutation path supports both standalone saves and caller-supplied transactions, which is needed by assessment import. This was the right first step.
+Assessment persistence now lives in the feature folder: `src/assessments/assessments.ts` (reads), `src/assessments/assessmentMutations.ts` (writes), plus `assessmentsProgress.ts`, `submissionProgress.ts`, `rubricOverview.ts`, `rubricOverviewBuilder.ts`, `assessmentSummary.ts`, and `types.ts`. Assessment reads live separately from assessment mutations, and the mutation path supports both standalone saves and caller-supplied transactions, which is needed by assessment import.
 
 ### Remaining concern
 
-Assessment persistence still lives under `src/db`. That was deliberately deferred when splitting the module, but it remains important and should be fixed soon. The remaining design question is whether to do more internal seam cleanup before relocation, or to make relocation to feature ownership the next structural step.
-
-Potential reasons to split internals before or during the move:
-
-- validation;
-- user-facing error messages;
-- assessment row upsert;
-- subtype-specific writes;
-- transaction handling;
-- cache invalidation after standalone writes.
-
-This may be acceptable if the current module is small and well-tested. Further splitting should be driven by actual review pain or test difficulty, not by a blanket rule that every command needs several files.
-
-### Candidate internal split, if needed
-
-```txt
-src/db/assessmentMutations.ts
-src/db/assessmentMutationValidation.ts
-src/db/assessmentMutationErrors.ts
-src/db/assessmentMutationRepository.ts
-```
-
-However, if ADR 0002 relocation is the next planned step, prefer doing this split in the feature-owned location rather than adding more permanent structure under `src/db`.
+Ownership is now correct. Any further internal split of the mutation path — validation, user-facing error messages, row upsert, subtype-specific writes, transaction handling, cache invalidation after standalone writes — should be done inside `src/assessments` and driven by actual review pain or test difficulty, not by a blanket rule that every command needs several files. See Priority 4.
 
 ### Transaction API requirement
 
@@ -378,16 +339,11 @@ The existing transaction-friendly API is the right direction. Preserve the rule 
 
 ## Finding 7: clarify raw database types versus feature-facing types
 
-### Current behavior
+### Current status
 
-`src/db/types.ts` currently mixes different kinds of types:
+Largely resolved.
 
-- generated-database-adjacent types;
-- persistence projections;
-- feature-facing read models;
-- UI/action/import/export contracts.
-
-That makes it hard to tell whether a type is a raw table row, a persistence-internal projection, a domain/read-model type, or a user-facing contract.
+`src/db/types.ts` previously mixed generated-database-adjacent types, persistence projections, feature-facing read models, and UI/action/import/export contracts. During the 2026-06-02 source reorganization, every feature-facing type was moved into its owning feature folder (`src/submissions/types.ts`, `src/questions/types.ts`, `src/assessments/types.ts`, `src/rubrics/types.ts`), and `src/db/types.ts` was deleted with no re-export shim. `RubricType` is now a local literal union in `src/rubrics` rather than a re-export of the generated enum, so `src/rubrics` no longer depends on `src/db/generated/db.ts`. The decision direction below remains the standing rule for new types.
 
 ### Decision direction
 
@@ -420,18 +376,16 @@ src/questions/types.ts
 src/questions/questionDefinitions.ts
 src/questions/questionDefinitionMutations.ts
 
-src/assessment/assessmentTypes.ts
-src/assessment/assessmentReadModel.ts
-src/assessment/assessmentMutations.ts
+src/assessments/types.ts
+src/assessments/assessments.ts
+src/assessments/assessmentMutations.ts
 ```
 
 The persistence code may use generated types internally, but the exported API should return question definitions, assessment read models, submission summaries, or action results, not generated table rows. If a type contains `row_id`, it should normally be persistence-internal.
 
 ### Migration approach
 
-Start by identifying imports from `src/db/types.ts` that are really feature-facing types. Move those type definitions to the relevant feature module or replace them with explicit read-model types returned by loaders.
-
-Keep generated database types and internal row/projection helpers inside `src/db`. Avoid creating a thin schema facade unless a concrete problem appears that cannot be solved with the direct infrastructure imports already available.
+This migration is complete: the feature-facing types that lived in `src/db/types.ts` now live in their owning feature folders, and the file was deleted. The standing rule for new code is to keep generated database types and internal row/projection helpers inside `src/db`, derive explicit feature-facing read-model types in the owning feature, and avoid creating a thin schema facade unless a concrete problem appears that cannot be solved with the direct infrastructure imports already available.
 
 ## Finding 8: question and rubric read-model assembly is duplicated
 
@@ -481,11 +435,11 @@ The naming should avoid implying that a submission “has progress”. A submiss
 Create or document a shared assessment-completion model, then expose view-specific read models:
 
 ```txt
-src/assessment/assessmentSummary.ts
-src/assessment/assessmentCompletion.ts
-src/assessment/loadCompletionBySubmission.ts
-src/assessment/loadCompletionByQuestion.ts
-src/assessment/loadProjectAssessmentCompletion.ts
+src/assessments/assessmentSummary.ts
+src/assessments/assessmentCompletion.ts
+src/assessments/loadCompletionBySubmission.ts
+src/assessments/loadCompletionByQuestion.ts
+src/assessments/loadProjectAssessmentCompletion.ts
 ```
 
 This should also be revisited during ADR 0002 follow-up because progress logic is feature logic, not database infrastructure.
@@ -622,10 +576,10 @@ Some reuse already exists through `useAssessmentSession`, which is good. But mor
 ### Candidate extractions
 
 ```txt
-src/assessment/useSubmissionQuickJumpShortcut.ts
-src/assessment/SubmissionNavigation.tsx
-src/assessment/useCurrentSubmission.ts
-src/assessment/buildSaveErrorContext.ts
+src/assessments/useSubmissionQuickJumpShortcut.ts
+src/assessments/SubmissionNavigation.tsx
+src/assessments/useCurrentSubmission.ts
+src/assessments/buildSaveErrorContext.ts
 ```
 
 Do not abstract the whole grading client into one mega-component. The overview-by-submission and question-by-question UIs are different. Extract the repeated workflow pieces only.
@@ -686,32 +640,27 @@ import students/submissions
   -> progress and dashboard tags
 ```
 
-## Finding 17: `shared` is too broad as an ownership bucket
+## Finding 17: `shared` bucket renamed to `src/ui`
 
-### Current behavior
+### Current status
 
-`src/shared` contains app shell components, save error provider/display, links, code snippets, and shell-specific helpers.
+Resolved.
 
-### Candidate split
-
-```txt
-src/ui/app-shell/
-src/ui/feedback/
-src/ui/code/
-src/ui/navigation/
-```
-
-or flatter if preferred:
+During the 2026-06-02 source reorganization, `src/shared` was renamed to a flat `src/ui`. The flatter shape was chosen over nested technical subfolders:
 
 ```txt
 src/ui/AppShell.tsx
-src/ui/AppShellDrawer.tsx
+src/ui/AppShellDrawerContent.tsx
+src/ui/AppShellTopBar.tsx
+src/ui/AppShellNavigationShell.tsx
 src/ui/SaveErrorsProvider.tsx
+src/ui/SaveErrorsDisplay.tsx
 src/ui/CodeSnippet.tsx
 src/ui/MuiNextLink.tsx
+src/ui/shiki-setup.ts
 ```
 
-Do this as a mechanical move after more important command/read-model splits, unless it blocks other work.
+App shell decomposition (Finding 12) remains open, but the ownership bucket is no longer overly broad.
 
 ## Finding 18: route handlers are thinner; export internals remain the main split candidate
 
@@ -761,17 +710,23 @@ A file can be in the right place but need splitting later. A file can also be in
 
 ## Finding 20: file reorganization should establish ownership before further splitting
 
-### Current behavior
+### Current status
 
-Some files still live in folders that reflect historical placement rather than ownership. The most important example is `src/db`: it still contains feature-specific persistence and read-model code, even though ADR 0002 defines `src/db` as database infrastructure only.
+Resolved. Tracked and executed in `plans/completed/2026-06-02-source-reorganization.md`.
 
-This affects projects as well as questions and assessments. For example, project loading and creation currently live under `src/db`, but they include project-specific behavior such as public-id generation, project summary mapping, slug derivation, and cache invalidation. That is project persistence, not database infrastructure.
+The behavior-preserving relocation described below has landed: project, submission, question, and assessment persistence and read models moved out of `src/db` into their owning feature folders, feature-facing types moved out of `src/db/types.ts` (which was deleted), and `src/shared` was renamed to `src/ui`. `src/db` is now database infrastructure only. The original finding and candidate direction are kept below for historical context.
 
-### Why this matters
+### Original behavior
+
+Some files lived in folders that reflected historical placement rather than ownership. The most important example was `src/db`: it contained feature-specific persistence and read-model code, even though ADR 0002 defines `src/db` as database infrastructure only.
+
+This affected projects as well as questions and assessments. For example, project loading and creation lived under `src/db`, but they included project-specific behavior such as public-id generation, project summary mapping, slug derivation, and cache invalidation. That is project persistence, not database infrastructure.
+
+### Why this mattered
 
 Future splitting work should happen in the right ownership location. If overburdened files are split while they remain under `src/db`, the result may be cleaner locally but still structurally wrong. It can also make the later ADR 0002 relocation harder because there will be more files to move and more import paths to rewrite.
 
-The next source-structure step should therefore prioritize behavior-preserving file reorganization before further fine-grained splitting, especially for feature persistence currently living under `src/db`.
+The reorganization therefore prioritized behavior-preserving file relocation before further fine-grained splitting, especially for feature persistence that lived under `src/db`.
 
 ### Relationship to ADR 0002
 
@@ -882,24 +837,22 @@ Suggested deliverables:
 - keep preview UI out of this source-structure scope;
 - keep transactional writes separate from parse/prepare logic.
 
-### Priority 3: ADR 0002 source reorganization
+### Priority 3: ADR 0002 source reorganization — Done
 
-Why third:
+Completed 2026-06-02 in `plans/completed/2026-06-02-source-reorganization.md`.
 
-- the internal question and assessment splits have landed;
-- `src/db` still contains feature-owned persistence and read models;
-- moving files now avoids making `src/db` the permanent feature-persistence home by inertia;
-- future splitting should happen in the owning feature folder, not in `src/db`.
+Delivered:
 
-Suggested deliverables:
+- moved project persistence from `src/db` to `src/projects`;
+- moved submission persistence and read models from `src/db` to `src/submissions`;
+- moved question and question-definition persistence from `src/db` to `src/questions`;
+- moved assessment reads, mutations, completion/progress, and overview read models from `src/db` to `src/assessments`;
+- moved feature-facing types out of `src/db/types.ts` and deleted the file;
+- renamed `src/shared` to a flat `src/ui`;
+- kept all moves behavior-preserving;
+- `src/db` is now Kysely setup, generated DB types, migrations, cache-tag infrastructure, and low-level database plumbing only.
 
-- move project persistence from `src/db` to `src/projects`;
-- move submission persistence and read models from `src/db` to `src/submissions`;
-- move question and question-definition persistence from `src/db` to `src/questions`;
-- move assessment reads, mutations, completion/progress, and overview read models from `src/db` to `src/assessment`;
-- move feature-facing types out of `src/db/types.ts`;
-- keep behavior changes out of this relocation unless required by import paths or tests;
-- keep `src/db` focused on Kysely setup, generated DB types, migrations, cache tag infrastructure, and low-level database plumbing.
+The remaining priorities below are the local seam cleanups that this reorganization unblocked.
 
 ### Priority 4: assessment mutation internal split, if still needed
 
@@ -1025,20 +978,11 @@ Scope:
 
 Related: #110, #115.
 
-### Candidate issue: move feature persistence out of `src/db`
+### Candidate issue: move feature persistence out of `src/db` — Done
 
-Scope:
+Completed 2026-06-02. Feature persistence and read models moved to their owning feature folders, feature-facing types moved out of `src/db/types.ts` (deleted), and `src/db` is limited to database infrastructure. All moves were behavior-preserving.
 
-- follow ADR 0002 now that the main internal read/write splits have landed;
-- move project persistence to project-owned code;
-- move submission persistence and read models to submission-owned code;
-- move question definition read/write modules to question-owned code;
-- move assessment read/write modules and domain/read-model types to assessment-owned code;
-- move feature-facing types out of `src/db/types.ts`;
-- keep behavior changes out of this relocation unless required by import paths or tests;
-- keep `src/db` limited to database infrastructure.
-
-Related: ADR 0002, #115, `plans/active/2026-06-02-source-reorganization.md`.
+Related: ADR 0002, #115, `plans/completed/2026-06-02-source-reorganization.md`.
 
 ### Candidate issue: review assessment mutation internals
 
@@ -1111,13 +1055,13 @@ Related: #68.
 
 ## Open questions
 
-### Source reorganization sequencing
+### Source reorganization sequencing — resolved
 
-- Should project and submission persistence move first as a small ADR 0002 validation PR?
-- Should question and assessment persistence move in separate PRs, or together because they share rubric/assessment types?
-- Should `src/db/types.ts` be removed in one PR, or gradually emptied as feature-facing types move?
-- Should `cacheTags.ts` remain in `src/db` as infrastructure, or should feature commands eventually own more explicit cache-policy helpers?
-- Should `projectScope.ts` remain in `src/db` as a generic query helper, or move elsewhere if it becomes feature-specific?
+Settled by the 2026-06-02 reorganization, delivered as a single PR (#137) of sequential behavior-preserving commits:
+
+- project and submission persistence moved first, then question persistence, then assessment persistence, then shared UI (`src/shared` -> `src/ui`) — one commit per step.
+- `src/db/types.ts` was emptied as feature-facing types moved into feature folders, then deleted in the same pass — no long-lived re-export shim.
+- `cacheTags.ts` and `projectScope.ts` stayed in `src/db` as infrastructure-adjacent helpers. Whether feature commands should eventually own more explicit cache-policy helpers is still open (see Finding 16); whether `projectScope.ts` should move if it becomes feature-specific remains a watch item.
 
 ### Project slugs
 
@@ -1131,12 +1075,10 @@ Related: #68.
 - Resolved by #51: `project.id` is the public id and `project.row_id` is the internal id.
 - Route params should continue using public `project.id`.
 
-### ADR 0002 relocation
+### ADR 0002 relocation — resolved
 
-- What is the smallest mechanical move that relocates question and assessment persistence out of `src/db`?
-- Should domain types move first, or together with read/write modules?
-- Which cache-tag helpers should remain in `src/db`, and which feature commands should own their cache policy calls?
-- Should this be one PR for question persistence and one PR for assessment persistence?
+- Question and assessment persistence were relocated out of `src/db` in sequential behavior-preserving commits within a single PR (#137), with domain/read-model types moving alongside their read/write modules.
+- All cache-tag helpers (`cacheTags.ts`) stayed in `src/db` for now. Which feature commands should own their cache-policy calls is still open and tracked under Finding 16.
 
 ### Raw database types and feature-facing types
 
@@ -1173,9 +1115,8 @@ Related: #68.
 
 ### Folder structure
 
-- ADR 0002 compliance has been deferred during the internal splits, but remains important. What concrete trigger should start the relocation PRs?
-- Should UI-only shared components move before or after read-model rewrites?
-- Should `rubrics` remain a shared domain folder even if rubric editing UI lives under `questions`?
+- ADR 0002 compliance is now met: the relocation landed on 2026-06-02 as a single PR (#137), with UI-only shared components moving (`src/shared` -> `src/ui`) as the final commit in that PR.
+- Should `rubrics` remain a shared domain folder even if rubric editing UI lives under `questions`? (Currently yes: `src/rubrics` owns rubric types and grading controls.)
 
 ## Non-goals
 
