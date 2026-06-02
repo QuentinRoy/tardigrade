@@ -9,12 +9,8 @@ import BooleanGradeControl from "./BooleanGradeControl.tsx";
 import NumericalGradeControl from "./NumericalGradeControl.tsx";
 import OrdinalGradeControl from "./OrdinalGradeControl.tsx";
 import RubricStatusMarker from "./RubricStatusMarker.tsx";
-import {
-	type AssessedRubric,
-	getRubricMaxMarks,
-	getRubricMinMarks,
-	markRubric,
-} from "./rubric.ts";
+import { getRubricMaxMarks, getRubricMinMarks, markRubric } from "./rubric.ts";
+import type { AssessedRubric } from "./types.ts";
 
 type RubricGradeRowProps = {
 	rubric: AssessedRubric;

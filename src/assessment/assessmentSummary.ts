@@ -1,8 +1,5 @@
-import {
-	type AssessedRubric,
-	getRubricMaxMarks,
-	markRubric,
-} from "#rubrics/rubric.ts";
+import { getRubricMaxMarks, markRubric } from "#rubrics/rubric.ts";
+import type { AssessedRubric } from "#rubrics/types.ts";
 
 export type AssessmentSummary = {
 	marks: number;

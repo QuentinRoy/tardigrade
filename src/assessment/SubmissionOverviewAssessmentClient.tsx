@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import type { ReactElement } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { projectAssessmentSubmissionPath } from "#projects/projectPaths.ts";
-import { type AssessedRubric } from "#rubrics/rubric.ts";
+import { type AssessedRubric } from "#rubrics/types.ts";
 import { type SaveError, useSaveErrors } from "#shared/SaveErrorsProvider.tsx";
 import { getSubmissionLabel } from "#submissions/getSubmissionLabel.ts";
 import type { Submission } from "#submissions/types.ts";

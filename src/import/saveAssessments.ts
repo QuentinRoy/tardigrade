@@ -3,7 +3,7 @@ import { snakeCase } from "change-case";
 import { saveAssessment } from "#assessment/assessmentMutations.ts";
 import type { AssessmentRubricValue } from "#assessment/types.ts";
 import { db } from "#db/kysely.ts";
-import type { RubricType } from "#db/types.ts";
+import type { RubricType } from "#rubrics/types.ts";
 import type { ImportedAssessmentRow } from "./types.ts";
 
 const SUBMISSION_TYPE_COLUMN = snakeCase("submissionType");

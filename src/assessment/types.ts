@@ -1,4 +1,4 @@
-import type { RubricType } from "#db/types.ts";
+import type { RubricType } from "#rubrics/types.ts";
 import type { Simplify } from "#utils/utils.ts";
 
 type ProgressMetric = { completed: number; total: number };

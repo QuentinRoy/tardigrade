@@ -1,10 +1,10 @@
-import type { Rubric, RubricType } from "#db/types.ts";
 import type { Grid } from "#questions/types.ts";
 import {
 	attachAssessment,
 	getRubricMaxMarks,
 	markRubric,
 } from "#rubrics/rubric.ts";
+import type { Rubric, RubricType } from "#rubrics/types.ts";
 import { getSubmissionLabel } from "#submissions/getSubmissionLabel.ts";
 import type { Submission } from "#submissions/types.ts";
 import type { AssessmentRubricValue } from "./types.ts";

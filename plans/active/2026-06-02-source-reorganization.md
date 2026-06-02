@@ -217,7 +217,22 @@ src/assessment/types.ts
 
 Keep terminology stable for now. Use `assessment` rather than introducing `grading` names while terminology investigations are still open.
 
-## Step 4: move rubric-facing types if needed
+## Step 4: move rubric-facing types if needed — Done
+
+Status: Completed 2026-06-02.
+
+Moved the rubric feature types (`Rubric`, `RubricType`, `RubricForType`,
+`AssessedRubric`) out of `src/db/types.ts` into a new `src/rubrics/types.ts`,
+matching the per-feature `types.ts` convention used by the other layers.
+`src/rubrics/rubric.ts` keeps the marking/assessment functions and imports those
+types from `./types.ts`. `RubricType` is now a local literal union
+(`"boolean" | "numerical" | "ordinal"`) instead of a re-export of the generated
+enum, so `src/rubrics` no longer depends on `src/db/generated/db.ts` (keeps
+generated DB types private per ADR 0002). Repointed all consumer imports across
+`src/` from `#db/types.ts` to `#rubrics/types.ts` (type-only) or
+`#rubrics/rubric.ts` (functions). With no feature-facing types left,
+`src/db/types.ts` was deleted, which also satisfies Step 5. Behavior unchanged;
+`check`, `check-types`, and affected unit tests green.
 
 Move rubric feature-facing types out of `src/db/types.ts`:
 
@@ -235,7 +250,12 @@ src/rubrics/types.ts
 
 Prefer the existing `src/rubrics/rubric.ts` if it remains readable. Add `src/rubrics/types.ts` only if `rubric.ts` becomes too crowded.
 
-## Step 5: remove `src/db/types.ts` as a feature-facing type source
+## Step 5: remove `src/db/types.ts` as a feature-facing type source — Done
+
+Status: Completed 2026-06-02 as part of Step 4. `src/db/types.ts` held only
+rubric feature types, so once they moved to `src/rubrics/types.ts` the file had
+nothing left and was deleted (no shim). No feature-facing types remain under
+`src/db`.
 
 After moving all feature-facing types, either delete `src/db/types.ts` or reduce it to DB-internal helper types only.
 

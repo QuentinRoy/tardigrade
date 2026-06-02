@@ -1,29 +1,11 @@
 import type { AssessmentRubricValue } from "#assessment/types.ts";
-import type { Rubric } from "#db/types.ts";
 import { assertNever } from "#utils/utils.ts";
-
-export type RubricType = Rubric["type"];
-export type RubricForType<TType extends RubricType> = Extract<
+import type {
+	AssessedRubric,
 	Rubric,
-	{ type: TType }
->;
-
-type AssessmentForRubricType<TType extends RubricType> = Extract<
-	AssessmentRubricValue,
-	{ type: TType }
->;
-
-type AssessmentValueForRubricType<TType extends RubricType> = Omit<
-	AssessmentForRubricType<TType>,
-	"rubricId" | "type"
->;
-
-export type AssessedRubric<TType extends RubricType = RubricType> =
-	TType extends RubricType
-		? RubricForType<TType> & {
-				assessment: AssessmentValueForRubricType<TType> | null;
-			}
-		: never;
+	RubricForType,
+	RubricType,
+} from "./types.ts";
 
 export function getRubricMaxMarks(rubric: Rubric): number {
 	switch (rubric.type) {
@@ -52,7 +34,7 @@ export function getRubricMinMarks(rubric: Rubric): number {
 }
 
 export function markNumericalRubric(
-	rubric: Extract<Rubric, { type: "numerical" }>,
+	rubric: RubricForType<"numerical">,
 	score: number,
 ): number {
 	const scoreRange = rubric.maxScore - rubric.minScore;
@@ -83,14 +65,14 @@ export function markNumericalRubric(
 }
 
 export function markBooleanRubric(
-	rubric: Extract<Rubric, { type: "boolean" }>,
+	rubric: RubricForType<"boolean">,
 	passed: boolean,
 ): number {
 	return passed ? rubric.marks : rubric.falseMarks;
 }
 
 export function markOrdinalRubric(
-	rubric: Extract<Rubric, { type: "ordinal" }>,
+	rubric: RubricForType<"ordinal">,
 	selectedLabel: string,
 ): number {
 	let marksForLabel = rubric.marks[selectedLabel];

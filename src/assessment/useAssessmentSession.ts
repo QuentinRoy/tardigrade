@@ -2,7 +2,8 @@
 
 import { produce } from "immer";
 import { startTransition, useOptimistic, useReducer } from "react";
-import { type AssessedRubric, attachAssessment } from "#rubrics/rubric.ts";
+import { attachAssessment } from "#rubrics/rubric.ts";
+import type { AssessedRubric } from "#rubrics/types.ts";
 import type { Submission } from "#submissions/types.ts";
 import { getSubmissionNavigation } from "./submissionNavigation.ts";
 import type { AssessmentRubricValue } from "./types.ts";

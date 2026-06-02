@@ -1,4 +1,4 @@
-import type { Rubric } from "#db/types.ts";
+import type { Rubric } from "#rubrics/types.ts";
 
 export type QuestionEditorValue = {
 	id: string;

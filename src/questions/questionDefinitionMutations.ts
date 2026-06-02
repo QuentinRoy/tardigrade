@@ -2,8 +2,8 @@ import "server-only";
 import { sql } from "kysely";
 import { CACHE_TAGS, updateTags } from "#db/cacheTags.ts";
 import { db } from "#db/kysely.ts";
-import type { RubricType } from "#db/types.ts";
 import { QuestionsValidationError } from "#questions/errors.ts";
+import type { RubricType } from "#rubrics/types.ts";
 import { findDuplicateGroups } from "#utils/utils.ts";
 import type {
 	QuestionDefinitionInput,

@@ -2,7 +2,7 @@ import "server-only";
 import { cacheLife } from "next/cache";
 import { CACHE_TAGS, cacheTags } from "#db/cacheTags.ts";
 import { db } from "#db/kysely.ts";
-import type { Rubric, RubricType } from "#db/types.ts";
+import type { Rubric, RubricType } from "#rubrics/types.ts";
 import type { Grid, Question } from "./types.ts";
 
 export function toNumber(value: string | number): number {
