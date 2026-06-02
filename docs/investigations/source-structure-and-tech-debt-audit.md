@@ -2,6 +2,7 @@
 
 Status: Current investigation
 Date: 2026-05-25
+Last updated: 2026-06-01
 Related: #115, #99, #59, #51, #68, #110
 
 ## Table of contents
@@ -13,26 +14,23 @@ Related: #115, #99, #59, #51, #68, #110
 - [Finding 1: project route context and slug handling](#finding-1-project-route-context-and-slug-handling)
 - [Finding 2: project-scoped pages repeat route resolution](#finding-2-project-scoped-pages-repeat-route-resolution)
 - [Finding 3: submission overview assessment loading is too fragmented](#finding-3-submission-overview-assessment-loading-is-too-fragmented)
-- [Finding 4: question-specific grading page reloads context in multiple sections](#finding-4-question-specific-grading-page-reloads-context-in-multiple-sections)
-- [Finding 5: `src/db/questions.ts` is an overgrown mixed-responsibility module](#finding-5-srcdbquestionsts-is-an-overgrown-mixed-responsibility-module)
-- [Finding 6: `src/db/assessments.ts` mixes validation, persistence, command semantics, and cache invalidation](#finding-6-srcdbassessmentsts-mixes-validation-persistence-command-semantics-and-cache-invalidation)
-- [Finding 7: domain types are mixed with generated database types](#finding-7-domain-types-are-mixed-with-generated-database-types)
+- [Finding 4: question-specific grading page cache boundaries need review](#finding-4-question-specific-grading-page-cache-boundaries-need-review)
+- [Finding 5: question definition persistence has been split](#finding-5-question-definition-persistence-has-been-split)
+- [Finding 6: assessment reads and writes have been split, but ADR 0002 relocation remains](#finding-6-assessment-reads-and-writes-have-been-split-but-adr-0002-relocation-remains)
+- [Finding 7: clarify raw database types versus feature-facing types](#finding-7-clarify-raw-database-types-versus-feature-facing-types)
 - [Finding 8: question and rubric read-model assembly is duplicated](#finding-8-question-and-rubric-read-model-assembly-is-duplicated)
 - [Finding 9: progress and analytics duplicate completion semantics](#finding-9-progress-and-analytics-duplicate-completion-semantics)
 - [Finding 10: export submissions is a correctness-sensitive state machine that needs smaller seams](#finding-10-export-submissions-is-a-correctness-sensitive-state-machine-that-needs-smaller-seams)
-- [Finding 11: import flows should move toward parse-preview-confirm](#finding-11-import-flows-should-move-toward-parse-preview-confirm)
+- [Finding 11: import flows should expose parse, prepare, and write seams](#finding-11-import-flows-should-expose-parse-prepare-and-write-seams)
 - [Finding 12: app shell navigation mixes route parsing, navigation structure, local storage, and export behavior](#finding-12-app-shell-navigation-mixes-route-parsing-navigation-structure-local-storage-and-export-behavior)
 - [Finding 13: numeric rubric editing parses too eagerly](#finding-13-numeric-rubric-editing-parses-too-eagerly)
 - [Finding 14: grading clients duplicate stable workflow behavior](#finding-14-grading-clients-duplicate-stable-workflow-behavior)
 - [Finding 15: server actions are colocated with workflows, but their contracts need clearer boundaries](#finding-15-server-actions-are-colocated-with-workflows-but-their-contracts-need-clearer-boundaries)
 - [Finding 16: cache tags and invalidation are useful but scattered](#finding-16-cache-tags-and-invalidation-are-useful-but-scattered)
 - [Finding 17: `shared` is too broad as an ownership bucket](#finding-17-shared-is-too-broad-as-an-ownership-bucket)
-- [Finding 18: route handlers contain export-specific infrastructure that could be factored](#finding-18-route-handlers-contain-export-specific-infrastructure-that-could-be-factored)
+- [Finding 18: route handlers are thinner; export internals remain the main split candidate](#finding-18-route-handlers-are-thinner-export-internals-remain-the-main-split-candidate)
 - [Finding 19: several components are reasonably split and should not be over-refactored](#finding-19-several-components-are-reasonably-split-and-should-not-be-over-refactored)
-- [Candidate target shape](#candidate-target-shape)
-- [Prioritized rewrite backlog](#prioritized-rewrite-backlog)
-- [Follow-up issue candidates](#follow-up-issue-candidates)
-- [Open questions](#open-questions)
+- [Finding 20: file reorganization should establish ownership before further splitting](#finding-20-file-reorganization-should-establish-ownership-before-further-splitting)
 
 ## Question
 
@@ -42,21 +40,34 @@ This investigation focuses on concrete codebase findings rather than a final arc
 
 ## Executive summary
 
-The highest-value improvements are not only folder moves. The codebase would benefit from targeted rewrites around current seams:
+This document was originally written before several architecture cleanup PRs landed. The current source tree no longer matches all of the original findings.
 
-1. project route context and slug handling;
-2. project-scoped page loading patterns;
-3. grading assessment read models;
-4. question/rubric persistence and mutation logic;
-5. assessment save commands;
-6. progress and overview read models;
-7. import/export pipelines;
-8. app shell navigation;
+Resolved or largely resolved since the first audit:
+
+1. project identifier normalization is complete: `project.id` is the public id and `project.row_id` is the internal database key;
+2. project path helpers have moved from `routes.ts` to `projectPaths.ts`;
+3. project-scoped routes now have a layout-level existence gate;
+4. stale project-slug redirects are centralized through `canonicalProjectRedirect`;
+5. question definition reads and mutations have been split;
+6. assessment reads and assessment writes have been split, with a transaction-friendly write API.
+
+The highest-value remaining work is now concentrated around two related but distinct concerns.
+
+First, the source tree should be reorganized so ownership matches ADR 0002 before further splitting creates more files in the wrong location. In particular, feature-owned persistence and read models should move out of `src/db` for projects, submissions, questions, and assessments.
+
+Second, once ownership is clearer, the remaining local seams can be addressed:
+
+1. submission overview assessment loading;
+2. assessment import parse/prepare/write boundaries and unmatched-submission policy;
+3. assessment mutation internals, if further seams are still useful before or during relocation;
+4. question-specific grading page cache-boundary review;
+5. question/rubric read-model reuse;
+6. submission export internals;
+7. assessment completion and overview semantics;
+8. app shell decomposition;
 9. numeric rubric editing.
 
-The recurring problem is mixed responsibility. Several modules combine route resolution, DB queries, domain mapping, validation, cache invalidation, UI state, and user-facing error messages. Some duplication is acceptable for now, especially while the domain vocabulary is still evolving, but repeated rubric/question assembly and progress semantics look stable enough to justify shared helpers or read-model modules.
-
-The preferred direction is still lightweight and colocated: keep related workflow code together, split large files by responsibility, and avoid deep architecture layers unless a folder becomes difficult to navigate.
+The recurring problem is still mixed responsibility, but the concrete instances have changed. The recent question and assessment splits deliberately deferred ADR 0002 compliance so that the files could first be split by responsibility inside `src/db`. That deferral should not be read as a low-priority decision. Moving feature-owned persistence and read models out of `src/db` remains important and should be the next source-structure step, so future splitting happens in the right ownership location.
 
 ## Relationship to other investigations
 
@@ -122,252 +133,103 @@ Likely acceptable temporary duplication:
 
 - local UI layout differences;
 - route-specific rendering choices;
-- one-off labels or help content.
+- one-off labels or help content;
+- cached server-component reads where the cache boundary is intentional.
 
 Likely extraction candidates:
 
-- project route resolution;
+- submission overview assessment read models;
 - question/rubric row assembly;
-- assessment command validation;
+- assessment mutation internals, if current seams remain too broad;
 - progress completion semantics;
 - submission navigation and quick-jump behavior.
 
 ### Keep `app/` as routing and composition
 
-Next route files should remain in `app/`. Plain path builders such as project URL helpers can live in `src/projects/projectPaths.ts` or similar. To avoid confusion, `routes.ts` may be better renamed to `projectPaths.ts`.
+Next route files should remain in `app/`. Plain path builders live in `src/projects/projectPaths.ts`.
 
-### Keep `db/` as infrastructure
+### Keep `src/db` as an accepted interim home, not the target state
 
-> Accepted as [ADR 0002](../adr/0002-db-is-infrastructure-features-own-persistence.md): `src/db` is database infrastructure only and must not import from feature folders; features own their read models, write commands, domain types, and validation schemas. The physical moves below remain incremental (Priority 3/4).
+ADR 0002 points toward `src/db` eventually becoming database infrastructure only, with features owning their read models, write commands, domain types, and validation schemas.
 
-The current `src/db` contains many application operations. That makes it hard to distinguish database plumbing from workflow logic. A better convention:
+The recent question and assessment splits intentionally kept persistence under `src/db` as an interim step. That was a pragmatic sequencing decision, not a change in architectural direction. The current audit should distinguish two kinds of work:
 
-```txt
-src/db/
-  kysely.ts
-  generated/
-  migrations/
-  cacheTags.ts
-```
+1. near-term seam cleanup inside the current `src/db` modules when that reduces risk immediately;
+2. soonish ADR 0002 follow-up work that relocates question and assessment persistence into feature-owned modules once the internal splits are stable.
 
-Application logic that happens to use the DB should live near its workflow, for example:
-
-```txt
-src/grading/assessmentRepository.ts
-src/questions/questionRepository.ts
-```
+For new work, avoid adding more feature logic to `src/db` unless it is part of the current interim split. For follow-up work, prefer moving already-split modules to feature ownership over doing more elaborate decomposition inside `src/db`.
 
 ## Finding 1: project route context and slug handling
 
+### Current status
+
+Mostly resolved.
+
+Project path helpers have been renamed from `routes.ts` to `projectPaths.ts`. Project-scoped routes now have a layout-level existence gate, and the app shell receives the real project name instead of reconstructing it from the slug. Stale-slug redirects are centralized through `canonicalProjectRedirect`.
+
 ### Current behavior
 
-Project-scoped routes use URLs shaped roughly like:
+Project-scoped routes still use URLs shaped roughly like:
 
 ```txt
 /projects/[projectId]/[projectSlug]/...
 ```
 
-The slug is derived from the project name in TypeScript rather than stored as a first-class database field. The project loader fetches the internal database id, public id, and name, then computes the slug from the name.
+The slug is derived from the project name in TypeScript. This is intentional. The canonical project identity is the public project id; the slug is cosmetic and improves URL readability.
 
-Many pages then repeat a pattern like:
+### Remaining concern
 
-```ts
-const project = await loadProjectByPublicId(projectId);
+New project-scoped pages can still forget to call `canonicalProjectRedirect`. This is a convention and testability concern, not a reason to persist slugs.
 
-if (project == null) {
-  notFound();
-}
+### Rejected direction: store `project.slug`
 
-if (project.slug !== projectSlug) {
-  redirect(projectDashboardPath(project.publicId, project.slug));
-}
-```
+Do not store the project slug in the database.
 
-This is visible in the project dashboard, assessments list, submission overview, question-specific grading pages, and export routes.
-
-The app shell avoids loading the real project name by deriving a display name from the slug. That avoids a server fetch in the client shell, but only produces an approximate title.
-
-### Why this matters
-
-This is probably not a major raw performance problem by itself. Project lookup is small and can be cached.
-
-The DX and maintenance problems are more important:
-
-- route validation is repeated across pages;
-- path builders require both project id and slug everywhere;
-- pages need the internal numeric project id before loading project-scoped data;
-- project display name and project slug can diverge in presentation;
-- if the slug algorithm changes, route behavior depends on TypeScript code rather than persisted data;
-- future project renames will need explicit canonical URL behavior.
-
-### Candidate direction A: store `project.slug`
-
-Add a stored slug column to the project table.
-
-Possible model:
-
-```txt
-project.row_id  internal database key
-project.id      stable public project id used in URLs
-project.name    display name
-project.slug    canonical URL/file slug
-```
-
-This overlaps with #51, which already questions identifier naming conventions.
-
-Benefits:
-
-- slug becomes a stable project property;
-- route validation no longer recomputes slug from name everywhere;
-- export filenames can use the same stored slug;
-- future project rename behavior can be explicit.
-
-Trade-offs:
-
-- migrations and backfills required;
-- need a policy for name changes: update slug automatically, keep old slug, or allow manual slug;
-- possible uniqueness questions if slugs are user-visible but project ids remain primary route identifiers.
-
-### Candidate direction B: use a generated/computed slug column
-
-A generated column could keep the slug derived from name.
-
-Benefits:
-
-- avoids application-level slug drift;
-- no manual write logic for slug updates.
-
-Trade-offs:
-
-- slug normalization becomes PostgreSQL-specific;
-- sophisticated slug behavior can be awkward in SQL;
-- changing the slug algorithm later can require DB migrations;
-- it still does not remove page-level route-context boilerplate.
-
-### Candidate direction C: remove slugs from canonical URLs
-
-Use URLs like:
-
-```txt
-/projects/[projectId]/...
-```
-
-Benefits:
-
-- no slug redirects;
-- simpler path builders;
-- simpler project route context;
-- less coupling between project name and routing.
-
-Trade-offs:
-
-- less readable URLs;
-- filenames and UI still need a slug-like helper;
-- if users like readable URLs, this is a product regression.
-
-### Candidate direction D: centralize project route context
-
-Introduce a single loader/helper such as:
-
-```ts
-loadProjectRouteContext(params)
-```
-
-Possible return shape:
-
-```ts
-{
-  rowId: number;
-  publicId: string;
-  slug: string;
-  name: string;
-  canonicalBasePath: string;
-}
-```
-
-This helper could either:
-
-- call `notFound()` / `redirect()` internally; or
-- return a typed result that pages handle consistently.
+The slug is cosmetic. The canonical project identity is the public project id. The slug exists only to make URLs and filenames more readable, and it can be derived from the project name when needed. Persisting it would make a cosmetic value look like domain state, add migration and backfill work, and force policy decisions around rename behavior that the app does not currently need.
 
 ### Recommendation
 
-Prefer combining A and D:
+Keep the current model:
 
-1. store a canonical project slug explicitly;
-2. introduce a central project route context loader;
-3. remove repeated per-page slug validation;
-4. rename `src/projects/routes.ts` to `src/projects/projectPaths.ts` to avoid confusion with Next `app/.../route.ts` handlers.
+1. public project id is the canonical route identity;
+2. slug is derived from project name;
+3. `projectPaths.ts` remains the sole source of URL string construction;
+4. `canonicalProjectRedirect` remains the central stale-slug redirect helper;
+5. add tests or conventions for new project-scoped pages if missing canonicalization becomes a repeated problem.
 
 ## Finding 2: project-scoped pages repeat route resolution
 
+### Current status
+
+Mostly resolved.
+
+The original audit observed that most project-scoped pages repeated project existence checks, null handling, slug comparison, and redirect target construction. That is no longer the current state.
+
 ### Current behavior
 
-Most project-scoped pages do a local version of:
+The project-scoped layout now owns user-facing project existence checks. Project pages can use `loadProjectByPublicId(projectId, { required: true })` when they need project data after the layout has already gated the route.
 
-1. await `params`;
-2. load project by public id;
-3. call `notFound()` if missing;
-4. compare slug;
-5. redirect if slug is not canonical;
-6. pass `project.id`, `project.publicId`, and `project.slug` to loaders and path builders.
+Slug redirect logic is no longer hand-written in each page. Pages declare a route kind and call `canonicalProjectRedirect`, which maps the route kind to the corresponding `projectPaths.ts` builder.
 
-This pattern appears in pages and route handlers. It is not isolated to one feature.
+### Remaining concern
 
-### Why this matters
+The redirect helper is still opt-in at each page. This is probably acceptable because each page knows its full route segments, but it means a brand-new page can forget canonicalization.
 
-Even if the runtime cost is small, the repetition is a correctness and DX issue:
+### Recommendation
 
-- every new page can forget slug canonicalization;
-- every page has to know when to use internal id vs public id;
-- redirects vary by destination depending on page type;
-- cache tagging and project scoping are harder to centralize;
-- a future auth/ownership layer will need to be added in many places unless this is centralized.
+Do not create a broader project route-context rewrite now. Keep this as a low-priority convention issue unless new route files repeatedly drift.
 
-### Candidate rewrite
+Possible light follow-up:
 
-Add project-scoped route utilities:
-
-```txt
-src/projects/projectRouteContext.ts
-src/projects/projectPaths.ts
-```
-
-Possible APIs:
-
-```ts
-loadProjectRouteContext(params)
-loadProjectRouteContextOrNotFound(params)
-canonicalizeProjectPath(context, currentPathKind)
-```
-
-or page-specific helpers:
-
-```ts
-loadDashboardRouteContext(params)
-loadAssessmentsRouteContext(params)
-loadSubmissionRouteContext(params)
-```
-
-The first option is probably better unless page-specific needs diverge.
-
-### Follow-up consideration
-
-This should be designed with future authentication in mind (#42). The same helper should eventually validate project ownership, not just existence and slug.
+- add a checklist item for new project-scoped pages;
+- add targeted tests around canonical path builders and redirect route kinds;
+- consider a small helper or page template if more project-scoped pages are added.
 
 ## Finding 3: submission overview assessment loading is too fragmented
 
 ### Current behavior
 
-The submission overview page loads:
-
-- project context;
-- submissions;
-- question grid;
-- submission overview progress;
-- then one assessment load per question.
-
-The page maps questions to `loadAssessment(submissionId, questionId)` calls and then attaches each result to the corresponding rubrics.
+The submission overview page loads project context, submissions, the question grid, submission overview progress, then one assessment load per question. The page maps questions to `loadAssessment(submissionId, questionId)` calls and attaches each result to the corresponding rubrics.
 
 ### Why this matters
 
@@ -392,22 +254,7 @@ loadSubmissionAssessmentOverview({
 })
 ```
 
-Return shape:
-
-```ts
-{
-  currentSubmission: Submission;
-  submissions: Submission[];
-  progressBySubmissionId: Record<string, ProgressMetric>;
-  questions: Array<{
-    questionId: string;
-    questionLabel: string;
-    rubrics: AssessedRubric[];
-  }>;
-}
-```
-
-Internally, this should load all assessment values for the submission in one query or one small query set.
+Return a UI-ready model containing the current submission, all submissions for navigation, progress by submission, and assessed questions/rubrics. Internally, this should load all assessment values for the submission in one query or one small query set.
 
 ### Tests to add
 
@@ -418,239 +265,173 @@ Internally, this should load all assessment values for the submission in one que
 - project isolation with duplicate question/rubric ids across projects;
 - ordering matches question/rubric ordering.
 
-## Finding 4: question-specific grading page reloads context in multiple sections
+## Finding 4: question-specific grading page cache boundaries need review
 
 ### Current behavior
 
-The question-specific grading page splits loading across server component sections. Project context is loaded more than once inside the same page render path. Caching may hide some cost, but the structure is still hard to reason about.
+The question-specific grading page splits loading across cached server component sections. These sections intentionally have overlapping data needs.
+
+The page needs project context, question definition, current submission, all submissions for navigation, current assessment values, and progress by submission.
 
 ### Why this matters
 
-This page is core grading UX. It should have very clear data requirements:
+This page is core grading UX. Its data requirements should remain clear, but repeated cached reads are not automatically technical debt in a Next.js app. In some cases, colocating reads with cached server sections is the intended model and trying to dedupe everything into one loader can fight framework boundaries.
 
-- project context;
-- question definition;
-- current submission;
-- all submissions for navigation;
-- current assessment values;
-- progress by submission.
+### Candidate review
 
-Instead, the loading responsibilities are split across local page sections. That makes future work on loading boundaries and caching (#59) harder.
-
-### Candidate rewrite
-
-Add:
-
-```ts
-loadQuestionAssessmentPage({
-  projectPublicId,
-  projectSlug,
-  submissionId,
-  questionId,
-})
-```
-
-Return shape:
-
-```ts
-{
-  project;
-  question;
-  currentSubmission;
-  submissions;
-  assessedRubrics;
-  progressBySubmissionId;
-}
-```
-
-The page should call the loader once and render from the returned model.
-
-### Loading-boundary implication
-
-This does not mean everything must always block the full page. Once the loader boundaries are explicit, a future refactor can decide which data is stable parent context and which data is submission-specific.
-
-## Finding 5: `src/db/questions.ts` is an overgrown mixed-responsibility module
-
-### Current responsibilities
-
-`src/db/questions.ts` currently appears to own:
-
-- loading question rows;
-- loading rubric rows;
-- loading boolean/ordinal/numerical subtype rows;
-- assembling domain `Question` and `Rubric` objects;
-- defining managed question input types;
-- normalizing optional text;
-- validating duplicate ids;
-- computing delete impact;
-- saving a question;
-- reconciling rubric row changes;
-- reconciling subtype table changes;
-- deleting stale rubrics and ordinal values;
-- deleting questions;
-- reordering questions;
-- updating cache tags.
-
-This is one of the clearest split candidates in the repository.
-
-### Why this matters
-
-This file is correctness-sensitive. Bugs here can corrupt or delete rubrics and assessments. The reliability audit already treats question/rubric mutation as Tier 0 risk.
-
-Large mixed files make it difficult to:
-
-- test behavior at the right granularity;
-- review changes safely;
-- reuse question/rubric loading in exports/imports;
-- distinguish domain validation from persistence constraints;
-- reason about cache invalidation.
-
-### Candidate split
-
-A flat split:
+Before rewriting this page, check the relevant caching and page-boundary plans. The question should be:
 
 ```txt
-src/questions/
-  questionTypes.ts
-  questionReadModel.ts
-  questionRepository.ts
-  questionValidation.ts
-  saveQuestion.ts
-  deleteQuestion.ts
-  reorderQuestions.ts
+Are the current cached server sections the intended boundary?
 ```
 
-Alternative if this grows:
+not:
 
 ```txt
-src/questions/
-  readModel.ts
-  repository.ts
-  save.ts
-  validation.ts
-  actions.ts
-  schemas.ts
+Can every repeated read be deduplicated manually?
 ```
 
-### Suggested extraction sequence
+Extract a loader only if it clarifies semantics without hiding cache behavior, reduces real query duplication not handled by cache, gives a better test seam for the full page model, and does not collapse useful cache boundaries.
 
-1. Extract pure normalization and validation helpers.
-2. Extract row-to-domain mapping helpers.
-3. Extract read-only question/rubric loading.
-4. Extract delete-impact logic.
-5. Extract save orchestration into named steps.
-6. Leave the old module as a compatibility facade temporarily, then delete it.
+## Finding 5: question definition persistence has been split
 
-### Save orchestration target
+### Current status
 
-`saveManagedQuestion` should read like a sequence of named operations:
+Largely resolved as an internal split, but not resolved against ADR 0002.
+
+The original audit described `src/db/questions.ts` as an overgrown mixed-responsibility module. That is no longer the right framing. Question definition reads and mutations have been split into the current question/question-definition modules.
+
+### Current structure
+
+The landed structure uses the current naming rather than the earlier planned `questionsManaged` name:
 
 ```txt
-normalize input
-validate rubric ids and source ids
-resolve existing question and conflicts
-upsert question row
-reconcile rubric rows
-reconcile boolean subtype rows
-reconcile numerical subtype rows
-reconcile ordinal subtype rows and values
-invalidate question and assessment caches
+src/db/questions.ts
+src/db/questionDefinitions.ts
+src/db/questionDefinitionMutations.ts
+src/questions/types.ts
+src/questions/schemas.ts
+src/questions/actions.ts
 ```
 
-## Finding 6: `src/db/assessments.ts` mixes validation, persistence, command semantics, and cache invalidation
+### Remaining concern
 
-### Current responsibilities
+The current split is a useful intermediate state, but question definition persistence still lives under `src/db`. ADR 0002 compliance was deferred during the split and should remain a soonish follow-up.
 
-`src/db/assessments.ts` owns:
+Remaining checks should focus on whether the current seams are clear enough to make relocation straightforward:
 
-- assessment loading;
-- command parameter types;
-- validating submission/question/rubric existence;
-- validating rubric type compatibility;
-- validating numerical bounds;
-- validating ordinal labels;
+- `questions.ts` owns general question/rubric read models;
+- `questionDefinitions.ts` owns management-facing question definition reads;
+- `questionDefinitionMutations.ts` owns save/delete/reorder mutations;
+- `src/questions/*` owns UI-facing schemas, actions, and management UI.
+
+### Recommendation
+
+Do not keep the old broad split candidate as active work. Replace it with two follow-ups:
+
+1. review the current question-definition split after a few changes have landed;
+2. plan the ADR 0002 relocation of question persistence from `src/db` to feature-owned modules.
+
+Further decomposition inside `src/db` should only happen if it reduces risk before the relocation. Otherwise, prefer making the relocation the next structural step.
+
+## Finding 6: assessment reads and writes have been split, but ADR 0002 relocation remains
+
+### Current status
+
+Partially resolved as an internal split, but not resolved against ADR 0002.
+
+The original audit described `src/db/assessments.ts` as mixing assessment loading, validation, persistence, command semantics, transaction support, and cache invalidation. That exact finding is stale. Assessment reads and writes have since been split, and the assessment write path has a transaction-friendly API.
+
+### Current behavior
+
+Assessment reads live separately from assessment mutations. The mutation path supports both standalone saves and caller-supplied transactions, which is needed by assessment import. This was the right first step.
+
+### Remaining concern
+
+Assessment persistence still lives under `src/db`. That was deliberately deferred when splitting the module, but it remains important and should be fixed soon. The remaining design question is whether to do more internal seam cleanup before relocation, or to make relocation to feature ownership the next structural step.
+
+Potential reasons to split internals before or during the move:
+
+- validation;
 - user-facing error messages;
-- insert/update/delete behavior for assessment rows;
-- subtype-specific write behavior;
-- transaction support;
-- cache invalidation;
-- an exported helper used by assessment imports.
+- assessment row upsert;
+- subtype-specific writes;
+- transaction handling;
+- cache invalidation after standalone writes.
 
-### Why this matters
+This may be acceptable if the current module is small and well-tested. Further splitting should be driven by actual review pain or test difficulty, not by a blanket rule that every command needs several files.
 
-Assessment saving is a central write path. It is also shared by interactive grading and import flows. Right now import depends on a helper from a DB module, which blurs the line between persistence internals and application commands.
-
-### Candidate split
+### Candidate internal split, if needed
 
 ```txt
-src/grading/
-  assessmentTypes.ts
-  assessmentErrors.ts
-  assessmentValidation.ts
-  assessmentRepository.ts
-  saveAssessment.ts
-  saveAssessment.action.ts
+src/db/assessmentMutations.ts
+src/db/assessmentMutationValidation.ts
+src/db/assessmentMutationErrors.ts
+src/db/assessmentMutationRepository.ts
 ```
 
-The repository should own SQL. The command/service should own workflow semantics and cache invalidation.
+However, if ADR 0002 relocation is the next planned step, prefer doing this split in the feature-owned location rather than adding more permanent structure under `src/db`.
 
 ### Transaction API requirement
 
-The import flow needs to save many assessments inside one transaction. The new API should support this explicitly, for example:
+The existing transaction-friendly API is the right direction. Preserve the rule that cache invalidation does not run inside a caller-owned transaction. The transaction owner should invalidate after commit.
 
-```ts
-saveAssessment(command, { db: tx })
-```
-
-or:
-
-```ts
-createAssessmentWriter(tx).save(command)
-```
-
-The key is to avoid exporting a persistence-internal helper only because another workflow needs transaction reuse.
-
-## Finding 7: domain types are mixed with generated database types
+## Finding 7: clarify raw database types versus feature-facing types
 
 ### Current behavior
 
-`src/db/types.ts` re-exports generated DB types and also defines domain/application types such as `Submission`, `Rubric`, `AssessmentRubricValue`, `Question`, and `Grid`.
+`src/db/types.ts` currently mixes different kinds of types:
+
+- generated-database-adjacent types;
+- persistence projections;
+- feature-facing read models;
+- UI/action/import/export contracts.
+
+That makes it hard to tell whether a type is a raw table row, a persistence-internal projection, a domain/read-model type, or a user-facing contract.
+
+### Decision direction
+
+Keep `src/db/generated/db.ts` private to the database infrastructure layer. Do not turn it into a general feature import surface, and do not add a thin facade that simply re-exports the same generated schema under another name.
+
+Feature modules should derive their public types from explicit read models and query mappers rather than exposing raw generated row shapes. This keeps internal columns such as `row_id`, nullable storage details, and join artifacts from becoming user-facing contracts.
 
 ### Why this matters
 
-Client code imports domain-looking types from `db/types`. This makes it look as if UI and domain code depend on the DB layer, even if the import is type-only.
+ADR 0002 still points toward feature-owned persistence, but that does not require UI, action, import/export, or route code to depend on generated database row types. Feature persistence can remain implementation detail: it may call DB helpers, perform Kysely queries through infrastructure-owned entry points, and map results into explicit feature-facing types before returning them.
 
-It also makes it harder to tell whether a type is:
-
-- a generated DB row type;
-- a persistence projection;
-- a domain model;
-- a UI view model;
-- an import/export DTO.
-
-### Candidate split
+The important boundary is:
 
 ```txt
-src/db/generated/db.ts
-src/db/dbTypes.ts
-src/rubrics/rubricTypes.ts
-src/grading/assessmentTypes.ts
-src/submissions/submissionTypes.ts
-src/questions/questionTypes.ts
+raw generated schema / row ids / storage nullability
+  -> persistence-internal code only
+
+explicit feature read models / DTOs / action states
+  -> feature, UI, route, import, export code
 ```
 
-or flatter:
+### Recommendation
+
+Use explicit feature-facing types and read models at module boundaries. Derive them from the query implementation when useful, but do not expose raw generated row types outside persistence-internal code.
+
+For example:
 
 ```txt
-src/rubrics/types.ts
-src/grading/types.ts
-src/submissions/types.ts
 src/questions/types.ts
+src/questions/questionDefinitions.ts
+src/questions/questionDefinitionMutations.ts
+
+src/assessment/assessmentTypes.ts
+src/assessment/assessmentReadModel.ts
+src/assessment/assessmentMutations.ts
 ```
+
+The persistence code may use generated types internally, but the exported API should return question definitions, assessment read models, submission summaries, or action results, not generated table rows. If a type contains `row_id`, it should normally be persistence-internal.
 
 ### Migration approach
 
-Start by creating new domain type modules that re-export the old types. Then move definitions gradually. This keeps the refactor reviewable.
+Start by identifying imports from `src/db/types.ts` that are really feature-facing types. Move those type definitions to the relevant feature module or replace them with explicit read-model types returned by loaders.
+
+Keep generated database types and internal row/projection helpers inside `src/db`. Avoid creating a thin schema facade unless a concrete problem appears that cannot be solved with the direct infrastructure imports already available.
 
 ## Finding 8: question and rubric read-model assembly is duplicated
 
@@ -658,7 +439,7 @@ Start by creating new domain type modules that re-export the old types. Then mov
 
 Question/rubric loading appears in multiple places:
 
-- `loadQuestionsFromDb` assembles questions, rubrics, and subtype data;
+- general question/rubric reads assemble questions, rubrics, and subtype data;
 - export submission planning loads a similar structure;
 - rubric overview loads questions and then assessment records;
 - import assessment preparation loads rubric metadata for parsing.
@@ -667,116 +448,65 @@ Some duplication is expected because these flows need different projections. How
 
 ### Candidate direction
 
-Introduce a canonical question/rubric read model loader:
+Introduce a canonical question/rubric read model loader or row assembly helper. If ADR 0002 relocation is imminent, prefer placing this under the relevant feature ownership rather than creating more permanent structure in `src/db`.
 
-```txt
-src/questions/questionRubricRows.ts
-src/questions/buildQuestionGrid.ts
-src/questions/loadQuestionGrid.ts
-```
-
-Export-specific code can transform the canonical grid into an export plan:
-
-```txt
-src/exports/submissions/toSubmissionExportPlan.ts
-```
-
-Import-specific code can transform it into recognized assessment columns:
-
-```txt
-src/imports/assessments/buildRecognizedAssessmentColumns.ts
-```
+Export-specific code can transform the canonical grid into an export plan. Import-specific code can transform it into recognized assessment columns.
 
 ### Caution
 
 Do not force every consumer to share one giant type. The shared piece should be the stable source data and rubric assembly. Workflow-specific projections should remain workflow-specific.
 
-## Finding 9: progress and analytics duplicate completion semantics
+## Finding 9: assessment completion semantics are duplicated across projections
 
 ### Current behavior
 
-Progress/analytics logic appears in:
+Several pages compute related completion or summary metrics over assessment state:
 
-- submission-question progress;
-- submission-overview progress;
-- global assessment progress;
-- rubric overview analytics.
+- completion grouped by submission;
+- completion grouped by question;
+- project-level assessment completion;
+- rubric overview analytics;
+- shared assessment summary helpers.
 
-These modules compute related metrics:
-
-- completed rubrics;
-- total rubrics;
-- completed questions;
-- total questions;
-- zero-rubric question behavior;
-- completion percentages;
-- class averages;
-- per-student/submission rows.
+These metrics are about assessment state. In the current app, assessment mostly means recorded grading values, but the term is broader than grading and may later encompass feedback or other evaluator-provided information. Submission, question, and project are grouping dimensions, not owners of the progress itself.
 
 ### Why this matters
 
-Completion semantics are business logic. If different pages compute them differently, the dashboard, assessment lists, and overview pages can disagree.
+Completion semantics are business logic. If different pages compute them differently, the dashboard, assessment list, submission overview, and question-by-question assessment pages can disagree.
+
+The naming should avoid implying that a submission “has progress”. A submission is the assessed artifact. Completion is derived from assessment records and grouped by submission, question, or project depending on the view.
 
 ### Candidate direction
 
-Create a grading progress model:
+Create or document a shared assessment-completion model, then expose view-specific read models:
 
 ```txt
-src/grading/progressTypes.ts
-src/grading/loadProgressInputs.ts
-src/grading/buildSubmissionQuestionProgress.ts
-src/grading/buildSubmissionOverviewProgress.ts
-src/grading/buildGlobalAssessmentProgress.ts
+src/assessment/assessmentSummary.ts
+src/assessment/assessmentCompletion.ts
+src/assessment/loadCompletionBySubmission.ts
+src/assessment/loadCompletionByQuestion.ts
+src/assessment/loadProjectAssessmentCompletion.ts
 ```
 
-or, if keeping progress separate:
-
-```txt
-src/progress/
-  progressTypes.ts
-  progressInputs.ts
-  submissionProgress.ts
-  globalProgress.ts
-```
-
-### Tests to add
-
-- zero submissions;
-- zero questions;
-- zero-rubric questions;
-- partial rubric completion;
-- duplicate or stale rubric assessment protection;
-- project isolation;
-- progress after question/rubric deletion.
+This should also be revisited during ADR 0002 follow-up because progress logic is feature logic, not database infrastructure.
 
 ## Finding 10: export submissions is a correctness-sensitive state machine that needs smaller seams
 
 ### Current behavior
 
-Submission export does many things in one area:
-
-- assert submission invariants;
-- load export question plan;
-- build headers;
-- stream joined DB rows;
-- group rows by submission;
-- map DB subtype values to assessment values;
-- attach assessments to rubrics;
-- build CSV rows.
+Submission export asserts submission invariants, loads an export question plan, builds headers, streams joined DB rows, groups rows by submission, maps DB subtype values to assessment values, attaches assessments to rubrics, and builds CSV rows.
 
 Streaming is reasonable, but the state machine should be independently testable.
 
 ### Candidate split
 
 ```txt
-src/exports/submissions/
-  exportOptions.ts
-  loadSubmissionExportPlan.ts
-  streamSubmissionAssessmentRows.ts
-  groupSubmissionRows.ts
-  buildSubmissionExportRows.ts
-  submissionExportCsv.ts
-  createSubmissionExport.ts
+src/export/submissionExportOptions.ts
+src/export/submissionExportPlan.ts
+src/export/submissionAssessmentRows.ts
+src/export/groupSubmissionRows.ts
+src/export/submissionExportCsv.ts
+src/export/submissionExport.ts
 ```
 
 ### Tests to add
@@ -790,82 +520,57 @@ src/exports/submissions/
 - include options affect headers and rows consistently;
 - marks-only exports are not accidentally importable as assessment values unless explicitly supported.
 
-## Finding 11: import flows should move toward parse-preview-confirm
+## Finding 11: import flows should expose parse, prepare, and write seams
 
 ### Current behavior
 
-The import UI is a reusable textarea/drop form. The assessment import help text states that missing submissions are silently skipped. Internally, assessment import already has useful preparation behavior: recognized columns, batch submission resolution, value parsing, error accumulation, and transactional writes.
+The import UI is a reusable textarea/drop form. The assessment import currently parses, prepares, and writes assessment values through one server-action flow.
+
+Assessment import already has useful preparation behavior: recognized columns, batch submission resolution, value parsing, error accumulation, and transactional writes. However, missing submissions are still skipped rather than surfaced as structured import preparation results.
 
 ### Why this matters
 
-Silent skips are dangerous for grading data. A user importing a CSV should know whether rows matched submissions and how many values will be written.
+Silent skips are dangerous for assessment data. The source-structure concern is not to design the preview UI here, but to expose clear import boundaries so the product can later decide how to present warnings, blocking errors, ignored columns, unmatched submissions, and overwrite behavior.
 
-### Candidate rewrite
+### Candidate source-structure rewrite
 
-Use a two-step workflow:
+Split assessment import into explicit stages:
 
 ```txt
-parse -> preview -> confirm write
+parse -> prepare/validate -> write
 ```
 
-For assessment imports, preview should include:
+Possible modules:
 
-- number of rows parsed;
+```txt
+src/import/parseAssessments.ts
+src/import/prepareAssessmentImport.ts
+src/import/assessmentImportResult.ts
+src/import/savePreparedAssessments.ts
+```
+
+The prepare stage should return a structured result that could support a future preview, but this investigation should not own the preview UI itself.
+
+The structured result should include enough data for callers to decide what to do with:
+
+- rows parsed;
 - recognized assessment columns;
 - ignored columns;
 - missing/unmatched submissions;
 - ambiguous submissions;
 - invalid assessment cells;
-- number of values to write;
-- whether values will overwrite existing assessments.
+- values to write;
+- possible overwrites.
 
-For student imports, this overlaps with #110, which already proposes mapping and preview.
-
-### Candidate modules
-
-```txt
-src/imports/assessments/
-  parseAssessmentsCsv.ts
-  prepareAssessmentImport.ts
-  assessmentImportPreview.ts
-  saveAssessmentImport.ts
-  AssessmentsImportForm.tsx
-  AssessmentImportPreview.tsx
-```
-
-### Policy question
-
-Should missing submissions be:
-
-- silently skipped;
-- reported as warnings but still allow import;
-- blocking errors;
-- configurable per import?
-
-The current behavior should probably be changed or at least surfaced loudly.
+Policy question: should missing submissions warn, block, or be configurable? That policy and any preview UI should be handled by the import/product workflow investigation, not by this source-structure audit.
 
 ## Finding 12: app shell navigation mixes route parsing, navigation structure, local storage, and export behavior
 
 ### Current behavior
 
-The app shell drawer:
+The app shell drawer parses project route context from `usePathname`, builds navigation items, owns export options local storage, builds export submission URL query parameters, and renders import/export/project navigation sections.
 
-- parses project route context from `usePathname`;
-- derives display project name from slug;
-- builds navigation items;
-- owns export options local storage;
-- builds export submission URL query parameters;
-- renders import/export/project navigation sections.
-
-### Why this matters
-
-The drawer is not huge, but it mixes different reasons to change:
-
-- project routing changes;
-- navigation IA changes;
-- export option changes;
-- local-storage persistence changes;
-- visual layout changes.
+The previous slug-to-display-name concern is resolved: the shell now receives the real project name from the project-scoped layout.
 
 ### Candidate split
 
@@ -880,33 +585,13 @@ src/ui/app-shell/
   useExportOptions.ts
 ```
 
-Longer term, the shell should receive real project context from a project layout or route context instead of deriving a project title from the slug.
-
-### Trade-off
-
-Do not over-design the shell too early. The split becomes more useful once project route context is centralized.
+Do not over-design the shell too early. The split becomes more useful if navigation or export options grow further.
 
 ## Finding 13: numeric rubric editing parses too eagerly
 
 ### Current behavior
 
-The rubric editor uses a number field that immediately applies `Number(event.target.value)` on every change.
-
-This breaks natural intermediate states such as:
-
-```txt
--
--0
-1.
-0.
-
-```
-
-### Why this matters
-
-Rubric editing needs precise numeric input. Eager numeric coercion can fight the user and create accidental values.
-
-This aligns with #68.
+The rubric editor has historically used numeric fields that parse too eagerly. This can break natural intermediate states such as `-`, `-0`, `1.`, and `0.`.
 
 ### Candidate rewrite
 
@@ -916,11 +601,7 @@ Introduce a string-backed numeric draft component:
 src/ui/NumericDraftField.tsx
 ```
 
-or colocated under questions/rubrics if only used there at first:
-
-```txt
-src/questions/NumericDraftField.tsx
-```
+or colocated under questions/rubrics if only used there at first.
 
 Behavior:
 
@@ -930,41 +611,22 @@ Behavior:
 - show validation without rewriting text too early;
 - preserve numeric value type in the submitted payload.
 
-### Tests to add
-
-- can type `-`;
-- can type `-0`;
-- can type `1.`;
-- can type decimal values;
-- invalid state blocks submit or shows validation;
-- blur normalizes only when appropriate.
-
 ## Finding 14: grading clients duplicate stable workflow behavior
 
 ### Current behavior
 
-The question-by-question grading client and the submission-overview grading client both handle:
-
-- current submission lookup;
-- previous/next submission navigation;
-- quick-jump dialog state;
-- keyboard shortcut for lookup;
-- optimistic save state;
-- save-error shaping;
-- submission label lookup.
+The question-by-question grading client and the submission-overview grading client both handle current submission lookup, previous/next submission navigation, quick-jump dialog state, keyboard shortcut for lookup, optimistic save state, save-error shaping, and submission label lookup.
 
 Some reuse already exists through `useAssessmentSession`, which is good. But more duplication appears stable enough to extract.
 
 ### Candidate extractions
 
 ```txt
-src/grading/useSubmissionQuickJumpShortcut.ts
-src/grading/SubmissionNavigation.tsx
-src/grading/useCurrentSubmission.ts
-src/grading/buildSaveErrorContext.ts
+src/assessment/useSubmissionQuickJumpShortcut.ts
+src/assessment/SubmissionNavigation.tsx
+src/assessment/useCurrentSubmission.ts
+src/assessment/buildSaveErrorContext.ts
 ```
-
-### Caution
 
 Do not abstract the whole grading client into one mega-component. The overview-by-submission and question-by-question UIs are different. Extract the repeated workflow pieces only.
 
@@ -972,9 +634,7 @@ Do not abstract the whole grading client into one mega-component. The overview-b
 
 ### Current behavior
 
-Question actions are close to question UI and schemas. Assessment save action is a thin wrapper around DB save. Import actions use shared import error utilities.
-
-This is mostly good colocation.
+Question actions are close to question UI and schemas. Assessment/import actions use shared import error utilities. This is mostly good colocation.
 
 The problem is that action contracts are not always explicit enough. Some actions return user-facing states, some thinly delegate to DB functions, and some rely on route/page refresh patterns.
 
@@ -984,23 +644,12 @@ Keep actions near their workflow, but make a consistent action pattern:
 
 ```txt
 parse form/input
-call command/service
+call command/service or mutation
 map domain/application errors to action state
 return typed action result
 ```
 
-Avoid putting heavy business logic directly in actions. Avoid actions delegating straight into `db/*` modules that also own validation and cache invalidation.
-
-### Example target
-
-```txt
-src/questions/actions.ts
-src/questions/saveQuestion.ts
-src/questions/questionErrors.ts
-src/questions/questionSchemas.ts
-```
-
-The action should not know Kysely. The command should not know React action state.
+Avoid putting heavy business logic directly in actions. Avoid actions delegating straight into functions whose contracts are unclear.
 
 ## Finding 16: cache tags and invalidation are useful but scattered
 
@@ -1010,20 +659,9 @@ There is a cache tag helper module. Loaders use tags such as projects, questions
 
 This is a good foundation. The problem is that invalidation policy is spread across DB modules and actions rather than documented as a map.
 
-### Why this matters
-
-As the app grows, stale data bugs are likely unless cache invalidation is explicitly mapped. #59 already identifies this as an area needing audit.
-
 ### Candidate direction
 
-Create a cache policy document or module:
-
-```txt
-src/cache/cacheTags.ts
-src/cache/cacheInvalidation.ts
-```
-
-or keep the helper in `src/db` temporarily but document mutation-to-tag behavior.
+Keep cache helper modules visible to write paths and document mutation-to-tag behavior. This may remain infrastructure-adjacent even after ADR 0002 relocation, but feature commands should be explicit about which cache policy they invoke.
 
 Potential map:
 
@@ -1038,7 +676,7 @@ import assessments
   -> assessments aggregate
   -> dashboard/overview relevant tags
 
-save question
+save question definition
   -> questions
   -> assessments aggregate
   -> question-specific assessment tags
@@ -1048,19 +686,11 @@ import students/submissions
   -> progress and dashboard tags
 ```
 
-### Caution
-
-Do not hide cache invalidation too far away from writes. It should be centralized enough to be consistent but visible enough during write-path review.
-
 ## Finding 17: `shared` is too broad as an ownership bucket
 
 ### Current behavior
 
 `src/shared` contains app shell components, save error provider/display, links, code snippets, and shell-specific helpers.
-
-### Why this matters
-
-`shared` is a low-information name. It tends to become a dumping ground.
 
 ### Candidate split
 
@@ -1081,223 +711,256 @@ src/ui/CodeSnippet.tsx
 src/ui/MuiNextLink.tsx
 ```
 
-### Caution
-
 Do this as a mechanical move after more important command/read-model splits, unless it blocks other work.
 
-## Finding 18: route handlers contain export-specific infrastructure that could be factored
+## Finding 18: route handlers are thinner; export internals remain the main split candidate
 
 ### Current behavior
 
-Export route handlers load project context, parse options, create export data, build CSV/YAML response bodies, and construct filenames.
+Export route handlers are thinner than in the original audit. They mostly load project context, parse request options, call export creation helpers, and build response headers/filenames.
 
-The submissions export route also manually builds a `ReadableStream` and stringifies headers/rows.
-
-### Why this matters
-
-This is not terrible, but response-building behavior is repeated or likely to be repeated as exports grow.
+The larger concern now lives in export internals, especially submission export streaming and row grouping.
 
 ### Candidate split
 
+Consider route-support helpers only after export semantics are clearer:
+
 ```txt
-src/exports/http.ts
-src/exports/filenames.ts
-src/exports/submissions/routeSupport.ts
-src/exports/questions/routeSupport.ts
+src/export/http.ts
+src/export/filenames.ts
 ```
 
 Possible helpers:
 
 ```ts
-csvStreamResponse({ filename, headers, rows })
+csvStreamResponse({ filename, stream })
 yamlDownloadResponse({ filename, body })
 buildDatedFilename({ prefix, slug, extension })
 ```
 
-### Caution
-
-Only extract this after export semantics are clearer. The export state machine is the more important rewrite.
-
+The export state machine is the more important rewrite.
 ## Finding 19: several components are reasonably split and should not be over-refactored
 
-Not everything needs rewriting.
+Not everything needs rewriting or relocation.
 
 Examples that look reasonably scoped:
 
-- `RubricEditorList` dispatches to rubric-type-specific editor components and owns list operations. This is acceptable.
-- `QuestionForm` is not too large and mostly coordinates draft state, payload creation, errors, and form submission.
-- Type-specific rubric editor components are small.
-- `BaseImportForm` is somewhat broad, but it is a reusable UI shell rather than a correctness-critical mixed persistence module.
+- RubricEditorList dispatches to rubric-type-specific editor components and owns list operations;
+- QuestionForm mostly coordinates draft state, payload creation, errors, and form submission;
+- type-specific rubric editor components are small;
+- BaseImportForm is a reusable UI shell rather than a correctness-critical mixed persistence module.
 
-The goal should be to split overloaded correctness-sensitive modules first, not to maximize the number of files.
+The goal should be to split overloaded correctness-sensitive modules first, not to maximize the number of files. Some files are slightly broad but still locally understandable. These should not be reorganized only to satisfy a target tree.
 
-## Candidate target shape
+This matters because source reorganization and file splitting are different operations:
 
-This is not a final decision. It is a concrete shape that reflects the audit findings while staying relatively flat.
+- reorganization changes ownership and import direction;
+- splitting changes local responsibility boundaries inside an owner.
+
+A file can be in the right place but need splitting later. A file can also be internally acceptable but live in the wrong ownership folder. The audit should keep these concerns separate so that future work does not combine behavior-preserving moves, responsibility splits, and product changes in the same PR.
+
+## Finding 20: file reorganization should establish ownership before further splitting
+
+### Current behavior
+
+Some files still live in folders that reflect historical placement rather than ownership. The most important example is `src/db`: it still contains feature-specific persistence and read-model code, even though ADR 0002 defines `src/db` as database infrastructure only.
+
+This affects projects as well as questions and assessments. For example, project loading and creation currently live under `src/db`, but they include project-specific behavior such as public-id generation, project summary mapping, slug derivation, and cache invalidation. That is project persistence, not database infrastructure.
+
+### Why this matters
+
+Future splitting work should happen in the right ownership location. If overburdened files are split while they remain under `src/db`, the result may be cleaner locally but still structurally wrong. It can also make the later ADR 0002 relocation harder because there will be more files to move and more import paths to rewrite.
+
+The next source-structure step should therefore prioritize behavior-preserving file reorganization before further fine-grained splitting, especially for feature persistence currently living under `src/db`.
+
+### Relationship to ADR 0002
+
+ADR 0002 is the reference for the target ownership boundary:
+
+```txt
+src/db/
+  kysely.ts
+  generated/
+  migrations/
+  cacheTags.ts
+```
+
+Feature-specific read models, write commands, validation, domain/read-model types, and user-facing errors should live in the owning feature folder.
+
+This investigation should remain the practical migration reference for applying ADR 0002 across the current source tree. It can decide sequencing and concrete file moves, while ADR 0002 defines the direction.
+
+### Candidate direction
+
+Move feature persistence to owner folders with minimal behavior change before doing deeper splits.
+
+Possible target shape:
 
 ```txt
 src/
-  grading/
-    assessmentTypes.ts
-    assessmentErrors.ts
-    assessmentValidation.ts
-    assessmentRepository.ts
-    saveAssessment.ts
-    saveAssessment.action.ts
-    loadSubmissionAssessmentOverview.ts
-    loadQuestionAssessmentPage.ts
-    progressTypes.ts
-    buildSubmissionProgress.ts
-    buildGlobalProgress.ts
-    useAssessmentSession.ts
-    useSubmissionQuickJumpShortcut.ts
-    SubmissionNavigation.tsx
-    SubmissionAssessmentClient.tsx
-    SubmissionOverviewAssessmentClient.tsx
-    RubricGradeList.tsx
-
-  questions/
-    questionTypes.ts
-    questionReadModel.ts
-    questionRepository.ts
-    questionValidation.ts
-    saveQuestion.ts
-    deleteQuestion.ts
-    reorderQuestions.ts
-    actions.ts
-    schemas.ts
-    QuestionsManagementClient.tsx
-    QuestionForm.tsx
-    RubricEditorList.tsx
-
-  imports/
-    assessments/
-      parseAssessmentsCsv.ts
-      prepareAssessmentImport.ts
-      saveAssessmentImport.ts
-      assessmentImportPreview.ts
-      AssessmentsImportForm.tsx
-    students/
-    questions/
-    BaseImportForm.tsx
-    actionUtils.ts
-
-  exports/
-    submissions/
-      exportOptions.ts
-      loadSubmissionExportPlan.ts
-      streamSubmissionAssessmentRows.ts
-      groupSubmissionRows.ts
-      buildSubmissionExportRows.ts
-      submissionExportCsv.ts
-      createSubmissionExport.ts
-    questions/
-      questionsExport.ts
-      routeSupport.ts
-    http.ts
-    filenames.ts
-
   projects/
-    projectTypes.ts
-    projectRepository.ts
-    projectRouteContext.ts
+    projects.ts
     projectPaths.ts
-
-  rubrics/
-    rubricTypes.ts
-    rubric.ts
-    rubricMarking.ts
-    rubricAssessment.ts
+    canonicalProjectRedirect.ts
 
   submissions/
-    submissionTypes.ts
+    submissions.ts
+    types.ts
     getSubmissionLabel.ts
-    submissionNavigation.ts
     quickJumpSearch.ts
+
+  questions/
+    questions.ts
+    questionDefinitions.ts
+    questionDefinitionMutations.ts
+    types.ts
+    schemas.ts
+    actions.ts
+
+  assessment/
+    assessments.ts
+    assessmentMutations.ts
+    assessmentsProgress.ts
+    submissionProgress.ts
+    rubricOverview.ts
+    rubricOverviewBuilder.ts
+    assessmentSummary.ts
 
   db/
     kysely.ts
     generated/
     migrations/
-
-  cache/
+    migrate.ts
     cacheTags.ts
-    cacheInvalidation.ts
-
-  ui/
-    app-shell/
-    feedback/
-    code/
-    NumericDraftField.tsx
-    MuiNextLink.tsx
+    projectScope.ts
 ```
 
-This is intentionally flatter than a strict layered architecture. It colocates by workflow/domain while still making technical roles visible through filenames.
+This keeps the structure flat. It does not require immediately introducing `repository`, `service`, or nested technical folders. Those can be added later only where local complexity justifies them.
+
+### Suggested sequencing
+
+1. Move project persistence out of `src/db` into `src/projects`.
+2. Move question and question-definition persistence out of `src/db` into `src/questions`.
+3. Move assessment reads and mutations out of `src/db` into `src/assessment`.
+4. Keep `src/db` focused on Kysely setup, generated DB types, migrations, and cache-tag infrastructure.
+5. After the moves, reassess which files still need internal splitting.
+
+### Caution
+
+These moves should be behavior-preserving. Avoid combining relocation with query rewrites, new abstractions, import-preview UI, terminology changes, or cache-policy changes unless the change is required to preserve behavior.
+
+The immediate value is to make ownership match ADR 0002 so that future splitting happens in the right place.
 
 ## Prioritized rewrite backlog
 
-### Priority 1: project route context
+### Priority 1: submission overview assessment read model
 
 Why first:
 
-- affects most route files;
-- needed for future auth/project ownership;
-- reduces repeated slug/id/path boilerplate;
-- aligns with #51.
+- likely improves performance;
+- simplifies a core grading page;
+- establishes read-model pattern for grading pages;
+- still clearly current after route-context cleanup.
 
 Suggested deliverables:
 
-- decide stored slug vs computed slug vs no slug;
-- introduce `projectRouteContext` helper;
-- rename path builder module if desired;
-- migrate one or two pages as examples before bulk migration.
+- add `loadSubmissionAssessmentOverview` or equivalent;
+- replace per-question `loadAssessment` calls if a single query or small query set is clearer;
+- add integration tests for mixed rubric types and sparse assessments.
 
-### Priority 2: submission overview loader
+### Priority 2: assessment import parse/prepare/write boundaries
 
 Why second:
 
-- likely improves performance;
-- simplifies a core grading page;
-- establishes read-model pattern for grading pages.
+- imports can change many assessment values at once;
+- missing submissions are currently too easy to overlook;
+- structured preparation results make later preview or confirmation flows possible without coupling this audit to UI work.
 
 Suggested deliverables:
 
-- add `loadSubmissionAssessmentOverview`;
-- replace per-question `loadAssessment` calls;
-- add integration tests for mixed rubric types and sparse assessments.
+- split parse, prepare/validate, and write stages;
+- return structured unmatched-submission, ignored-column, invalid-cell, and overwrite information from preparation;
+- keep preview UI out of this source-structure scope;
+- keep transactional writes separate from parse/prepare logic.
 
-### Priority 3: split question/rubric persistence
+### Priority 3: ADR 0002 source reorganization
 
 Why third:
 
-- correctness-sensitive;
-- large file;
-- blocks clean import/export reuse;
-- already identified by reliability audit.
+- the internal question and assessment splits have landed;
+- `src/db` still contains feature-owned persistence and read models;
+- moving files now avoids making `src/db` the permanent feature-persistence home by inertia;
+- future splitting should happen in the owning feature folder, not in `src/db`.
 
 Suggested deliverables:
 
-- extract validation/mapping/read model first;
-- then split save/delete/reorder commands.
+- move project persistence from `src/db` to `src/projects`;
+- move submission persistence and read models from `src/db` to `src/submissions`;
+- move question and question-definition persistence from `src/db` to `src/questions`;
+- move assessment reads, mutations, completion/progress, and overview read models from `src/db` to `src/assessment`;
+- move feature-facing types out of `src/db/types.ts`;
+- keep behavior changes out of this relocation unless required by import paths or tests;
+- keep `src/db` focused on Kysely setup, generated DB types, migrations, cache tag infrastructure, and low-level database plumbing.
 
-### Priority 4: split assessment save path
+### Priority 4: assessment mutation internal split, if still needed
 
 Why fourth:
 
 - central write path;
 - shared by interactive grading and imports;
-- currently DB module owns too much.
+- current read/write split and transaction-friendly API have resolved part of the old finding.
 
 Suggested deliverables:
 
-- extract assessment command validation;
-- extract assessment repository;
-- design transaction-friendly command API;
-- keep tests green after each step.
+- review current `assessmentMutations` after the completed split;
+- split validation/errors/repository helpers only if that improves tests or reviewability;
+- prefer doing the split in the feature-owned location if ADR 0002 relocation is underway;
+- preserve caller-owned transaction behavior and post-commit invalidation.
 
-### Priority 5: progress/read-model consolidation
+### Priority 5: question-specific grading page cache-boundary review
 
 Why fifth:
+
+- core grading UX;
+- current split may be correct under Next caching;
+- avoid refactoring only to dedupe cached reads.
+
+Suggested deliverables:
+
+- check relevant caching plans and #59;
+- document intended boundaries;
+- only extract a loader if it clarifies semantics without fighting cache boundaries.
+
+### Priority 6: question/rubric read-model reuse
+
+Why sixth:
+
+- repeated multi-table assembly remains;
+- useful for import/export consistency;
+- less urgent now that question definition persistence has been split.
+
+Suggested deliverables:
+
+- identify the stable shared source data;
+- avoid one giant cross-workflow type;
+- let import/export keep workflow-specific projections.
+
+### Priority 7: submission export state-machine split
+
+Why seventh:
+
+- correctness-sensitive;
+- splitting will make future export work safer;
+- route handlers are already reasonably thin.
+
+Suggested deliverables:
+
+- split stream grouping from CSV formatting;
+- add stream boundary tests;
+- keep response helper extraction secondary.
+
+### Priority 8: progress/read-model consolidation
+
+Why eighth:
 
 - repeated business semantics;
 - important for consistency;
@@ -1306,12 +969,26 @@ Why fifth:
 Suggested deliverables:
 
 - document completion semantics;
-- extract pure builders;
-- then adjust DB loaders around those builders.
+- build on existing summary helpers;
+- align dashboard/list/overview calculations.
 
-### Priority 6: numeric draft field
+### Priority 9: app shell split
 
-Why sixth:
+Why ninth:
+
+- improves DX but not central correctness;
+- slug-derived display name concern is already resolved;
+- can be mechanical.
+
+Suggested deliverables:
+
+- extract export options hook/panel;
+- extract navigation item builder;
+- move shared shell files under `ui/app-shell`.
+
+### Priority 10: numeric draft field
+
+Why tenth:
 
 - small focused UX win;
 - low risk;
@@ -1323,108 +1000,75 @@ Suggested deliverables:
 - replace rubric numeric fields;
 - test intermediate input states.
 
-### Priority 7: export stream split
-
-Why seventh:
-
-- correctness-sensitive but already has some test coverage;
-- splitting will make future export work safer.
-
-Suggested deliverables:
-
-- split stream grouping from CSV formatting;
-- add stream boundary tests.
-
-### Priority 8: import preview model
-
-Why eighth:
-
-- large UX/design change;
-- related to #110;
-- should be designed carefully.
-
-Suggested deliverables:
-
-- define preview model first;
-- apply to student import or assessment import as pilot.
-
-### Priority 9: app shell split
-
-Why ninth:
-
-- improves DX but not central correctness;
-- easier after project route context is redesigned.
-
-Suggested deliverables:
-
-- extract export options hook/panel;
-- extract navigation item builder;
-- move shared shell files under `ui/app-shell`.
-
 ## Follow-up issue candidates
 
 The following could be split out from #115 if smaller implementation issues are useful.
-
-### Candidate issue: redesign project route context and slug handling
-
-Scope:
-
-- decide whether to store slug;
-- add project route context helper;
-- reduce repeated route boilerplate;
-- possibly rename `routes.ts` to `projectPaths.ts`.
-
-Related: #51, #115.
 
 ### Candidate issue: add submission assessment overview read model
 
 Scope:
 
-- replace per-question assessment loading on submission overview page;
+- replace per-question assessment loading on submission overview page if a consolidated loader is clearer;
 - add integration tests;
 - clarify cache tags.
 
 Related: #59, #115.
 
-### Candidate issue: split question/rubric persistence module
+### Candidate issue: split assessment import parse/prepare/write stages
 
 Scope:
 
-- split `src/db/questions.ts`;
-- preserve behavior;
-- improve tests around save/delete/reorder.
+- split parse, prepare/validate, and write stages;
+- surface ignored columns and unmatched submissions as structured preparation results;
+- preserve transactional writes;
+- keep preview UI out of this issue unless a separate product/UI issue explicitly takes it on.
+
+Related: #110, #115.
+
+### Candidate issue: move feature persistence out of `src/db`
+
+Scope:
+
+- follow ADR 0002 now that the main internal read/write splits have landed;
+- move project persistence to project-owned code;
+- move submission persistence and read models to submission-owned code;
+- move question definition read/write modules to question-owned code;
+- move assessment read/write modules and domain/read-model types to assessment-owned code;
+- move feature-facing types out of `src/db/types.ts`;
+- keep behavior changes out of this relocation unless required by import paths or tests;
+- keep `src/db` limited to database infrastructure.
+
+Related: ADR 0002, #115, `plans/active/2026-06-02-source-reorganization.md`.
+
+### Candidate issue: review assessment mutation internals
+
+Scope:
+
+- review current assessment read/write split;
+- split validation/errors/repository helpers only if useful;
+- preserve transaction-friendly API.
 
 Related: reliability audit, #115.
 
-### Candidate issue: split assessment save command from DB module
+### Candidate issue: review question-specific grading cache boundaries
 
 Scope:
 
-- split `src/db/assessments.ts`;
-- introduce transaction-friendly command API;
-- preserve import behavior.
-
-Related: reliability audit, #115.
-
-### Candidate issue: extract grading progress semantics
-
-Scope:
-
-- document completed-question/completed-rubric semantics;
-- extract pure builders;
-- align dashboard/list/overview calculations.
+- confirm current server component cache boundaries;
+- document intended repeated cached reads;
+- avoid unnecessary dedupe refactors.
 
 Related: #59, #115.
 
-### Candidate issue: rewrite numeric rubric field editing
+### Candidate issue: reuse question/rubric assembly where stable
 
 Scope:
 
-- string-backed numeric draft field;
-- replace eager `Number(...)` parsing;
-- add regression tests.
+- identify stable question/rubric source data;
+- reduce duplicated subtype assembly in read/export/import flows;
+- keep workflow-specific projections separate.
 
-Related: #68.
+Related: #115.
 
 ### Candidate issue: split submission export state machine
 
@@ -1435,70 +1079,122 @@ Scope:
 
 Related: reliability audit, #115.
 
-### Candidate issue: design import preview/confirmation flow
+### Candidate issue: extract grading progress semantics
 
 Scope:
 
-- parse-preview-confirm flow;
-- show ignored columns and unmatched submissions;
-- decide missing-submission policy.
+- document completed-question/completed-rubric semantics;
+- extract or align pure builders;
+- align dashboard/list/overview calculations.
 
-Related: #110, #115.
+Related: #59, #115.
+
+### Candidate issue: split app shell drawer internals
+
+Scope:
+
+- extract export options hook/panel;
+- extract navigation item builder;
+- move shell files out of `shared` if desired.
+
+Related: #115.
+
+### Candidate issue: rewrite numeric rubric field editing
+
+Scope:
+
+- string-backed numeric draft field;
+- replace eager numeric parsing;
+- add regression tests.
+
+Related: #68.
 
 ## Open questions
 
+### Source reorganization sequencing
+
+- Should project and submission persistence move first as a small ADR 0002 validation PR?
+- Should question and assessment persistence move in separate PRs, or together because they share rubric/assessment types?
+- Should `src/db/types.ts` be removed in one PR, or gradually emptied as feature-facing types move?
+- Should `cacheTags.ts` remain in `src/db` as infrastructure, or should feature commands eventually own more explicit cache-policy helpers?
+- Should `projectScope.ts` remain in `src/db` as a generic query helper, or move elsewhere if it becomes feature-specific?
+
 ### Project slugs
 
-- Should project slugs be stored, computed, or removed from canonical URLs?
-- Should slugs update when names change?
-- Should old slugs redirect?
-- Should slugs be user-editable?
+- Current decision: slugs are cosmetic and should not be stored in the database.
+- Should slugs update automatically when names change? Current implied behavior is yes because the slug is derived from name.
+- Should old slugs redirect? Current behavior redirects stale slugs to the current derived slug.
 - Should filenames use project slug, project id, or project name?
 
 ### Project identifiers
 
-- Should `project.id` become the public id and `project.row_id` the internal id, aligning with #51?
-- How should route params map to DB identifiers after that migration?
+- Resolved by #51: `project.id` is the public id and `project.row_id` is the internal id.
+- Route params should continue using public `project.id`.
 
-### Read models
+### ADR 0002 relocation
 
-- Should grading page loaders return UI-ready models, or should pages assemble domain objects?
+- What is the smallest mechanical move that relocates question and assessment persistence out of `src/db`?
+- Should domain types move first, or together with read/write modules?
+- Which cache-tag helpers should remain in `src/db`, and which feature commands should own their cache policy calls?
+- Should this be one PR for question persistence and one PR for assessment persistence?
+
+### Raw database types and feature-facing types
+
+- How strict should the private boundary around `src/db/generated/db.ts` be enforced?
+- Which persistence-internal helper types, if any, are allowed to leave `src/db`?
+- Should feature read-model types be explicit definitions, inferred from loader return types, or a mix of both?
+- How should tests guard against `row_id` leaking into UI/action/import/export contracts?
+
+### Read models and cache boundaries
+
+- Should grading page loaders return UI-ready models, or should cached server sections assemble local models?
+- Which repeated reads are real problems, and which are acceptable cached boundaries?
 - How much should loaders know about cache tags?
-- Should read models live under `grading`, `questions`, or a generic `readModels` area?
 
 ### Commands and transactions
 
-- What is the preferred pattern for commands that need to run both standalone and inside a larger import transaction?
-- Should command functions accept an optional transaction object?
-- Should repositories expose factory functions bound to a transaction?
+- Current direction: mutation functions may accept an optional transaction object when needed.
+- Caller-owned transactions must own post-commit cache invalidation.
+- Should repositories expose factory functions bound to a transaction, or is optional `db` enough for now?
 
 ### Cache invalidation
 
-- Should invalidation live inside commands, repositories, or separate cache-policy functions?
+- Should invalidation live inside standalone mutations, repositories, or separate cache-policy functions?
 - How can cache policy remain visible during review?
 - Which pages must be fresh immediately after each mutation?
 
 ### Import behavior
 
+- Which import warnings should block writes, and which should remain non-blocking?
 - Should missing submissions block assessment import?
-- Should import preview be mandatory?
+- Should import preview be mandatory? This is a product/UI question, not a source-structure requirement.
 - Should import support marks-only CSV columns or only assessment-value columns?
 - Should imports overwrite existing assessments by default?
 
 ### Folder structure
 
-- Is the proposed flat module shape enough, or do some modules need `domain/server/ui` subfolders?
-- Should UI-only shared components move before or after command/read-model rewrites?
+- ADR 0002 compliance has been deferred during the internal splits, but remains important. What concrete trigger should start the relocation PRs?
+- Should UI-only shared components move before or after read-model rewrites?
 - Should `rubrics` remain a shared domain folder even if rubric editing UI lives under `questions`?
 
 ## Non-goals
 
 This investigation does not recommend:
 
+- storing cosmetic project slugs in the database;
 - a full rewrite;
 - microservices;
 - multiple packages;
+- treating the current `src/db` location of question and assessment persistence as the final architecture;
+- making `src/db/generated/db.ts` a general-purpose feature import surface;
+- adding a thin generated-schema facade without a concrete need;
+- exposing raw generated table rows as UI/action/import/export contracts;
+- owning the import preview UI design;
 - a strict clean architecture hierarchy;
 - moving all code under `app/`;
 - extracting every duplicated pattern immediately;
+- manually deduping cached server component reads without first checking intended Next caching boundaries;
 - optimizing every page before fixing the core grading and import/export seams.
+- splitting files further before moving feature-owned persistence to the right owner;
+- treating the reorganization plan as a request for repository/service layering;
+- renaming assessment completion/progress concepts before the terminology investigations settle;
