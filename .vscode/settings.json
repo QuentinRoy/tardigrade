@@ -5,6 +5,7 @@
 		"source.fixAll.biome": "explicit"
 	},
 	"editor.defaultFormatter": "biomejs.biome",
-	"[prisma]": { "editor.defaultFormatter": "Prisma.prisma" },
-	"[sql]": { "editor.defaultFormatter": "denoland.vscode-deno" }
+	"[sql]": { "editor.defaultFormatter": "biomejs.biome" },
+	"[typescript]": { "editor.defaultFormatter": "biomejs.biome" },
+	"[json]": { "editor.defaultFormatter": "biomejs.biome" }
 }
