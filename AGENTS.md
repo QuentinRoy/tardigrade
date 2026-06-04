@@ -107,6 +107,8 @@ Investigations and active plans can guide work, but they do not override higher-
   - avoid nested ternaries and dense one-liners when explicit control flow is clearer;
   - delete dead code rather than preserving unused paths.
 
+- Prefer clear symbol names over terse abbreviations. Common technical acronyms and established domain terms are fine, for example `id`, `url`, `api`, `ui`, `db`, `props`, `projectId`, and `projectRowId`. Avoid unclear abbreviations such as `opts`, `cfg`, `ctx`, `svc`, `repo`, `res`, `req`, or `val` when `options`, `config`, `context`, `service`, `repository`, `response`, `request`, or `value` would be clearer. Do not rename existing symbols solely to expand abbreviations unless the abbreviation causes confusion or the code is already being changed.
+
 - After implementing a code change, perform a simplify pass using `.agents/skills/simplify/SKILL.md` over recently modified code:
   - preserve functionality exactly;
   - improve clarity, consistency, naming, control flow, and maintainability;
@@ -114,12 +116,9 @@ Investigations and active plans can guide work, but they do not override higher-
   - keep useful abstractions that improve organization;
   - avoid broad refactors unrelated to the requested task.
 
-- Run repository checks after the implementation and simplify pass:
-  - `pnpm run check --fix`
-  - `pnpm run check-types`
-  - `pnpm test:unit <changed-file-stem>` for each changed source file — vitest matches by path stem (e.g. `src/projects/projectPaths` runs `projectPaths.test.ts`).
-  - `src/db/` tests are not mirrored per source file; use `pnpm test src/db/` for any change under `src/db/`. Integration tests spin up Docker.
-  - `pnpm test:storybook <changed-stories-stem>` when `.stories.tsx` files are affected — vitest runs Storybook in headless mode via Playwright, no separate server needed.
+- Run the relevant checks after the implementation and simplify pass. At minimum, use `pnpm run check --fix` and `pnpm run check-types`; use `docs/reference/testing-conventions.md` to select targeted unit, integration, and Storybook tests.
+
+- In tests, prefer disposable fixtures with `using` or `await using` when setup and teardown should stay together. Consider adding a small disposable fixture when repeated paired setup and teardown would otherwise require hooks. Do not use `using` for resources that must stay alive across multiple `it` cases; use `beforeAll`/`afterAll` instead. See `docs/reference/testing-conventions.md`.
 
 - Treat lint and type errors as issues to resolve rather than obstacles to bypass.
 
@@ -136,8 +135,7 @@ Investigations and active plans can guide work, but they do not override higher-
 
 - Prefer call-site readability over brevity for TypeScript function parameters. Use named-object parameters for domain actions, mutations, booleans, optional values, multiple same-type values, or exported/reused helpers where positional order is not obvious from variable-based call sites. See `docs/guides/typescript-api-design.md`.
 
-- Avoid using `as` for type assertions. Prefer type guards, generics, `satisfies`, or narrowing to satisfy the compiler. Any use of `as` must be accompanied by a comment explaining why the alternatives
-would introduce undue complexity.
+- Avoid using `as` for type assertions. Prefer type guards, generics, `satisfies`, or narrowing to satisfy the compiler. Any use of `as` must be accompanied by a comment explaining why the alternatives would introduce undue complexity.
 
 - Do not use React as a namespace. Import functions and types directly from `"react"`.
 
