@@ -1,6 +1,11 @@
 import "server-only";
-import { sql } from "kysely";
-import { CACHE_TAGS, updateTags } from "#db/cacheTags.ts";
+import { type Kysely, sql } from "kysely";
+import {
+	assessmentQuestionCacheTag,
+	CACHE_TAGS,
+	updateTags,
+} from "#db/cacheTags.ts";
+import type { DB } from "#db/generated/db.ts";
 import { db } from "#db/kysely.ts";
 import { QuestionsValidationError } from "#questions/errors.ts";
 import type { RubricType } from "#rubrics/types.ts";
@@ -65,11 +70,13 @@ function assertUniqueIds(label: string, ids: string[]): void {
 	throw new QuestionsValidationError({ fieldErrors: { rubrics } });
 }
 
-export async function saveQuestionDefinition(
-	input: QuestionDefinitionInput,
-	projectId: string,
-): Promise<{ id: string }> {
-	const projectRowId = await resolveProjectRowId(projectId);
+// `db` may be the global client or a caller-supplied transaction, so callers can
+// compose this inside their own transaction (e.g. a batch edit).
+export async function saveQuestionDefinitionInDb(
+	db: Kysely<DB>,
+	{ input, projectId }: { input: QuestionDefinitionInput; projectId: string },
+): Promise<{ id: string; originalId: string }> {
+	const projectRowId = await resolveProjectRowId(db, projectId);
 
 	const requestedId = input.id.trim();
 	const originalId = input.originalId?.trim() || requestedId;
@@ -89,139 +96,101 @@ export async function saveQuestionDefinition(
 		normalizedRubrics.map((rubric) => rubric.sourceId),
 	);
 
-	await db.transaction().execute(async (tx) => {
-		const scopedExistingQuestion = await tx
+	const scopedExistingQuestion = await db
+		.selectFrom("question")
+		.select(["id", "position", "rowId"])
+		.where("id", "=", originalId)
+		.where("question.projectId", "=", projectRowId)
+		.executeTakeFirst();
+
+	const conflictingQuestion =
+		originalId !== requestedId
+			? await db
+					.selectFrom("question")
+					.select("id")
+					.where("id", "=", requestedId)
+					.where("question.projectId", "=", projectRowId)
+					.executeTakeFirst()
+			: null;
+
+	if (conflictingQuestion != null) {
+		throw new QuestionsValidationError({
+			fieldErrors: {
+				questionId: `Question id '${requestedId}' already exists.`,
+			},
+		});
+	}
+
+	if (scopedExistingQuestion == null) {
+		const row = await db
 			.selectFrom("question")
-			.select(["id", "position", "rowId"])
-			.where("id", "=", originalId)
+			.select(({ fn }) => [fn.max<number>("position").as("maxPosition")])
 			.where("question.projectId", "=", projectRowId)
 			.executeTakeFirst();
+		const nextPosition = (row?.maxPosition ?? -1) + 1;
 
-		const conflictingQuestion =
-			originalId !== requestedId
-				? await tx
-						.selectFrom("question")
-						.select("id")
-						.where("id", "=", requestedId)
-						.where("question.projectId", "=", projectRowId)
-						.executeTakeFirst()
-				: null;
-
-		if (conflictingQuestion != null) {
-			throw new QuestionsValidationError({
-				fieldErrors: {
-					questionId: `Question id '${requestedId}' already exists.`,
-				},
-			});
-		}
-
-		if (scopedExistingQuestion == null) {
-			const row = await tx
-				.selectFrom("question")
-				.select(({ fn }) => [fn.max<number>("position").as("maxPosition")])
-				.where("question.projectId", "=", projectRowId)
-				.executeTakeFirst();
-			const nextPosition = (row?.maxPosition ?? -1) + 1;
-
-			await tx
-				.insertInto("question")
-				.values({
-					id: requestedId,
-					label: normalizeOptionalText(input.label),
-					position: nextPosition,
-					projectId: projectRowId,
-				})
-				.execute();
-		} else {
-			await tx
-				.updateTable("question")
-				.set({ id: requestedId, label: normalizeOptionalText(input.label) })
-				.where("id", "=", originalId)
-				.where("question.projectId", "=", projectRowId)
-				.execute();
-		}
-
-		const persistedQuestion = await tx
-			.selectFrom("question")
-			.select(["id", "rowId"])
-			.where("id", "=", requestedId)
+		await db
+			.insertInto("question")
+			.values({
+				id: requestedId,
+				label: normalizeOptionalText(input.label),
+				position: nextPosition,
+				projectId: projectRowId,
+			})
+			.execute();
+	} else {
+		await db
+			.updateTable("question")
+			.set({ id: requestedId, label: normalizeOptionalText(input.label) })
+			.where("id", "=", originalId)
 			.where("question.projectId", "=", projectRowId)
-			.executeTakeFirstOrThrow();
+			.execute();
+	}
 
-		let existingRubricsQuery = tx
-			.selectFrom("rubric")
-			.select(["id", "type", "rowId"])
-			.where("questionId", "=", persistedQuestion.rowId);
+	const persistedQuestion = await db
+		.selectFrom("question")
+		.select(["id", "rowId"])
+		.where("id", "=", requestedId)
+		.where("question.projectId", "=", projectRowId)
+		.executeTakeFirstOrThrow();
 
-		existingRubricsQuery = existingRubricsQuery.where(
-			"rubric.projectId",
-			"=",
-			projectRowId,
-		);
+	let existingRubricsQuery = db
+		.selectFrom("rubric")
+		.select(["id", "type", "rowId"])
+		.where("questionId", "=", persistedQuestion.rowId);
 
-		const existingRubrics = await existingRubricsQuery.execute();
+	existingRubricsQuery = existingRubricsQuery.where(
+		"rubric.projectId",
+		"=",
+		projectRowId,
+	);
 
-		const existingById = new Map(existingRubrics.map((row) => [row.id, row]));
-		const referencedSourceIds = new Set(
-			normalizedRubrics.map((rubric) => rubric.sourceId),
-		);
+	const existingRubrics = await existingRubricsQuery.execute();
 
-		const staleRubricIds = existingRubrics
-			.filter((rubric) => !referencedSourceIds.has(rubric.id))
-			.map((rubric) => rubric.rowId);
+	const existingById = new Map(existingRubrics.map((row) => [row.id, row]));
+	const referencedSourceIds = new Set(
+		normalizedRubrics.map((rubric) => rubric.sourceId),
+	);
 
-		if (staleRubricIds.length > 0) {
-			await tx
-				.deleteFrom("rubric")
-				.where("rowId", "in", staleRubricIds)
-				.where("rubric.projectId", "=", projectRowId)
-				.execute();
-		}
+	const staleRubricIds = existingRubrics
+		.filter((rubric) => !referencedSourceIds.has(rubric.id))
+		.map((rubric) => rubric.rowId);
 
-		for (const rubric of normalizedRubrics) {
-			const existing = existingById.get(rubric.sourceId);
+	if (staleRubricIds.length > 0) {
+		await db
+			.deleteFrom("rubric")
+			.where("rowId", "in", staleRubricIds)
+			.where("rubric.projectId", "=", projectRowId)
+			.execute();
+	}
 
-			if (existing == null) {
-				await tx
-					.insertInto("rubric")
-					.values({
-						id: rubric.id,
-						questionId: persistedQuestion.rowId,
-						position: rubric.position,
-						description: rubric.description,
-						label: rubric.label,
-						projectId: projectRowId,
-						type: rubric.type,
-					})
-					.execute();
-				continue;
-			}
+	for (const rubric of normalizedRubrics) {
+		const existing = existingById.get(rubric.sourceId);
 
-			const isTypeChanged = existing.type !== rubric.type;
-			if (isTypeChanged) {
-				await tx
-					.deleteFrom("rubric")
-					.where("rowId", "=", existing.rowId)
-					.where("rubric.projectId", "=", projectRowId)
-					.execute();
-				await tx
-					.insertInto("rubric")
-					.values({
-						id: rubric.id,
-						questionId: persistedQuestion.rowId,
-						position: rubric.position,
-						description: rubric.description,
-						label: rubric.label,
-						projectId: projectRowId,
-						type: rubric.type,
-					})
-					.execute();
-				continue;
-			}
-
-			await tx
-				.updateTable("rubric")
-				.set({
+		if (existing == null) {
+			await db
+				.insertInto("rubric")
+				.values({
 					id: rubric.id,
 					questionId: persistedQuestion.rowId,
 					position: rubric.position,
@@ -230,214 +199,260 @@ export async function saveQuestionDefinition(
 					projectId: projectRowId,
 					type: rubric.type,
 				})
+				.execute();
+			continue;
+		}
+
+		const isTypeChanged = existing.type !== rubric.type;
+		if (isTypeChanged) {
+			await db
+				.deleteFrom("rubric")
 				.where("rowId", "=", existing.rowId)
 				.where("rubric.projectId", "=", projectRowId)
 				.execute();
+			await db
+				.insertInto("rubric")
+				.values({
+					id: rubric.id,
+					questionId: persistedQuestion.rowId,
+					position: rubric.position,
+					description: rubric.description,
+					label: rubric.label,
+					projectId: projectRowId,
+					type: rubric.type,
+				})
+				.execute();
+			continue;
 		}
 
-		const rubricRows = await tx
-			.selectFrom("rubric")
-			.select(["id", "rowId"])
-			.where(
-				"id",
-				"in",
-				input.rubrics.map((rubric) => rubric.id),
-			)
-			.where("questionId", "=", persistedQuestion.rowId)
+		await db
+			.updateTable("rubric")
+			.set({
+				id: rubric.id,
+				questionId: persistedQuestion.rowId,
+				position: rubric.position,
+				description: rubric.description,
+				label: rubric.label,
+				projectId: projectRowId,
+				type: rubric.type,
+			})
+			.where("rowId", "=", existing.rowId)
 			.where("rubric.projectId", "=", projectRowId)
 			.execute();
+	}
 
-		const rubricRowIdById = new Map(
-			rubricRows.map((rubric) => [rubric.id, rubric.rowId]),
-		);
+	const rubricRows = await db
+		.selectFrom("rubric")
+		.select(["id", "rowId"])
+		.where(
+			"id",
+			"in",
+			input.rubrics.map((rubric) => rubric.id),
+		)
+		.where("questionId", "=", persistedQuestion.rowId)
+		.where("rubric.projectId", "=", projectRowId)
+		.execute();
 
-		const booleanRows = input.rubrics.flatMap((rubric) =>
-			rubric.type === "boolean"
-				? (() => {
-						const rubricRowId = rubricRowIdById.get(rubric.id);
-						if (rubricRowId == null) {
-							throw new Error(`Rubric '${rubric.id}' could not be resolved.`);
-						}
+	const rubricRowIdById = new Map(
+		rubricRows.map((rubric) => [rubric.id, rubric.rowId]),
+	);
 
-						return [
-							{
-								rubricId: rubricRowId,
-								marks: rubric.marks,
-								falseMarks: rubric.falseMarks ?? 0,
-							},
-						];
-					})()
-				: [],
-		);
-		const numericalRows = input.rubrics.flatMap((rubric) =>
-			rubric.type === "numerical"
-				? (() => {
-						const rubricRowId = rubricRowIdById.get(rubric.id);
-						if (rubricRowId == null) {
-							throw new Error(`Rubric '${rubric.id}' could not be resolved.`);
-						}
-
-						return [
-							{
-								rubricId: rubricRowId,
-								minScore: rubric.minScore,
-								maxScore: rubric.maxScore,
-								minMarks: rubric.minMarks,
-								maxMarks: rubric.maxMarks,
-								reversed: rubric.reversed,
-							},
-						];
-					})()
-				: [],
-		);
-		const ordinalSources = input.rubrics.flatMap((rubric) =>
-			rubric.type === "ordinal"
-				? (() => {
-						const rubricRowId = rubricRowIdById.get(rubric.id);
-						if (rubricRowId == null) {
-							throw new Error(`Rubric '${rubric.id}' could not be resolved.`);
-						}
-
-						return [{ rubricId: rubricRowId, marks: rubric.marks }];
-					})()
-				: [],
-		);
-
-		if (booleanRows.length > 0) {
-			await tx
-				.insertInto("booleanRubric")
-				.values(booleanRows)
-				.onConflict((conflict) =>
-					conflict
-						.column("rubricId")
-						.doUpdateSet((eb) => ({
-							marks: eb.ref("excluded.marks"),
-							falseMarks: eb.ref("excluded.falseMarks"),
-						})),
-				)
-				.execute();
-		}
-
-		if (numericalRows.length > 0) {
-			await tx
-				.insertInto("numericalRubric")
-				.values(numericalRows)
-				.onConflict((conflict) =>
-					conflict
-						.column("rubricId")
-						.doUpdateSet((eb) => ({
-							minScore: eb.ref("excluded.minScore"),
-							maxScore: eb.ref("excluded.maxScore"),
-							minMarks: eb.ref("excluded.minMarks"),
-							maxMarks: eb.ref("excluded.maxMarks"),
-							reversed: eb.ref("excluded.reversed"),
-						})),
-				)
-				.execute();
-		}
-
-		if (ordinalSources.length > 0) {
-			await tx
-				.insertInto("ordinalRubric")
-				.values(ordinalSources.map((source) => ({ rubricId: source.rubricId })))
-				.onConflict((conflict) => conflict.column("rubricId").doNothing())
-				.execute();
-
-			const ordinalRubrics = await tx
-				.selectFrom("ordinalRubric")
-				.select(["id", "rubricId"])
-				.where(
-					"rubricId",
-					"in",
-					ordinalSources.map((source) => source.rubricId),
-				)
-				.execute();
-
-			const ordinalRubricIdByRubricId = new Map(
-				ordinalRubrics.map((row) => [row.rubricId, row.id]),
-			);
-			const ordinalRubricIds = ordinalRubrics.map((row) => row.id);
-
-			const existingOrdinalValues =
-				ordinalRubricIds.length === 0
-					? []
-					: await tx
-							.selectFrom("ordinalRubricValue")
-							.select(["id", "ordinalRubricId", "label"])
-							.where("ordinalRubricId", "in", ordinalRubricIds)
-							.execute();
-
-			const validKeys = new Set(
-				ordinalSources.flatMap((source) => {
-					const ordinalRubricId = ordinalRubricIdByRubricId.get(
-						source.rubricId,
-					);
-					if (ordinalRubricId == null) {
-						return [];
+	const booleanRows = input.rubrics.flatMap((rubric) =>
+		rubric.type === "boolean"
+			? (() => {
+					const rubricRowId = rubricRowIdById.get(rubric.id);
+					if (rubricRowId == null) {
+						throw new Error(`Rubric '${rubric.id}' could not be resolved.`);
 					}
 
-					return Object.keys(source.marks).map(
-						(label) => `${ordinalRubricId}::${label}`,
-					);
-				}),
-			);
+					return [
+						{
+							rubricId: rubricRowId,
+							marks: rubric.marks,
+							falseMarks: rubric.falseMarks ?? 0,
+						},
+					];
+				})()
+			: [],
+	);
+	const numericalRows = input.rubrics.flatMap((rubric) =>
+		rubric.type === "numerical"
+			? (() => {
+					const rubricRowId = rubricRowIdById.get(rubric.id);
+					if (rubricRowId == null) {
+						throw new Error(`Rubric '${rubric.id}' could not be resolved.`);
+					}
 
-			const staleIds = existingOrdinalValues
-				.filter(
-					(value) => !validKeys.has(`${value.ordinalRubricId}::${value.label}`),
-				)
-				.map((value) => value.id);
+					return [
+						{
+							rubricId: rubricRowId,
+							minScore: rubric.minScore,
+							maxScore: rubric.maxScore,
+							minMarks: rubric.minMarks,
+							maxMarks: rubric.maxMarks,
+							reversed: rubric.reversed,
+						},
+					];
+				})()
+			: [],
+	);
+	const ordinalSources = input.rubrics.flatMap((rubric) =>
+		rubric.type === "ordinal"
+			? (() => {
+					const rubricRowId = rubricRowIdById.get(rubric.id);
+					if (rubricRowId == null) {
+						throw new Error(`Rubric '${rubric.id}' could not be resolved.`);
+					}
 
-			if (staleIds.length > 0) {
-				await tx
-					.deleteFrom("ordinalRubricValue")
-					.where("id", "in", staleIds)
-					.execute();
-			}
+					return [{ rubricId: rubricRowId, marks: rubric.marks }];
+				})()
+			: [],
+	);
 
-			const ordinalValueRows = ordinalSources.flatMap((source) => {
+	if (booleanRows.length > 0) {
+		await db
+			.insertInto("booleanRubric")
+			.values(booleanRows)
+			.onConflict((conflict) =>
+				conflict
+					.column("rubricId")
+					.doUpdateSet((eb) => ({
+						marks: eb.ref("excluded.marks"),
+						falseMarks: eb.ref("excluded.falseMarks"),
+					})),
+			)
+			.execute();
+	}
+
+	if (numericalRows.length > 0) {
+		await db
+			.insertInto("numericalRubric")
+			.values(numericalRows)
+			.onConflict((conflict) =>
+				conflict
+					.column("rubricId")
+					.doUpdateSet((eb) => ({
+						minScore: eb.ref("excluded.minScore"),
+						maxScore: eb.ref("excluded.maxScore"),
+						minMarks: eb.ref("excluded.minMarks"),
+						maxMarks: eb.ref("excluded.maxMarks"),
+						reversed: eb.ref("excluded.reversed"),
+					})),
+			)
+			.execute();
+	}
+
+	if (ordinalSources.length > 0) {
+		await db
+			.insertInto("ordinalRubric")
+			.values(ordinalSources.map((source) => ({ rubricId: source.rubricId })))
+			.onConflict((conflict) => conflict.column("rubricId").doNothing())
+			.execute();
+
+		const ordinalRubrics = await db
+			.selectFrom("ordinalRubric")
+			.select(["id", "rubricId"])
+			.where(
+				"rubricId",
+				"in",
+				ordinalSources.map((source) => source.rubricId),
+			)
+			.execute();
+
+		const ordinalRubricIdByRubricId = new Map(
+			ordinalRubrics.map((row) => [row.rubricId, row.id]),
+		);
+		const ordinalRubricIds = ordinalRubrics.map((row) => row.id);
+
+		const existingOrdinalValues =
+			ordinalRubricIds.length === 0
+				? []
+				: await db
+						.selectFrom("ordinalRubricValue")
+						.select(["id", "ordinalRubricId", "label"])
+						.where("ordinalRubricId", "in", ordinalRubricIds)
+						.execute();
+
+		const validKeys = new Set(
+			ordinalSources.flatMap((source) => {
 				const ordinalRubricId = ordinalRubricIdByRubricId.get(source.rubricId);
 				if (ordinalRubricId == null) {
 					return [];
 				}
 
-				return Object.entries(source.marks).map(([label, marks]) => ({
-					ordinalRubricId,
-					label,
-					marks,
-				}));
-			});
+				return Object.keys(source.marks).map(
+					(label) => `${ordinalRubricId}::${label}`,
+				);
+			}),
+		);
 
-			if (ordinalValueRows.length > 0) {
-				await tx
-					.insertInto("ordinalRubricValue")
-					.values(ordinalValueRows)
-					.onConflict((conflict) =>
-						conflict
-							.columns(["ordinalRubricId", "label"])
-							.doUpdateSet((eb) => ({ marks: eb.ref("excluded.marks") })),
-					)
-					.execute();
-			}
+		const staleIds = existingOrdinalValues
+			.filter(
+				(value) => !validKeys.has(`${value.ordinalRubricId}::${value.label}`),
+			)
+			.map((value) => value.id);
+
+		if (staleIds.length > 0) {
+			await db
+				.deleteFrom("ordinalRubricValue")
+				.where("id", "in", staleIds)
+				.execute();
 		}
-	});
+
+		const ordinalValueRows = ordinalSources.flatMap((source) => {
+			const ordinalRubricId = ordinalRubricIdByRubricId.get(source.rubricId);
+			if (ordinalRubricId == null) {
+				return [];
+			}
+
+			return Object.entries(source.marks).map(([label, marks]) => ({
+				ordinalRubricId,
+				label,
+				marks,
+			}));
+		});
+
+		if (ordinalValueRows.length > 0) {
+			await db
+				.insertInto("ordinalRubricValue")
+				.values(ordinalValueRows)
+				.onConflict((conflict) =>
+					conflict
+						.columns(["ordinalRubricId", "label"])
+						.doUpdateSet((eb) => ({ marks: eb.ref("excluded.marks") })),
+				)
+				.execute();
+		}
+	}
+
+	return { id: requestedId, originalId };
+}
+
+export async function saveQuestionDefinition(
+	input: QuestionDefinitionInput,
+	projectId: string,
+): Promise<{ id: string }> {
+	const { id, originalId } = await db
+		.transaction()
+		.execute((tx) => saveQuestionDefinitionInDb(tx, { input, projectId }));
 
 	updateTags(
 		CACHE_TAGS.questions,
 		CACHE_TAGS.assessments,
 		CACHE_TAGS.assessmentsAll,
-		`assessments:question:${requestedId}`,
+		assessmentQuestionCacheTag(id),
 	);
-	if (originalId !== requestedId) {
-		updateTags(`assessments:question:${originalId}`);
+	if (originalId !== id) {
+		updateTags(assessmentQuestionCacheTag(originalId));
 	}
 
-	return { id: requestedId };
+	return { id };
 }
 
-export async function deleteQuestionDefinition(
-	questionId: string,
-	projectId: string,
+// `db` may be the global client or a caller-supplied transaction.
+export async function deleteQuestionDefinitionInDb(
+	db: Kysely<DB>,
+	{ questionId, projectId }: { questionId: string; projectId: string },
 ): Promise<{ deleted: boolean }> {
 	const result = await db
 		.deleteFrom("question")
@@ -452,19 +467,35 @@ export async function deleteQuestionDefinition(
 		)
 		.executeTakeFirst();
 
+	return { deleted: (result?.numDeletedRows ?? 0n) > 0n };
+}
+
+export async function deleteQuestionDefinition(
+	questionId: string,
+	projectId: string,
+): Promise<{ deleted: boolean }> {
+	const result = await deleteQuestionDefinitionInDb(db, {
+		questionId,
+		projectId,
+	});
+
 	updateTags(
 		CACHE_TAGS.questions,
 		CACHE_TAGS.assessments,
 		CACHE_TAGS.assessmentsAll,
-		`assessments:question:${questionId}`,
+		assessmentQuestionCacheTag(questionId),
 	);
 
-	return { deleted: (result?.numDeletedRows ?? 0n) > 0n };
+	return result;
 }
 
-export async function reorderQuestions(
-	updates: Array<{ id: string; position: number }>,
-	projectId: string,
+// `db` may be the global client or a caller-supplied transaction.
+export async function reorderQuestionsInDb(
+	db: Kysely<DB>,
+	{
+		updates,
+		projectId,
+	}: { updates: Array<{ id: string; position: number }>; projectId: string },
 ): Promise<void> {
 	if (updates.length === 0) return;
 
@@ -483,32 +514,40 @@ export async function reorderQuestions(
 			sql`when ${sql.ref("id")} = ${sql.lit(id)} then ${sql.lit(position)}`,
 	);
 
-	await db.transaction().execute(async (tx) => {
-		const updated = await tx
-			.updateTable("question")
-			.set({ position: sql`case ${sql.join(conditions, sql` `)} end` })
-			.where("question.id", "in", questionIds)
-			.where(
-				"question.projectId",
-				"=",
-				tx
-					.selectFrom("project")
-					.select("rowId")
-					.where("project.id", "=", projectId),
-			)
-			.returning("question.id")
-			.execute();
+	const updated = await db
+		.updateTable("question")
+		.set({ position: sql`case ${sql.join(conditions, sql` `)} end` })
+		.where("question.id", "in", questionIds)
+		.where(
+			"question.projectId",
+			"=",
+			db
+				.selectFrom("project")
+				.select("rowId")
+				.where("project.id", "=", projectId),
+		)
+		.returning("question.id")
+		.execute();
 
-		if (updated.length !== questionIds.length) {
-			const foundIds = new Set(updated.map((row) => row.id));
-			const missingIds = questionIds.filter((id) => !foundIds.has(id));
-			throw new Error(
-				`Some questions were not found in this project: ${missingIds.join(
-					", ",
-				)}.`,
-			);
-		}
-	});
+	if (updated.length !== questionIds.length) {
+		const foundIds = new Set(updated.map((row) => row.id));
+		const missingIds = questionIds.filter((id) => !foundIds.has(id));
+		throw new Error(
+			`Some questions were not found in this project: ${missingIds.join(", ")}.`,
+		);
+	}
+}
+
+export async function reorderQuestions(
+	updates: Array<{ id: string; position: number }>,
+	projectId: string,
+): Promise<void> {
+	// Nothing to reorder: skip both the transaction and the cache invalidation.
+	if (updates.length === 0) return;
+
+	await db
+		.transaction()
+		.execute((tx) => reorderQuestionsInDb(tx, { updates, projectId }));
 
 	updateTags(CACHE_TAGS.questions);
 }

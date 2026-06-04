@@ -3,14 +3,9 @@ import { expect, test, vi } from "vitest";
 import type { DB } from "#db/generated/db.ts";
 import { createTestDb } from "#test/dbIntegration.ts";
 import { createProject } from "#test/projects.ts";
+import { loadSubmissionsFromDb } from "./submissions.ts";
 
 vi.mock("server-only", () => ({}));
-
-vi.mock("next/cache", () => ({
-	cacheTag: vi.fn(),
-	cacheLife: vi.fn(),
-	updateTag: vi.fn(),
-}));
 
 async function loadProjectPublicId(
 	db: Kysely<DB>,
@@ -113,15 +108,7 @@ async function createTeamAndSubmission(
 	return String(submission.id);
 }
 
-async function loadSubmissionsWithDb(db: Kysely<DB>, projectId: string) {
-	vi.resetModules();
-	vi.doMock("#db/kysely", () => ({ db }));
-	const { loadSubmissions } = await import("./submissions.ts");
-	vi.doUnmock("#db/kysely");
-	return loadSubmissions(projectId);
-}
-
-test("loadSubmissions returns only individual submissions for the requested project when student ids collide across projects", async () => {
+test("loadSubmissionsFromDb returns only individual submissions for the requested project when student ids collide across projects", async () => {
 	await using db = await createTestDb();
 	await using projectA = await createProject(db, "Isolation Project A");
 	await using projectB = await createProject(db, "Isolation Project B");
@@ -139,8 +126,14 @@ test("loadSubmissions returns only individual submissions for the requested proj
 		sharedStudentId,
 	);
 
-	const submissionsA = await loadSubmissionsWithDb(db, projectA.id);
-	const submissionsB = await loadSubmissionsWithDb(db, projectB.id);
+	const { submissions: submissionsA } = await loadSubmissionsFromDb(
+		db,
+		projectA.id,
+	);
+	const { submissions: submissionsB } = await loadSubmissionsFromDb(
+		db,
+		projectB.id,
+	);
 
 	expect(submissionsA).toHaveLength(1);
 	expect(submissionsB).toHaveLength(1);
@@ -150,8 +143,8 @@ test("loadSubmissions returns only individual submissions for the requested proj
 
 	if (subA == null || subB == null) throw new Error("Expected submissions");
 
-	expect(subA.id).toBe(submissionAId);
-	expect(subB.id).toBe(submissionBId);
+	expect(String(subA.id)).toBe(submissionAId);
+	expect(String(subB.id)).toBe(submissionBId);
 	expect(subA.id).not.toBe(subB.id);
 });
 
@@ -175,8 +168,14 @@ test("loadSubmissions returns only team submissions for the requested project wh
 		"team-member-proj-b",
 	);
 
-	const submissionsA = await loadSubmissionsWithDb(db, projectA.id);
-	const submissionsB = await loadSubmissionsWithDb(db, projectB.id);
+	const { submissions: submissionsA } = await loadSubmissionsFromDb(
+		db,
+		projectA.id,
+	);
+	const { submissions: submissionsB } = await loadSubmissionsFromDb(
+		db,
+		projectB.id,
+	);
 
 	expect(submissionsA).toHaveLength(1);
 	expect(submissionsB).toHaveLength(1);
@@ -187,8 +186,8 @@ test("loadSubmissions returns only team submissions for the requested project wh
 	if (subA == null || subB == null) throw new Error("Expected submissions");
 
 	expect(subA.type).toBe("team");
-	expect(subA.id).toBe(submissionAId);
+	expect(String(subA.id)).toBe(submissionAId);
 	expect(subB.type).toBe("team");
-	expect(subB.id).toBe(submissionBId);
+	expect(String(subB.id)).toBe(submissionBId);
 	expect(subA.id).not.toBe(subB.id);
 });

@@ -1,7 +1,9 @@
 import "server-only";
+import type { Kysely } from "kysely";
+import type { DB } from "#db/generated/db.ts";
 import { db } from "#db/kysely.ts";
 import {
-	loadQuestionsFromDb,
+	loadQuestionRowsFromDb,
 	resolveProjectRowId,
 	toRubric,
 } from "./questions.ts";
@@ -45,11 +47,13 @@ export type QuestionDefinitionInput = {
 	rubrics: RubricDefinitionInput[];
 };
 
-export async function loadQuestionDefinitions(
+// `db` may be the global client or a caller-supplied transaction.
+export async function loadQuestionDefinitionsFromDb(
+	db: Kysely<DB>,
 	projectId: string,
 ): Promise<QuestionDefinition[]> {
 	const [rows, counts] = await Promise.all([
-		loadQuestionsFromDb(projectId),
+		loadQuestionRowsFromDb(db, projectId),
 		db
 			.selectFrom("assessment")
 			.innerJoin("question", "question.rowId", "assessment.questionId")
@@ -78,11 +82,18 @@ export async function loadQuestionDefinitions(
 	}));
 }
 
-export async function getQuestionDefinitionDeleteImpact(
-	questionId: string,
+export async function loadQuestionDefinitions(
 	projectId: string,
+): Promise<QuestionDefinition[]> {
+	return loadQuestionDefinitionsFromDb(db, projectId);
+}
+
+// `db` may be the global client or a caller-supplied transaction.
+export async function getQuestionDefinitionDeleteImpactFromDb(
+	db: Kysely<DB>,
+	{ questionId, projectId }: { questionId: string; projectId: string },
 ): Promise<{ assessmentCount: number }> {
-	const projectRowId = await resolveProjectRowId(projectId);
+	const projectRowId = await resolveProjectRowId(db, projectId);
 
 	const row = await db
 		.selectFrom("assessment")
@@ -95,4 +106,11 @@ export async function getQuestionDefinitionDeleteImpact(
 		.executeTakeFirst();
 
 	return { assessmentCount: Number(row?.assessmentCount ?? 0) };
+}
+
+export async function getQuestionDefinitionDeleteImpact(
+	questionId: string,
+	projectId: string,
+): Promise<{ assessmentCount: number }> {
+	return getQuestionDefinitionDeleteImpactFromDb(db, { questionId, projectId });
 }

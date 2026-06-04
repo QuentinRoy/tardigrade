@@ -3,7 +3,7 @@ import { cacheLife } from "next/cache";
 import { CACHE_TAGS, cacheTags } from "#db/cacheTags.ts";
 import { db } from "#db/kysely.ts";
 import { loadSubmissions } from "#submissions/submissions.ts";
-import { loadQuestions } from "../questions/questions.ts";
+import { loadQuestionGrid } from "../questions/questions.ts";
 import {
 	buildRubricOverviewData,
 	type RubricOverviewAssessmentRecord,
@@ -30,7 +30,7 @@ export async function loadRubricOverviewData(projectId: string) {
 
 	const [submissions, questionGrid, assessmentRecords] = await Promise.all([
 		loadSubmissions(projectId),
-		loadQuestions(projectId),
+		loadQuestionGrid(projectId),
 		assessmentQuery
 			.leftJoin(
 				"booleanRubricAssessment",

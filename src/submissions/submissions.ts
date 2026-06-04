@@ -1,5 +1,7 @@
 import "server-only";
+import type { Kysely } from "kysely";
 import { CACHE_TAGS, cacheTags } from "#db/cacheTags.ts";
+import type { DB } from "#db/generated/db.ts";
 import { db } from "#db/kysely.ts";
 import type { Submission } from "./types.ts";
 
@@ -11,10 +13,11 @@ function formatStudentName(lastName: string, firstName: string): string {
 	return `${lastName} ${firstName}`.trim();
 }
 
-async function loadSubmissionsFromDb(projectId?: string) {
-	"use cache";
-	cacheTags(CACHE_TAGS.submissions);
-
+// `db` may be the global client or a caller-supplied transaction.
+export async function loadSubmissionsFromDb(
+	db: Kysely<DB>,
+	projectId?: string,
+) {
 	let submissionsQuery = db.selectFrom("submission");
 	let teamMemberQuery = db.selectFrom("submission");
 
@@ -90,8 +93,11 @@ async function loadSubmissionsFromDb(projectId?: string) {
 export async function loadSubmissions(
 	projectId?: string,
 ): Promise<Submission[]> {
+	"use cache";
+	cacheTags(CACHE_TAGS.submissions);
+
 	const { submissions, teamMembersBySubmissionId } =
-		await loadSubmissionsFromDb(projectId);
+		await loadSubmissionsFromDb(db, projectId);
 
 	return submissions.map((submission) => {
 		if (submission.type === "team") {

@@ -12,7 +12,7 @@ The shipped assessment code already gestured at this with an optional `opts.db` 
 
 ## Rules
 
-1. A **DB Primitive** takes the handle as its first positional parameter, typed `Kysely<DB>`. No custom union: `Transaction<DB>` already extends `Kysely<DB>`, so `Kysely<DB>` accepts both. Domain arguments follow as a named object, per `docs/guides/typescript-api-design.md`; a single obvious argument may stay positional.
+1. A **DB Primitive** takes the executor as its first positional parameter, named `db` and typed `Kysely<DB>`. No custom union: `Transaction<DB>` already extends `Kysely<DB>`, so `Kysely<DB>` accepts both. Because the bare name `db` can read as "only the global client", each primitive carries a short comment noting that `db` may be the global client or a caller-supplied transaction. Domain arguments follow as a named object, per `docs/guides/typescript-api-design.md`; a single obvious argument may stay positional.
 2. Primitives are named with a suffix: `…FromDb` for reads, `…InDb` for writes. The bare name is reserved for the **App-Level Wrapper**.
 3. A primitive performs database work only — including any reads it needs for validation or key resolution, run on the same handle. It never opens a transaction and never invalidates cache.
 4. An **App-Level Wrapper** owns the global `db`, opens the transaction, and invalidates cache. The function that owns a transaction invalidates after the transaction commits — never inside it. Multi-step callers (imports, batch edits) compose primitives inside their own transaction and own the post-commit invalidation themselves.

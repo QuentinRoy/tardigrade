@@ -1,5 +1,7 @@
 import "server-only";
+import type { Kysely } from "kysely";
 import { assessmentCacheTag, CACHE_TAGS, cacheTags } from "#db/cacheTags.ts";
+import type { DB } from "#db/generated/db.ts";
 import { db } from "#db/kysely.ts";
 import { assertNever } from "#utils/utils.ts";
 import type { AssessmentRubricValue } from "./types.ts";
@@ -17,6 +19,15 @@ export async function loadAssessment(
 		CACHE_TAGS.assessmentsAll,
 	);
 
+	return loadAssessmentFromDb(db, submissionId, questionId);
+}
+
+// `db` may be the global client or a caller-supplied transaction.
+export async function loadAssessmentFromDb(
+	db: Kysely<DB>,
+	submissionId: string,
+	questionId: string,
+): Promise<AssessmentRubricValue[]> {
 	const assessment = await db
 		.selectFrom("assessment")
 		.innerJoin("submission", "submission.id", "assessment.submissionId")

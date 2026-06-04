@@ -1,6 +1,8 @@
 import "server-only";
+import type { Kysely } from "kysely";
 import { cacheLife } from "next/cache";
 import { CACHE_TAGS, cacheTags } from "#db/cacheTags.ts";
+import type { DB } from "#db/generated/db.ts";
 import { db } from "#db/kysely.ts";
 import type { Rubric, RubricType } from "#rubrics/types.ts";
 import type { Grid, Question } from "./types.ts";
@@ -87,7 +89,12 @@ export type QuestionRow = {
 	}[];
 };
 
-export async function resolveProjectRowId(projectId: string): Promise<number> {
+// `db` may be the global client or a caller-supplied transaction
+// (a `Transaction<DB>` is a `Kysely<DB>`), so this composes inside a caller's tx.
+export async function resolveProjectRowId(
+	db: Kysely<DB>,
+	projectId: string,
+): Promise<number> {
 	const project = await db
 		.selectFrom("project")
 		.select("rowId")
@@ -97,14 +104,12 @@ export async function resolveProjectRowId(projectId: string): Promise<number> {
 	return project.rowId;
 }
 
-export async function loadQuestionsFromDb(
+// `db` may be the global client or a caller-supplied transaction.
+export async function loadQuestionRowsFromDb(
+	db: Kysely<DB>,
 	projectId: string,
 ): Promise<QuestionRow[]> {
-	"use cache";
-	cacheTags(CACHE_TAGS.questions);
-	cacheLife({ revalidate: 60 * 60 });
-
-	const projectRowId = await resolveProjectRowId(projectId);
+	const projectRowId = await resolveProjectRowId(db, projectId);
 
 	const [questions, rubrics, booleanRubrics, numericalRubrics, ordinalMarks] =
 		await Promise.all([
@@ -237,11 +242,21 @@ export async function loadQuestionsFromDb(
 	});
 }
 
-export async function loadQuestions(projectId: string): Promise<Grid> {
+export async function loadQuestionRows(
+	projectId: string,
+): Promise<QuestionRow[]> {
+	"use cache";
+	cacheTags(CACHE_TAGS.questions);
+	cacheLife({ revalidate: 60 * 60 });
+
+	return loadQuestionRowsFromDb(db, projectId);
+}
+
+export async function loadQuestionGrid(projectId: string): Promise<Grid> {
 	"use cache";
 	cacheTags(CACHE_TAGS.questions);
 
-	const rows = await loadQuestionsFromDb(projectId);
+	const rows = await loadQuestionRows(projectId);
 
 	return Object.fromEntries(
 		rows.map((row) => [
@@ -255,7 +270,7 @@ export async function loadQuestion(
 	questionId: string,
 	projectId: string,
 ): Promise<Question | undefined> {
-	const rows = await loadQuestionsFromDb(projectId);
+	const rows = await loadQuestionRows(projectId);
 	const row = rows.find((item) => item.id === questionId);
 
 	if (row == null) {

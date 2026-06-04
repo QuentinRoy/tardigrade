@@ -1,10 +1,10 @@
 "use server";
 
 import {
+	saveAssessment as persistAssessment,
 	type SaveAssessmentParams,
-	saveAssessment as saveAssessmentInDb,
 } from "#assessments/assessmentMutations.ts";
 
 export async function saveAssessment(params: SaveAssessmentParams) {
-	return saveAssessmentInDb(params);
+	return persistAssessment(params);
 }
