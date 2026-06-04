@@ -116,7 +116,7 @@ Investigations and active plans can guide work, but they do not override higher-
   - keep useful abstractions that improve organization;
   - avoid broad refactors unrelated to the requested task.
 
-- Run the relevant checks after the implementation and simplify pass. At minimum, use `pnpm run check --fix` and `pnpm run check-types`; use `docs/reference/testing-conventions.md` to select targeted unit, integration, and Storybook tests.
+- Run repository checks after the implementation and simplify pass. Always run `pnpm run check --fix` and `pnpm run check-types`; also run the targeted unit, integration, and Storybook tests that match the files changed. Use `docs/reference/testing-conventions.md` for test-command selection.
 
 - In tests, prefer disposable fixtures with `using` or `await using` when setup and teardown should stay together. Consider adding a small disposable fixture when repeated paired setup and teardown would otherwise require hooks. Do not use `using` for resources that must stay alive across multiple `it` cases; use `beforeAll`/`afterAll` instead. See `docs/reference/testing-conventions.md`.
 
