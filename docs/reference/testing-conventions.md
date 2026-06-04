@@ -8,7 +8,7 @@ This document records project-specific testing conventions that should remain st
 
 After code changes, run repository checks and the targeted tests that match the files changed.
 
-Use these checks by default:
+Always run these checks:
 
 - `pnpm run check --fix`
 - `pnpm run check-types`
@@ -21,7 +21,7 @@ pnpm test:unit <changed-file-stem>
 
 Vitest matches by path stem. For example, `src/projects/projectPaths` runs `projectPaths.test.ts`.
 
-For changes under `src/db/`, use:
+For changes under `src/db/`, run:
 
 ```bash
 pnpm test src/db/
@@ -29,7 +29,7 @@ pnpm test src/db/
 
 `src/db/` tests are not mirrored per source file. Integration tests spin up Docker.
 
-For changed Storybook stories, use:
+For changed Storybook stories, run:
 
 ```bash
 pnpm test:storybook <changed-stories-stem>
