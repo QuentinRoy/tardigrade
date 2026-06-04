@@ -17,7 +17,7 @@ Human-readable URL segment derived from a project's name; cosmetic and may be st
 _Avoid_: project identifier, lookup key, permalink
 
 **Canonical Project URL**:
-A project URL whose **Project Slug** segment matches the project's current slug; URLs carrying a stale slug redirect to it.
+A project URL whose **Project Slug** segment matches the project's current slug. Identity always resolves from the **Project ID**, so a stale slug is corrected cosmetically in place rather than forcing a redirect.
 _Avoid_: correct URL, real URL
 
 **DB Boundary**:

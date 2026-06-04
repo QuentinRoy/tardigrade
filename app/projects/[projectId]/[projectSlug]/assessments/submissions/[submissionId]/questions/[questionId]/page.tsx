@@ -7,7 +7,6 @@ import { notFound } from "next/navigation";
 import { loadAssessment } from "#assessments/assessments.ts";
 import SubmissionAssessmentClient from "#assessments/SubmissionAssessmentClient.tsx";
 import { loadSubmissionQuestionProgress } from "#assessments/submissionProgress.ts";
-import { canonicalProjectRedirect } from "#projects/canonicalProjectRedirect.ts";
 import { projectAssessmentsPath } from "#projects/projectPaths.ts";
 import { loadProjectByPublicId } from "#projects/projects.ts";
 import { loadQuestion } from "#questions/questions.ts";
@@ -34,14 +33,7 @@ export default function ProjectQuestionSubmissionPage({
 async function ProjectQuestionSubmissionPageContent({
 	params,
 }: QuestionSubmissionPageProps) {
-	const { projectId, projectSlug, submissionId, questionId } = await params;
-	const project = await loadProjectByPublicId(projectId, { required: true });
-
-	canonicalProjectRedirect({
-		project,
-		requestedSlug: projectSlug,
-		route: { kind: "submissionQuestion", submissionId, questionId },
-	});
+	const { projectId, submissionId, questionId } = await params;
 
 	return (
 		<Container maxWidth="md" sx={{ py: 5 }}>

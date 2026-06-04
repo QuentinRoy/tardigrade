@@ -10,7 +10,6 @@ import {
 } from "@mui/material";
 import { cacheTag } from "next/cache";
 import { loadSubmissionOverviewProgress } from "#assessments/submissionProgress.ts";
-import { canonicalProjectRedirect } from "#projects/canonicalProjectRedirect.ts";
 import {
 	projectAssessmentSubmissionPath,
 	projectAssessmentSubmissionQuestionPath,
@@ -29,32 +28,19 @@ type ProjectAssessmentsPageProps = {
 export default async function ProjectAssessmentPage({
 	params,
 }: ProjectAssessmentsPageProps) {
-	const { projectId, projectSlug } = await params;
-	return (
-		<ProjectAssessmentPageContent
-			projectId={projectId}
-			projectSlug={projectSlug}
-		/>
-	);
+	const { projectId } = await params;
+	return <ProjectAssessmentPageContent projectId={projectId} />;
 }
 
 async function ProjectAssessmentPageContent({
 	projectId,
-	projectSlug,
 }: {
 	projectId: string;
-	projectSlug: string;
 }) {
 	"use cache";
 	cacheTag("assessments");
 
 	const project = await loadProjectByPublicId(projectId, { required: true });
-
-	canonicalProjectRedirect({
-		project,
-		requestedSlug: projectSlug,
-		route: { kind: "assessments" },
-	});
 
 	const [grid, submissions, progressBySubmissionId] = await Promise.all([
 		loadQuestions(project.id),

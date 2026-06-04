@@ -60,10 +60,11 @@ Open-ended audits and option analysis. Investigations may contain hypotheses and
 
 Short records of durable architecture decisions.
 
-- [0001 Centralise project slug canonicalisation](adr/0001-centralise-slug-canonicalisation.md)
+- [0001 Centralise project slug canonicalisation](adr/0001-centralise-slug-canonicalisation.md) (superseded by ADR 0005)
 - [0002 `src/db` is infrastructure; features own persistence](adr/0002-db-is-infrastructure-features-own-persistence.md)
 - [0003 Node subpath imports with mandatory `.ts` extensions](adr/0003-node-subpath-imports-and-ts-extensions.md)
 - [0004 Avoid barrel files](adr/0004-avoid-barrel-files.md)
+- [0005 Correct cosmetic project slugs client-side](adr/0005-client-side-cosmetic-slug-correction.md)
 - Add new ADRs under `docs/adr/`.
 
 ## Designs

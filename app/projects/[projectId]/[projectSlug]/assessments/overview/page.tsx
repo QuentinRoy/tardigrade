@@ -7,7 +7,6 @@ import type { ReactElement } from "react";
 import RubricAnalyticsTable from "#assessments/RubricAnalyticsTable.tsx";
 import { loadRubricOverviewData } from "#assessments/rubricOverview.ts";
 import StudentMatrix from "#assessments/StudentMatrix.tsx";
-import { canonicalProjectRedirect } from "#projects/canonicalProjectRedirect.ts";
 import { loadProjectByPublicId } from "#projects/projects.ts";
 
 function formatMarks(value: number | null): string {
@@ -53,14 +52,8 @@ export default function ProjectAssessmentsOverviewPage({
 async function ProjectAssessmentsOverviewPageContent({
 	params,
 }: ProjectAssessmentsOverviewPageProps): Promise<ReactElement> {
-	const { projectId, projectSlug } = await params;
+	const { projectId } = await params;
 	const project = await loadProjectByPublicId(projectId, { required: true });
-
-	canonicalProjectRedirect({
-		project,
-		requestedSlug: projectSlug,
-		route: { kind: "overview" },
-	});
 
 	const data = await loadRubricOverviewData(project.id);
 

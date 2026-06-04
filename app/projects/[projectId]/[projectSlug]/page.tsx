@@ -1,7 +1,6 @@
 import { Button, Container, Stack, Typography } from "@mui/material";
 import { loadGlobalAssessmentProgress } from "#assessments/assessmentsProgress.ts";
 import GlobalAssessmentSummary from "#assessments/GlobalAssessmentSummary.tsx";
-import { canonicalProjectRedirect } from "#projects/canonicalProjectRedirect.ts";
 import { projectAssessmentsPath } from "#projects/projectPaths.ts";
 import { loadProjectByPublicId } from "#projects/projects.ts";
 
@@ -12,15 +11,9 @@ type ProjectDashboardPageProps = {
 export default async function ProjectDashboardPage({
 	params,
 }: ProjectDashboardPageProps) {
-	const { projectId, projectSlug } = await params;
+	const { projectId } = await params;
 
 	const project = await loadProjectByPublicId(projectId, { required: true });
-
-	canonicalProjectRedirect({
-		project,
-		requestedSlug: projectSlug,
-		route: { kind: "dashboard" },
-	});
 
 	const progress = await loadGlobalAssessmentProgress(project.id);
 

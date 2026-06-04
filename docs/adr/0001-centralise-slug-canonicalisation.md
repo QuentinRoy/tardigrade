@@ -1,6 +1,6 @@
 # Centralise project slug canonicalisation behind a route-kind helper
 
-Status: accepted
+Status: superseded by ADR-0005
 
 Project-scoped pages carry a cosmetic **Project Slug** segment alongside the authoritative **Project ID**; when the slug is stale the page redirects to the **Canonical Project URL**. This rule was copied inline into 9 pages, and two copies had already drifted to the wrong target (the overview page redirected to the dashboard, the assessments page to the overview). We centralise the rule behind a single `canonicalProjectRedirect(project, requestedSlug, route)` helper to which each page passes only its **route kind**; the helper owns the slug compare and maps the kind to the canonical path via `projectPaths`.
 

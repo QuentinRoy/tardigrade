@@ -47,7 +47,7 @@ Resolved or largely resolved since the first audit:
 1. project identifier normalization is complete: `project.id` is the public id and `project.row_id` is the internal database key;
 2. project path helpers have moved from `routes.ts` to `projectPaths.ts`;
 3. project-scoped routes now have a layout-level existence gate;
-4. stale project-slug redirects are centralized through `canonicalProjectRedirect`;
+4. stale project-slug correction is handled client-side in the project-scoped layout via `CosmeticSlugReplacement` (ADR 0005), replacing the removed server-side `canonicalProjectRedirect`;
 5. question definition reads and mutations have been split;
 6. assessment reads and assessment writes have been split, with a transaction-friendly write API;
 7. the ADR 0002 source reorganization has landed: feature-owned persistence, read models, and feature-facing types now live in `src/projects`, `src/submissions`, `src/questions`, `src/assessments`, and `src/rubrics`; `src/db/types.ts` was deleted; `src/db` is database infrastructure only; and the historical `src/shared` bucket was renamed to a flat `src/ui` (see `plans/completed/2026-06-02-source-reorganization.md`).
@@ -155,9 +155,11 @@ For new work, do not add feature logic to `src/db`. Feature read models, write c
 
 ### Current status
 
-Mostly resolved.
+Resolved.
 
-Project path helpers have been renamed from `routes.ts` to `projectPaths.ts`. Project-scoped routes now have a layout-level existence gate, and the app shell receives the real project name instead of reconstructing it from the slug. Stale-slug redirects are centralized through `canonicalProjectRedirect`.
+Project path helpers have been renamed from `routes.ts` to `projectPaths.ts`. Project-scoped routes now have a layout-level existence gate, and the app shell receives the real project name instead of reconstructing it from the slug.
+
+The slug-canonicalization mechanism is now implemented per ADR 0005 (which supersedes ADR 0001): the project-scoped layout mounts the `CosmeticSlugReplacement` client component (Option D below), which replaces a stale slug segment in place via `usePathname()` and `window.history.replaceState()`. The server-side `canonicalProjectRedirect` helper and its per-page calls have been removed. The options analysis below is retained for context.
 
 ### Current behavior
 
@@ -171,7 +173,116 @@ The slug is derived from the project name in TypeScript. This is intentional. Th
 
 ### Remaining concern
 
-New project-scoped pages can still forget to call `canonicalProjectRedirect`. This is a convention and testability concern, not a reason to persist slugs.
+The per-page convention risk is resolved: slug correction now lives in the project-scoped layout, so new project-scoped pages inherit it automatically and cannot forget it.
+
+This also scales to other entities that gain cosmetic slug segments, such as submissions (#136). For example, future routes could become shaped roughly like:
+
+```txt
+/projects/[projectId]/[projectSlug]/assessments/submissions/[submissionId]/[submissionSlug]/...
+```
+
+In that model, each slug-bearing layer mounts its own `CosmeticSlugReplacement` against its own `id`/`slug` segment pair, so no deep page has to remember any canonicalization step.
+
+### Important constraint: slugs are cosmetic
+
+Slug handling should not be treated as route correctness. The app must resolve projects, submissions, and other entities by their authoritative ids. Slugs must not affect lookup, authorization, cache identity, or rendered data.
+
+A stale slug should therefore not produce a 404 and does not need to force a server redirect. It is an outdated readable label in the URL. Cleaning it up is useful for presentation, but the page is already correct if the id resolves the intended entity.
+
+### Options considered
+
+#### Option A: keep page-level canonicalization helpers
+
+Keep the current `canonicalProjectRedirect` design. Each project-scoped page loads the project, passes the requested slug and a route kind to the helper, and the helper redirects to the canonical path when needed.
+
+Pros:
+
+- keeps canonicalization close to the data already loaded by the page;
+- avoids Proxy and request-header plumbing;
+- uses typed route kinds and `projectPaths.ts` builders instead of string-based path manipulation;
+- has already fixed the main source of drift: duplicated redirect target construction.
+
+Cons:
+
+- new project-scoped pages can still forget to call the helper;
+- the route-kind union must grow when new project-scoped route shapes are added;
+- this becomes more awkward if other entities, such as submissions, also gain cosmetic slug segments;
+- deep pages may need to remember several canonicalization calls, for example one for the project slug and one for the submission slug;
+- server redirects add an extra request for a cosmetic URL correction.
+
+This option is acceptable while project-scoped routes remain few and only projects have cosmetic slugs. It is less attractive if submission slugs are added.
+
+#### Option B: proxy-level canonicalization
+
+Move slug canonicalization to Next Proxy. For every matching project URL, Proxy parses the relevant id and slug segments, loads the canonical slug from the database, and redirects to the same path with stale slug segments replaced.
+
+Pros:
+
+- removes the per-page convention entirely;
+- scales better to multiple cosmetic slug segments, such as project and submission slugs;
+- matches the URL semantics: ids are authoritative, slugs are cosmetic, and canonicalization replaces stale cosmetic segments while preserving the rest of the path;
+- avoids a growing route-kind enum for canonicalization;
+- keeps pages focused on rendering and domain loading.
+
+Cons:
+
+- adds a database lookup before rendering project-scoped requests;
+- the page or layout may still load the same project or submission afterward, unless additional sharing is introduced;
+- on serverless deployments, Proxy and render code may not share the same database pool or cache instance;
+- requires care with database pooling if deployed to Vercel or similar platforms;
+- uses path-segment rewriting, which is less typed than the current `projectPaths.ts`-based helper;
+- still performs a server redirect for a cosmetic URL correction.
+
+This option is the cleanest centralized server-side model if cosmetic slugs become a general routing pattern, but it may be heavier than needed while slugs remain purely cosmetic.
+
+#### Option C: Proxy passes the pathname to layouts
+
+Use Proxy only to pass the current pathname to the application, for example through an internal request header. The project layout still loads the project, compares the requested slug with the canonical slug, and redirects by replacing the stale slug segment in the full pathname.
+
+Pros:
+
+- avoids database access in Proxy;
+- keeps project loading in the normal layout or render layer;
+- removes the need for each page to reconstruct its canonical route;
+- can preserve deep paths without the layout knowing route-specific params such as `submissionId` or `questionId`.
+
+Cons:
+
+- introduces internal request-header plumbing;
+- couples layout canonicalization to Proxy behavior;
+- requires fallback behavior if the header is missing;
+- still relies on string-based path-segment replacement;
+- is unreliable as a primary mechanism during client-side navigation if the relevant layout is already mounted and reused;
+- feels more indirect than doing the redirect directly in Proxy.
+
+This option is not recommended as the primary mechanism. It tries to compensate for the fact that server layouts cannot access the current pathname, but layouts are intentionally reused across client-side navigations, so layout-level redirect logic can become stale.
+
+#### Option D: client-side cosmetic pathname replacement
+
+Stop treating stale slugs as server redirect targets. Instead, resolve and render by id, then inject a small Client Component from the relevant layout to replace stale cosmetic URL segments in the current history entry.
+
+For project routes, the project layout can load the project by id and render a client component with the canonical project slug. The client component uses `usePathname()` and `window.history.replaceState()` to replace only the cosmetic project slug segment when it differs from the canonical slug. Future submission layouts could do the same for submission slugs.
+
+Pros:
+
+- removes the per-page convention;
+- avoids Proxy;
+- avoids server redirects and extra navigation requests;
+- avoids duplicate database reads before rendering;
+- keeps canonical data loading in layouts;
+- works well with the fact that slugs are cosmetic and ids are authoritative;
+- scales to additional cosmetic slug segments by adding layout-level cosmetic replacement components;
+- uses `replaceState`, so it does not add a new browser history entry.
+
+Cons:
+
+- the initial server response is still served under the stale URL;
+- the browser may still remember a stale URL in its global history or autocomplete;
+- the cleanup depends on client JavaScript and hydration;
+- this is only acceptable while slugs remain cosmetic;
+- care is needed if several active layout components replace different slug segments in the same pathname.
+
+This option fits the current semantics best if stale slugs are only an address-bar presentation issue.
 
 ### Rejected direction: store `project.slug`
 
@@ -179,15 +290,29 @@ Do not store the project slug in the database.
 
 The slug is cosmetic. The canonical project identity is the public project id. The slug exists only to make URLs and filenames more readable, and it can be derived from the project name when needed. Persisting it would make a cosmetic value look like domain state, add migration and backfill work, and force policy decisions around rename behavior that the app does not currently need.
 
+The same principle should apply to future submission slugs unless a separate investigation identifies a domain reason to persist them.
+
 ### Recommendation
 
-Keep the current model:
+Keep the current identity model:
 
 1. public project id is the canonical route identity;
 2. slug is derived from project name;
-3. `projectPaths.ts` remains the sole source of URL string construction;
-4. `canonicalProjectRedirect` remains the central stale-slug redirect helper;
-5. add tests or conventions for new project-scoped pages if missing canonicalization becomes a repeated problem.
+3. the slug is cosmetic and must not affect lookup, authorization, cache identity, or rendered data;
+4. `projectPaths.ts` remains the sole source of URL string construction.
+
+Replace server-side stale-slug redirects with layout-injected client-side cosmetic pathname replacement.
+
+The intended direction is:
+
+1. server layouts resolve entities by authoritative id;
+2. layouts pass canonical cosmetic slug values to small Client Components;
+3. those Client Components use `usePathname()` and the browser History API to replace stale slug segments in the current pathname without triggering navigation;
+4. pages no longer call slug canonicalization helpers directly.
+
+This avoids Proxy, avoids extra requests, avoids per-page redirect helpers, and keeps slug handling aligned with the fact that slugs are cosmetic. It also scales better if submissions later gain cosmetic slug segments: each slug-bearing layout can clean up its own URL segment after resolving the entity by id.
+
+This approach is only valid while slugs remain cosmetic. If a slug ever becomes semantic, for example if it affects lookup, authorization, cache identity, sharing semantics, or rendered data, canonicalization should move back to a server-side mechanism.
 
 ## Finding 2: project-scoped pages repeat route resolution
 
@@ -201,21 +326,15 @@ The original audit observed that most project-scoped pages repeated project exis
 
 The project-scoped layout now owns user-facing project existence checks. Project pages can use `loadProjectByPublicId(projectId, { required: true })` when they need project data after the layout has already gated the route.
 
-Slug redirect logic is no longer hand-written in each page. Pages declare a route kind and call `canonicalProjectRedirect`, which maps the route kind to the corresponding `projectPaths.ts` builder.
+Slug correction is no longer page-level at all. The project-scoped layout mounts the `CosmeticSlugReplacement` client component once (ADR 0005), so pages no longer declare a route kind or call any slug helper.
 
 ### Remaining concern
 
-The redirect helper is still opt-in at each page. This is probably acceptable because each page knows its full route segments, but it means a brand-new page can forget canonicalization.
+None for slug handling: because correction is owned by the layout, a brand-new project-scoped page inherits it automatically and cannot forget it.
 
 ### Recommendation
 
-Do not create a broader project route-context rewrite now. Keep this as a low-priority convention issue unless new route files repeatedly drift.
-
-Possible light follow-up:
-
-- add a checklist item for new project-scoped pages;
-- add targeted tests around canonical path builders and redirect route kinds;
-- consider a small helper or page template if more project-scoped pages are added.
+Resolved by ADR 0005. No broader project route-context rewrite is needed.
 
 ## Finding 3: submission overview assessment loading is too fragmented
 

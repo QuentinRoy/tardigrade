@@ -1,4 +1,3 @@
-import { canonicalProjectRedirect } from "#projects/canonicalProjectRedirect.ts";
 import { loadProjectByPublicId } from "#projects/projects.ts";
 import {
 	deleteQuestionAction,
@@ -15,14 +14,8 @@ type ProjectQuestionsPageProps = {
 export default async function ProjectQuestionsPage({
 	params,
 }: ProjectQuestionsPageProps) {
-	const { projectId, projectSlug } = await params;
+	const { projectId } = await params;
 	const project = await loadProjectByPublicId(projectId, { required: true });
-
-	canonicalProjectRedirect({
-		project,
-		requestedSlug: projectSlug,
-		route: { kind: "questions" },
-	});
 
 	const questions = await loadQuestionDefinitions(project.id);
 
