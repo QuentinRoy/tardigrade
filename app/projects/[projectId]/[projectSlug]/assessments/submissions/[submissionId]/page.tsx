@@ -8,7 +8,7 @@ import SubmissionOverviewAssessmentClient from "#assessments/SubmissionOverviewA
 import { loadSubmissionOverviewProgress } from "#assessments/submissionProgress.ts";
 import { projectAssessmentsPath } from "#projects/projectPaths.ts";
 import { loadProjectByPublicId } from "#projects/projects.ts";
-import { loadQuestions } from "#questions/questions.ts";
+import { loadQuestionGrid } from "#questions/questions.ts";
 import { attachAssessment } from "#rubrics/rubric.ts";
 import { getSubmissionLabel } from "#submissions/getSubmissionLabel.ts";
 import { loadSubmissions } from "#submissions/submissions.ts";
@@ -34,7 +34,7 @@ async function ProjectSubmissionPageContent({ params }: SubmissionPageProps) {
 	const [submissions, questionGrid, progressBySubmissionId] = await Promise.all(
 		[
 			loadSubmissions(project.id),
-			loadQuestions(project.id),
+			loadQuestionGrid(project.id),
 			loadSubmissionOverviewProgress(project.id),
 		],
 	);

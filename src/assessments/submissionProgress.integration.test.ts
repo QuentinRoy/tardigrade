@@ -3,14 +3,12 @@ import { expect, test, vi } from "vitest";
 import type { DB } from "#db/generated/db.ts";
 import { buildTestId, createTestDb } from "#test/dbIntegration.ts";
 import { createProject } from "#test/projects.ts";
+import {
+	loadSubmissionOverviewProgressFromDb,
+	loadSubmissionQuestionProgressFromDb,
+} from "./submissionProgress.ts";
 
 vi.mock("server-only", () => ({}));
-
-vi.mock("next/cache", () => ({
-	cacheTag: vi.fn(),
-	cacheLife: vi.fn(),
-	updateTag: vi.fn(),
-}));
 
 type ProjectFixture = {
 	questionId: string;
@@ -157,41 +155,7 @@ async function addAssessment(
 		.execute();
 }
 
-async function loadProgressWithDb(
-	db: Kysely<DB>,
-	questionId: string,
-	projectId: string,
-) {
-	vi.resetModules();
-	vi.doMock("#db/kysely", () => ({ db }));
-	vi.doMock("next/cache", () => ({
-		cacheTag: vi.fn(),
-		cacheLife: vi.fn(),
-		updateTag: vi.fn(),
-	}));
-	const { loadSubmissionQuestionProgress } = await import(
-		"./submissionProgress.ts"
-	);
-	vi.doUnmock("#db/kysely");
-	return loadSubmissionQuestionProgress(questionId, projectId);
-}
-
-async function loadOverviewProgressWithDb(db: Kysely<DB>, projectId: string) {
-	vi.resetModules();
-	vi.doMock("#db/kysely", () => ({ db }));
-	vi.doMock("next/cache", () => ({
-		cacheTag: vi.fn(),
-		cacheLife: vi.fn(),
-		updateTag: vi.fn(),
-	}));
-	const { loadSubmissionOverviewProgress } = await import(
-		"./submissionProgress.ts"
-	);
-	vi.doUnmock("#db/kysely");
-	return loadSubmissionOverviewProgress(projectId);
-}
-
-test("loadSubmissionQuestionProgress counts only assessments within the requested project when question ids collide across projects", async () => {
+test("loadSubmissionQuestionProgressFromDb counts only assessments within the requested project when question ids collide across projects", async () => {
 	await using db = await createTestDb();
 	await using projectA = await createProject(db, "Progress Isolation A");
 	await using projectB = await createProject(db, "Progress Isolation B");
@@ -228,8 +192,16 @@ test("loadSubmissionQuestionProgress counts only assessments within the requeste
 		fixtureB.rubricRowId,
 	);
 
-	const progressA = await loadProgressWithDb(db, sharedQuestionId, projectA.id);
-	const progressB = await loadProgressWithDb(db, sharedQuestionId, projectB.id);
+	const progressA = await loadSubmissionQuestionProgressFromDb(
+		db,
+		sharedQuestionId,
+		projectA.id,
+	);
+	const progressB = await loadSubmissionQuestionProgressFromDb(
+		db,
+		sharedQuestionId,
+		projectB.id,
+	);
 
 	const submissionAId = String(fixtureA.submissionId);
 	const submissionBId = String(fixtureB.submissionId);
@@ -247,7 +219,7 @@ test("loadSubmissionQuestionProgress counts only assessments within the requeste
 	expect(progressB[submissionAId]).toBeUndefined();
 });
 
-test("loadSubmissionOverviewProgress counts only questions and assessments within the requested project when question ids collide across projects", async () => {
+test("loadSubmissionOverviewProgressFromDb counts only questions and assessments within the requested project when question ids collide across projects", async () => {
 	await using db = await createTestDb();
 	await using projectA = await createProject(
 		db,
@@ -290,8 +262,8 @@ test("loadSubmissionOverviewProgress counts only questions and assessments withi
 		fixtureB.rubricRowId,
 	);
 
-	const overviewA = await loadOverviewProgressWithDb(db, projectA.id);
-	const overviewB = await loadOverviewProgressWithDb(db, projectB.id);
+	const overviewA = await loadSubmissionOverviewProgressFromDb(db, projectA.id);
+	const overviewB = await loadSubmissionOverviewProgressFromDb(db, projectB.id);
 
 	const submissionAId = String(fixtureA.submissionId);
 	const submissionBId = String(fixtureB.submissionId);

@@ -1,7 +1,9 @@
 import "server-only";
 import { snakeCase } from "change-case";
-import { saveAssessment } from "#assessments/assessmentMutations.ts";
+import { revalidateTag } from "next/cache";
+import { saveAssessmentInDb } from "#assessments/assessmentMutations.ts";
 import type { AssessmentRubricValue } from "#assessments/types.ts";
+import { CACHE_TAGS } from "#db/cacheTags.ts";
 import { db } from "#db/kysely.ts";
 import type { RubricType } from "#rubrics/types.ts";
 import type { ImportedAssessmentRow } from "./types.ts";
@@ -344,14 +346,14 @@ export async function saveAssessments(
 		throw new Error(`Assessment import errors:\n${errorMessages}`);
 	}
 
-	return db.transaction().execute(async (tx) => {
+	const result = await db.transaction().execute(async (tx) => {
 		let successCount = 0;
 
 		for (const assessment of preparedAssessments) {
-			const result = await saveAssessment(assessment, { db: tx });
+			const writeResult = await saveAssessmentInDb(tx, assessment);
 
-			if (!result.success) {
-				throw new Error(result.error);
+			if (!writeResult.success) {
+				throw new Error(writeResult.error);
 			}
 
 			successCount++;
@@ -359,4 +361,12 @@ export async function saveAssessments(
 
 		return { assessmentCount: successCount };
 	});
+
+	// The transaction owner invalidates after commit. Safe only because this saver
+	// always runs from assessmentsImportAction (request scope); revalidateTag throws
+	// outside a request.
+	revalidateTag(CACHE_TAGS.assessments, "max");
+	revalidateTag(CACHE_TAGS.assessmentsAll, "max");
+
+	return result;
 }

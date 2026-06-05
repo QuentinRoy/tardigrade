@@ -1,5 +1,5 @@
 import "server-only";
-import type { Kysely, Transaction } from "kysely";
+import type { Kysely } from "kysely";
 import {
 	assessmentCacheTag,
 	assessmentQuestionCacheTag,
@@ -21,8 +21,6 @@ export type SaveAssessmentParams = {
 	rubric: AssessmentRubricValue;
 };
 
-export type AssessmentWriteDb = Kysely<DB> | Transaction<DB>;
-
 const assessmentErrors = {
 	contextMissing:
 		"We couldn't match this grade to the selected student work. Reload and try again. If this keeps happening, report this issue.",
@@ -37,15 +35,15 @@ const assessmentErrors = {
 		"This score range is currently unavailable. Reload and try again. If it still fails, report this issue.",
 };
 
-// Performs all validation + persistence against the given queryDb. No cache work.
-// The queryDb is either the standalone connection or a caller-supplied transaction.
-async function applySaveAssessment(
-	queryDb: AssessmentWriteDb,
+// Performs all validation + persistence against the given db. No cache work.
+// The db is either the global client or a caller-supplied transaction.
+export async function saveAssessmentInDb(
+	db: Kysely<DB>,
 	{ submissionId, questionId, rubric: rubricValue }: SaveAssessmentParams,
 ): Promise<SaveAssessmentResult> {
 	const rubricId = rubricValue.rubricId;
 
-	const submission = await queryDb
+	const submission = await db
 		.selectFrom("submission")
 		.where("id", "=", Number(submissionId))
 		.select(["id", "projectId"])
@@ -55,7 +53,7 @@ async function applySaveAssessment(
 		return { success: false, error: assessmentErrors.contextMissing };
 	}
 
-	const question = await queryDb
+	const question = await db
 		.selectFrom("question")
 		.where("id", "=", questionId)
 		.where("projectId", "=", submission.projectId)
@@ -66,7 +64,7 @@ async function applySaveAssessment(
 		return { success: false, error: assessmentErrors.contextMissing };
 	}
 
-	const rubric = await queryDb
+	const rubric = await db
 		.selectFrom("rubric")
 		.leftJoin("ordinalRubric", "ordinalRubric.rubricId", "rubric.rowId")
 		.leftJoin(
@@ -98,7 +96,7 @@ async function applySaveAssessment(
 		return { success: false, error: assessmentErrors.criterionChanged };
 	}
 
-	await queryDb
+	await db
 		.insertInto("assessment")
 		.values({
 			projectId: question.projectId,
@@ -110,7 +108,7 @@ async function applySaveAssessment(
 		)
 		.execute();
 
-	const existingAssessment = await queryDb
+	const existingAssessment = await db
 		.selectFrom("assessment")
 		.where("submissionId", "=", submission.id)
 		.where("questionId", "=", question.rowId)
@@ -119,7 +117,7 @@ async function applySaveAssessment(
 
 	const assessmentId = existingAssessment.id;
 
-	await queryDb
+	await db
 		.insertInto("rubricAssessment")
 		.values({ assessmentId, rubricId: rubricRowId, type: rubricValue.type })
 		.onConflict((conflict) =>
@@ -129,7 +127,7 @@ async function applySaveAssessment(
 		)
 		.execute();
 
-	const existingRubricAssessment = await queryDb
+	const existingRubricAssessment = await db
 		.selectFrom("rubricAssessment")
 		.where("assessmentId", "=", assessmentId)
 		.where("rubricId", "=", rubricRowId)
@@ -142,7 +140,7 @@ async function applySaveAssessment(
 		value: Extract<AssessmentRubricValue, { type: "boolean" }>,
 	): Promise<SaveAssessmentResult | void> {
 		await Promise.all([
-			queryDb
+			db
 				.insertInto("booleanRubricAssessment")
 				.values({ rubricAssessmentId, passed: value.passed })
 				.onConflict((conflict) =>
@@ -151,11 +149,11 @@ async function applySaveAssessment(
 						.doUpdateSet({ passed: value.passed }),
 				)
 				.execute(),
-			queryDb
+			db
 				.deleteFrom("ordinalRubricAssessment")
 				.where("rubricAssessmentId", "=", rubricAssessmentId)
 				.execute(),
-			queryDb
+			db
 				.deleteFrom("numericalRubricAssessment")
 				.where("rubricAssessmentId", "=", rubricAssessmentId)
 				.execute(),
@@ -165,7 +163,7 @@ async function applySaveAssessment(
 	async function saveOrdinalAssessment(
 		value: Extract<AssessmentRubricValue, { type: "ordinal" }>,
 	): Promise<SaveAssessmentResult | void> {
-		const ordinalLabels = await queryDb
+		const ordinalLabels = await db
 			.selectFrom("ordinalRubricValue")
 			.innerJoin(
 				"ordinalRubric",
@@ -182,7 +180,7 @@ async function applySaveAssessment(
 		}
 
 		await Promise.all([
-			queryDb
+			db
 				.insertInto("ordinalRubricAssessment")
 				.values({ rubricAssessmentId, selectedLabel: value.selectedLabel })
 				.onConflict((conflict) =>
@@ -191,11 +189,11 @@ async function applySaveAssessment(
 						.doUpdateSet({ selectedLabel: value.selectedLabel }),
 				)
 				.execute(),
-			queryDb
+			db
 				.deleteFrom("booleanRubricAssessment")
 				.where("rubricAssessmentId", "=", rubricAssessmentId)
 				.execute(),
-			queryDb
+			db
 				.deleteFrom("numericalRubricAssessment")
 				.where("rubricAssessmentId", "=", rubricAssessmentId)
 				.execute(),
@@ -210,7 +208,7 @@ async function applySaveAssessment(
 			return { success: false, error: assessmentErrors.invalidScore };
 		}
 
-		const numericalRubricData = await queryDb
+		const numericalRubricData = await db
 			.selectFrom("numericalRubric")
 			.where("rubricId", "=", rubricRowId)
 			.select(["minScore", "maxScore"])
@@ -240,18 +238,18 @@ async function applySaveAssessment(
 		}
 
 		await Promise.all([
-			queryDb
+			db
 				.insertInto("numericalRubricAssessment")
 				.values({ rubricAssessmentId, score: parsed })
 				.onConflict((conflict) =>
 					conflict.column("rubricAssessmentId").doUpdateSet({ score: parsed }),
 				)
 				.execute(),
-			queryDb
+			db
 				.deleteFrom("booleanRubricAssessment")
 				.where("rubricAssessmentId", "=", rubricAssessmentId)
 				.execute(),
-			queryDb
+			db
 				.deleteFrom("ordinalRubricAssessment")
 				.where("rubricAssessmentId", "=", rubricAssessmentId)
 				.execute(),
@@ -282,25 +280,17 @@ async function applySaveAssessment(
 	return { success: true };
 }
 
-// Saves a single assessment.
-//
-// A tx-accepting write command defers cache invalidation to the transaction
-// owner: when a caller supplies its own transaction via `opts.db` (e.g. the bulk
-// import path), this command performs NO cache work — the owner must invalidate
-// after it commits. Cache invalidation must never run inside an open transaction.
-// On the standalone interactive path we own the transaction and invalidate only
-// after it commits.
+// Saves a single assessment on the interactive path: owns the transaction and
+// invalidates cache only after it commits. Bulk callers (the import path) own
+// their own transaction and compose `saveAssessmentInDb` directly, then invalidate
+// after commit themselves. Cache invalidation must never run inside an open
+// transaction.
 export async function saveAssessment(
 	params: SaveAssessmentParams,
-	opts?: { db?: AssessmentWriteDb },
 ): Promise<SaveAssessmentResult> {
-	if (opts?.db) {
-		return applySaveAssessment(opts.db, params);
-	}
-
 	const result = await db
 		.transaction()
-		.execute((tx) => applySaveAssessment(tx, params));
+		.execute((tx) => saveAssessmentInDb(tx, params));
 
 	if (result.success) {
 		updateTags(

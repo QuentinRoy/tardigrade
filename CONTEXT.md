@@ -68,6 +68,16 @@ _Avoid_: forcing fixture consumers to handle row IDs when the public identifier 
 Boundary contract changes use hard cutover per module, not dual-accept signatures.
 _Avoid_: temporary number-or-string APIs that prolong identifier ambiguity
 
+### Persistence layer
+
+**DB Primitive**:
+A feature persistence function that performs database work only, against a required Kysely handle (the global client or a transaction). Reads use the `…FromDb` suffix, writes the `…InDb` suffix. It never opens a transaction and never invalidates cache.
+_Avoid_: repository, dao, data-access object
+
+**App-Level Wrapper**:
+The bare-named app-facing function that owns the global database handle, transaction boundaries, and cache invalidation, delegating database work to one or more **DB Primitives**. The owner of a transaction invalidates cache after it commits.
+_Avoid_: service, manager, orchestrator (as a type name)
+
 ### Question authoring
 
 **Question**:

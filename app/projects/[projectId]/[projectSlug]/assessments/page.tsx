@@ -17,7 +17,7 @@ import {
 } from "#projects/projectPaths.ts";
 import { loadProjectByPublicId } from "#projects/projects.ts";
 import QuestionList from "#questions/QuestionList.tsx";
-import { loadQuestions } from "#questions/questions.ts";
+import { loadQuestionGrid } from "#questions/questions.ts";
 import { getSubmissionLabel } from "#submissions/getSubmissionLabel.ts";
 import { loadSubmissions } from "#submissions/submissions.ts";
 
@@ -43,7 +43,7 @@ async function ProjectAssessmentPageContent({
 	const project = await loadProjectByPublicId(projectId, { required: true });
 
 	const [grid, submissions, progressBySubmissionId] = await Promise.all([
-		loadQuestions(project.id),
+		loadQuestionGrid(project.id),
 		loadSubmissions(project.id),
 		loadSubmissionOverviewProgress(project.id),
 	]);

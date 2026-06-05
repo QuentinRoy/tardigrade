@@ -2,7 +2,7 @@ import "server-only";
 import { type NextRequest, NextResponse } from "next/server";
 import { exportQuestionsToYaml } from "#export/questionsExport.ts";
 import { loadProjectByPublicId } from "#projects/projects.ts";
-import { loadQuestions } from "#questions/questions.ts";
+import { loadQuestionGrid } from "#questions/questions.ts";
 
 type RouteParams = {
 	params: Promise<{ projectId: string; projectSlug: string }>;
@@ -17,7 +17,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 	}
 
 	try {
-		const questions = await loadQuestions(project.id);
+		const questions = await loadQuestionGrid(project.id);
 		const yaml = exportQuestionsToYaml(questions);
 
 		const now = new Date();

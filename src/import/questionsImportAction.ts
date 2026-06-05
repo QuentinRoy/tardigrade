@@ -1,6 +1,5 @@
 "use server";
 
-import { revalidateTag } from "next/cache";
 import { toImportErrorState } from "./actionUtils.ts";
 import type { ImportState } from "./importState.ts";
 import { parseQuestionsYaml } from "./parseQuestions.ts";
@@ -16,10 +15,6 @@ export async function questionsImportAction(
 	try {
 		const questions = parseQuestionsYaml(questionsYaml);
 		const result = await saveQuestions(questions, projectId);
-
-		revalidateTag("questions", "max");
-		revalidateTag("assessments", "max");
-		revalidateTag("assessments:all", "max");
 
 		return {
 			status: "success",

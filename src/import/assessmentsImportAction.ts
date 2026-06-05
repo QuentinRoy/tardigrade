@@ -1,6 +1,5 @@
 "use server";
 
-import { revalidateTag } from "next/cache";
 import { toImportErrorState } from "./actionUtils.ts";
 import type { ImportState } from "./importState.ts";
 import { parseAssessmentsCsv } from "./parseAssessments.ts";
@@ -16,9 +15,6 @@ export async function assessmentsImportAction(
 	try {
 		const assessments = await parseAssessmentsCsv(assessmentsCsv);
 		const result = await saveAssessments(assessments, projectId);
-
-		revalidateTag("assessments", "max");
-		revalidateTag("assessments:all", "max");
 
 		return {
 			status: "success",

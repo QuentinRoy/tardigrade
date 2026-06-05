@@ -1,7 +1,6 @@
 import { type Kysely } from "kysely";
-import { expect, test, vi } from "vitest";
+import { beforeEach, expect, test, vi } from "vitest";
 import type {
-	AssessmentWriteDb,
 	SaveAssessmentParams,
 	SaveAssessmentResult,
 } from "#assessments/assessmentMutations.ts";
@@ -11,6 +10,12 @@ import { createProject } from "#test/projects.ts";
 import type { ImportedAssessmentRow } from "./types.ts";
 
 vi.mock("server-only", () => ({}));
+
+vi.mock("next/cache", () => ({ revalidateTag: vi.fn() }));
+
+beforeEach(() => {
+	vi.clearAllMocks();
+});
 
 async function createAssessmentFixture(
 	db: Kysely<DB>,
@@ -99,15 +104,15 @@ async function createAssessmentFixture(
 
 async function loadSaveAssessments(params: {
 	db: Kysely<DB>;
-	saveAssessmentMock?: (
+	saveAssessmentInDbMock?: (
+		db: Kysely<DB>,
 		input: SaveAssessmentParams,
-		opts?: { db?: AssessmentWriteDb },
 	) => Promise<SaveAssessmentResult>;
 }): Promise<typeof import("./saveAssessments.ts").saveAssessments> {
 	vi.resetModules();
 	vi.doMock("#db/kysely", () => ({ db: params.db }));
 
-	if (params.saveAssessmentMock) {
+	if (params.saveAssessmentInDbMock) {
 		vi.doMock("#assessments/assessmentMutations", async () => {
 			const actual = await vi.importActual<
 				typeof import("#assessments/assessmentMutations.ts")
@@ -115,11 +120,8 @@ async function loadSaveAssessments(params: {
 
 			return {
 				...actual,
-				saveAssessment: (
-					input: SaveAssessmentParams,
-					opts?: { db?: AssessmentWriteDb },
-				) =>
-					params.saveAssessmentMock?.(input, opts) ??
+				saveAssessmentInDb: (db: Kysely<DB>, input: SaveAssessmentParams) =>
+					params.saveAssessmentInDbMock?.(db, input) ??
 					Promise.resolve({ success: true }),
 			};
 		});
@@ -240,7 +242,7 @@ test("saveAssessments rolls back all writes if a later transactional write fails
 	let callCount = 0;
 	const saveAssessments = await loadSaveAssessments({
 		db,
-		saveAssessmentMock: async (input, opts) => {
+		saveAssessmentInDbMock: async (db, input) => {
 			const actual = await vi.importActual<
 				typeof import("#assessments/assessmentMutations.ts")
 			>("#assessments/assessmentMutations");
@@ -253,7 +255,7 @@ test("saveAssessments rolls back all writes if a later transactional write fails
 				};
 			}
 
-			return actual.saveAssessment(input, opts);
+			return actual.saveAssessmentInDb(db, input);
 		},
 	});
 
@@ -391,4 +393,51 @@ test("saveAssessments links assessments only to the target project even when the
 		.execute();
 
 	expect(projectBAssessments).toHaveLength(1);
+});
+
+test("saveAssessments invalidates the assessment tags after the import commits", async () => {
+	await using db = await createTestDb();
+	const saveAssessments = await loadSaveAssessments({ db });
+	const { revalidateTag } = await import("next/cache");
+
+	await using project = await createProject(db, "Import Invalidation Project");
+	const fixture = await createAssessmentFixture(db, project.rowId);
+
+	const rows: ImportedAssessmentRow[] = [
+		{
+			submission_type: "individual",
+			submitter: fixture.studentId,
+			[`${fixture.questionId}:${fixture.rubricId}`]: "true",
+		},
+	];
+
+	await saveAssessments(rows, project.id);
+
+	expect(vi.mocked(revalidateTag).mock.calls).toEqual([
+		["assessments", "max"],
+		["assessments:all", "max"],
+	]);
+});
+
+test("saveAssessments does not invalidate when the import fails", async () => {
+	await using db = await createTestDb();
+	const saveAssessments = await loadSaveAssessments({ db });
+	const { revalidateTag } = await import("next/cache");
+
+	await using project = await createProject(db, "Import Failure Project");
+	const fixture = await createAssessmentFixture(db, project.rowId);
+
+	const rows: ImportedAssessmentRow[] = [
+		{
+			submission_type: "individual",
+			submitter: fixture.studentId,
+			[`${fixture.questionId}:${fixture.rubricId}`]: "not-a-boolean",
+		},
+	];
+
+	await expect(saveAssessments(rows, project.id)).rejects.toThrow(
+		"Assessment import errors:",
+	);
+
+	expect(revalidateTag).not.toHaveBeenCalled();
 });
