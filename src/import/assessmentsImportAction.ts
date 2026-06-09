@@ -14,7 +14,7 @@ export async function assessmentsImportAction(
 
 	try {
 		const assessments = await parseAssessmentsCsv(assessmentsCsv);
-		const result = await saveAssessments(assessments, projectId);
+		const result = await saveAssessments({ rows: assessments, projectId });
 
 		return {
 			status: "success",

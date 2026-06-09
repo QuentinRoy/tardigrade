@@ -1,7 +1,6 @@
-import { type Kysely } from "kysely";
+import { updateTag } from "next/cache";
 import { beforeEach, expect, test, vi } from "vitest";
 import { CACHE_TAGS } from "#db/cacheTags.ts";
-import type { DB } from "#db/generated/db.ts";
 import { buildTestId, createTestDb } from "#test/dbIntegration.ts";
 import { createProject } from "#test/projects.ts";
 import {
@@ -11,8 +10,11 @@ import {
 	getQuestionPositions,
 } from "#test/questions.ts";
 import {
+	deleteQuestionDefinition,
 	deleteQuestionDefinitionInDb,
+	reorderQuestions,
 	reorderQuestionsInDb,
+	saveQuestionDefinition,
 	saveQuestionDefinitionInDb,
 } from "./questionDefinitionMutations.ts";
 
@@ -23,16 +25,6 @@ vi.mock("next/cache", () => ({
 	cacheLife: vi.fn(),
 	updateTag: vi.fn(),
 }));
-
-// The App-Level Wrappers own the global db + transaction + cache invalidation, so
-// their tag assertions need the global db pointed at the test db. The behavioral
-// tests below call the DB Primitives directly with the test handle and need no seam.
-async function loadQuestionDefinitionMutationsWithDb(db: Kysely<DB>) {
-	vi.resetModules();
-	using _kyselyMock = vi.doMock("#db/kysely", () => ({ db }));
-
-	return await import("./questionDefinitionMutations.ts");
-}
 
 beforeEach(() => {
 	vi.clearAllMocks();
@@ -504,27 +496,27 @@ test("reorderQuestionsInDb throws when the same id is provided more than once", 
 
 test("saveQuestionDefinition wrapper invalidates question and assessment tags after commit", async () => {
 	await using db = await createTestDb();
-	const { saveQuestionDefinition } =
-		await loadQuestionDefinitionMutationsWithDb(db);
-	const { updateTag } = await import("next/cache");
 	await using project = await createProject(db, "Save Cache Project");
 	const questionId = buildTestId("question");
 
 	await saveQuestionDefinition(
 		{
-			id: questionId,
-			label: "Cached question",
-			rubrics: [
-				{
-					id: buildTestId("rubric"),
-					type: "boolean",
-					label: "Correct",
-					marks: 2,
-					falseMarks: 0,
-				},
-			],
+			input: {
+				id: questionId,
+				label: "Cached question",
+				rubrics: [
+					{
+						id: buildTestId("rubric"),
+						type: "boolean",
+						label: "Correct",
+						marks: 2,
+						falseMarks: 0,
+					},
+				],
+			},
+			projectId: project.id,
 		},
-		project.id,
+		{ db },
 	);
 
 	const tags = vi.mocked(updateTag).mock.calls.map((call) => call[0]);
@@ -538,13 +530,13 @@ test("saveQuestionDefinition wrapper invalidates question and assessment tags af
 
 test("saveQuestionDefinition wrapper does not invalidate when persistence throws", async () => {
 	await using db = await createTestDb();
-	const { saveQuestionDefinition } =
-		await loadQuestionDefinitionMutationsWithDb(db);
-	const { updateTag } = await import("next/cache");
 	await using project = await createProject(db, "Save Cache Throw Project");
 
 	await expect(
-		saveQuestionDefinition({ id: "   ", rubrics: [] }, project.id),
+		saveQuestionDefinition(
+			{ input: { id: "   ", rubrics: [] }, projectId: project.id },
+			{ db },
+		),
 	).rejects.toThrow();
 
 	expect(updateTag).not.toHaveBeenCalled();
@@ -552,13 +544,13 @@ test("saveQuestionDefinition wrapper does not invalidate when persistence throws
 
 test("deleteQuestionDefinition wrapper invalidates question and assessment tags", async () => {
 	await using db = await createTestDb();
-	const { deleteQuestionDefinition } =
-		await loadQuestionDefinitionMutationsWithDb(db);
-	const { updateTag } = await import("next/cache");
 	await using project = await createProject(db, "Delete Cache Project");
 	const question = await createQuestion(db, project.rowId, 0);
 
-	await deleteQuestionDefinition(question.id, project.id);
+	await deleteQuestionDefinition(
+		{ questionId: question.id, projectId: project.id },
+		{ db },
+	);
 
 	const tags = vi.mocked(updateTag).mock.calls.map((call) => call[0]);
 	expect(tags).toEqual([
@@ -571,18 +563,19 @@ test("deleteQuestionDefinition wrapper invalidates question and assessment tags"
 
 test("reorderQuestions wrapper invalidates the questions tag after commit", async () => {
 	await using db = await createTestDb();
-	const { reorderQuestions } = await loadQuestionDefinitionMutationsWithDb(db);
-	const { updateTag } = await import("next/cache");
 	await using project = await createProject(db, "Reorder Cache Project");
 	const first = await createQuestion(db, project.rowId, 0);
 	const second = await createQuestion(db, project.rowId, 1);
 
 	await reorderQuestions(
-		[
-			{ id: first.id, position: 1 },
-			{ id: second.id, position: 0 },
-		],
-		project.id,
+		{
+			updates: [
+				{ id: first.id, position: 1 },
+				{ id: second.id, position: 0 },
+			],
+			projectId: project.id,
+		},
+		{ db },
 	);
 
 	const tags = vi.mocked(updateTag).mock.calls.map((call) => call[0]);

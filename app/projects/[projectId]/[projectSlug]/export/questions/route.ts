@@ -17,7 +17,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 	}
 
 	try {
-		const questions = await loadQuestionGrid(project.id);
+		const questions = await loadQuestionGrid({ projectId: project.id });
 		const yaml = exportQuestionsToYaml(questions);
 
 		const now = new Date();

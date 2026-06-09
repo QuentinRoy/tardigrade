@@ -43,9 +43,9 @@ async function ProjectAssessmentPageContent({
 	const project = await loadProjectByPublicId(projectId, { required: true });
 
 	const [grid, submissions, progressBySubmissionId] = await Promise.all([
-		loadQuestionGrid(project.id),
-		loadSubmissions(project.id),
-		loadSubmissionOverviewProgress(project.id),
+		loadQuestionGrid({ projectId: project.id }),
+		loadSubmissions({ projectId: project.id }),
+		loadSubmissionOverviewProgress({ projectId: project.id }),
 	]);
 
 	const firstSubmissionId = submissions[0]?.id;

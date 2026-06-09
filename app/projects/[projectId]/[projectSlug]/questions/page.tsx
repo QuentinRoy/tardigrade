@@ -17,7 +17,7 @@ export default async function ProjectQuestionsPage({
 	const { projectId } = await params;
 	const project = await loadProjectByPublicId(projectId, { required: true });
 
-	const questions = await loadQuestionDefinitions(project.id);
+	const questions = await loadQuestionDefinitions({ projectId: project.id });
 
 	return (
 		<QuestionsManagementClient

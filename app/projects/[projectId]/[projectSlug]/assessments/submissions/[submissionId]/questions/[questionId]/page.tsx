@@ -59,7 +59,7 @@ async function QuestionHeaderSection({
 
 	const project = await loadProjectByPublicId(projectId, { required: true });
 
-	const question = await loadQuestion(questionId, project.id);
+	const question = await loadQuestion({ questionId, projectId: project.id });
 
 	if (question == null) {
 		notFound();
@@ -109,10 +109,10 @@ async function SubmissionRubricSection({
 
 	const [question, submissions, assessments, progressBySubmissionId] =
 		await Promise.all([
-			loadQuestion(questionId, project.id),
-			loadSubmissions(project.id),
-			loadAssessment(submissionId, questionId),
-			loadSubmissionQuestionProgress(questionId, project.id),
+			loadQuestion({ questionId, projectId: project.id }),
+			loadSubmissions({ projectId: project.id }),
+			loadAssessment({ submissionId, questionId }),
+			loadSubmissionQuestionProgress({ questionId, projectId: project.id }),
 		]);
 	const hasSubmission = submissions.some(
 		(submission) => submission.id === submissionId,

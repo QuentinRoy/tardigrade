@@ -29,8 +29,8 @@ export async function loadRubricOverviewData(projectId: string) {
 		);
 
 	const [submissions, questionGrid, assessmentRecords] = await Promise.all([
-		loadSubmissions(projectId),
-		loadQuestionGrid(projectId),
+		loadSubmissions({ projectId }),
+		loadQuestionGrid({ projectId }),
 		assessmentQuery
 			.leftJoin(
 				"booleanRubricAssessment",

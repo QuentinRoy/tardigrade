@@ -7,7 +7,7 @@ import {
 	updateTags,
 } from "#db/cacheTags.ts";
 import type { DB } from "#db/generated/db.ts";
-import { db } from "#db/kysely.ts";
+import { db as defaultDb } from "#db/kysely.ts";
 import { assertNever } from "#utils/utils.ts";
 import type { AssessmentRubricValue } from "./types.ts";
 
@@ -287,6 +287,7 @@ export async function saveAssessmentInDb(
 // transaction.
 export async function saveAssessment(
 	params: SaveAssessmentParams,
+	{ db = defaultDb }: { db?: Kysely<DB> } = {},
 ): Promise<SaveAssessmentResult> {
 	const result = await db
 		.transaction()

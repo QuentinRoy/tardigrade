@@ -7,15 +7,36 @@ import {
 	cacheTags,
 } from "#db/cacheTags.ts";
 import type { DB } from "#db/generated/db.ts";
-import { db } from "#db/kysely.ts";
+import { db as defaultDb } from "#db/kysely.ts";
 
 export type SubmissionProgressMetric = { completed: number; total: number };
+
+// A question-scoped tag so that saving a rubric for question Q only invalidates
+// the progress cache for Q, not for every other question. "assessments:all" is
+// busted only by bulk imports, not by individual saves.
+export function submissionQuestionProgressCacheTags(
+	questionId: string,
+): string[] {
+	return [
+		CACHE_TAGS.submissions,
+		CACHE_TAGS.questions,
+		assessmentQuestionCacheTag(questionId),
+		CACHE_TAGS.assessmentsAll,
+		`questions:${questionId}`,
+	];
+}
+
+export function submissionOverviewProgressCacheTags(): string[] {
+	return [CACHE_TAGS.submissions, CACHE_TAGS.questions, CACHE_TAGS.assessments];
+}
 
 // `db` may be the global client or a caller-supplied transaction.
 export async function loadSubmissionQuestionProgressFromDb(
 	db: Kysely<DB>,
-	questionId: string,
-	projectId?: string,
+	{
+		questionId,
+		projectId,
+	}: { questionId: string; projectId?: string | undefined },
 ): Promise<Record<string, SubmissionProgressMetric>> {
 	let submissionsQuery = db.selectFrom("submission");
 	let rubricCountQuery = db.selectFrom("rubric");
@@ -89,28 +110,20 @@ export async function loadSubmissionQuestionProgressFromDb(
 }
 
 export async function loadSubmissionQuestionProgress(
-	questionId: string,
-	projectId?: string,
+	{ questionId, projectId }: { questionId: string; projectId?: string },
+	{ db = defaultDb }: { db?: Kysely<DB> } = {},
 ): Promise<Record<string, SubmissionProgressMetric>> {
 	"use cache";
-	cacheTags(CACHE_TAGS.submissions, CACHE_TAGS.questions);
-	// Use a question-scoped tag so that saving a rubric for question Q only
-	// invalidates the progress cache for Q, not for every other question.
-	// "assessments:all" is busted only by bulk imports, not by individual saves.
-	cacheTags(
-		assessmentQuestionCacheTag(questionId),
-		CACHE_TAGS.assessmentsAll,
-		`questions:${questionId}`,
-	);
+	cacheTags(...submissionQuestionProgressCacheTags(questionId));
 	cacheLife({ revalidate: 60 });
 
-	return loadSubmissionQuestionProgressFromDb(db, questionId, projectId);
+	return loadSubmissionQuestionProgressFromDb(db, { questionId, projectId });
 }
 
 // `db` may be the global client or a caller-supplied transaction.
 export async function loadSubmissionOverviewProgressFromDb(
 	db: Kysely<DB>,
-	projectId?: string,
+	{ projectId }: { projectId?: string | undefined } = {},
 ): Promise<Record<string, SubmissionProgressMetric>> {
 	let submissionsQuery = db.selectFrom("submission");
 	let questionsQuery = db.selectFrom("question");
@@ -211,15 +224,12 @@ export async function loadSubmissionOverviewProgressFromDb(
 }
 
 export async function loadSubmissionOverviewProgress(
-	projectId?: string,
+	{ projectId }: { projectId?: string } = {},
+	{ db = defaultDb }: { db?: Kysely<DB> } = {},
 ): Promise<Record<string, SubmissionProgressMetric>> {
 	"use cache";
-	cacheTags(
-		CACHE_TAGS.submissions,
-		CACHE_TAGS.questions,
-		CACHE_TAGS.assessments,
-	);
+	cacheTags(...submissionOverviewProgressCacheTags());
 	cacheLife({ revalidate: 60 });
 
-	return loadSubmissionOverviewProgressFromDb(db, projectId);
+	return loadSubmissionOverviewProgressFromDb(db, { projectId });
 }

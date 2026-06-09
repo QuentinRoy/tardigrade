@@ -14,7 +14,7 @@ export async function questionsImportAction(
 
 	try {
 		const questions = parseQuestionsYaml(questionsYaml);
-		const result = await saveQuestions(questions, projectId);
+		const result = await saveQuestions({ questions, projectId });
 
 		return {
 			status: "success",

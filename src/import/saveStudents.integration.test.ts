@@ -1,9 +1,8 @@
-import { type Kysely } from "kysely";
+import { revalidateTag } from "next/cache";
 import { beforeEach, expect, test, vi } from "vitest";
-import type { DB } from "#db/generated/db.ts";
 import { createTestDb } from "#test/dbIntegration.ts";
 import { createProject } from "#test/projects.ts";
-import { saveStudentsInDb } from "./saveStudents.ts";
+import { saveStudents, saveStudentsInDb } from "./saveStudents.ts";
 import type { NormalizedImportedSubmission } from "./types.ts";
 
 vi.mock("server-only", () => ({}));
@@ -13,15 +12,6 @@ vi.mock("next/cache", () => ({ revalidateTag: vi.fn() }));
 beforeEach(() => {
 	vi.clearAllMocks();
 });
-
-// saveStudents owns the global db + transaction + cache; this thin seam points the
-// global db at the test db so the wrapper's invalidation can be asserted.
-async function loadSaveStudentsWrapperWithDb(db: Kysely<DB>) {
-	vi.resetModules();
-	using _kyselyMock = vi.doMock("#db/kysely", () => ({ db }));
-
-	return await import("./saveStudents.ts");
-}
 
 function makeSubmissions(
 	sharedStudentId: string,
@@ -127,16 +117,17 @@ test("saveStudentsInDb keeps imported student ids and team names isolated per pr
 
 test("saveStudents wrapper invalidates submission and assessment tags after the import commits", async () => {
 	await using db = await createTestDb();
-	const { saveStudents } = await loadSaveStudentsWrapperWithDb(db);
-	const { revalidateTag } = await import("next/cache");
 	await using project = await createProject(
 		db,
 		"Import Students Cache Project",
 	);
 
 	await saveStudents(
-		makeSubmissions("student-cache", "Team Cache"),
-		project.id,
+		{
+			submissions: makeSubmissions("student-cache", "Team Cache"),
+			projectId: project.id,
+		},
+		{ db },
 	);
 
 	expect(vi.mocked(revalidateTag).mock.calls).toEqual([

@@ -2,31 +2,37 @@ import "server-only";
 import type { Kysely } from "kysely";
 import { assessmentCacheTag, CACHE_TAGS, cacheTags } from "#db/cacheTags.ts";
 import type { DB } from "#db/generated/db.ts";
-import { db } from "#db/kysely.ts";
+import { db as defaultDb } from "#db/kysely.ts";
 import { assertNever } from "#utils/utils.ts";
 import type { AssessmentRubricValue } from "./types.ts";
 
-// Returns typed rubric values for a submission/question assessment.
-export async function loadAssessment(
+// The granular tag refreshes on individual saves; "assessments:all" refreshes
+// on bulk imports, which only bust the coarse tag (see submissionProgress.ts).
+export function loadAssessmentCacheTags(
 	submissionId: string,
 	questionId: string,
-): Promise<AssessmentRubricValue[]> {
-	"use cache";
-	// The granular tag refreshes on individual saves; "assessments:all" refreshes
-	// on bulk imports, which only bust the coarse tag (see src/db/submissionProgress.ts).
-	cacheTags(
+): string[] {
+	return [
 		assessmentCacheTag(submissionId, questionId),
 		CACHE_TAGS.assessmentsAll,
-	);
+	];
+}
 
-	return loadAssessmentFromDb(db, submissionId, questionId);
+// Returns typed rubric values for a submission/question assessment.
+export async function loadAssessment(
+	{ submissionId, questionId }: { submissionId: string; questionId: string },
+	{ db = defaultDb }: { db?: Kysely<DB> } = {},
+): Promise<AssessmentRubricValue[]> {
+	"use cache";
+	cacheTags(...loadAssessmentCacheTags(submissionId, questionId));
+
+	return loadAssessmentFromDb(db, { submissionId, questionId });
 }
 
 // `db` may be the global client or a caller-supplied transaction.
 export async function loadAssessmentFromDb(
 	db: Kysely<DB>,
-	submissionId: string,
-	questionId: string,
+	{ submissionId, questionId }: { submissionId: string; questionId: string },
 ): Promise<AssessmentRubricValue[]> {
 	const assessment = await db
 		.selectFrom("assessment")

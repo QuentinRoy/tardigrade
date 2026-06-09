@@ -1,10 +1,9 @@
-import { type Kysely } from "kysely";
+import { updateTag } from "next/cache";
 import { beforeEach, expect, test, vi } from "vitest";
-import type { DB } from "#db/generated/db.ts";
 import { createAssessmentFixture } from "#test/assessments.ts";
 import { buildTestId, createTestDb } from "#test/dbIntegration.ts";
 import { createProject } from "#test/projects.ts";
-import { saveAssessmentInDb } from "./assessmentMutations.ts";
+import { saveAssessment, saveAssessmentInDb } from "./assessmentMutations.ts";
 import { loadAssessmentFromDb } from "./assessments.ts";
 
 vi.mock("server-only", () => ({}));
@@ -14,15 +13,6 @@ vi.mock("next/cache", () => ({ cacheTag: vi.fn(), updateTag: vi.fn() }));
 beforeEach(() => {
 	vi.clearAllMocks();
 });
-
-// saveAssessment owns the global db + transaction + cache; this thin seam points the
-// global db at the test db so the wrapper's invalidation can be asserted.
-async function loadSaveAssessmentWrapperWithDb(db: Kysely<DB>) {
-	vi.resetModules();
-	using _kyselyMock = vi.doMock("#db/kysely", () => ({ db }));
-
-	return await import("./assessmentMutations.ts");
-}
 
 test("saveAssessmentInDb round-trips boolean, ordinal and numerical assessments", async () => {
 	await using db = await createTestDb();
@@ -65,11 +55,10 @@ test("saveAssessmentInDb round-trips boolean, ordinal and numerical assessments"
 		{ success: true },
 	]);
 
-	const loaded = await loadAssessmentFromDb(
-		db,
-		fixture.submissionId,
-		fixture.questionId,
-	);
+	const loaded = await loadAssessmentFromDb(db, {
+		submissionId: fixture.submissionId,
+		questionId: fixture.questionId,
+	});
 	const byRubricId = new Map(loaded.map((value) => [value.rubricId, value]));
 
 	expect(byRubricId.get(fixture.rubricIds.boolean)).toEqual({
@@ -177,20 +166,18 @@ test("saveAssessmentInDb saves in the correct project when question and rubric i
 
 	expect(result).toEqual({ success: true });
 
-	const projectBAssessment = await loadAssessmentFromDb(
-		db,
-		fixtureB.submissionId,
-		fixtureB.questionId,
-	);
+	const projectBAssessment = await loadAssessmentFromDb(db, {
+		submissionId: fixtureB.submissionId,
+		questionId: fixtureB.questionId,
+	});
 	expect(projectBAssessment).toEqual([
 		{ rubricId: fixtureB.rubricIds.boolean, type: "boolean", passed: true },
 	]);
 
-	const projectAAssessment = await loadAssessmentFromDb(
-		db,
-		fixtureA.submissionId,
-		fixtureA.questionId,
-	);
+	const projectAAssessment = await loadAssessmentFromDb(db, {
+		submissionId: fixtureA.submissionId,
+		questionId: fixtureA.questionId,
+	});
 	expect(projectAAssessment).toEqual([]);
 });
 
@@ -227,23 +214,24 @@ test("saveAssessmentInDb rejects cross-project submission and question combinati
 
 test("saveAssessment wrapper invalidates the granular, coarse and question tags on success", async () => {
 	await using db = await createTestDb();
-	const { saveAssessment } = await loadSaveAssessmentWrapperWithDb(db);
-	const { updateTag } = await import("next/cache");
 	await using project = await createProject(
 		db,
 		"Assessment Save Cache Project",
 	);
 	const fixture = await createAssessmentFixture(db, project.id);
 
-	const result = await saveAssessment({
-		submissionId: fixture.submissionId,
-		questionId: fixture.questionId,
-		rubric: {
-			rubricId: fixture.rubricIds.boolean,
-			type: "boolean",
-			passed: true,
+	const result = await saveAssessment(
+		{
+			submissionId: fixture.submissionId,
+			questionId: fixture.questionId,
+			rubric: {
+				rubricId: fixture.rubricIds.boolean,
+				type: "boolean",
+				passed: true,
+			},
 		},
-	});
+		{ db },
+	);
 
 	expect(result).toEqual({ success: true });
 
@@ -257,23 +245,24 @@ test("saveAssessment wrapper invalidates the granular, coarse and question tags 
 
 test("saveAssessment wrapper does not invalidate when the save fails validation", async () => {
 	await using db = await createTestDb();
-	const { saveAssessment } = await loadSaveAssessmentWrapperWithDb(db);
-	const { updateTag } = await import("next/cache");
 	await using project = await createProject(
 		db,
 		"Assessment Save Cache Fail Project",
 	);
 	const fixture = await createAssessmentFixture(db, project.id);
 
-	const result = await saveAssessment({
-		submissionId: fixture.submissionId,
-		questionId: fixture.questionId,
-		rubric: {
-			rubricId: fixture.rubricIds.ordinal,
-			type: "ordinal",
-			selectedLabel: "Z",
+	const result = await saveAssessment(
+		{
+			submissionId: fixture.submissionId,
+			questionId: fixture.questionId,
+			rubric: {
+				rubricId: fixture.rubricIds.ordinal,
+				type: "ordinal",
+				selectedLabel: "Z",
+			},
 		},
-	});
+		{ db },
+	);
 
 	expect(result.success).toBe(false);
 	expect(updateTag).not.toHaveBeenCalled();

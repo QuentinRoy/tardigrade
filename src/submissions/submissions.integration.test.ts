@@ -1,11 +1,22 @@
 import type { Kysely } from "kysely";
-import { expect, test, vi } from "vitest";
+import { cacheTag } from "next/cache";
+import { beforeEach, expect, test, vi } from "vitest";
 import type { DB } from "#db/generated/db.ts";
 import { createTestDb } from "#test/dbIntegration.ts";
 import { createProject } from "#test/projects.ts";
-import { loadSubmissionsFromDb } from "./submissions.ts";
+import {
+	loadSubmissions,
+	loadSubmissionsFromDb,
+	submissionsCacheTags,
+} from "./submissions.ts";
 
 vi.mock("server-only", () => ({}));
+
+vi.mock("next/cache", () => ({ cacheTag: vi.fn(), cacheLife: vi.fn() }));
+
+beforeEach(() => {
+	vi.clearAllMocks();
+});
 
 async function loadProjectPublicId(
 	db: Kysely<DB>,
@@ -126,14 +137,12 @@ test("loadSubmissionsFromDb returns only individual submissions for the requeste
 		sharedStudentId,
 	);
 
-	const { submissions: submissionsA } = await loadSubmissionsFromDb(
-		db,
-		projectA.id,
-	);
-	const { submissions: submissionsB } = await loadSubmissionsFromDb(
-		db,
-		projectB.id,
-	);
+	const { submissions: submissionsA } = await loadSubmissionsFromDb(db, {
+		projectId: projectA.id,
+	});
+	const { submissions: submissionsB } = await loadSubmissionsFromDb(db, {
+		projectId: projectB.id,
+	});
 
 	expect(submissionsA).toHaveLength(1);
 	expect(submissionsB).toHaveLength(1);
@@ -168,14 +177,12 @@ test("loadSubmissions returns only team submissions for the requested project wh
 		"team-member-proj-b",
 	);
 
-	const { submissions: submissionsA } = await loadSubmissionsFromDb(
-		db,
-		projectA.id,
-	);
-	const { submissions: submissionsB } = await loadSubmissionsFromDb(
-		db,
-		projectB.id,
-	);
+	const { submissions: submissionsA } = await loadSubmissionsFromDb(db, {
+		projectId: projectA.id,
+	});
+	const { submissions: submissionsB } = await loadSubmissionsFromDb(db, {
+		projectId: projectB.id,
+	});
 
 	expect(submissionsA).toHaveLength(1);
 	expect(submissionsB).toHaveLength(1);
@@ -190,4 +197,23 @@ test("loadSubmissions returns only team submissions for the requested project wh
 	expect(subB.type).toBe("team");
 	expect(String(subB.id)).toBe(submissionBId);
 	expect(subA.id).not.toBe(subB.id);
+});
+
+test("loadSubmissions wrapper delegates to its primitive and declares its cache tags", async () => {
+	await using db = await createTestDb();
+	await using project = await createProject(db, "Submissions Wrapper Project");
+	const submissionId = await createStudentAndSubmission(
+		db,
+		project.id,
+		"wrapper-student-001",
+	);
+
+	const submissions = await loadSubmissions({ projectId: project.id }, { db });
+
+	expect(submissions.map((submission) => submission.id)).toEqual([
+		submissionId,
+	]);
+
+	const declaredTags = vi.mocked(cacheTag).mock.calls.map((call) => call[0]);
+	expect(declaredTags).toEqual(submissionsCacheTags());
 });

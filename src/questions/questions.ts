@@ -3,7 +3,7 @@ import type { Kysely } from "kysely";
 import { cacheLife } from "next/cache";
 import { CACHE_TAGS, cacheTags } from "#db/cacheTags.ts";
 import type { DB } from "#db/generated/db.ts";
-import { db } from "#db/kysely.ts";
+import { db as defaultDb } from "#db/kysely.ts";
 import type { Rubric, RubricType } from "#rubrics/types.ts";
 import type { Grid, Question } from "./types.ts";
 
@@ -107,7 +107,7 @@ export async function resolveProjectRowId(
 // `db` may be the global client or a caller-supplied transaction.
 export async function loadQuestionRowsFromDb(
 	db: Kysely<DB>,
-	projectId: string,
+	{ projectId }: { projectId: string },
 ): Promise<QuestionRow[]> {
 	const projectRowId = await resolveProjectRowId(db, projectId);
 
@@ -242,21 +242,31 @@ export async function loadQuestionRowsFromDb(
 	});
 }
 
-export async function loadQuestionRows(
-	projectId: string,
-): Promise<QuestionRow[]> {
-	"use cache";
-	cacheTags(CACHE_TAGS.questions);
-	cacheLife({ revalidate: 60 * 60 });
-
-	return loadQuestionRowsFromDb(db, projectId);
+export function questionCacheTags(): string[] {
+	return [CACHE_TAGS.questions];
 }
 
-export async function loadQuestionGrid(projectId: string): Promise<Grid> {
+export async function loadQuestionRows(
+	{ projectId }: { projectId: string },
+	{ db = defaultDb }: { db?: Kysely<DB> } = {},
+): Promise<QuestionRow[]> {
 	"use cache";
-	cacheTags(CACHE_TAGS.questions);
+	cacheTags(...questionCacheTags());
+	cacheLife({ revalidate: 60 * 60 });
 
-	const rows = await loadQuestionRows(projectId);
+	return loadQuestionRowsFromDb(db, { projectId });
+}
+
+export async function loadQuestionGrid(
+	{ projectId }: { projectId: string },
+	{ db = defaultDb }: { db?: Kysely<DB> } = {},
+): Promise<Grid> {
+	"use cache";
+	cacheTags(...questionCacheTags());
+
+	// Compose the primitive, not the cached `loadQuestionRows`, so the seam never
+	// passes a handle into a `"use cache"` function (see ADR 0007 rule 6).
+	const rows = await loadQuestionRowsFromDb(db, { projectId });
 
 	return Object.fromEntries(
 		rows.map((row) => [
@@ -266,11 +276,14 @@ export async function loadQuestionGrid(projectId: string): Promise<Grid> {
 	);
 }
 
-export async function loadQuestion(
-	questionId: string,
-	projectId: string,
-): Promise<Question | undefined> {
-	const rows = await loadQuestionRows(projectId);
+export async function loadQuestion({
+	projectId,
+	questionId,
+}: {
+	projectId: string;
+	questionId: string;
+}): Promise<Question | undefined> {
+	const rows = await loadQuestionRows({ projectId });
 	const row = rows.find((item) => item.id === questionId);
 
 	if (row == null) {

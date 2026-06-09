@@ -3,7 +3,7 @@ import type { Kysely } from "kysely";
 import { revalidateTag } from "next/cache";
 import { CACHE_TAGS } from "#db/cacheTags.ts";
 import type { DB } from "#db/generated/db.ts";
-import { db } from "#db/kysely.ts";
+import { db as defaultDb } from "#db/kysely.ts";
 import type { ImportedQuestions } from "./types.ts";
 
 // `db` may be the global client or a caller-supplied transaction; the import saver
@@ -368,8 +368,8 @@ export async function saveQuestionsInDb(
 }
 
 export async function saveQuestions(
-	questions: ImportedQuestions,
-	projectId: string,
+	{ questions, projectId }: { questions: ImportedQuestions; projectId: string },
+	{ db = defaultDb }: { db?: Kysely<DB> } = {},
 ): Promise<{ questionCount: number; rubricCount: number }> {
 	const result = await db
 		.transaction()

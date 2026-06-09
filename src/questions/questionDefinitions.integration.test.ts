@@ -6,7 +6,9 @@ import {
 	createQuestion,
 } from "#test/questions.ts";
 import {
+	getQuestionDefinitionDeleteImpact,
 	getQuestionDefinitionDeleteImpactFromDb,
+	loadQuestionDefinitions,
 	loadQuestionDefinitionsFromDb,
 } from "./questionDefinitions.ts";
 
@@ -22,7 +24,9 @@ test("loadQuestionDefinitionsFromDb returns scoped definitions with assessment c
 	const fixture = await createAssessedBooleanQuestionFixture(db, project.rowId);
 	await createAssessedBooleanQuestionFixture(db, otherProject.rowId);
 
-	const definitions = await loadQuestionDefinitionsFromDb(db, project.id);
+	const definitions = await loadQuestionDefinitionsFromDb(db, {
+		projectId: project.id,
+	});
 
 	expect(definitions).toEqual([
 		{
@@ -54,7 +58,9 @@ test("loadQuestionDefinitionsFromDb returns zero assessment count for unassessed
 	);
 	const question = await createQuestion(db, project.rowId, 0);
 
-	const definitions = await loadQuestionDefinitionsFromDb(db, project.id);
+	const definitions = await loadQuestionDefinitionsFromDb(db, {
+		projectId: project.id,
+	});
 
 	expect(definitions).toEqual([
 		{
@@ -93,4 +99,33 @@ test("getQuestionDefinitionDeleteImpactFromDb reports zero for an unassessed que
 	});
 
 	expect(impact).toEqual({ assessmentCount: 0 });
+});
+
+test("loadQuestionDefinitions wrapper delegates to its primitive through the injected handle", async () => {
+	await using db = await createTestDb();
+	await using project = await createProject(db, "Definition Wrapper Project");
+	const fixture = await createAssessedBooleanQuestionFixture(db, project.rowId);
+
+	const definitions = await loadQuestionDefinitions(
+		{ projectId: project.id },
+		{ db },
+	);
+
+	expect(definitions.map((definition) => definition.id)).toEqual([
+		fixture.questionId,
+	]);
+	expect(definitions[0]?.assessmentCount).toBe(1);
+});
+
+test("getQuestionDefinitionDeleteImpact wrapper delegates to its primitive through the injected handle", async () => {
+	await using db = await createTestDb();
+	await using project = await createProject(db, "Impact Wrapper Project");
+	const fixture = await createAssessedBooleanQuestionFixture(db, project.rowId);
+
+	const impact = await getQuestionDefinitionDeleteImpact(
+		{ questionId: fixture.questionId, projectId: project.id },
+		{ db },
+	);
+
+	expect(impact).toEqual({ assessmentCount: 1 });
 });

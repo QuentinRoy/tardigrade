@@ -1,24 +1,14 @@
-import { type Kysely } from "kysely";
+import { cacheTag } from "next/cache";
 import { expect, test, vi } from "vitest";
-import type { DB } from "#db/generated/db.ts";
 import { createAssessmentFixture } from "#test/assessments.ts";
 import { createTestDb } from "#test/dbIntegration.ts";
 import { createProject } from "#test/projects.ts";
 import { saveAssessmentInDb } from "./assessmentMutations.ts";
-import { loadAssessmentFromDb } from "./assessments.ts";
+import { loadAssessment, loadAssessmentFromDb } from "./assessments.ts";
 
 vi.mock("server-only", () => ({}));
 
 vi.mock("next/cache", () => ({ cacheTag: vi.fn(), updateTag: vi.fn() }));
-
-// loadAssessment owns the global db + cache; this thin seam points the global db at
-// the test db so the wrapper's declared cache tags can be asserted.
-async function loadAssessmentWrapperWithDb(db: Kysely<DB>) {
-	vi.resetModules();
-	using _kyselyMock = vi.doMock("#db/kysely", () => ({ db }));
-
-	return await import("./assessments.ts");
-}
 
 test("loadAssessmentFromDb returns an empty list when no assessment exists", async () => {
 	await using db = await createTestDb();
@@ -28,11 +18,10 @@ test("loadAssessmentFromDb returns an empty list when no assessment exists", asy
 	);
 	const fixture = await createAssessmentFixture(db, project.id);
 
-	const result = await loadAssessmentFromDb(
-		db,
-		fixture.submissionId,
-		fixture.questionId,
-	);
+	const result = await loadAssessmentFromDb(db, {
+		submissionId: fixture.submissionId,
+		questionId: fixture.questionId,
+	});
 
 	expect(result).toEqual([]);
 });
@@ -70,11 +59,10 @@ test("loadAssessmentFromDb returns the stored rubric values for a submission/que
 		},
 	});
 
-	const loaded = await loadAssessmentFromDb(
-		db,
-		fixture.submissionId,
-		fixture.questionId,
-	);
+	const loaded = await loadAssessmentFromDb(db, {
+		submissionId: fixture.submissionId,
+		questionId: fixture.questionId,
+	});
 
 	const byRubricId = new Map(loaded.map((value) => [value.rubricId, value]));
 
@@ -95,21 +83,36 @@ test("loadAssessmentFromDb returns the stored rubric values for a submission/que
 	});
 });
 
-// Next caching is not active under vitest, so assert the observable seam: that
-// loadAssessment declares "assessments:all" alongside its granular tag. Bulk imports
-// only bust the coarse tag, so without this declaration the per-question grading view
-// would serve stale data after an assessment import.
-test("loadAssessment declares the assessments:all fallback tag", async () => {
+// Next caching is inert under vitest, so the read wrapper runs directly against the
+// injected handle. Assert it delegates to its primitive (returns the test db's rows)
+// and declares "assessments:all" alongside its granular tag: bulk imports only bust
+// the coarse tag, so without this declaration the per-question grading view would
+// serve stale data after an assessment import.
+test("loadAssessment wrapper delegates to its primitive and declares its cache tags", async () => {
 	await using db = await createTestDb();
-	const { loadAssessment } = await loadAssessmentWrapperWithDb(db);
-	const { cacheTag } = await import("next/cache");
 	await using project = await createProject(db, "Assessment Cache Tag Project");
 	const fixture = await createAssessmentFixture(db, project.id);
 
-	await loadAssessment(fixture.submissionId, fixture.questionId);
+	await saveAssessmentInDb(db, {
+		submissionId: fixture.submissionId,
+		questionId: fixture.questionId,
+		rubric: {
+			rubricId: fixture.rubricIds.boolean,
+			type: "boolean",
+			passed: true,
+		},
+	});
+
+	const loaded = await loadAssessment(
+		{ submissionId: fixture.submissionId, questionId: fixture.questionId },
+		{ db },
+	);
+
+	expect(loaded).toEqual([
+		{ rubricId: fixture.rubricIds.boolean, type: "boolean", passed: true },
+	]);
 
 	const declaredTags = vi.mocked(cacheTag).mock.calls.map((call) => call[0]);
-
 	expect(declaredTags).toContain("assessments:all");
 	expect(declaredTags).toContain(
 		`assessments:${fixture.submissionId}:${fixture.questionId}`,

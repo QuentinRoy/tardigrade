@@ -1,10 +1,12 @@
 import "server-only";
 import { snakeCase } from "change-case";
+import type { Kysely } from "kysely";
 import { revalidateTag } from "next/cache";
 import { saveAssessmentInDb } from "#assessments/assessmentMutations.ts";
 import type { AssessmentRubricValue } from "#assessments/types.ts";
 import { CACHE_TAGS } from "#db/cacheTags.ts";
-import { db } from "#db/kysely.ts";
+import type { DB } from "#db/generated/db.ts";
+import { db as defaultDb } from "#db/kysely.ts";
 import type { RubricType } from "#rubrics/types.ts";
 import type { ImportedAssessmentRow } from "./types.ts";
 
@@ -52,10 +54,10 @@ function submissionLookupKey(params: {
 	return `${params.submissionType}:${params.submitter}`;
 }
 
-async function resolveSubmissionIdsBatch(params: {
-	rows: ImportedAssessmentRow[];
-	projectId: number;
-}): Promise<Map<string, string | null | "ambiguous">> {
+async function resolveSubmissionIdsBatch(
+	db: Kysely<DB>,
+	params: { rows: ImportedAssessmentRow[]; projectId: number },
+): Promise<Map<string, string | null | "ambiguous">> {
 	const teamSubmitters = new Set<string>();
 	const individualSubmitters = new Set<string>();
 
@@ -191,9 +193,12 @@ function parseAssessmentValue(params: {
 	}
 }
 
-export async function saveAssessments(
-	assessmentRows: ImportedAssessmentRow[],
-	projectId: string,
+// `db` may be the global client or a caller-supplied transaction. Performs all
+// validation and persistence on that handle. It never opens a transaction and
+// never invalidates cache.
+export async function saveAssessmentsInDb(
+	db: Kysely<DB>,
+	{ rows, projectId }: { rows: ImportedAssessmentRow[]; projectId: string },
 ): Promise<{ assessmentCount: number }> {
 	const project = await db
 		.selectFrom("project")
@@ -271,10 +276,7 @@ export async function saveAssessments(
 		recognizedColumns.add(question.id);
 	}
 
-	assertRecognizedAssessmentColumns({
-		rows: assessmentRows,
-		recognizedColumns,
-	});
+	assertRecognizedAssessmentColumns({ rows, recognizedColumns });
 
 	const errorDetails: Array<{
 		row: number;
@@ -282,13 +284,13 @@ export async function saveAssessments(
 		error: string;
 	}> = [];
 	const preparedAssessments: PreparedAssessment[] = [];
-	const submissionsByLookup = await resolveSubmissionIdsBatch({
-		rows: assessmentRows,
+	const submissionsByLookup = await resolveSubmissionIdsBatch(db, {
+		rows,
 		projectId: projectRowId,
 	});
 
-	for (let rowIndex = 0; rowIndex < assessmentRows.length; rowIndex++) {
-		const row = assessmentRows[rowIndex];
+	for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+		const row = rows[rowIndex];
 		if (row == null) {
 			throw new Error(
 				`Row ${rowIndex + 2} of assessment data is null or undefined.`,
@@ -346,21 +348,31 @@ export async function saveAssessments(
 		throw new Error(`Assessment import errors:\n${errorMessages}`);
 	}
 
-	const result = await db.transaction().execute(async (tx) => {
-		let successCount = 0;
+	let successCount = 0;
 
-		for (const assessment of preparedAssessments) {
-			const writeResult = await saveAssessmentInDb(tx, assessment);
+	for (const assessment of preparedAssessments) {
+		const writeResult = await saveAssessmentInDb(db, assessment);
 
-			if (!writeResult.success) {
-				throw new Error(writeResult.error);
-			}
-
-			successCount++;
+		if (!writeResult.success) {
+			throw new Error(writeResult.error);
 		}
 
-		return { assessmentCount: successCount };
-	});
+		successCount++;
+	}
+
+	return { assessmentCount: successCount };
+}
+
+// Wrapper: owns the global db, the transaction boundary, and cache invalidation.
+// `db` defaults to the global client; tests pass a test database. Never pass a
+// transaction — the wrapper opens its own.
+export async function saveAssessments(
+	{ rows, projectId }: { rows: ImportedAssessmentRow[]; projectId: string },
+	{ db = defaultDb }: { db?: Kysely<DB> } = {},
+): Promise<{ assessmentCount: number }> {
+	const result = await db
+		.transaction()
+		.execute((tx) => saveAssessmentsInDb(tx, { rows, projectId }));
 
 	// The transaction owner invalidates after commit. Safe only because this saver
 	// always runs from assessmentsImportAction (request scope); revalidateTag throws

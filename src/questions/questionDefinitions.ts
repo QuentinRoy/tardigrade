@@ -1,7 +1,7 @@
 import "server-only";
 import type { Kysely } from "kysely";
 import type { DB } from "#db/generated/db.ts";
-import { db } from "#db/kysely.ts";
+import { db as defaultDb } from "#db/kysely.ts";
 import {
 	loadQuestionRowsFromDb,
 	resolveProjectRowId,
@@ -50,10 +50,10 @@ export type QuestionDefinitionInput = {
 // `db` may be the global client or a caller-supplied transaction.
 export async function loadQuestionDefinitionsFromDb(
 	db: Kysely<DB>,
-	projectId: string,
+	{ projectId }: { projectId: string },
 ): Promise<QuestionDefinition[]> {
 	const [rows, counts] = await Promise.all([
-		loadQuestionRowsFromDb(db, projectId),
+		loadQuestionRowsFromDb(db, { projectId }),
 		db
 			.selectFrom("assessment")
 			.innerJoin("question", "question.rowId", "assessment.questionId")
@@ -83,9 +83,10 @@ export async function loadQuestionDefinitionsFromDb(
 }
 
 export async function loadQuestionDefinitions(
-	projectId: string,
+	{ projectId }: { projectId: string },
+	{ db = defaultDb }: { db?: Kysely<DB> } = {},
 ): Promise<QuestionDefinition[]> {
-	return loadQuestionDefinitionsFromDb(db, projectId);
+	return loadQuestionDefinitionsFromDb(db, { projectId });
 }
 
 // `db` may be the global client or a caller-supplied transaction.
@@ -109,8 +110,8 @@ export async function getQuestionDefinitionDeleteImpactFromDb(
 }
 
 export async function getQuestionDefinitionDeleteImpact(
-	questionId: string,
-	projectId: string,
+	{ questionId, projectId }: { questionId: string; projectId: string },
+	{ db = defaultDb }: { db?: Kysely<DB> } = {},
 ): Promise<{ assessmentCount: number }> {
 	return getQuestionDefinitionDeleteImpactFromDb(db, { questionId, projectId });
 }

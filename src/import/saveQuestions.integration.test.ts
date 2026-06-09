@@ -1,9 +1,10 @@
-import { type Kysely } from "kysely";
+import type { Kysely } from "kysely";
+import { revalidateTag } from "next/cache";
 import { beforeEach, expect, test, vi } from "vitest";
 import type { DB } from "#db/generated/db.ts";
 import { createTestDb } from "#test/dbIntegration.ts";
 import { createProject } from "#test/projects.ts";
-import { saveQuestionsInDb } from "./saveQuestions.ts";
+import { saveQuestions, saveQuestionsInDb } from "./saveQuestions.ts";
 import type { ImportedQuestions } from "./types.ts";
 
 vi.mock("server-only", () => ({}));
@@ -13,15 +14,6 @@ vi.mock("next/cache", () => ({ revalidateTag: vi.fn() }));
 beforeEach(() => {
 	vi.clearAllMocks();
 });
-
-// saveQuestions owns the global db + transaction + cache; this thin seam points the
-// global db at the test db so the wrapper's invalidation can be asserted.
-async function loadSaveQuestionsWrapperWithDb(db: Kysely<DB>) {
-	vi.resetModules();
-	using _kyselyMock = vi.doMock("#db/kysely", () => ({ db }));
-
-	return await import("./saveQuestions.ts");
-}
 
 function makeQuestions(params: {
 	questionLabel: string;
@@ -197,16 +189,17 @@ test("saveQuestionsInDb still upserts duplicate ids within the same project", as
 
 test("saveQuestions wrapper invalidates question and assessment tags after the import commits", async () => {
 	await using db = await createTestDb();
-	const { saveQuestions } = await loadSaveQuestionsWrapperWithDb(db);
-	const { revalidateTag } = await import("next/cache");
 	await using project = await createProject(
 		db,
 		"Import Questions Cache Project",
 	);
 
 	await saveQuestions(
-		makeQuestions({ questionLabel: "Q", rubricLabel: "R" }),
-		project.id,
+		{
+			questions: makeQuestions({ questionLabel: "Q", rubricLabel: "R" }),
+			projectId: project.id,
+		},
+		{ db },
 	);
 
 	expect(vi.mocked(revalidateTag).mock.calls).toEqual([

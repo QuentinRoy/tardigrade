@@ -1,14 +1,25 @@
 import type { Kysely } from "kysely";
-import { expect, test, vi } from "vitest";
+import { cacheTag } from "next/cache";
+import { beforeEach, expect, test, vi } from "vitest";
 import type { DB } from "#db/generated/db.ts";
 import { buildTestId, createTestDb } from "#test/dbIntegration.ts";
 import { createProject } from "#test/projects.ts";
 import {
+	loadSubmissionOverviewProgress,
 	loadSubmissionOverviewProgressFromDb,
+	loadSubmissionQuestionProgress,
 	loadSubmissionQuestionProgressFromDb,
+	submissionOverviewProgressCacheTags,
+	submissionQuestionProgressCacheTags,
 } from "./submissionProgress.ts";
 
 vi.mock("server-only", () => ({}));
+
+vi.mock("next/cache", () => ({ cacheTag: vi.fn(), cacheLife: vi.fn() }));
+
+beforeEach(() => {
+	vi.clearAllMocks();
+});
 
 type ProjectFixture = {
 	questionId: string;
@@ -192,16 +203,14 @@ test("loadSubmissionQuestionProgressFromDb counts only assessments within the re
 		fixtureB.rubricRowId,
 	);
 
-	const progressA = await loadSubmissionQuestionProgressFromDb(
-		db,
-		sharedQuestionId,
-		projectA.id,
-	);
-	const progressB = await loadSubmissionQuestionProgressFromDb(
-		db,
-		sharedQuestionId,
-		projectB.id,
-	);
+	const progressA = await loadSubmissionQuestionProgressFromDb(db, {
+		questionId: sharedQuestionId,
+		projectId: projectA.id,
+	});
+	const progressB = await loadSubmissionQuestionProgressFromDb(db, {
+		questionId: sharedQuestionId,
+		projectId: projectB.id,
+	});
 
 	const submissionAId = String(fixtureA.submissionId);
 	const submissionBId = String(fixtureB.submissionId);
@@ -262,8 +271,12 @@ test("loadSubmissionOverviewProgressFromDb counts only questions and assessments
 		fixtureB.rubricRowId,
 	);
 
-	const overviewA = await loadSubmissionOverviewProgressFromDb(db, projectA.id);
-	const overviewB = await loadSubmissionOverviewProgressFromDb(db, projectB.id);
+	const overviewA = await loadSubmissionOverviewProgressFromDb(db, {
+		projectId: projectA.id,
+	});
+	const overviewB = await loadSubmissionOverviewProgressFromDb(db, {
+		projectId: projectB.id,
+	});
 
 	const submissionAId = String(fixtureA.submissionId);
 	const submissionBId = String(fixtureB.submissionId);
@@ -277,4 +290,55 @@ test("loadSubmissionOverviewProgressFromDb counts only questions and assessments
 	// Results must not bleed across projects
 	expect(overviewA[submissionBId]).toBeUndefined();
 	expect(overviewB[submissionAId]).toBeUndefined();
+});
+
+test("loadSubmissionQuestionProgress wrapper delegates to its primitive and declares its cache tags", async () => {
+	await using db = await createTestDb();
+	await using project = await createProject(db, "Question Progress Wrapper");
+	const sharedQuestionId = buildTestId("question");
+	const fixture = await createProgressFixture(
+		db,
+		project.id,
+		sharedQuestionId,
+		buildTestId("rubric"),
+	);
+
+	const progress = await loadSubmissionQuestionProgress(
+		{ questionId: sharedQuestionId, projectId: project.id },
+		{ db },
+	);
+
+	expect(progress[String(fixture.submissionId)]).toEqual({
+		completed: 0,
+		total: 1,
+	});
+
+	const declaredTags = vi.mocked(cacheTag).mock.calls.map((call) => call[0]);
+	expect(declaredTags).toEqual(
+		submissionQuestionProgressCacheTags(sharedQuestionId),
+	);
+});
+
+test("loadSubmissionOverviewProgress wrapper delegates to its primitive and declares its cache tags", async () => {
+	await using db = await createTestDb();
+	await using project = await createProject(db, "Overview Progress Wrapper");
+	const fixture = await createProgressFixture(
+		db,
+		project.id,
+		buildTestId("question"),
+		buildTestId("rubric"),
+	);
+
+	const overview = await loadSubmissionOverviewProgress(
+		{ projectId: project.id },
+		{ db },
+	);
+
+	expect(overview[String(fixture.submissionId)]).toEqual({
+		completed: 0,
+		total: 1,
+	});
+
+	const declaredTags = vi.mocked(cacheTag).mock.calls.map((call) => call[0]);
+	expect(declaredTags).toEqual(submissionOverviewProgressCacheTags());
 });

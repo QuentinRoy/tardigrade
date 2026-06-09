@@ -22,7 +22,7 @@ export async function saveQuestionAction(
 
 	try {
 		const payload = parseQuestionDefinitionPayload(payloadRaw);
-		const result = await saveQuestionDefinition(payload, projectId);
+		const result = await saveQuestionDefinition({ input: payload, projectId });
 
 		return { status: "success", message: `Saved question ${result.id}.` };
 	} catch (error) {
@@ -54,10 +54,10 @@ export async function deleteQuestionAction(
 			};
 		}
 
-		const { deleted } = await deleteQuestionDefinition(
-			payload.questionId,
+		const { deleted } = await deleteQuestionDefinition({
+			questionId: payload.questionId,
 			projectId,
-		);
+		});
 
 		return {
 			status: "success",
@@ -75,5 +75,5 @@ export async function reorderQuestionsAction(
 	projectId: string,
 	updates: Array<{ id: string; position: number }>,
 ): Promise<void> {
-	await reorderQuestions(updates, projectId);
+	await reorderQuestions({ updates, projectId });
 }

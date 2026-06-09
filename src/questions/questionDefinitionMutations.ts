@@ -6,7 +6,7 @@ import {
 	updateTags,
 } from "#db/cacheTags.ts";
 import type { DB } from "#db/generated/db.ts";
-import { db } from "#db/kysely.ts";
+import { db as defaultDb } from "#db/kysely.ts";
 import { QuestionsValidationError } from "#questions/errors.ts";
 import type { RubricType } from "#rubrics/types.ts";
 import { findDuplicateGroups } from "#utils/utils.ts";
@@ -429,8 +429,8 @@ export async function saveQuestionDefinitionInDb(
 }
 
 export async function saveQuestionDefinition(
-	input: QuestionDefinitionInput,
-	projectId: string,
+	{ input, projectId }: { input: QuestionDefinitionInput; projectId: string },
+	{ db = defaultDb }: { db?: Kysely<DB> } = {},
 ): Promise<{ id: string }> {
 	const { id, originalId } = await db
 		.transaction()
@@ -471,8 +471,8 @@ export async function deleteQuestionDefinitionInDb(
 }
 
 export async function deleteQuestionDefinition(
-	questionId: string,
-	projectId: string,
+	{ questionId, projectId }: { questionId: string; projectId: string },
+	{ db = defaultDb }: { db?: Kysely<DB> } = {},
 ): Promise<{ deleted: boolean }> {
 	const result = await deleteQuestionDefinitionInDb(db, {
 		questionId,
@@ -539,12 +539,12 @@ export async function reorderQuestionsInDb(
 }
 
 export async function reorderQuestions(
-	updates: Array<{ id: string; position: number }>,
-	projectId: string,
+	{
+		updates,
+		projectId,
+	}: { updates: Array<{ id: string; position: number }>; projectId: string },
+	{ db = defaultDb }: { db?: Kysely<DB> } = {},
 ): Promise<void> {
-	// Nothing to reorder: skip both the transaction and the cache invalidation.
-	if (updates.length === 0) return;
-
 	await db
 		.transaction()
 		.execute((tx) => reorderQuestionsInDb(tx, { updates, projectId }));

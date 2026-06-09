@@ -18,7 +18,7 @@ export async function studentsImportAction(
 	try {
 		const students = parseStudentsCsv(studentsCsv);
 		const submissions = groupStudentsIntoSubmissions(students);
-		const result = await saveStudents(submissions, projectId);
+		const result = await saveStudents({ submissions, projectId });
 
 		return {
 			status: "success",

@@ -33,9 +33,9 @@ async function ProjectSubmissionPageContent({ params }: SubmissionPageProps) {
 
 	const [submissions, questionGrid, progressBySubmissionId] = await Promise.all(
 		[
-			loadSubmissions(project.id),
-			loadQuestionGrid(project.id),
-			loadSubmissionOverviewProgress(project.id),
+			loadSubmissions({ projectId: project.id }),
+			loadQuestionGrid({ projectId: project.id }),
+			loadSubmissionOverviewProgress({ projectId: project.id }),
 		],
 	);
 	const currentSubmission = submissions.find((s) => s.id === submissionId);
@@ -54,7 +54,7 @@ async function ProjectSubmissionPageContent({ params }: SubmissionPageProps) {
 
 	const assessments = await Promise.all(
 		questions.map((question) =>
-			loadAssessment(submissionId, question.questionId),
+			loadAssessment({ submissionId, questionId: question.questionId }),
 		),
 	);
 
