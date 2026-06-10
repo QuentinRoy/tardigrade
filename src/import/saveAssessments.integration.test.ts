@@ -4,7 +4,7 @@ import { beforeEach, expect, test, vi } from "vitest";
 import type { DB } from "#db/generated/db.ts";
 import { buildTestId, createTestDb } from "#test/dbIntegration.ts";
 import { createProject } from "#test/projects.ts";
-import { saveAssessments, saveAssessmentsInDb } from "./saveAssessments.ts";
+import { saveAssessments } from "./saveAssessments.ts";
 import type { ImportedAssessmentRow } from "./types.ts";
 
 vi.mock("server-only", () => ({}));
@@ -147,7 +147,7 @@ test("saveAssessments does not persist valid rows when a later row fails validat
 	];
 
 	await expect(
-		saveAssessmentsInDb(db, { rows, projectId: projectPublicId }),
+		saveAssessments({ rows, projectId: projectPublicId }, { db }),
 	).rejects.toThrow("Assessment import errors:");
 
 	const persistedAssessments = await db
@@ -175,7 +175,7 @@ test("saveAssessments rejects unknown columns before writing any assessment", as
 	];
 
 	await expect(
-		saveAssessmentsInDb(db, { rows, projectId: projectPublicId }),
+		saveAssessments({ rows, projectId: projectPublicId }, { db }),
 	).rejects.toThrow('Unrecognized column: "unknown_column"');
 
 	const persistedAssessments = await db
@@ -187,23 +187,31 @@ test("saveAssessments rejects unknown columns before writing any assessment", as
 	expect(persistedAssessments).toHaveLength(0);
 });
 
-test("saveAssessments skips rows with no matching submission mapping", async () => {
+test("saveAssessments blocks the import when a row has no matching submission", async () => {
 	await using db = await createTestDb();
 	await using project = await createProject(db, "Missing Submitter Project");
 	const projectPublicId = project.id;
 	const fixture = await createAssessmentFixture(db, project.rowId);
+	const missingStudentId = buildTestId("missing-student");
 
 	const rows: ImportedAssessmentRow[] = [
 		{
 			submission_type: "individual",
-			submitter: buildTestId("missing-student"),
+			submitter: fixture.studentId,
+			[`${fixture.questionId}:${fixture.rubricId}`]: "true",
+		},
+		{
+			submission_type: "individual",
+			submitter: missingStudentId,
 			[`${fixture.questionId}:${fixture.rubricId}`]: "true",
 		},
 	];
 
 	await expect(
-		saveAssessmentsInDb(db, { rows, projectId: projectPublicId }),
-	).resolves.toEqual({ assessmentCount: 0 });
+		saveAssessments({ rows, projectId: projectPublicId }, { db }),
+	).rejects.toThrow(
+		`No matching individual submission for "${missingStudentId}"`,
+	);
 
 	const persistedAssessments = await db
 		.selectFrom("assessment")
@@ -212,6 +220,38 @@ test("saveAssessments skips rows with no matching submission mapping", async () 
 		.execute();
 
 	expect(persistedAssessments).toHaveLength(0);
+});
+
+test("saveAssessments returns imported and overwritten counts", async () => {
+	await using db = await createTestDb();
+	await using project = await createProject(db, "Overwrite Count Project");
+	const projectPublicId = project.id;
+	const fixture = await createAssessmentFixture(db, project.rowId);
+
+	const firstImport: ImportedAssessmentRow[] = [
+		{
+			submission_type: "individual",
+			submitter: fixture.studentId,
+			[`${fixture.questionId}:${fixture.rubricId}`]: "true",
+		},
+	];
+
+	await expect(
+		saveAssessments({ rows: firstImport, projectId: projectPublicId }, { db }),
+	).resolves.toEqual({ assessmentCount: 1, overwriteCount: 0 });
+
+	const secondImport: ImportedAssessmentRow[] = [
+		{
+			submission_type: "individual",
+			submitter: fixture.studentId,
+			[`${fixture.questionId}:${fixture.rubricId}`]: "false",
+			[`${fixture.questionId}:${fixture.numericalRubricId}`]: "5",
+		},
+	];
+
+	await expect(
+		saveAssessments({ rows: secondImport, projectId: projectPublicId }, { db }),
+	).resolves.toEqual({ assessmentCount: 2, overwriteCount: 1 });
 });
 
 test("saveAssessments rolls back all writes if a later transactional write fails", async () => {
@@ -341,7 +381,7 @@ test("saveAssessments links assessments only to the target project even when the
 		},
 	];
 
-	await saveAssessmentsInDb(db, { rows, projectId: projectBPublicId });
+	await saveAssessments({ rows, projectId: projectBPublicId }, { db });
 
 	// Project A must have zero assessments
 	const projectAAssessments = await db

@@ -20,26 +20,26 @@ Each PR proceeds in vertical slices: one failing test for one behavior, minimal 
 
 Tracer bullet:
 
-- [ ] RED: unit test — `prepareAssessmentImport` plans one write per non-empty rubric cell of a matched submission. GREEN: minimal pure function extracted from `saveAssessments.ts` logic, fed by a hand-built `AssessmentImportContext`.
+- [x] RED: unit test — `prepareAssessmentImport` plans one write per non-empty rubric cell of a matched submission. GREEN: minimal pure function extracted from `saveAssessments.ts` logic, fed by a hand-built `AssessmentImportContext`.
 
 Diagnostic cycles (one RED→GREEN each, on the pure function):
 
-- [ ] Unmatched submission → Blocking Diagnostic (behavior change: was silent skip).
-- [ ] Ambiguous submission → Blocking Diagnostic.
-- [ ] Invalid cell value → Blocking Diagnostic.
-- [ ] Unknown column → Blocking Diagnostic; derived columns (`grand_total_marks`, `:marks`, question columns) reported as Ignored Columns, never blocking.
-- [ ] Existing values for targeted (submission, rubric) pairs → listed as overwrites.
+- [x] Unmatched submission → Blocking Diagnostic (behavior change: was silent skip).
+- [x] Ambiguous submission → Blocking Diagnostic.
+- [x] Invalid cell value → Blocking Diagnostic.
+- [x] Unknown column → Blocking Diagnostic; derived columns (`grand_total_marks`, `:marks`, question columns) reported as Ignored Columns, never blocking.
+- [x] Existing values for targeted (submission, rubric) pairs → listed as overwrites.
 
 Integration cutover (wrapper behavior):
 
-- [ ] RED: flip the existing "skips rows with no matching submission mapping" integration test to expect a blocking error and zero writes; assert the wrapper returns imported + overwritten counts. GREEN: rewire `saveAssessments` to load context → prepare → throw on blocking diagnostics → write, all in one transaction.
-- [ ] All pre-existing integration tests (atomicity, unknown column, rollback, cross-project isolation, cache invalidation) stay green through the cutover.
+- [x] RED: flip the existing "skips rows with no matching submission mapping" integration test to expect a blocking error and zero writes; assert the wrapper returns imported + overwritten counts. GREEN: rewire `saveAssessments` to load context → prepare → throw on blocking diagnostics → write, all in one transaction.
+- [x] All pre-existing integration tests (atomicity, unknown column, rollback, cross-project isolation, cache invalidation) stay green through the cutover.
 
 Refactor while green:
 
-- [ ] Extract `loadAssessmentImportContextFromDb` into `assessmentImportContext.ts`; write primitive `saveAssessmentImportPlanInDb`; delete superseded code paths in `saveAssessments.ts`; simplify pass.
-- [ ] Success message includes overwrite count (action formatting).
-- [ ] Behavior change called out in PR body; reliability tracker updated (touches R-001 #17 evidence; advances R-009 #27 groundwork).
+- [x] Extract `loadAssessmentImportContextFromDb` into `assessmentImportContext.ts`; write primitive `saveAssessmentImportPlanInDb`; delete superseded code paths in `saveAssessments.ts`; simplify pass.
+- [x] Success message includes overwrite count (action formatting).
+- [x] Behavior change called out in PR body; reliability tracker updated (touches R-001 #17 evidence; advances R-009 #27 groundwork).
 
 ## PR 2 — Questions
 
