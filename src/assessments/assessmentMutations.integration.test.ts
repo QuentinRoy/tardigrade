@@ -4,7 +4,7 @@ import { createAssessmentFixture } from "#test/assessments.ts";
 import { buildTestId, createTestDb } from "#test/dbIntegration.ts";
 import { createProject } from "#test/projects.ts";
 import { saveAssessment, saveAssessmentInDb } from "./assessmentMutations.ts";
-import { loadAssessmentFromDb } from "./assessments.ts";
+import { loadQuestionAssessmentFromDb } from "./assessments.ts";
 
 vi.mock("server-only", () => ({}));
 
@@ -55,8 +55,9 @@ test("saveAssessmentInDb round-trips boolean, ordinal and numerical assessments"
 		{ success: true },
 	]);
 
-	const loaded = await loadAssessmentFromDb(db, {
+	const loaded = await loadQuestionAssessmentFromDb(db, {
 		submissionId: fixture.submissionId,
+		projectId: fixture.projectId,
 		questionId: fixture.questionId,
 	});
 	const byRubricId = new Map(loaded.map((value) => [value.rubricId, value]));
@@ -166,16 +167,18 @@ test("saveAssessmentInDb saves in the correct project when question and rubric i
 
 	expect(result).toEqual({ success: true });
 
-	const projectBAssessment = await loadAssessmentFromDb(db, {
+	const projectBAssessment = await loadQuestionAssessmentFromDb(db, {
 		submissionId: fixtureB.submissionId,
+		projectId: fixtureB.projectId,
 		questionId: fixtureB.questionId,
 	});
 	expect(projectBAssessment).toEqual([
 		{ rubricId: fixtureB.rubricIds.boolean, type: "boolean", passed: true },
 	]);
 
-	const projectAAssessment = await loadAssessmentFromDb(db, {
+	const projectAAssessment = await loadQuestionAssessmentFromDb(db, {
 		submissionId: fixtureA.submissionId,
+		projectId: fixtureA.projectId,
 		questionId: fixtureA.questionId,
 	});
 	expect(projectAAssessment).toEqual([]);
@@ -212,7 +215,7 @@ test("saveAssessmentInDb rejects cross-project submission and question combinati
 	});
 });
 
-test("saveAssessment wrapper invalidates the granular, coarse and question tags on success", async () => {
+test("saveAssessment wrapper invalidates the granular, submission, coarse and question tags on success", async () => {
 	await using db = await createTestDb();
 	await using project = await createProject(
 		db,
@@ -238,6 +241,7 @@ test("saveAssessment wrapper invalidates the granular, coarse and question tags 
 	const tags = vi.mocked(updateTag).mock.calls.map((call) => call[0]);
 	expect(tags).toEqual([
 		`assessments:${fixture.submissionId}:${fixture.questionId}`,
+		`assessments:${fixture.submissionId}`,
 		"assessments",
 		`assessments:question:${fixture.questionId}`,
 	]);

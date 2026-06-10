@@ -2,47 +2,30 @@ import type { Kysely } from "kysely";
 import type { DB } from "#db/generated/db.ts";
 import { buildTestId } from "./dbIntegration.ts";
 
-export type AssessedBooleanFixture = {
+export type AssessedBooleanFixture = BooleanQuestionFixture & {
+	assessmentId: number;
+};
+
+export type BooleanQuestionFixture = {
 	questionId: string;
 	questionRowId: number;
 	rubricId: string;
 	rubricRowId: number;
-	assessmentId: number;
 };
 
-export async function createAssessedBooleanQuestionFixture(
+// Creates a question carrying a single boolean rubric, without any submission
+// or assessment.
+export async function createBooleanQuestionFixture(
 	db: Kysely<DB>,
 	projectId: number,
-): Promise<AssessedBooleanFixture> {
+	position = 0,
+): Promise<BooleanQuestionFixture> {
 	const questionId = buildTestId("question");
 	const rubricId = buildTestId("rubric-boolean");
-	const studentId = buildTestId("student");
-
-	const student = await db
-		.insertInto("student")
-		.values({
-			projectId,
-			id: studentId,
-			firstName: "Sample",
-			lastName: "Student",
-		})
-		.returning("rowId")
-		.executeTakeFirstOrThrow();
-
-	const submission = await db
-		.insertInto("submission")
-		.values({ projectId, type: "individual", studentId: student.rowId })
-		.returning("id")
-		.executeTakeFirstOrThrow();
 
 	const question = await db
 		.insertInto("question")
-		.values({
-			projectId,
-			id: questionId,
-			label: "Boolean question",
-			position: 0,
-		})
+		.values({ projectId, id: questionId, label: "Boolean question", position })
 		.returning("rowId")
 		.executeTakeFirstOrThrow();
 
@@ -64,12 +47,44 @@ export async function createAssessedBooleanQuestionFixture(
 		.values({ rubricId: rubric.rowId, marks: 2, falseMarks: 0 })
 		.execute();
 
+	return {
+		questionId,
+		questionRowId: question.rowId,
+		rubricId,
+		rubricRowId: rubric.rowId,
+	};
+}
+
+export async function createAssessedBooleanQuestionFixture(
+	db: Kysely<DB>,
+	projectId: number,
+): Promise<AssessedBooleanFixture> {
+	const question = await createBooleanQuestionFixture(db, projectId);
+	const studentId = buildTestId("student");
+
+	const student = await db
+		.insertInto("student")
+		.values({
+			projectId,
+			id: studentId,
+			firstName: "Sample",
+			lastName: "Student",
+		})
+		.returning("rowId")
+		.executeTakeFirstOrThrow();
+
+	const submission = await db
+		.insertInto("submission")
+		.values({ projectId, type: "individual", studentId: student.rowId })
+		.returning("id")
+		.executeTakeFirstOrThrow();
+
 	const assessment = await db
 		.insertInto("assessment")
 		.values({
 			projectId,
 			submissionId: submission.id,
-			questionId: question.rowId,
+			questionId: question.questionRowId,
 		})
 		.returning("id")
 		.executeTakeFirstOrThrow();
@@ -78,7 +93,7 @@ export async function createAssessedBooleanQuestionFixture(
 		.insertInto("rubricAssessment")
 		.values({
 			assessmentId: assessment.id,
-			rubricId: rubric.rowId,
+			rubricId: question.rubricRowId,
 			type: "boolean",
 		})
 		.returning("id")
@@ -89,13 +104,7 @@ export async function createAssessedBooleanQuestionFixture(
 		.values({ rubricAssessmentId: rubricAssessment.id, passed: true })
 		.execute();
 
-	return {
-		questionId,
-		questionRowId: question.rowId,
-		rubricId,
-		rubricRowId: rubric.rowId,
-		assessmentId: assessment.id,
-	};
+	return { ...question, assessmentId: assessment.id };
 }
 
 export async function createQuestion(

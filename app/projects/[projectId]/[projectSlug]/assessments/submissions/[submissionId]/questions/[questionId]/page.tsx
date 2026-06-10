@@ -4,7 +4,7 @@ import Container from "@mui/material/Container";
 import Typography from "@mui/material/Typography";
 import { cacheTag } from "next/cache";
 import { notFound } from "next/navigation";
-import { loadAssessment } from "#assessments/assessments.ts";
+import { loadQuestionAssessment } from "#assessments/assessments.ts";
 import SubmissionAssessmentClient from "#assessments/SubmissionAssessmentClient.tsx";
 import { loadSubmissionQuestionProgress } from "#assessments/submissionProgress.ts";
 import { projectAssessmentsPath } from "#projects/projectPaths.ts";
@@ -111,7 +111,11 @@ async function SubmissionRubricSection({
 		await Promise.all([
 			loadQuestion({ questionId, projectId: project.id }),
 			loadSubmissions({ projectId: project.id }),
-			loadAssessment({ submissionId, questionId }),
+			loadQuestionAssessment({
+				submissionId,
+				questionId,
+				projectId: project.id,
+			}),
 			loadSubmissionQuestionProgress({ questionId, projectId: project.id }),
 		]);
 	const hasSubmission = submissions.some(
