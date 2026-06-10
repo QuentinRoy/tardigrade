@@ -72,6 +72,7 @@ Short records of durable architecture decisions.
 
 Implementation plans for a chosen approach.
 
+- [Import parse, prepare, and write seams](design/2026-06-10-import-parse-prepare-write-seams.md)
 - Add new design docs under `docs/design/`.
 
 ## Reference

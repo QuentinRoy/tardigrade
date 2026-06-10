@@ -622,6 +622,8 @@ src/export/submissionExport.ts
 
 ## Finding 11: import flows should expose parse, prepare, and write seams
 
+> Resolved 2026-06-10: decisions captured in [Import parse, prepare, and write seams](../design/2026-06-10-import-parse-prepare-write-seams.md); delivery tracked in `plans/active/2026-06-10-import-parse-prepare-write-seams.md`.
+
 ### Current behavior
 
 The import UI is a reusable textarea/drop form. The assessment import currently parses, prepares, and writes assessment values through one server-action flow.

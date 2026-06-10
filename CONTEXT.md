@@ -78,6 +78,20 @@ _Avoid_: repository, dao, data-access object
 The bare-named app-facing function that owns the global database handle, transaction boundaries, and cache invalidation, delegating database work to one or more **DB Primitives**. The owner of a transaction invalidates cache after it commits.
 _Avoid_: service, manager, orchestrator (as a type name)
 
+### Import
+
+**Import Plan**:
+The output of an import's prepare stage: the values that would be written plus structured diagnostics such as ignored columns, unmatched or ambiguous targets, invalid cells, and possible overwrites. A future preview renders an Import Plan; the write stage executes one.
+_Avoid_: import result, prepared import, preview (when meaning the data rather than UI)
+
+**Blocking Diagnostic**:
+An **Import Plan** diagnostic that prevents the write stage from executing. An import whose plan contains any blocking diagnostic writes nothing, consistent with the all-or-nothing import policy.
+_Avoid_: warning (when the import must not proceed), silent skip
+
+**Ignored Column**:
+A recognized import column that is intentionally not imported because it is derived export output (for example marks columns). Reported in the **Import Plan**; never a **Blocking Diagnostic**. Unknown columns are not Ignored Columns — they block.
+_Avoid_: unknown column, unrecognized column (those block)
+
 ### Question authoring
 
 **Question**:
