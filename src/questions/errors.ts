@@ -75,6 +75,8 @@ export function zodErrorToQuestionsValidationError(error: ZodError): {
 			setRubricFieldError(
 				fieldErrors,
 				second,
+				// We trust that the Zod schema paths are correct, so we can safely
+				// cast third to a keyof QuestionRubricFieldErrors without additional checks.
 				third as keyof QuestionRubricFieldErrors,
 				issue.message,
 			);

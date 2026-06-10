@@ -26,6 +26,13 @@ function createKyselyClient() {
 
 type AppKyselyClient = ReturnType<typeof createKyselyClient>;
 
+// In development, Next.js Fast Refresh re-runs any module that isn't a pure
+// React component on every file save, which would create a new connection pool
+// on each reload and exhaust the database connections.
+// Storing the client on globalThis (which survives module re-evaluation) prevents
+// that. TypeScript does not allow adding arbitrary properties to globalThis without
+// a cast; there is no safer alternative short of a global.d.ts declaration merge.
+// See: https://nextjs.org/docs/architecture/fast-refresh#how-it-works
 const globalForKysely = globalThis as typeof globalThis & {
 	db?: AppKyselyClient;
 };

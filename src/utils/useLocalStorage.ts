@@ -4,8 +4,6 @@ import { useCallback, useRef, useSyncExternalStore } from "react";
 
 const LOCAL_STORAGE_CHANGE_EVENT = "local-storage-change";
 
-type LocalStorageChangeEvent = CustomEvent<{ key: string }>;
-
 type Updater<T> = T | ((current: T) => T);
 
 type UseLocalStorageOptions<T> = {
@@ -33,10 +31,6 @@ function defaultSerialize<T>(value: T): string {
 	return JSON.stringify(value);
 }
 
-function defaultDeserialize<T>(raw: string): T {
-	return JSON.parse(raw) as T;
-}
-
 /**
  * Subscribe a React value to a localStorage key with cross-tab and same-tab reactivity.
  *
@@ -54,10 +48,20 @@ function defaultDeserialize<T>(raw: string): T {
 export function useLocalStorage<T>(
 	key: string,
 	fallback: T,
+	options: UseLocalStorageOptions<T> & { deserialize: (raw: string) => T },
+): [T, (value: Updater<T>) => void];
+export function useLocalStorage(
+	key: string,
+	fallback: unknown,
+	options?: Omit<UseLocalStorageOptions<unknown>, "deserialize">,
+): [unknown, (value: Updater<unknown>) => void];
+export function useLocalStorage<T>(
+	key: string,
+	fallback: T,
 	options?: UseLocalStorageOptions<T>,
 ): [T, (value: Updater<T>) => void] {
 	const serialize = options?.serialize ?? defaultSerialize<T>;
-	const deserialize = options?.deserialize ?? defaultDeserialize<T>;
+	const deserialize: (raw: string) => T = options?.deserialize ?? JSON.parse;
 
 	const snapshotCacheRef = useRef<{ raw: string | null; value: T } | null>(
 		null,
@@ -76,8 +80,11 @@ export function useLocalStorage<T>(
 			};
 
 			const onLocalStorageChange = (event: Event) => {
-				const customEvent = event as LocalStorageChangeEvent;
-				if (customEvent.detail?.key === key) {
+				if (
+					event instanceof CustomEvent &&
+					typeof event.detail?.key === "string" &&
+					event.detail.key === key
+				) {
 					onStoreChange();
 				}
 			};

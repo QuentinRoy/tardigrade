@@ -4,10 +4,7 @@ import { CACHE_TAGS, cacheTags } from "#db/cacheTags.ts";
 import { db } from "#db/kysely.ts";
 import { loadSubmissions } from "#submissions/submissions.ts";
 import { loadQuestionGrid } from "../questions/questions.ts";
-import {
-	buildRubricOverviewData,
-	type RubricOverviewAssessmentRecord,
-} from "./rubricOverviewBuilder.ts";
+import { buildRubricOverviewData } from "./rubricOverviewBuilder.ts";
 
 export async function loadRubricOverviewData(projectId: string) {
 	"use cache";
@@ -61,6 +58,6 @@ export async function loadRubricOverviewData(projectId: string) {
 	return buildRubricOverviewData({
 		submissions,
 		questionGrid,
-		assessmentRecords: assessmentRecords as RubricOverviewAssessmentRecord[],
+		assessmentRecords,
 	});
 }

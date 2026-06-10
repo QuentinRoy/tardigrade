@@ -107,6 +107,10 @@ export function attachAssessment<TType extends RubricType>(
 	source: AssessmentRubricValue | AssessmentRubricValue[] | undefined,
 ): AssessedRubric<TType> {
 	switch (rubric.type) {
+		// TypeScript does not narrow a free generic type parameter (TType) inside
+		// case branches, so it cannot verify that e.g. AssessedBooleanRubric
+		// satisfies AssessedRubric<TType>. assertRubricType() guarantees the branch
+		// matches before each call, making the casts safe.
 		case "boolean":
 			assertRubricType(rubric, "boolean");
 			return attachBooleanAssessment(rubric, source) as AssessedRubric<TType>;
