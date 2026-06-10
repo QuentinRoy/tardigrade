@@ -53,17 +53,17 @@ Resolved or largely resolved since the first audit:
 6. assessment reads and assessment writes have been split, with a transaction-friendly write API;
 7. the ADR 0002 source reorganization has landed: feature-owned persistence, read models, and feature-facing types now live in `src/projects`, `src/submissions`, `src/questions`, `src/assessments`, and `src/rubrics`; `src/db/types.ts` was deleted; `src/db` is database infrastructure only; and the historical `src/shared` bucket was renamed to a flat `src/ui` (see `plans/completed/2026-06-02-source-reorganization.md`).
 8. submission overview assessment loading is consolidated: `loadSubmissionAssessments` (#145) returns every question's rubric values for a submission in one query, replacing the per-question `loadAssessment` calls on the submission overview page; assessment reads are also now scoped by Project ID and `assessmentCacheTag` supports a nested submission/question scope.
+9. all three import flows (assessments, questions, students) have been restructured around explicit parse → load context → prepare → write seams, per the [import parse/prepare/write design](../design/2026-06-10-import-parse-prepare-write-seams.md) and `plans/completed/2026-06-10-import-parse-prepare-write-seams.md` (#146, #147).
 
 With ownership now matching ADR 0002, the highest-value remaining work is the local seam cleanup that was previously gated on the reorganization:
 
-1. assessment import parse/prepare/write boundaries and unmatched-submission policy;
-2. assessment mutation internals, if further seams are still useful before or during relocation;
-3. question-specific grading page cache-boundary review;
-4. question/rubric read-model reuse;
-5. submission export internals;
-6. assessment completion and overview semantics;
-7. app shell decomposition;
-8. numeric rubric editing.
+1. assessment mutation internals, if further seams are still useful before or during relocation;
+2. question-specific grading page cache-boundary review;
+3. question/rubric read-model reuse;
+4. submission export internals;
+5. assessment completion and overview semantics;
+6. app shell decomposition;
+7. numeric rubric editing.
 
 The recurring problem is still mixed responsibility, but the concrete instances have changed. The question and assessment splits deliberately deferred ADR 0002 compliance so that the files could first be split by responsibility inside `src/db`; that relocation has since landed, so future splitting now happens in the owning feature folder rather than under `src/db`. The remaining seams below are about local responsibility boundaries inside those owners, not ownership.
 
@@ -83,7 +83,7 @@ This table is the single source of truth for each finding's status. The per-find
 | 8. Question/rubric read-model assembly duplicated | Open | Priority 6 |
 | 9. Assessment completion semantics duplicated | Open | Priority 8 |
 | 10. Export submissions state machine needs smaller seams | Open | Priority 7 |
-| 11. Import parse/prepare/write seams | Open | Priority 2, #110 |
+| 11. Import parse/prepare/write seams | Resolved | [design](../design/2026-06-10-import-parse-prepare-write-seams.md), `plans/completed/2026-06-10-import-parse-prepare-write-seams.md`, #146, #147 |
 | 12. App shell navigation mixes concerns | Open | Priority 9 |
 | 13. Numeric rubric editing parses too eagerly | Open | Priority 10, #68 |
 | 14. Grading clients duplicate workflow behavior | Open (partial reuse exists) | Finding body |
@@ -622,49 +622,45 @@ src/export/submissionExport.ts
 
 ## Finding 11: import flows should expose parse, prepare, and write seams
 
-> Resolved 2026-06-10: decisions captured in [Import parse, prepare, and write seams](../design/2026-06-10-import-parse-prepare-write-seams.md); delivery tracked in `plans/active/2026-06-10-import-parse-prepare-write-seams.md`.
+### Current status
+
+Status in the [status table](#status-at-a-glance).
+
+Decisions are captured in [Import parse, prepare, and write seams](../design/2026-06-10-import-parse-prepare-write-seams.md); delivery is tracked in `plans/completed/2026-06-10-import-parse-prepare-write-seams.md` (#146, #147). The original finding and candidate rewrite below are kept for context.
 
 ### Current behavior
 
-The import UI is a reusable textarea/drop form. The assessment import currently parses, prepares, and writes assessment values through one server-action flow.
-
-Assessment import already has useful preparation behavior: recognized columns, batch submission resolution, value parsing, error accumulation, and transactional writes. However, missing submissions are still skipped rather than surfaced as structured import preparation results.
-
-### Why this matters
-
-Silent skips are dangerous for assessment data. The source-structure concern is not to design the preview UI here, but to expose clear import boundaries so the product can later decide how to present warnings, blocking errors, ignored columns, unmatched submissions, and overwrite behavior.
-
-### Candidate source-structure rewrite
-
-Split assessment import into explicit stages:
+All three import flows (assessments, questions, students) follow the same `parse -> load context -> prepare -> write` seam:
 
 ```txt
-parse -> prepare/validate -> write
+src/import/assessmentImportContext.ts    loadAssessmentImportContextFromDb()
+src/import/prepareAssessmentImport.ts    AssessmentImportPlan + prepareAssessmentImport()  [pure]
+src/import/saveAssessments.ts            saveAssessmentImportPlanInDb() + saveAssessments() wrapper
+
+src/import/questionImportContext.ts      loadQuestionImportContextFromDb()
+src/import/prepareQuestionImport.ts      QuestionImportPlan + prepareQuestionImport()  [pure]
+src/import/saveQuestions.ts              saveQuestionImportPlanInDb() + saveQuestions() wrapper
+
+src/import/studentImportContext.ts       loadStudentImportContextFromDb()
+src/import/prepareStudentImport.ts       StudentImportPlan + prepareStudentImport()  [pure]
+src/import/saveStudents.ts               saveStudentImportPlanInDb() + saveStudents() wrapper
 ```
 
-Possible modules:
+Each app-level wrapper opens one transaction wrapping load context → prepare → write, so a plan can never go stale between prepare and write. The pure `prepare…Import` functions are unit-tested directly; context loaders and write primitives are exercised through the wrapper's integration tests.
 
-```txt
-src/import/parseAssessments.ts
-src/import/prepareAssessmentImport.ts
-src/import/assessmentImportResult.ts
-src/import/savePreparedAssessments.ts
-```
+Behavior changes delivered alongside the restructure:
 
-The prepare stage should return a structured result that could support a future preview, but this investigation should not own the preview UI itself.
+- assessment import: unmatched submissions now block the whole import (previously silently skipped); overwrites are detected and the success message reports the overwrite count;
+- question import: a rubric type change blocks if linked assessments exist (previously silently deleted and recreated, cascading away assessments); type changes with no linked assessments proceed and are reported in the plan;
+- student import: the plan distinguishes created vs updated students/submissions and reports team membership changes; no blocking diagnostics in this flow.
 
-The structured result should include enough data for callers to decide what to do with:
+### Why this mattered
 
-- rows parsed;
-- recognized assessment columns;
-- ignored columns;
-- missing/unmatched submissions;
-- ambiguous submissions;
-- invalid assessment cells;
-- values to write;
-- possible overwrites.
+Silent skips were dangerous for assessment data, and silent rubric-type changes could cascade-delete assessments. Splitting parse/prepare/write gave each flow a pure, unit-testable preparation stage and a place to surface blocking diagnostics, ignored columns, and overwrite/created/updated information.
 
-Policy question: should missing submissions warn, block, or be configurable? That policy and any preview UI should be handled by the import/product workflow investigation, not by this source-structure audit.
+### Remaining follow-up
+
+Preview UI and configurable import policies (for example, whether missing submissions should be configurable rather than always-blocking) are deferred to the import/product workflow investigation; they were intentionally not built as part of this restructure.
 
 ## Finding 12: app shell navigation mixes route parsing, navigation structure, local storage, and export behavior
 
@@ -972,22 +968,20 @@ Delivered:
 
 Related: #59, #115, #145.
 
-### Priority 2: assessment import parse/prepare/write boundaries
+### Priority 2: assessment import parse/prepare/write boundaries — Done
 
-Why second:
+Completed 2026-06-10 in #146 (assessments), #147 (questions), and the student import restructure (`plans/completed/2026-06-10-import-parse-prepare-write-seams.md`).
 
-- imports can change many assessment values at once;
-- missing submissions are currently too easy to overlook;
-- structured preparation results make later preview or confirmation flows possible without coupling this audit to UI work.
+Delivered:
 
-Suggested deliverables:
+- split all three import flows (assessments, questions, students) into `parse -> load context -> prepare -> write`, with a pure `prepare…Import` function per flow returning a structured `…ImportPlan`;
+- assessment import: unmatched submissions now block the import (previously silently skipped), and overwrites are detected and reported in the success message;
+- question import: rubric type changes with linked assessments now block (previously silently deleted and recreated), naming the rubric and assessment count;
+- student import: plan distinguishes created vs updated students/submissions and reports team membership changes;
+- each wrapper opens one transaction wrapping load context → prepare → write;
+- preview UI and configurable policies remain deferred to the import/product workflow investigation.
 
-- split parse, prepare/validate, and write stages;
-- return structured unmatched-submission, ignored-column, invalid-cell, and overwrite information from preparation;
-- keep preview UI out of this source-structure scope, unless a separate product/UI issue explicitly takes it on;
-- keep transactional writes separate from parse/prepare logic.
-
-Related: #110, #115.
+Related: [design](../design/2026-06-10-import-parse-prepare-write-seams.md), #110, #115.
 
 ### Priority 3: ADR 0002 source reorganization — Done
 

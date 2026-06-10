@@ -22,7 +22,7 @@ export async function studentsImportAction(
 
 		return {
 			status: "success",
-			message: `Imported ${result.submissionCount} submissions and ${result.studentCount} students. Existing records were updated in place.`,
+			message: `Imported ${result.createdSubmissionCount} new and updated ${result.updatedSubmissionCount} existing submissions; imported ${result.createdStudentCount} new and updated ${result.updatedStudentCount} existing students.`,
 		};
 	} catch (error) {
 		return toImportErrorState(error);
