@@ -201,20 +201,9 @@ export function prepareAssessmentImport(params: {
 				continue;
 			}
 
+			let rubricValue: AssessmentRubricValue;
 			try {
-				writes.push({
-					submissionId,
-					questionId: rubric.questionId,
-					rubric: parseAssessmentValue({ value, rubric }),
-				});
-
-				if (
-					context.assessedRubricKeys.has(
-						assessedRubricKey({ submissionId, rubricId: rubric.id }),
-					)
-				) {
-					overwrites.push({ submissionId, rubricId: rubric.id });
-				}
+				rubricValue = parseAssessmentValue({ value, rubric });
 			} catch (error) {
 				blockingDiagnostics.push({
 					type: "invalid-value",
@@ -223,6 +212,21 @@ export function prepareAssessmentImport(params: {
 					column,
 					message: error instanceof Error ? error.message : String(error),
 				});
+				continue;
+			}
+
+			writes.push({
+				submissionId,
+				questionId: rubric.questionId,
+				rubric: rubricValue,
+			});
+
+			if (
+				context.assessedRubricKeys.has(
+					assessedRubricKey({ submissionId, rubricId: rubric.id }),
+				)
+			) {
+				overwrites.push({ submissionId, rubricId: rubric.id });
 			}
 		}
 	}
