@@ -79,7 +79,7 @@ This table is the single source of truth for each finding's status. The per-find
 | 4. Question-specific grading page cache boundaries | Open (review) | Priority 5, #59 |
 | 5. Question definition persistence split and relocated | Resolved | ADR 0002, #137 |
 | 6. Assessment reads and writes split and relocated | Resolved | ADR 0002, #137; follow-up Priority 4 |
-| 7. Raw database types versus feature-facing types | Largely resolved | ADR 0002, #137 |
+| 7. Raw database types versus feature-facing types | Mostly resolved; submission type boundary remains | ADR 0002, #137 |
 | 8. Question/rubric read-model assembly duplicated | Open | Priority 6 |
 | 9. Assessment completion semantics duplicated | Open | Priority 8 |
 | 10. Export submissions state machine needs smaller seams | Open | Priority 7 |
@@ -489,7 +489,9 @@ The existing transaction-friendly API is the right direction. Preserve the rule 
 
 Status in the [status table](#status-at-a-glance).
 
-`src/db/types.ts` previously mixed generated-database-adjacent types, persistence projections, feature-facing read models, and UI/action/import/export contracts. During the 2026-06-02 source reorganization, every feature-facing type was moved into its owning feature folder (`src/submissions/types.ts`, `src/questions/types.ts`, `src/assessments/types.ts`, `src/rubrics/types.ts`), and `src/db/types.ts` was deleted with no re-export shim. `RubricType` is now a local literal union in `src/rubrics` rather than a re-export of the generated enum, so `src/rubrics` no longer depends on `src/db/generated/db.ts`. The decision direction below remains the standing rule for new types.
+`src/db/types.ts` has been deleted and most feature-facing types now live in their owning feature folders (`src/questions/types.ts`, `src/assessments/types.ts`, `src/rubrics/types.ts`, and `src/submissions/types.ts`). This resolves the main structural problem: there is no longer a central `src/db/types.ts` bucket mixing generated-database-adjacent types with feature, UI, action, import, and export contracts.
+
+The finding is not fully resolved, however. `src/submissions/types.ts` still imports generated database types and re-exports `SubmissionType` from `#db/generated/db.ts`. It also contains a FIXME noting that part of the submission display model may not belong there and that the `Submission` / `SubmissionSubmitter` split is awkward. The remaining follow-up is therefore narrow: clarify submission-facing types so that public submission contracts are explicit feature types rather than re-exported generated schema types.
 
 ### Decision direction
 
