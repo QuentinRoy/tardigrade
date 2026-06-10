@@ -4,17 +4,27 @@ import { revalidateTag } from "next/cache";
 import { CACHE_TAGS } from "#db/cacheTags.ts";
 import type { DB } from "#db/generated/db.ts";
 import { db as defaultDb } from "#db/kysely.ts";
+import {
+	prepareStudentImport,
+	type StudentImportPlan,
+} from "./prepareStudentImport.ts";
+import { loadStudentImportContextFromDb } from "./studentImportContext.ts";
 import type { NormalizedImportedSubmission } from "./types.ts";
 
-// `db` may be the global client or a caller-supplied transaction; the import saver
-// opens the transaction and invalidates cache after it commits.
-export async function saveStudentsInDb(
+export type StudentImportWriteResult = {
+	createdStudentCount: number;
+	updatedStudentCount: number;
+	createdSubmissionCount: number;
+	updatedSubmissionCount: number;
+};
+
+// `db` may be the global client or a caller-supplied transaction. Executes a
+// plan's writes; never opens a transaction and never invalidates cache.
+export async function saveStudentImportPlanInDb(
 	db: Kysely<DB>,
-	{
-		submissions,
-		projectId,
-	}: { submissions: NormalizedImportedSubmission[]; projectId: string },
-): Promise<{ submissionCount: number; studentCount: number }> {
+	{ plan, projectId }: { plan: StudentImportPlan; projectId: string },
+): Promise<StudentImportWriteResult> {
+	const submissions = plan.writes;
 	const submissionsByOwner = submissions.map((submission) => {
 		const firstStudent = submission.students[0];
 		let studentId: string | undefined;
@@ -263,21 +273,32 @@ export async function saveStudentsInDb(
 	}
 
 	return {
-		submissionCount: submissionsByOwner.length,
-		studentCount: studentsToUpsert.length,
+		createdStudentCount: plan.createdStudentIds.length,
+		updatedStudentCount: plan.updatedStudentIds.length,
+		createdSubmissionCount: plan.createdSubmissionIds.length,
+		updatedSubmissionCount: plan.updatedSubmissionIds.length,
 	};
 }
 
+// Wrapper: owns the global db, the transaction boundary, and cache invalidation.
+// `db` defaults to the global client; tests pass a test database. Never pass a
+// transaction — the wrapper opens its own.
 export async function saveStudents(
 	{
 		submissions,
 		projectId,
 	}: { submissions: NormalizedImportedSubmission[]; projectId: string },
 	{ db = defaultDb }: { db?: Kysely<DB> } = {},
-): Promise<{ submissionCount: number; studentCount: number }> {
-	const result = await db
-		.transaction()
-		.execute((tx) => saveStudentsInDb(tx, { submissions, projectId }));
+): Promise<StudentImportWriteResult> {
+	const result = await db.transaction().execute(async (tx) => {
+		const context = await loadStudentImportContextFromDb(tx, {
+			submissions,
+			projectId,
+		});
+		const plan = prepareStudentImport({ submissions, context });
+
+		return saveStudentImportPlanInDb(tx, { plan, projectId });
+	});
 
 	// The transaction owner invalidates after commit. Safe only because this saver
 	// always runs from studentsImportAction (request scope); revalidateTag throws

@@ -2,7 +2,7 @@ import { revalidateTag } from "next/cache";
 import { beforeEach, expect, test, vi } from "vitest";
 import { createTestDb } from "#test/dbIntegration.ts";
 import { createProject } from "#test/projects.ts";
-import { saveStudents, saveStudentsInDb } from "./saveStudents.ts";
+import { saveStudents } from "./saveStudents.ts";
 import type { NormalizedImportedSubmission } from "./types.ts";
 
 vi.mock("server-only", () => ({}));
@@ -40,7 +40,7 @@ function makeSubmissions(
 	];
 }
 
-test("saveStudentsInDb keeps imported student ids and team names isolated per project", async () => {
+test("saveStudents keeps imported student ids and team names isolated per project", async () => {
 	await using db = await createTestDb();
 	await using projectA = await createProject(db, "Project A");
 	await using projectB = await createProject(db, "Project B");
@@ -48,17 +48,33 @@ test("saveStudentsInDb keeps imported student ids and team names isolated per pr
 	const sharedStudentId = "shared-student";
 	const sharedTeamName = "Shared Team";
 
-	const resultA = await saveStudentsInDb(db, {
-		submissions: makeSubmissions(sharedStudentId, sharedTeamName),
-		projectId: projectA.id,
-	});
-	const resultB = await saveStudentsInDb(db, {
-		submissions: makeSubmissions(sharedStudentId, sharedTeamName),
-		projectId: projectB.id,
-	});
+	const resultA = await saveStudents(
+		{
+			submissions: makeSubmissions(sharedStudentId, sharedTeamName),
+			projectId: projectA.id,
+		},
+		{ db },
+	);
+	const resultB = await saveStudents(
+		{
+			submissions: makeSubmissions(sharedStudentId, sharedTeamName),
+			projectId: projectB.id,
+		},
+		{ db },
+	);
 
-	expect(resultA).toEqual({ submissionCount: 2, studentCount: 2 });
-	expect(resultB).toEqual({ submissionCount: 2, studentCount: 2 });
+	expect(resultA).toEqual({
+		createdStudentCount: 2,
+		updatedStudentCount: 0,
+		createdSubmissionCount: 2,
+		updatedSubmissionCount: 0,
+	});
+	expect(resultB).toEqual({
+		createdStudentCount: 2,
+		updatedStudentCount: 0,
+		createdSubmissionCount: 2,
+		updatedSubmissionCount: 0,
+	});
 
 	const studentRows = await db
 		.selectFrom("student")
@@ -113,6 +129,26 @@ test("saveStudentsInDb keeps imported student ids and team names isolated per pr
 	expect(
 		new Set(individualSubmissions.map((row) => row.studentRowId)).size,
 	).toBe(2);
+});
+
+test("saveStudents classifies re-imported students and submissions as updated", async () => {
+	await using db = await createTestDb();
+	await using project = await createProject(db, "Re-import Project");
+
+	const submissions = makeSubmissions("returning-student", "Returning Team");
+
+	await saveStudents({ submissions, projectId: project.id }, { db });
+	const result = await saveStudents(
+		{ submissions, projectId: project.id },
+		{ db },
+	);
+
+	expect(result).toEqual({
+		createdStudentCount: 0,
+		updatedStudentCount: 2,
+		createdSubmissionCount: 0,
+		updatedSubmissionCount: 2,
+	});
 });
 
 test("saveStudents wrapper invalidates submission and assessment tags after the import commits", async () => {

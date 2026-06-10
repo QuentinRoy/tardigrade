@@ -1,8 +1,8 @@
 # Execution plan: import parse/prepare/write seams
 
-Status: Active
+Status: Completed
 Date: 2026-06-10
-Resolution: Pending — three PRs, assessments first, each implemented test-first.
+Resolution: Done — three PRs (assessments, questions, students), each implemented test-first.
 Follow-up: Preview UI and configurable policies deferred to the import/product workflow investigation.
 
 Design: [Import parse, prepare, and write seams](../../docs/design/2026-06-10-import-parse-prepare-write-seams.md). All policy and structure decisions live there; this plan only tracks delivery.
@@ -56,11 +56,11 @@ Same method. Cycles:
 
 Same method. Cycles:
 
-- [ ] Tracer bullet: `prepareStudentImport` plans student/team/submission upserts.
-- [ ] Created vs updated classification for students and submissions (new plan data; success message reports both).
-- [ ] Team membership change reflected in the plan.
-- [ ] Integration cutover: wrapper composes stages in one transaction; existing suite stays green (no blocking diagnostics in this flow).
-- [ ] Refactor while green: extraction + simplify pass; tracker update; move this plan to `plans/completed/`.
+- [x] Tracer bullet: `prepareStudentImport` plans student/team/submission upserts.
+- [x] Created vs updated classification for students and submissions (new plan data; success message reports both).
+- [x] Team membership change reflected in the plan.
+- [x] Integration cutover: wrapper composes stages in one transaction; existing suite stays green (no blocking diagnostics in this flow).
+- [x] Refactor while green: extraction + simplify pass; tracker update; move this plan to `plans/completed/`.
 
 ## Checks per PR
 
