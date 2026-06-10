@@ -16,9 +16,14 @@ export async function assessmentsImportAction(
 		const assessments = await parseAssessmentsCsv(assessmentsCsv);
 		const result = await saveAssessments({ rows: assessments, projectId });
 
+		const overwriteSuffix =
+			result.overwriteCount > 0
+				? ` (${result.overwriteCount} overwritten)`
+				: "";
+
 		return {
 			status: "success",
-			message: `Imported ${result.assessmentCount} assessments.`,
+			message: `Imported ${result.assessmentCount} assessments${overwriteSuffix}.`,
 		};
 	} catch (error) {
 		return toImportErrorState(error);
