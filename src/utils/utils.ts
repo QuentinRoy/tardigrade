@@ -72,3 +72,10 @@ export function findDuplicateGroups<Value, Key>(
 }
 
 export type DuplicateGroup<Key> = { key: Key; indexes: number[] };
+
+export function nonNull<T>(value: T): NonNullable<T> {
+	if (value == null) {
+		throw new Error("Expected non-null value");
+	}
+	return value;
+}

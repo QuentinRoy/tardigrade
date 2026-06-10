@@ -292,12 +292,13 @@ export async function saveAssessment(
 	const result = await db
 		.transaction()
 		.execute((tx) => saveAssessmentInDb(tx, params));
-
+	const { submissionId, questionId } = params;
 	if (result.success) {
 		updateTags(
-			assessmentCacheTag(params.submissionId, params.questionId),
-			CACHE_TAGS.assessments,
-			assessmentQuestionCacheTag(params.questionId),
+			assessmentCacheTag({ submissionId, questionId }),
+			assessmentCacheTag({ submissionId }),
+			assessmentCacheTag(),
+			assessmentQuestionCacheTag(questionId),
 		);
 	}
 

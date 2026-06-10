@@ -1,5 +1,21 @@
 import { describe, expect, it } from "vitest";
-import { findDuplicateGroups } from "./utils.ts";
+import { findDuplicateGroups, nonNull } from "./utils.ts";
+
+describe("nonNull", () => {
+	it("returns the value when it is not null or undefined", () => {
+		expect(nonNull("value")).toBe("value");
+		expect(nonNull(0)).toBe(0);
+		expect(nonNull(false)).toBe(false);
+	});
+
+	it("throws on null", () => {
+		expect(() => nonNull(null)).toThrow("Expected non-null value");
+	});
+
+	it("throws on undefined", () => {
+		expect(() => nonNull(undefined)).toThrow("Expected non-null value");
+	});
+});
 
 describe("findDuplicateGroups", () => {
 	it("groups primitives by value", () => {

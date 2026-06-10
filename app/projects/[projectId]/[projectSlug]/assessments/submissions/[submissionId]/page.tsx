@@ -3,7 +3,7 @@ import Breadcrumbs from "@mui/material/Breadcrumbs";
 import Container from "@mui/material/Container";
 import Typography from "@mui/material/Typography";
 import { notFound } from "next/navigation";
-import { loadAssessment } from "#assessments/assessments.ts";
+import { loadSubmissionAssessments } from "#assessments/assessments.ts";
 import SubmissionOverviewAssessmentClient from "#assessments/SubmissionOverviewAssessmentClient.tsx";
 import { loadSubmissionOverviewProgress } from "#assessments/submissionProgress.ts";
 import { projectAssessmentsPath } from "#projects/projectPaths.ts";
@@ -29,17 +29,22 @@ export default function ProjectSubmissionPage({ params }: SubmissionPageProps) {
 async function ProjectSubmissionPageContent({ params }: SubmissionPageProps) {
 	const { submissionId, projectId } = await params;
 
-	const project = await loadProjectByPublicId(projectId, { required: true });
+	const [
+		project,
+		submissions,
+		questionGrid,
+		progressBySubmissionId,
+		assessmentsByQuestionId,
+	] = await Promise.all([
+		loadProjectByPublicId(projectId, { required: true }),
+		loadSubmissions({ projectId }),
+		loadQuestionGrid({ projectId }),
+		loadSubmissionOverviewProgress({ projectId }),
+		loadSubmissionAssessments({ submissionId, projectId }),
+	]);
 
-	const [submissions, questionGrid, progressBySubmissionId] = await Promise.all(
-		[
-			loadSubmissions({ projectId: project.id }),
-			loadQuestionGrid({ projectId: project.id }),
-			loadSubmissionOverviewProgress({ projectId: project.id }),
-		],
-	);
+	// Ensure the submission belongs to the project and can be assessed.
 	const currentSubmission = submissions.find((s) => s.id === submissionId);
-
 	if (currentSubmission == null) {
 		notFound();
 	}
@@ -52,17 +57,11 @@ async function ProjectSubmissionPageContent({ params }: SubmissionPageProps) {
 		}),
 	);
 
-	const assessments = await Promise.all(
-		questions.map((question) =>
-			loadAssessment({ submissionId, questionId: question.questionId }),
-		),
-	);
-
-	const gradedQuestions = questions.map((question, index) => ({
+	const gradedQuestions = questions.map((question) => ({
 		questionId: question.questionId,
 		questionLabel: question.questionLabel,
 		rubrics: question.rubrics.map((rubric) =>
-			attachAssessment(rubric, assessments[index]),
+			attachAssessment(rubric, assessmentsByQuestionId[question.questionId]),
 		),
 	}));
 
