@@ -101,15 +101,15 @@ This table is the single source of truth for each finding's status. The per-find
 
 This document focuses on concrete source-code structure and technical debt. It intentionally does not own terminology, product positioning, offline architecture, or final caching strategy.
 
-See [the investigation overlap audit](./investigation-overlap-audit.md) for a fuller ownership map across ongoing investigations.
+See [the investigation overlap audit](./2026-05-25-investigation-overlap-audit.md) for a fuller ownership map across ongoing investigations.
 
 Important related documents:
 
-- [Domain terminology audit](./domain-terminology-audit.md) owns naming decisions such as `Project` versus `Assignment`, `Assessment` versus `Grading`, and `Rubric` versus `Criterion`.
-- [Assessment target model](./assessment-target-model.md) owns student/group/submission/assessment-target semantics.
-- [Mark, grade and weighting model](./mark-grade-weighting-model.md) owns grading output semantics such as mark, grade, score, and weighting.
-- [Grading workflows and product positioning](./grading-workflows-and-product-positioning.md) owns workflow and product-scope questions such as spreadsheet replacement, LMS integration, and explicit import/export operations.
-- [Offline support](./offline-support.md) owns local storage, command outbox, sync, and conflict strategy questions.
+- [Domain terminology audit](./2026-05-20-domain-terminology-audit.md) owns naming decisions such as `Project` versus `Assignment`, `Assessment` versus `Grading`, and `Rubric` versus `Criterion`.
+- [Assessment target model](./2026-05-20-assessment-target-model.md) owns student/group/submission/assessment-target semantics.
+- [Mark, grade and weighting model](./2026-05-20-mark-grade-weighting-model.md) owns grading output semantics such as mark, grade, score, and weighting.
+- [Grading workflows and product positioning](./2026-05-22-grading-workflows-and-product-positioning.md) owns workflow and product-scope questions such as spreadsheet replacement, LMS integration, and explicit import/export operations.
+- [Offline support](./2026-05-19-offline-support.md) owns local storage, command outbox, sync, and conflict strategy questions.
 - ADR 0007 owns the persistence layering: DB primitives take a required handle; app-level wrappers own transactions and post-commit cache invalidation.
 - #59 should own final loading, caching, revalidation, and route-boundary strategy.
 - Reliability issues #24 (progress aggregation), #26 (rubric overview analytics), and #32 (export streaming) own the correctness semantics that Findings 9 and 10 touch; this document owns only the structural seams.

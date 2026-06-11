@@ -148,7 +148,7 @@ See `docs/adr/`.
 ## Investigations
 
 - `docs/investigations/offline-grading-mode.md`: options for optional offline grading support.
-- `docs/investigations/repo-documentation-architecture.md`: documentation architecture and agent workflow conventions.
+- `docs/investigations/2026-05-19-repo-documentation-architecture.md`: documentation architecture and agent workflow conventions.
 
 ## Designs
 
@@ -284,7 +284,7 @@ Recommended filename format:
 
 ```txt
 docs/investigations/offline-grading-mode.md
-docs/investigations/repo-documentation-architecture.md
+docs/investigations/2026-05-19-repo-documentation-architecture.md
 docs/investigations/local-search-options.md
 ```
 
@@ -764,7 +764,7 @@ Good:
 
 ```txt
 docs/investigations/offline-grading-mode.md
-docs/investigations/repo-documentation-architecture.md
+docs/investigations/2026-05-19-repo-documentation-architecture.md
 docs/adr/0004-use-dexie-for-offline-assessment-outbox.md
 docs/design/offline-sync-v1.md
 plans/active/issue-63-save-failure-protection.md
@@ -851,7 +851,7 @@ plans/
 
 Suggested immediate actions:
 
-1. Keep this document under `docs/investigations/repo-documentation-architecture.md`.
+1. Keep this document under `docs/investigations/2026-05-19-repo-documentation-architecture.md`.
 2. Move the optional offline grading audit to `docs/investigations/offline-grading-mode.md`.
 3. Add `docs/index.md` as a lightweight map once there are several docs.
 4. Add `AGENTS.md` with short operational rules.

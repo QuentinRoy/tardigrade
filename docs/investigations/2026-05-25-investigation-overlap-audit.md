@@ -39,37 +39,37 @@ The main risk is that source-structure, reliability, and read-write-separation a
 
 Current investigation documents considered:
 
-- `docs/investigations/source-structure-and-tech-debt-audit.md`
-- `docs/investigations/read-write-separation-and-schema-change-resilience.md`
-- `docs/investigations/domain-terminology-audit.md`
-- `docs/investigations/assessment-target-model.md`
-- `docs/investigations/mark-grade-weighting-model.md`
-- `docs/investigations/grading-workflows-and-product-positioning.md`
-- `docs/investigations/offline-support.md`
-- `docs/investigations/repo-documentation-architecture.md`
+- `docs/investigations/2026-05-25-source-structure-and-tech-debt-audit.md`
+- `docs/investigations/2026-05-26-read-write-separation-and-schema-change-resilience.md`
+- `docs/investigations/2026-05-20-domain-terminology-audit.md`
+- `docs/investigations/2026-05-20-assessment-target-model.md`
+- `docs/investigations/2026-05-20-mark-grade-weighting-model.md`
+- `docs/investigations/2026-05-22-grading-workflows-and-product-positioning.md`
+- `docs/investigations/2026-05-19-offline-support.md`
+- `docs/investigations/2026-05-19-repo-documentation-architecture.md`
 - `docs/investigations/2026-05-26-agent-instruction-architecture-audit.md`
-- `docs/investigations/commit-message-conventions.md`
+- `docs/investigations/2026-05-20-commit-message-conventions.md`
 
 Current active plans considered:
 
-- `plans/active/reliability-hardening.md`
+- `plans/active/2026-05-17-reliability-hardening.md`
 
 ## Overlap map
 
 | Topic | Source-structure audit touches | Existing owner | Recommended ownership |
 | --- | --- | --- | --- |
-| Project/assignment terminology | Project route context, project folder names, project paths | `domain-terminology-audit.md`, `grading-workflows-and-product-positioning.md` | Terminology/product docs own naming; source audit owns implementation consequences |
-| Assessment vs grading | Candidate `src/grading` folder, action/service naming | `domain-terminology-audit.md` | Terminology doc owns vocabulary; source audit can use provisional names |
-| Student/team/group/submission model | Submission read models, progress, imports | `assessment-target-model.md` | Assessment target doc owns conceptual model; source audit owns current code friction |
-| Mark/grade/score/weighting | Progress, rubric overview, numeric rubric editing | `mark-grade-weighting-model.md` | Mark/grade doc owns semantics; source audit owns duplicated calculations and code seams |
-| Spreadsheet replacement/import/export philosophy | Import preview, export streaming, explicit operations | `grading-workflows-and-product-positioning.md` | Product doc owns workflow philosophy; source audit owns implementation quality |
-| Offline/local-first storage | Commands, transaction-friendly APIs, local project snapshots | `offline-support.md` | Offline doc owns offline architecture; source audit/read-write investigation should keep command seams compatible |
+| Project/assignment terminology | Project route context, project folder names, project paths | `2026-05-20-domain-terminology-audit.md`, `2026-05-22-grading-workflows-and-product-positioning.md` | Terminology/product docs own naming; source audit owns implementation consequences |
+| Assessment vs grading | Candidate `src/grading` folder, action/service naming | `2026-05-20-domain-terminology-audit.md` | Terminology doc owns vocabulary; source audit can use provisional names |
+| Student/team/group/submission model | Submission read models, progress, imports | `2026-05-20-assessment-target-model.md` | Assessment target doc owns conceptual model; source audit owns current code friction |
+| Mark/grade/score/weighting | Progress, rubric overview, numeric rubric editing | `2026-05-20-mark-grade-weighting-model.md` | Mark/grade doc owns semantics; source audit owns duplicated calculations and code seams |
+| Spreadsheet replacement/import/export philosophy | Import preview, export streaming, explicit operations | `2026-05-22-grading-workflows-and-product-positioning.md` | Product doc owns workflow philosophy; source audit owns implementation quality |
+| Offline/local-first storage | Commands, transaction-friendly APIs, local project snapshots | `2026-05-19-offline-support.md` | Offline doc owns offline architecture; source audit/read-write investigation should keep command seams compatible |
 | Loading/caching/revalidation | Project loaders, cache tags, grading page read models | #59 and future caching investigation/design | Caching investigation owns freshness strategy; source audit/read-write investigation own refactor seams that enable it |
-| Reliability risks and test evidence | Export/progress/import/assessment save seams | `plans/active/reliability-hardening.md` | Reliability plan owns risk priority/status/evidence; source audit owns structural causes and refactor candidates |
-| Read/write separation | Command/write paths and read projections | `read-write-separation-and-schema-change-resilience.md` | Read-write investigation owns proposed direction; smaller active plans should own concrete execution later |
-| Documentation lifecycle | Investigation vs ADR vs design vs plan | `repo-documentation-architecture.md` | Documentation architecture owns lifecycle; individual docs should state their status clearly |
+| Reliability risks and test evidence | Export/progress/import/assessment save seams | `plans/active/2026-05-17-reliability-hardening.md` | Reliability plan owns risk priority/status/evidence; source audit owns structural causes and refactor candidates |
+| Read/write separation | Command/write paths and read projections | `2026-05-26-read-write-separation-and-schema-change-resilience.md` | Read-write investigation owns proposed direction; smaller active plans should own concrete execution later |
+| Documentation lifecycle | Investigation vs ADR vs design vs plan | `2026-05-19-repo-documentation-architecture.md` | Documentation architecture owns lifecycle; individual docs should state their status clearly |
 | Agent guidance | How agents find/use audits and plans | `2026-05-26-agent-instruction-architecture-audit.md` | Agent docs own instruction strategy; investigations/plans should not become implicit agent instructions |
-| Commit style | PR/commit naming | `commit-message-conventions.md` | No meaningful overlap |
+| Commit style | PR/commit naming | `2026-05-20-commit-message-conventions.md` | No meaningful overlap |
 
 ## Planning artifact overlap analysis
 
@@ -77,7 +77,7 @@ Current active plans considered:
 
 #### Existing plan scope
 
-`plans/active/reliability-hardening.md` is a living reliability tracker and delivery dashboard. It tracks risks by tier, score, status, issue number, evidence, and next action.
+`plans/active/2026-05-17-reliability-hardening.md` is a living reliability tracker and delivery dashboard. It tracks risks by tier, score, status, issue number, evidence, and next action.
 
 It owns:
 
@@ -118,7 +118,7 @@ When implementation touches a reliability-risk area, PRs should link both the re
 
 #### Existing investigation scope
 
-`docs/investigations/read-write-separation-and-schema-change-resilience.md` proposes separating write-side command/persistence paths from read-side projection/reporting paths.
+`docs/investigations/2026-05-26-read-write-separation-and-schema-change-resilience.md` proposes separating write-side command/persistence paths from read-side projection/reporting paths.
 
 It owns the proposed direction for:
 
@@ -160,7 +160,7 @@ The read-write separation investigation can look like the accepted architecture,
 
 #### Existing investigation scope
 
-`domain-terminology-audit.md` is explicitly the broad terminology audit. It distinguishes artifact roles: issues frame problems, investigations hold evolving reasoning, ADRs record decisions, and code/tests represent implemented behavior. It also warns that presence in an investigation does not imply adoption.
+`2026-05-20-domain-terminology-audit.md` is explicitly the broad terminology audit. It distinguishes artifact roles: issues frame problems, investigations hold evolving reasoning, ADRs record decisions, and code/tests represent implemented behavior. It also warns that presence in an investigation does not imply adoption.
 
 It currently owns broad vocabulary questions around:
 
@@ -197,9 +197,9 @@ Examples:
 
 #### Recommended boundary
 
-`domain-terminology-audit.md` should own naming decisions.
+`2026-05-20-domain-terminology-audit.md` should own naming decisions.
 
-`source-structure-and-tech-debt-audit.md` should treat names as provisional and implementation-oriented.
+`2026-05-25-source-structure-and-tech-debt-audit.md` should treat names as provisional and implementation-oriented.
 
 Recommended wording to preserve in the source audit:
 
@@ -219,7 +219,7 @@ The source audit should link to the terminology audit when discussing:
 
 #### Existing investigation scope
 
-`assessment-target-model.md` focuses on assessment targets, group terminology, and individual versus grouped assessment. It currently leans toward `Group` over `Team`, with singleton groups representing individual assessment targets.
+`2026-05-20-assessment-target-model.md` focuses on assessment targets, group terminology, and individual versus grouped assessment. It currently leans toward `Group` over `Team`, with singleton groups representing individual assessment targets.
 
 It distinguishes workflow/presentation concerns from persistence invariants.
 
@@ -249,7 +249,7 @@ then the module naming might need another pass.
 
 #### Recommended boundary
 
-`assessment-target-model.md` should own the conceptual model:
+`2026-05-20-assessment-target-model.md` should own the conceptual model:
 
 - what an assessment target is;
 - whether singleton groups replace individual/team branching;
@@ -279,7 +279,7 @@ where appropriate.
 
 #### Existing investigation scope
 
-`mark-grade-weighting-model.md` owns the distinction between:
+`2026-05-20-mark-grade-weighting-model.md` owns the distinction between:
 
 - rubric-level mark;
 - optional raw score;
@@ -307,7 +307,7 @@ It could also extract the wrong shared abstraction if progress/analytics code is
 
 #### Recommended boundary
 
-`mark-grade-weighting-model.md` should own semantics:
+`2026-05-20-mark-grade-weighting-model.md` should own semantics:
 
 - what counts as a mark;
 - what counts as a grade;
@@ -338,7 +338,7 @@ Avoid making `score` the generic term for all rubric outputs unless the terminol
 
 #### Existing investigation scope
 
-`grading-workflows-and-product-positioning.md` asks what problem the project solves, who it is for, and where scope boundaries sit. It frames spreadsheets as a likely practical competitor and LMSes as likely integration targets.
+`2026-05-22-grading-workflows-and-product-positioning.md` asks what problem the project solves, who it is for, and where scope boundaries sit. It frames spreadsheets as a likely practical competitor and LMSes as likely integration targets.
 
 It proposes principles such as:
 
@@ -366,7 +366,7 @@ For example, moving imports to parse-preview-confirm is both a technical and pro
 
 #### Recommended boundary
 
-`grading-workflows-and-product-positioning.md` should own product-level principles:
+`2026-05-22-grading-workflows-and-product-positioning.md` should own product-level principles:
 
 - whether spreadsheet replacement is the right framing;
 - whether import/export transparency is a core value;
@@ -389,7 +389,7 @@ Implementation issues for import/export should link both documents:
 
 #### Existing investigation scope
 
-`offline-support.md` explores optional offline grading mode. It recommends keeping PostgreSQL as canonical and adding IndexedDB/Dexie as a browser-side local store with an explicit assessment command outbox.
+`2026-05-19-offline-support.md` explores optional offline grading mode. It recommends keeping PostgreSQL as canonical and adding IndexedDB/Dexie as a browser-side local store with an explicit assessment command outbox.
 
 It also proposes shared TypeScript domain types, shared command constructors, server command handlers, sync endpoints, local project snapshots, and conflict policies.
 
@@ -413,7 +413,7 @@ For example, an API too tightly coupled to `FormData`, server actions, or Kysely
 
 #### Recommended boundary
 
-`offline-support.md` should own offline architecture:
+`2026-05-19-offline-support.md` should own offline architecture:
 
 - IndexedDB/Dexie storage;
 - outbox format;
@@ -482,7 +482,7 @@ The source audit should keep only enabling refactors:
 
 #### Existing investigation scope
 
-`repo-documentation-architecture.md` defines document categories and lifecycle:
+`2026-05-19-repo-documentation-architecture.md` defines document categories and lifecycle:
 
 - README for onboarding;
 - AGENTS for short operational instructions;
@@ -540,7 +540,7 @@ Agent instructions should tell agents when to consult investigations/plans. The 
 Possible future AGENTS guidance:
 
 ```txt
-For source-structure refactors, consult docs/investigations/source-structure-and-tech-debt-audit.md, issue #115, and any active plan linked from #117. Treat investigations/plans as non-final unless an ADR/design supersedes them.
+For source-structure refactors, consult docs/investigations/2026-05-25-source-structure-and-tech-debt-audit.md, issue #115, and any active plan linked from #117. Treat investigations/plans as non-final unless an ADR/design supersedes them.
 ```
 
 ### 9. Commit message conventions investigation
@@ -694,7 +694,7 @@ This investigation does not yet exist as a dedicated docs file, but #59 strongly
 ## Candidate next steps
 
 1. Keep #117 as the lightweight roadmap issue for sequencing DX, documentation, and refactor work.
-2. Use `docs/investigations/read-write-separation-and-schema-change-resilience.md` as a proposed direction, not as an active implementation plan.
+2. Use `docs/investigations/2026-05-26-read-write-separation-and-schema-change-resilience.md` as a proposed direction, not as an active implementation plan.
 3. Create a smaller active plan only when starting a concrete extraction, such as assessment save or question/rubric save.
 4. Create a dedicated caching/loading investigation for #59 if source/read-model refactors proceed.
 5. When implementation starts, create focused issues rather than using #115 as one giant refactor task.

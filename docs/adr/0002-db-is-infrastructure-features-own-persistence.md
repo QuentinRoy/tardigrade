@@ -8,7 +8,7 @@ Status: accepted
 
 Feature persistence currently living under `src/db` produces duplication and a back-pointing dependency: `src/db/questionsManaged.ts` hand-maintains `ManagedQuestionInput` to match `z.output<typeof managedQuestionSchema>` in `src/questions/schemas.ts` (kept in sync by hand, nothing enforces it), and `src/db/questionsCommands.ts` imports `QuestionsValidationError` from `@/questions/errors` — a runtime `db → feature` edge. The `import` feature already shows the target: `src/import/saveQuestions.ts` lives in the feature, accepts `z.output<typeof questionSchema>`, and depends only *down* on `../db/kysely`.
 
-A `db → feature` edge cannot be partially allowed. If domain types or read models stay in `src/db` while schemas/commands move out, `src/db` must reach back up for them and the arrow returns. The only coherent end state is per-feature all-or-nothing — read model, write command, Domain Types, and Validation Schema all in the feature — leaving `src/db` with nothing feature-specific to import. This matches the "Candidate target shape" in the [source-structure audit](../investigations/source-structure-and-tech-debt-audit.md), which this ADR promotes from proposed direction to accepted decision.
+A `db → feature` edge cannot be partially allowed. If domain types or read models stay in `src/db` while schemas/commands move out, `src/db` must reach back up for them and the arrow returns. The only coherent end state is per-feature all-or-nothing — read model, write command, Domain Types, and Validation Schema all in the feature — leaving `src/db` with nothing feature-specific to import. This matches the "Candidate target shape" in the [source-structure audit](../investigations/2026-05-25-source-structure-and-tech-debt-audit.md), which this ADR promotes from proposed direction to accepted decision.
 
 ## Rules
 
@@ -26,5 +26,5 @@ A `db → feature` edge cannot be partially allowed. If domain types or read mod
 ## Consequences
 
 - The "derive the input type in `db` vs leave it hand-written" question dissolves: once a feature owns both its schema and its writer, the input is `z.output` of the schema and there is no cross-layer arrow to direct.
-- Code that predates this decision still violates it (e.g. the `questions` writer and the `Domain Types` in `src/db/types.ts`). The physical relocations are correctness-sensitive write paths; they are tracked and sequenced in the [source-structure audit](../investigations/source-structure-and-tech-debt-audit.md), not in this ADR.
+- Code that predates this decision still violates it (e.g. the `questions` writer and the `Domain Types` in `src/db/types.ts`). The physical relocations are correctness-sensitive write paths; they are tracked and sequenced in the [source-structure audit](../investigations/2026-05-25-source-structure-and-tech-debt-audit.md), not in this ADR.
 - `CONTEXT.md` gains **Validation Schema** and **Derived Input Type**, and tightens **Schema Alignment Rule** to clarify it governs *Generated DB Schema Types* (kysely `generated/`), a distinct sense of "schema".

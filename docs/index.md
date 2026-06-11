@@ -38,23 +38,23 @@ Open-ended audits and option analysis. Investigations may contain hypotheses and
 
 ### Product and domain investigations
 
-- [Grading workflows and product positioning](investigations/grading-workflows-and-product-positioning.md)
-- [Domain terminology audit](investigations/domain-terminology-audit.md)
-- [Assessment target model](investigations/assessment-target-model.md)
-- [Mark, grade and weighting model](investigations/mark-grade-weighting-model.md)
+- [Grading workflows and product positioning](investigations/2026-05-22-grading-workflows-and-product-positioning.md)
+- [Domain terminology audit](investigations/2026-05-20-domain-terminology-audit.md)
+- [Assessment target model](investigations/2026-05-20-assessment-target-model.md)
+- [Mark, grade and weighting model](investigations/2026-05-20-mark-grade-weighting-model.md)
 
 ### Technical architecture investigations
 
-- [Source structure and technical debt audit](investigations/source-structure-and-tech-debt-audit.md)
-- [Investigation overlap audit](investigations/investigation-overlap-audit.md)
-- [Read-write separation and schema-change resilience](investigations/read-write-separation-and-schema-change-resilience.md)
-- [Offline support and local assessment storage](investigations/offline-support.md)
-- [Repository documentation architecture](investigations/repository-documentation-architecture.md)
+- [Source structure and technical debt audit](investigations/2026-05-25-source-structure-and-tech-debt-audit.md)
+- [Investigation overlap audit](investigations/2026-05-25-investigation-overlap-audit.md)
+- [Read-write separation and schema-change resilience](investigations/2026-05-26-read-write-separation-and-schema-change-resilience.md)
+- [Offline support and local assessment storage](investigations/2026-05-19-offline-support.md)
+- [Repository documentation architecture](investigations/2026-05-19-repo-documentation-architecture.md)
 - [Agent instruction architecture audit](investigations/2026-05-26-agent-instruction-architecture-audit.md)
 
 ### Completed workflow convention investigations
 
-- [Commit message conventions](investigations/commit-message-conventions.md)
+- [Commit message conventions](investigations/2026-05-20-commit-message-conventions.md)
 
 ## ADRs
 
@@ -105,4 +105,4 @@ Temporary work artifacts for agent-assisted implementation.
 
 - Keep investigations in `docs/investigations/` until a decision is durable enough for an ADR.
 - Prefer the smallest document type that captures the needed context.
-- Use the [investigation overlap audit](investigations/investigation-overlap-audit.md) when a topic appears to span multiple current investigations or planning artifacts.
+- Use the [investigation overlap audit](investigations/2026-05-25-investigation-overlap-audit.md) when a topic appears to span multiple current investigations or planning artifacts.

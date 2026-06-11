@@ -3,7 +3,7 @@
 Status: Completed
 Date: 2026-06-02
 Completed: 2026-06-02
-Related: #115, ADR 0002, docs/investigations/source-structure-and-tech-debt-audit.md
+Related: #115, ADR 0002, docs/investigations/2026-05-25-source-structure-and-tech-debt-audit.md
 
 ## Outcome
 

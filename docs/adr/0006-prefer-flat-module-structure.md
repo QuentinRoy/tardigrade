@@ -6,13 +6,13 @@ Inside a feature folder (`src/{assessments,export,import,projects,questions,rubr
 
 If a folder becomes hard to scan, the first response is not to introduce technical subfolders. First ask whether the owner has become too broad and should be split into sibling feature folders under `src/` according to ADR-0002. Nesting inside an owner is a last-resort option for a genuinely single owner with distinct internal domain sub-areas, and those subfolders remain flat. Tool-imposed directories, such as `src/db/generated/` and `src/db/migrations/`, are exempt because their layout is not ours to choose.
 
-This promotes the "Prefer flat modules first" principle in the [source-structure audit](../investigations/source-structure-and-tech-debt-audit.md) from proposed direction to accepted decision. It does not govern framework-owned routing structure under `src/app/`.
+This promotes the "Prefer flat modules first" principle in the [source-structure audit](../investigations/2026-05-25-source-structure-and-tech-debt-audit.md) from proposed direction to accepted decision. It does not govern framework-owned routing structure under `src/app/`.
 
 ## Why
 
 Category-first folder trees (`domain/`, `application/`, `infrastructure/`, or `repositories/`, `services/`, `components/`) cost more than they give at this project's size. They scatter files that change together for one product reason across sibling category folders, add path depth without much information, and invite premature layering the codebase does not need.
 
-The audit's [colocation principle](../investigations/source-structure-and-tech-debt-audit.md#colocation-is-good-but-reason-to-change-matters) already establishes that files should sit near the workflow or domain concept they support. For example, `src/assessments/saveAssessment.action.ts`, `src/assessments/saveAssessment.ts`, and `src/assessments/saveAssessment.test.ts` are more useful together than split across `actions/`, `services/`, and `tests/`.
+The audit's [colocation principle](../investigations/2026-05-25-source-structure-and-tech-debt-audit.md#colocation-is-good-but-reason-to-change-matters) already establishes that files should sit near the workflow or domain concept they support. For example, `src/assessments/saveAssessment.action.ts`, `src/assessments/saveAssessment.ts`, and `src/assessments/saveAssessment.test.ts` are more useful together than split across `actions/`, `services/`, and `tests/`.
 
 Suffixes carry the role information that category folders would otherwise provide while preserving reason-to-change colocation. A shared base name keeps one concept's files adjacent in a flat listing: `saveAssessment.ts`, `saveAssessment.action.ts`, and `saveAssessment.test.ts` sort together, so the concept's implementation, server boundary, and tests remain visible together. Category folders break this by grouping files according to framework mechanism rather than by what changes together.
 

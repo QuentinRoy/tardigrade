@@ -32,8 +32,8 @@ This document is the broad terminology audit. It should preserve the exploration
 
 ## Related investigations
 
-- [Assessment target model](./assessment-target-model.md)
-- [Mark, grade and weighting model](./mark-grade-weighting-model.md)
+- [Assessment target model](./2026-05-20-assessment-target-model.md)
+- [Mark, grade and weighting model](./2026-05-20-mark-grade-weighting-model.md)
 
 ---
 
@@ -171,7 +171,7 @@ Open questions:
 Status: Proposed in focused investigation
 Confidence: Medium
 
-The focused [assessment target model](./assessment-target-model.md) currently leans toward `Group` over `Team`, with singleton groups representing individual assessment targets.
+The focused [assessment target model](./2026-05-20-assessment-target-model.md) currently leans toward `Group` over `Team`, with singleton groups representing individual assessment targets.
 
 Broad audit concern:
 The app needs terms for at least three related but distinct concepts:

@@ -1,10 +1,10 @@
 # Investigation: Read-Write Separation and Schema-Change Resilience
 
-Status: Largely implemented; remaining scope tracked as R-007/R-008 in `plans/active/reliability-hardening.md`
+Status: Largely implemented; remaining scope tracked as R-007/R-008 in `plans/active/2026-05-17-reliability-hardening.md`
 Date: 2026-05-18
 Last reviewed: 2026-06-11
 Owner: Unassigned
-Related: #115 (closed), #117 (closed), #51 (closed), `plans/active/reliability-hardening.md`
+Related: #115 (closed), #117 (closed), #51 (closed), `plans/active/2026-05-17-reliability-hardening.md`
 
 ## 0. Current Status and Ownership
 
@@ -21,16 +21,16 @@ Implemented:
 Remaining (Phase C for progress/overview reads, Phase D hardening):
 
 - `src/assessments/submissionProgress.ts`, `src/assessments/assessmentsProgress.ts`, `src/assessments/rubricOverview.ts`, and `src/assessments/rubricOverviewBuilder.ts` have adopted the ADR 0007 primitive/wrapper shape but have not had a dedicated read-projection extraction or test-hardening pass.
-- This remaining scope is tracked as **R-007** (progress metrics) and **R-008** (rubric overview analytics) in `plans/active/reliability-hardening.md`, which now reference this investigation for the proposed projection-module direction.
+- This remaining scope is tracked as **R-007** (progress metrics) and **R-008** (rubric overview analytics) in `plans/active/2026-05-17-reliability-hardening.md`, which now reference this investigation for the proposed projection-module direction.
 
 This document is retained as background and rationale for the accepted direction and for the remaining R-007/R-008 work. It no longer represents an undecided proposal.
 
 Document ownership boundaries (historical, still accurate):
 
-- #115 and `docs/investigations/source-structure-and-tech-debt-audit.md` owned the broader source-structure and technical-debt audit (closed).
+- #115 and `docs/investigations/2026-05-25-source-structure-and-tech-debt-audit.md` owned the broader source-structure and technical-debt audit (closed).
 - #117 owned the DX sequencing roadmap (closed).
 - #51 owned database identifier naming conventions (closed).
-- `plans/active/reliability-hardening.md` owns reliability risks, priority, and test evidence, including the remaining R-007/R-008 scope from this investigation.
+- `plans/active/2026-05-17-reliability-hardening.md` owns reliability risks, priority, and test evidence, including the remaining R-007/R-008 scope from this investigation.
 
 ## 1. Problem Statement
 
@@ -91,7 +91,7 @@ Out of scope:
 
 ### 4.1 Overlap With Reliability Tracker
 
-Reference: [`plans/active/reliability-hardening.md`](../../plans/active/reliability-hardening.md)
+Reference: [`plans/active/2026-05-17-reliability-hardening.md`](../../plans/active/2026-05-17-reliability-hardening.md)
 
 Direct overlap:
 
@@ -133,8 +133,8 @@ Related:
 
 - #115, source code structure umbrella.
 - #117, DX roadmap.
-- `docs/investigations/source-structure-and-tech-debt-audit.md`.
-- `docs/investigations/investigation-overlap-audit.md`.
+- `docs/investigations/2026-05-25-source-structure-and-tech-debt-audit.md`.
+- `docs/investigations/2026-05-25-investigation-overlap-audit.md`.
 
 Boundary:
 
@@ -239,7 +239,7 @@ Acceptance criteria:
    - Avoid one-shot large rewrites.
 
 4. Reliability tracker sync
-   - Update `plans/active/reliability-hardening.md` when a refactor reduces or changes a tracked risk.
+   - Update `plans/active/2026-05-17-reliability-hardening.md` when a refactor reduces or changes a tracked risk.
    - Link concrete PRs and tests in the relevant reliability rows/issues.
 
 ## 8. Risks and Mitigations
@@ -296,9 +296,9 @@ Status of original follow-ups:
 - ✅ #117 — closed; the roadmap explicitly tracked moving this investigation out of `plans/active/` and reconciling it with #115/#51.
 - ✅ #115 — closed (source-structure umbrella).
 - ✅ #51 — closed (identifier naming).
-- ✅ `plans/active/reliability-hardening.md` — R-006 promoted to Verified with evidence from the 2026-06-11 export internals refactor; R-003, R-005, R-011 already Verified; R-007 and R-008 updated with current paths and a pointer back to this investigation for the remaining projection-extraction direction.
+- ✅ `plans/active/2026-05-17-reliability-hardening.md` — R-006 promoted to Verified with evidence from the 2026-06-11 export internals refactor; R-003, R-005, R-011 already Verified; R-007 and R-008 updated with current paths and a pointer back to this investigation for the remaining projection-extraction direction.
 
-Remaining tracker actions (now owned by `plans/active/reliability-hardening.md`, not this document):
+Remaining tracker actions (now owned by `plans/active/2026-05-17-reliability-hardening.md`, not this document):
 
 - Create a smaller `plans/active/...` plan for the R-007/R-008 projection extraction when that work starts.
 - Re-score R-007 and R-008 after that extraction lands.
