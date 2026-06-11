@@ -46,6 +46,7 @@ Open-ended audits and option analysis. Investigations may contain hypotheses and
 ### Technical architecture investigations
 
 - [Source structure and technical debt audit](investigations/2026-05-25-source-structure-and-tech-debt-audit.md)
+- [Caching and loading audit](investigations/2026-06-11-caching-loading-audit.md)
 - [Investigation overlap audit](investigations/2026-05-25-investigation-overlap-audit.md)
 - [Read-write separation and schema-change resilience](investigations/2026-05-26-read-write-separation-and-schema-change-resilience.md)
 - [Offline support and local assessment storage](investigations/2026-05-19-offline-support.md)
