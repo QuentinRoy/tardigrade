@@ -1,5 +1,6 @@
 import "server-only";
 import { type NextRequest, NextResponse } from "next/server";
+import { buildDatedFilename } from "#export/exportFilename.ts";
 import { exportQuestionsToYaml } from "#export/questionsExport.ts";
 import { loadProjectByPublicId } from "#projects/projects.ts";
 import { loadQuestionGrid } from "#questions/questions.ts";
@@ -20,9 +21,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 		const questions = await loadQuestionGrid({ projectId: project.id });
 		const yaml = exportQuestionsToYaml(questions);
 
-		const now = new Date();
-		const dateString = now.toISOString().split("T")[0];
-		const filename = `questions-export-${project.slug}-${dateString}.yaml`;
+		const filename = buildDatedFilename({
+			baseName: `questions-export-${project.slug}`,
+			extension: "yaml",
+		});
 
 		return new NextResponse(yaml, {
 			status: 200,

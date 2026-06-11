@@ -1,3 +1,4 @@
+import { buildDatedFilename } from "#export/exportFilename.ts";
 import { createCsvSubmissionExport } from "#export/submissionExport.ts";
 import { loadProjectByPublicId } from "#projects/projects.ts";
 import { parseExportOptions } from "./exportOptions.ts";
@@ -29,11 +30,10 @@ export async function GET(
 
 	const body = await createCsvSubmissionExport(options, project.id);
 
-	const now = new Date();
-	const y = now.getUTCFullYear();
-	const m = String(now.getUTCMonth() + 1).padStart(2, "0");
-	const d = String(now.getUTCDate()).padStart(2, "0");
-	const filename = `submission-assessments-${project.slug}-${y}${m}${d}.csv`;
+	const filename = buildDatedFilename({
+		baseName: `submission-assessments-${project.slug}`,
+		extension: "csv",
+	});
 
 	return new Response(body, {
 		headers: {

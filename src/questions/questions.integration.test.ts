@@ -2,7 +2,10 @@ import { cacheTag } from "next/cache";
 import { beforeEach, expect, test, vi } from "vitest";
 import { createTestDb } from "#test/dbIntegration.ts";
 import { createProject } from "#test/projects.ts";
-import { createAssessedBooleanQuestionFixture } from "#test/questions.ts";
+import {
+	createAssessedBooleanQuestionFixture,
+	createOrdinalQuestionFixture,
+} from "#test/questions.ts";
 import {
 	loadQuestionGrid,
 	loadQuestionRows,
@@ -70,5 +73,48 @@ test("loadQuestionGrid wrapper returns the rubric grid through the injected hand
 	expect(Object.keys(grid)).toEqual([fixture.questionId]);
 	expect(grid[fixture.questionId]?.rubrics.map((rubric) => rubric.id)).toEqual([
 		fixture.rubricId,
+	]);
+});
+
+test("loadQuestionRowsFromDb returns ordinalRubric with empty marks when the ordinalRubric row exists but has no ordinalRubricValue rows", async () => {
+	await using db = await createTestDb();
+	await using project = await createProject(db, "Ordinal Empty Marks Project");
+
+	const { questionId, rubricId } = await createOrdinalQuestionFixture(
+		db,
+		project.rowId,
+	);
+
+	await db
+		.deleteFrom("ordinalRubricValue")
+		.where(
+			"ordinalRubricId",
+			"in",
+			db
+				.selectFrom("ordinalRubric")
+				.innerJoin("rubric", "rubric.rowId", "ordinalRubric.rubricId")
+				.where("rubric.id", "=", rubricId)
+				.select("ordinalRubric.id"),
+		)
+		.execute();
+
+	const rows = await loadQuestionRowsFromDb(db, { projectId: project.id });
+
+	expect(rows).toEqual([
+		{
+			id: questionId,
+			label: "Ordinal question",
+			rubrics: [
+				{
+					id: rubricId,
+					type: "ordinal",
+					description: null,
+					label: "Ordinal",
+					booleanRubric: null,
+					ordinalRubric: { marks: [] },
+					numericalRubric: null,
+				},
+			],
+		},
 	]);
 });

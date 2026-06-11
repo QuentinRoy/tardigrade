@@ -27,23 +27,32 @@ export function toRubric(data: {
 		reversed: boolean;
 	} | null;
 }): Rubric {
-	if (data.type === "ordinal" && data.ordinalRubric) {
-		const marks = Object.fromEntries(
-			data.ordinalRubric.marks.map((item) => [
-				item.label,
-				toNumber(item.marks),
-			]),
-		);
+	if (data.type === "ordinal") {
+		if (data.ordinalRubric == null) {
+			throw new Error(
+				`Rubric Subtype Invariant violation: missing ordinalRubric row for rubric ${data.id}.`,
+			);
+		}
 		return {
 			id: data.id,
 			description: data.description ?? undefined,
 			label: data.label ?? undefined,
 			type: "ordinal",
-			marks,
+			marks: Object.fromEntries(
+				data.ordinalRubric.marks.map((item) => [
+					item.label,
+					toNumber(item.marks),
+				]),
+			),
 		};
 	}
 
-	if (data.type === "numerical" && data.numericalRubric) {
+	if (data.type === "numerical") {
+		if (data.numericalRubric == null) {
+			throw new Error(
+				`Rubric Subtype Invariant violation: missing numericalRubric row for rubric ${data.id}.`,
+			);
+		}
 		return {
 			id: data.id,
 			description: data.description ?? undefined,
@@ -57,15 +66,18 @@ export function toRubric(data: {
 		};
 	}
 
+	if (data.booleanRubric == null) {
+		throw new Error(
+			`Rubric Subtype Invariant violation: missing booleanRubric row for rubric ${data.id}.`,
+		);
+	}
 	return {
 		id: data.id,
 		description: data.description ?? undefined,
 		label: data.label ?? undefined,
 		type: "boolean",
-		marks: data.booleanRubric ? toNumber(data.booleanRubric.marks) : 0,
-		falseMarks: data.booleanRubric
-			? toNumber(data.booleanRubric.falseMarks)
-			: 0,
+		marks: toNumber(data.booleanRubric.marks),
+		falseMarks: toNumber(data.booleanRubric.falseMarks),
 	};
 }
 
@@ -158,7 +170,7 @@ export async function loadQuestionRowsFromDb(
 				.execute(),
 			db
 				.selectFrom("ordinalRubric")
-				.innerJoin(
+				.leftJoin(
 					"ordinalRubricValue",
 					"ordinalRubricValue.ordinalRubricId",
 					"ordinalRubric.id",
@@ -201,7 +213,9 @@ export async function loadQuestionRowsFromDb(
 	>();
 	for (const row of ordinalMarks) {
 		const list = ordinalMarksByRubricId.get(row.rubricId) ?? [];
-		list.push({ label: row.label, marks: toNumber(row.marks) });
+		if (row.label != null && row.marks != null) {
+			list.push({ label: row.label, marks: toNumber(row.marks) });
+		}
 		ordinalMarksByRubricId.set(row.rubricId, list);
 	}
 

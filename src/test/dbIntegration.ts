@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { CamelCasePlugin, Kysely, PostgresDialect } from "kysely";
 import { FileMigrationProvider, Migrator } from "kysely/migration";
 import { Pool } from "pg";
+import Cursor from "pg-cursor";
 import type { DB } from "#db/generated/db.ts";
 
 export type StartedTestDatabase = {
@@ -181,6 +182,7 @@ async function startExternalDatabase(
 					databaseName,
 				),
 			}),
+			cursor: Cursor,
 		}),
 		plugins: [new CamelCasePlugin()],
 	});
