@@ -16,7 +16,7 @@ import {
 import type { AssessmentCompletionSummary } from "./types.ts";
 
 // A question-scoped tag so that saving a rubric for question Q only invalidates
-// the progress cache for Q, not for every other question. "assessments:all" is
+// the completion cache for Q, not for every other question. "assessments:all" is
 // busted only by bulk imports, not by individual saves.
 export function assessedRubricCountsBySubmissionCacheTags(
 	questionId: string,
