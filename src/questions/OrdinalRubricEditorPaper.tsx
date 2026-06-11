@@ -54,7 +54,10 @@ export default function OrdinalRubricEditorPaper({
 		>
 			<TextField
 				label="Ordinal marks"
-				helperText="One entry per line using label=marks"
+				helperText={
+					fieldErrors?.marks ?? "One entry per line using label=marks"
+				}
+				error={fieldErrors?.marks != null}
 				value={ordinalMarksToText(rubric.marks)}
 				onChange={(event) =>
 					onChange({ ...rubric, marks: parseOrdinalMarks(event.target.value) })

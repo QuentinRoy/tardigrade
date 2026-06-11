@@ -19,7 +19,11 @@ const ordinalRubricDefinitionSchema = z.object({
 	description: z.string().trim().optional(),
 	label: z.string().trim().optional(),
 	type: z.literal("ordinal"),
-	marks: z.record(z.string(), z.number()),
+	marks: z
+		.record(z.string(), z.number())
+		.refine((marks) => Object.keys(marks).length >= 2, {
+			message: "Ordinal rubric must have at least 2 mark entries",
+		}),
 });
 
 const numericalRubricDefinitionSchema = z.object({
