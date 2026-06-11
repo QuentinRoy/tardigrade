@@ -106,6 +106,14 @@ _Avoid_: managed question, ManagedQuestion
 The authored/configured representation of a **Rubric** within a **Question Definition** — its full marks configuration and metadata as edited by an author.
 _Avoid_: managed rubric, ManagedRubric
 
+**Rubric Subtype Invariant**:
+Every persisted **Rubric** carries its type-specific configuration: boolean and numerical configuration rows always exist, and an ordinal rubric satisfies the **Ordinal Marks Minimum**. Readers fail loudly on a violation instead of substituting defaults; write boundaries make the invalid state unrepresentable.
+_Avoid_: silent zero-marks fallback, tolerant read-side defaults
+
+**Ordinal Marks Minimum**:
+An ordinal **Rubric Definition** must define at least two mark entries, enforced identically at every write boundary (editor and import). An ordinal rubric is a choice between labels; fewer than two is not an authorable state.
+_Avoid_: empty ordinal marks as a draft state, per-boundary minimums that disagree
+
 ## Flagged Ambiguities
 
 - project id: previously overloaded in discussion and code. Resolution: Project ID means public identifier by default. Project Row ID must be named explicitly and is DB-internal only.
