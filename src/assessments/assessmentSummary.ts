@@ -67,7 +67,7 @@ export function summarizeQuestionSections(
 			}
 		});
 
-		if (question.rubrics.length > 0 && questionRubricsLeft === 0) {
+		if (questionRubricsLeft === 0) {
 			summary.completedQuestions += 1;
 		}
 	});

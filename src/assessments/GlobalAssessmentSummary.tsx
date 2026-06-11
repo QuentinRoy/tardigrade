@@ -3,9 +3,9 @@ import LinearProgress from "@mui/material/LinearProgress";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import type { ReactElement } from "react";
-import type { GlobalAssessmentProgress } from "./types.ts";
+import type { AssessmentCompletionSummary } from "./types.ts";
 
-type GlobalAssessmentSummaryProps = { progress: GlobalAssessmentProgress };
+type GlobalAssessmentSummaryProps = { progress: AssessmentCompletionSummary };
 
 type MetricCardProps = {
 	title: string;

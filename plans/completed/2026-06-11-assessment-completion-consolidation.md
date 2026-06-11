@@ -1,9 +1,9 @@
 # Assessment completion consolidation
 
-Status: Active
+Status: Completed
 Date: 2026-06-11
 Source: `docs/investigations/2026-05-25-source-structure-and-tech-debt-audit.md` Priority 4 (Finding 9; #24, #26, #59)
-PRs: TBD (single PR, closes #24)
+PRs: closes #24
 
 ## Guidance consulted
 

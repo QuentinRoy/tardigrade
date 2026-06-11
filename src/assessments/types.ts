@@ -1,12 +1,11 @@
 import type { RubricType } from "#rubrics/types.ts";
 import type { Simplify } from "#utils/utils.ts";
+import type { CompletionMetric } from "./assessmentCompletion.ts";
 
-type ProgressMetric = { completed: number; total: number };
-
-export type GlobalAssessmentProgress = {
-	submissions: ProgressMetric;
-	questions: ProgressMetric;
-	rubrics: ProgressMetric;
+export type AssessmentCompletionSummary = {
+	submissions: CompletionMetric;
+	questions: CompletionMetric;
+	rubrics: CompletionMetric;
 };
 
 type AssessmentRubricValueBase = { rubricId: string; type: RubricType };

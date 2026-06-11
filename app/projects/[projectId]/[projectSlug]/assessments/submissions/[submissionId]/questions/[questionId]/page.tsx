@@ -5,8 +5,8 @@ import Typography from "@mui/material/Typography";
 import { cacheTag } from "next/cache";
 import { notFound } from "next/navigation";
 import { loadQuestionAssessment } from "#assessments/assessments.ts";
+import { loadAssessedRubricCountsBySubmission } from "#assessments/loadAssessmentCompletion.ts";
 import SubmissionAssessmentClient from "#assessments/SubmissionAssessmentClient.tsx";
-import { loadSubmissionQuestionProgress } from "#assessments/submissionProgress.ts";
 import { projectAssessmentsPath } from "#projects/projectPaths.ts";
 import { loadProjectByPublicId } from "#projects/projects.ts";
 import { loadQuestion } from "#questions/questions.ts";
@@ -116,7 +116,10 @@ async function SubmissionRubricSection({
 				questionId,
 				projectId: project.id,
 			}),
-			loadSubmissionQuestionProgress({ questionId, projectId: project.id }),
+			loadAssessedRubricCountsBySubmission({
+				questionId,
+				projectId: project.id,
+			}),
 		]);
 	const hasSubmission = submissions.some(
 		(submission) => submission.id === submissionId,

@@ -1,7 +1,11 @@
 import { Button, Container, Stack, Typography } from "@mui/material";
-import { loadGlobalAssessmentProgress } from "#assessments/assessmentsProgress.ts";
 import GlobalAssessmentSummary from "#assessments/GlobalAssessmentSummary.tsx";
-import { projectAssessmentsPath } from "#projects/projectPaths.ts";
+import { loadAssessmentCompletionSummary } from "#assessments/loadAssessmentCompletion.ts";
+import {
+	projectAssessmentsPath,
+	projectImportStudentsPath,
+	projectQuestionsPath,
+} from "#projects/projectPaths.ts";
 import { loadProjectByPublicId } from "#projects/projects.ts";
 
 type ProjectDashboardPageProps = {
@@ -15,7 +19,9 @@ export default async function ProjectDashboardPage({
 
 	const project = await loadProjectByPublicId(projectId, { required: true });
 
-	const progress = await loadGlobalAssessmentProgress(project.id);
+	const progress = await loadAssessmentCompletionSummary({
+		projectId: project.id,
+	});
 
 	return (
 		<Container component="main" maxWidth="md" sx={{ py: 5 }}>
@@ -23,7 +29,33 @@ export default async function ProjectDashboardPage({
 				<Typography component="h1" variant="h2">
 					{project.name} Dashboard
 				</Typography>
-				<GlobalAssessmentSummary progress={progress} />
+				{progress.questions.total === 0 ? (
+					<Stack sx={{ gap: 2, alignItems: "flex-start" }}>
+						<Typography color="text.secondary">
+							No questions yet — add questions to start assessing.
+						</Typography>
+						<Button
+							href={projectQuestionsPath(project.id, project.slug)}
+							variant="contained"
+						>
+							Add questions
+						</Button>
+					</Stack>
+				) : progress.submissions.total === 0 ? (
+					<Stack sx={{ gap: 2, alignItems: "flex-start" }}>
+						<Typography color="text.secondary">
+							No submissions yet — import submissions to start assessing.
+						</Typography>
+						<Button
+							href={projectImportStudentsPath(project.id, project.slug)}
+							variant="contained"
+						>
+							Import submissions
+						</Button>
+					</Stack>
+				) : (
+					<GlobalAssessmentSummary progress={progress} />
+				)}
 				<div>
 					<Button
 						href={projectAssessmentsPath(project.id, project.slug)}

@@ -4,8 +4,8 @@ import Container from "@mui/material/Container";
 import Typography from "@mui/material/Typography";
 import { notFound } from "next/navigation";
 import { loadSubmissionAssessments } from "#assessments/assessments.ts";
+import { loadAssessmentCompletionBySubmission } from "#assessments/loadAssessmentCompletion.ts";
 import SubmissionOverviewAssessmentClient from "#assessments/SubmissionOverviewAssessmentClient.tsx";
-import { loadSubmissionOverviewProgress } from "#assessments/submissionProgress.ts";
 import { projectAssessmentsPath } from "#projects/projectPaths.ts";
 import { loadProjectByPublicId } from "#projects/projects.ts";
 import { loadQuestionGrid } from "#questions/questions.ts";
@@ -39,7 +39,7 @@ async function ProjectSubmissionPageContent({ params }: SubmissionPageProps) {
 		loadProjectByPublicId(projectId, { required: true }),
 		loadSubmissions({ projectId }),
 		loadQuestionGrid({ projectId }),
-		loadSubmissionOverviewProgress({ projectId }),
+		loadAssessmentCompletionBySubmission({ projectId }),
 		loadSubmissionAssessments({ submissionId, projectId }),
 	]);
 

@@ -6,14 +6,16 @@ import {
 	List,
 	ListItemButton,
 	ListItemText,
+	Stack,
 	Typography,
 } from "@mui/material";
 import { cacheTag } from "next/cache";
-import { loadSubmissionOverviewProgress } from "#assessments/submissionProgress.ts";
+import { loadAssessmentCompletionBySubmission } from "#assessments/loadAssessmentCompletion.ts";
 import {
 	projectAssessmentSubmissionPath,
 	projectAssessmentSubmissionQuestionPath,
 	projectOverviewPath,
+	projectQuestionsPath,
 } from "#projects/projectPaths.ts";
 import { loadProjectByPublicId } from "#projects/projects.ts";
 import QuestionList from "#questions/QuestionList.tsx";
@@ -45,9 +47,10 @@ async function ProjectAssessmentPageContent({
 	const [grid, submissions, progressBySubmissionId] = await Promise.all([
 		loadQuestionGrid({ projectId: project.id }),
 		loadSubmissions({ projectId: project.id }),
-		loadSubmissionOverviewProgress({ projectId: project.id }),
+		loadAssessmentCompletionBySubmission({ projectId: project.id }),
 	]);
 
+	const hasQuestions = Object.keys(grid).length > 0;
 	const firstSubmissionId = submissions[0]?.id;
 	const questions = firstSubmissionId
 		? Object.entries(grid).map(([id, { label }]) => ({
@@ -75,71 +78,89 @@ async function ProjectAssessmentPageContent({
 					Open rubric overview
 				</Button>
 			</Box>
-			<Typography component="h2" variant="h5" sx={{ mb: 2 }}>
-				Assess by submission
-			</Typography>
-			<List component="nav" aria-label="Submission list" sx={{ mb: 3 }}>
-				{submissions.map((submission) => {
-					const progress = progressBySubmissionId[submission.id];
-					const completed = progress?.completed ?? 0;
-					const total = progress?.total ?? 0;
-					const percent = total > 0 ? (completed / total) * 100 : 0;
-					return (
-						<ListItemButton
-							key={submission.id}
-							href={projectAssessmentSubmissionPath(
-								project.id,
-								project.slug,
-								submission.id,
-							)}
-							sx={{ mb: 1, display: "flex", alignItems: "center" }}
-						>
-							<ListItemText primary={getSubmissionLabel(submission)} />
-							<Box
-								sx={{
-									ml: 2,
-									minWidth: 60,
-									display: "flex",
-									flexDirection: "column",
-									alignItems: "flex-end",
-									gap: 0.5,
-								}}
-							>
-								<Typography
-									variant="caption"
-									color={
-										completed === total && total > 0
-											? "success.main"
-											: "text.secondary"
-									}
-									sx={{ fontWeight: 500 }}
-								>
-									{completed} / {total}
-								</Typography>
-								<Box sx={{ width: 44 }}>
-									<LinearProgress
-										variant="determinate"
-										value={percent}
-										sx={{ height: 4, borderRadius: 2 }}
-										color={
-											completed === total && total > 0 ? "success" : "secondary"
-										}
-									/>
-								</Box>
-							</Box>
-						</ListItemButton>
-					);
-				})}
-			</List>
-			<Typography component="h2" variant="h5">
-				Assess by question
-			</Typography>
-			{firstSubmissionId ? (
-				<QuestionList questions={questions} />
+			{!hasQuestions ? (
+				<Stack sx={{ gap: 2, alignItems: "flex-start" }}>
+					<Typography color="text.secondary">
+						No questions yet — add questions to start assessing.
+					</Typography>
+					<Button
+						href={projectQuestionsPath(project.id, project.slug)}
+						variant="contained"
+					>
+						Add questions
+					</Button>
+				</Stack>
 			) : (
-				<Typography color="text.secondary">
-					Add a submission first to start assessments by question.
-				</Typography>
+				<>
+					<Typography component="h2" variant="h5" sx={{ mb: 2 }}>
+						Assess by submission
+					</Typography>
+					<List component="nav" aria-label="Submission list" sx={{ mb: 3 }}>
+						{submissions.map((submission) => {
+							const progress = progressBySubmissionId[submission.id];
+							const completed = progress?.completed ?? 0;
+							const total = progress?.total ?? 0;
+							const percent = total > 0 ? (completed / total) * 100 : 0;
+							return (
+								<ListItemButton
+									key={submission.id}
+									href={projectAssessmentSubmissionPath(
+										project.id,
+										project.slug,
+										submission.id,
+									)}
+									sx={{ mb: 1, display: "flex", alignItems: "center" }}
+								>
+									<ListItemText primary={getSubmissionLabel(submission)} />
+									<Box
+										sx={{
+											ml: 2,
+											minWidth: 60,
+											display: "flex",
+											flexDirection: "column",
+											alignItems: "flex-end",
+											gap: 0.5,
+										}}
+									>
+										<Typography
+											variant="caption"
+											color={
+												completed === total && total > 0
+													? "success.main"
+													: "text.secondary"
+											}
+											sx={{ fontWeight: 500 }}
+										>
+											{completed} / {total}
+										</Typography>
+										<Box sx={{ width: 44 }}>
+											<LinearProgress
+												variant="determinate"
+												value={percent}
+												sx={{ height: 4, borderRadius: 2 }}
+												color={
+													completed === total && total > 0
+														? "success"
+														: "secondary"
+												}
+											/>
+										</Box>
+									</Box>
+								</ListItemButton>
+							);
+						})}
+					</List>
+					<Typography component="h2" variant="h5">
+						Assess by question
+					</Typography>
+					{firstSubmissionId ? (
+						<QuestionList questions={questions} />
+					) : (
+						<Typography color="text.secondary">
+							Add a submission first to start assessments by question.
+						</Typography>
+					)}
+				</>
 			)}
 		</Container>
 	);

@@ -59,14 +59,14 @@ Resolved or largely resolved since the first audit:
 12. server action contracts (Finding 15) follow a consistent parse → wrapper → map-errors → typed-state pattern, with ADR 0007 owning the layering underneath;
 13. the app shell (Finding 12) has been decomposed (`AppShell`, `AppShellTopBar`, `AppShellDrawerContent`, `AppShellNavigationShell`, `AppShellLoadingShell`, `AppShell.shared.ts`); only export-options extraction remains optional;
 14. submission export internals (#152) are restructured: row grouping is a pure, unit-tested `submissionExportGrouping.ts` module; `ExportQuestionPlan` is derived from `loadQuestionRowsFromDb` via a stricter `toRubric` instead of a duplicated assembly; `createSubmissionExport` / `createCsvSubmissionExport` take a `Kysely<DB>` handle per ADR 0007; and both export routes share a `buildDatedFilename` helper for `YYYY-MM-DD` filenames.
+15. assessment completion semantics are consolidated (#24 closed; `plans/completed/2026-06-11-assessment-completion-consolidation.md`): **Assessment Completion** is documented once in `CONTEXT.md` and implemented once in `buildAssessmentCompletion`, with `loadAssessmentCompletion.ts` replacing `assessmentsProgress.ts` / `submissionProgress.ts` and the client-side `summarizeQuestionSections` aligned with the same rule.
 
 The highest-value remaining work, in order:
 
-1. assessment completion and overview semantics (duplicated server projections; reliability issues #24 and #26);
-2. cache-tag hygiene: pages hand-build tag strings that `src/db/cacheTags.ts` already owns, and one registered tag is never invalidated;
-3. numeric rubric editing in the question editor (#68);
-4. grading-client duplication (quick-jump shortcut, save-error shaping);
-5. question-specific grading page cache-boundary review, gated on #59.
+1. cache-tag hygiene: pages hand-build tag strings that `src/db/cacheTags.ts` already owns, and one registered tag is never invalidated;
+2. numeric rubric editing in the question editor (#68);
+3. grading-client duplication (quick-jump shortcut, save-error shaping);
+4. question-specific grading page cache-boundary review, gated on #59.
 
 The recurring problem is no longer mixed ownership — that is solved — but duplicated domain logic across read models and small hygiene drift around cache tags. The remaining seams below are local responsibility boundaries inside the owning feature folders.
 
@@ -84,7 +84,7 @@ This table is the single source of truth for each finding's status. The per-find
 | 6. Assessment reads and writes split and relocated | Resolved; follow-up review done, no further split | ADR 0002, ADR 0007, #137 |
 | 7. Raw database types versus feature-facing types | Mostly resolved; submission type boundary remains | ADR 0002, #137 |
 | 8. Question/rubric read-model assembly duplicated | Resolved | #152 |
-| 9. Assessment completion semantics duplicated | Open | Priority 4, #24, #26 |
+| 9. Assessment completion semantics duplicated | Resolved; #26 and #59 stay open | `plans/completed/2026-06-11-assessment-completion-consolidation.md`, #24, #26, #59 |
 | 10. Export submissions state machine needs smaller seams | Resolved | `plans/completed/2026-06-11-submission-export-internals.md`, #152 |
 | 11. Import parse/prepare/write seams | Resolved | [design](../design/2026-06-10-import-parse-prepare-write-seams.md), `plans/completed/2026-06-10-import-parse-prepare-write-seams.md`, #146, #147, #148 |
 | 12. App shell navigation mixes concerns | Mostly resolved; optional export-options extraction | Finding body |
@@ -572,7 +572,15 @@ Do not force every consumer to share one giant type, and do not migrate the impo
 
 ## Finding 9: assessment completion semantics are duplicated across projections
 
-### Current behavior
+### Current status
+
+Status in the [status table](#status-at-a-glance).
+
+Resolved 2026-06-11 (`plans/completed/2026-06-11-assessment-completion-consolidation.md`, closes #24). The **Assessment Completion** rule is now defined once in `CONTEXT.md` and implemented once in the pure builder `buildAssessmentCompletion` (`src/assessments/assessmentCompletion.ts`). `loadAssessmentCompletion.ts` replaces `assessmentsProgress.ts` and `submissionProgress.ts` with a shared `loadAssessmentCompletionRowsFromDb` primitive and three thin loaders mapped through the builder: `loadAssessmentCompletionSummary` (was `loadGlobalAssessmentProgress`), `loadAssessmentCompletionBySubmission` (was `loadSubmissionOverviewProgress`), and `loadAssessedRubricCountsBySubmission` (was `loadSubmissionQuestionProgress`, sharing the least and keeping its own queries). Zero-rubric questions and empty-grouping vacuous truth are now handled identically across the summary, by-submission, and client-side `summarizeQuestionSections` projections. The original behavior described below is kept for context; its evidence path `src/assessment/progressAggregator.ts` was already stale.
+
+#26 (rubric overview analytics) and #59 (caching audit) remain open and were not changed by this consolidation.
+
+### Original behavior
 
 Confirmed and made concrete by the 2026-06-10 re-audit. The completion rule — a question is complete for a submission when its rubric-assessment count reaches the question's rubric count, with zero-rubric questions counted as complete — is implemented independently at least three times:
 
@@ -582,19 +590,11 @@ Confirmed and made concrete by the 2026-06-10 re-audit. The completion rule — 
 
 These metrics are about assessment state. In the current app, assessment mostly means recorded grading values, but the term is broader than grading and may later encompass feedback or other evaluator-provided information. Submission, question, and project are grouping dimensions, not owners of the progress itself.
 
-### Why this matters
+### Why this mattered
 
 Completion semantics are business logic. If different pages compute them differently, the dashboard, assessment list, submission overview, and question-by-question assessment pages can disagree.
 
 The naming should avoid implying that a submission “has progress”. A submission is the assessed artifact. Completion is derived from assessment records and grouped by submission, question, or project depending on the view.
-
-### Candidate direction
-
-Extract one pure completion builder that takes the per-question rubric counts and per-submission/question assessment counts and returns completion, then have both server projections (`assessmentsProgress.ts`, `submissionProgress.ts`) map their queries through it. Document the rule (including zero-rubric questions) where the builder lives. The client-side `assessmentSummary.ts` helpers can stay separate — they operate on loaded rubrics, not counts — but should reference the same documented rule.
-
-The previously sketched per-view file fan-out (`loadCompletionBySubmission.ts`, `loadCompletionByQuestion.ts`, ...) is more files than the problem needs; the duplication is in the accumulation logic, not the loaders.
-
-Correctness semantics (what counts as complete, edge cases) are owned by #24 and #26; this finding owns only the consolidation seam. Coordinate with #59 before changing what each projection caches.
 
 ## Finding 10: export submissions is a correctness-sensitive state machine that needs smaller seams
 
@@ -1001,19 +1001,20 @@ Delivered:
 
 Related: Findings 8, 10, 18; #32, #152.
 
-### Priority 4: assessment completion consolidation
+### Priority 4: assessment completion consolidation — Done
 
-Why first (first open item):
+Completed 2026-06-11 (`plans/completed/2026-06-11-assessment-completion-consolidation.md`, closes #24).
 
-- duplicated business semantics that can silently disagree across the dashboard, submission overview, and grading pages;
-- Tier 1 reliability issues #24 and #26 depend on these semantics being defined once;
-- interacts with caching audit #59, so the seam should exist before caching changes.
+Delivered:
 
-Suggested deliverables:
+- documented **Assessment Completion** in `CONTEXT.md`, including the zero-rubric and vacuous-truth rules;
+- extracted one pure completion builder, `buildAssessmentCompletion` (`src/assessments/assessmentCompletion.ts`);
+- replaced `assessmentsProgress.ts` and `submissionProgress.ts` with `loadAssessmentCompletion.ts` (shared `loadAssessmentCompletionRowsFromDb` primitive plus `loadAssessmentCompletionSummary`, `loadAssessmentCompletionBySubmission`, `loadAssessedRubricCountsBySubmission`);
+- aligned `loadAssessmentCompletionSummary` with ADR 0007 (`{ db = defaultDb }` seam);
+- aligned client-side `summarizeQuestionSections` with the documented rule (zero-rubric questions count as complete);
+- added empty-project page-level guards on the dashboard and assessments page.
 
-- document the completed-question/completed-rubric rule (including zero-rubric questions) once;
-- extract one pure completion builder shared by `assessmentsProgress.ts` and `submissionProgress.ts`;
-- align the client-side `assessmentSummary.ts` helpers with the documented rule without forcing them onto the count-based builder.
+#26 (rubric overview analytics) and #59 (caching audit) remain open; no cache policy changes were made here.
 
 Related: Finding 9; #24, #26, #59.
 
