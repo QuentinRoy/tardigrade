@@ -2,7 +2,7 @@
 
 Status: Current investigation
 Date: 2026-05-25
-Last updated: 2026-06-10 (re-audited against the post-import-restructure tree)
+Last updated: 2026-06-11 (re-audited after the submission export internals refactor)
 Related: #99, #59, #68, #110, #24, #26, #32; #115 (closed umbrella), #51 (closed)
 
 ## Table of contents
@@ -57,16 +57,16 @@ Resolved or largely resolved since the first audit:
 10. ADR 0007 now fixes the persistence layering this document previously left open: DB primitives take a required `Kysely<DB>` handle and do database work only; app-level wrappers own the global client, the transaction boundary, and post-commit cache invalidation. The 2026-06-09 primitives-vs-wrappers pass (#142, #143) applied it across feature persistence;
 11. assessment mutation internals were reviewed (former Priority 4) and need no further split: `assessmentMutations.ts` is a single ADR 0007 primitive plus wrapper, integration-tested, with subtype writes as local helpers;
 12. server action contracts (Finding 15) follow a consistent parse → wrapper → map-errors → typed-state pattern, with ADR 0007 owning the layering underneath;
-13. the app shell (Finding 12) has been decomposed (`AppShell`, `AppShellTopBar`, `AppShellDrawerContent`, `AppShellNavigationShell`, `AppShellLoadingShell`, `AppShell.shared.ts`); only export-options extraction remains optional.
+13. the app shell (Finding 12) has been decomposed (`AppShell`, `AppShellTopBar`, `AppShellDrawerContent`, `AppShellNavigationShell`, `AppShellLoadingShell`, `AppShell.shared.ts`); only export-options extraction remains optional;
+14. submission export internals (#152) are restructured: row grouping is a pure, unit-tested `submissionExportGrouping.ts` module; `ExportQuestionPlan` is derived from `loadQuestionRowsFromDb` via a stricter `toRubric` instead of a duplicated assembly; `createSubmissionExport` / `createCsvSubmissionExport` take a `Kysely<DB>` handle per ADR 0007; and both export routes share a `buildDatedFilename` helper for `YYYY-MM-DD` filenames.
 
 The highest-value remaining work, in order:
 
-1. submission export internals: the row-grouping state machine and the export question plan (which duplicates the question read model);
-2. assessment completion and overview semantics (duplicated server projections; reliability issues #24 and #26);
-3. cache-tag hygiene: pages hand-build tag strings that `src/db/cacheTags.ts` already owns, and one registered tag is never invalidated;
-4. numeric rubric editing in the question editor (#68);
-5. grading-client duplication (quick-jump shortcut, save-error shaping);
-6. question-specific grading page cache-boundary review, gated on #59.
+1. assessment completion and overview semantics (duplicated server projections; reliability issues #24 and #26);
+2. cache-tag hygiene: pages hand-build tag strings that `src/db/cacheTags.ts` already owns, and one registered tag is never invalidated;
+3. numeric rubric editing in the question editor (#68);
+4. grading-client duplication (quick-jump shortcut, save-error shaping);
+5. question-specific grading page cache-boundary review, gated on #59.
 
 The recurring problem is no longer mixed ownership — that is solved — but duplicated domain logic across read models and small hygiene drift around cache tags. The remaining seams below are local responsibility boundaries inside the owning feature folders.
 
@@ -79,21 +79,21 @@ This table is the single source of truth for each finding's status. The per-find
 | 1. Project route context and slug handling | Resolved | ADR 0005, #141 |
 | 2. Project-scoped pages repeat route resolution | Resolved | ADR 0005 |
 | 3. Submission overview assessment loading too fragmented | Resolved | #145; Priority 1 |
-| 4. Question-specific grading page cache boundaries | Open (review, gated on #59) | Priority 9, #59 |
+| 4. Question-specific grading page cache boundaries | Open (review, gated on #59) | Priority 8, #59 |
 | 5. Question definition persistence split and relocated | Resolved | ADR 0002, #137 |
 | 6. Assessment reads and writes split and relocated | Resolved; follow-up review done, no further split | ADR 0002, ADR 0007, #137 |
 | 7. Raw database types versus feature-facing types | Mostly resolved; submission type boundary remains | ADR 0002, #137 |
-| 8. Question/rubric read-model assembly duplicated | Narrowed; folded into export split | Priority 4 |
-| 9. Assessment completion semantics duplicated | Open | Priority 5, #24, #26 |
-| 10. Export submissions state machine needs smaller seams | Partially resolved; row-grouping seam remains | Priority 4, #32 |
+| 8. Question/rubric read-model assembly duplicated | Resolved | #152 |
+| 9. Assessment completion semantics duplicated | Open | Priority 4, #24, #26 |
+| 10. Export submissions state machine needs smaller seams | Resolved | `plans/completed/2026-06-11-submission-export-internals.md`, #152 |
 | 11. Import parse/prepare/write seams | Resolved | [design](../design/2026-06-10-import-parse-prepare-write-seams.md), `plans/completed/2026-06-10-import-parse-prepare-write-seams.md`, #146, #147, #148 |
 | 12. App shell navigation mixes concerns | Mostly resolved; optional export-options extraction | Finding body |
-| 13. Numeric rubric editing parses too eagerly | Open (narrowed to question editor `NumberField`) | Priority 7, #68 |
-| 14. Grading clients duplicate workflow behavior | Open (partial reuse exists) | Priority 8 |
+| 13. Numeric rubric editing parses too eagerly | Open (narrowed to question editor `NumberField`) | Priority 6, #68 |
+| 14. Grading clients duplicate workflow behavior | Open (partial reuse exists) | Priority 7 |
 | 15. Server action contract boundaries | Resolved | ADR 0007, finding body |
-| 16. Cache tags and invalidation scattered | Open (now concrete) | Priority 6 |
+| 16. Cache tags and invalidation scattered | Open (now concrete) | Priority 5 |
 | 17. `shared` bucket renamed to `src/ui` | Resolved | #137 |
-| 18. Route handlers thinner; export internals remain | Mostly resolved; export internals tracked by Finding 10 | Priority 4 |
+| 18. Route handlers thinner; export internals remain | Resolved | #152 |
 | 19. Reasonably split components — do not over-refactor | Guidance | — |
 | 20. File reorganization establishes ownership | Resolved | ADR 0002, #137 |
 
@@ -559,18 +559,12 @@ This migration is complete: the feature-facing types that lived in `src/db/types
 
 Status in the [status table](#status-at-a-glance).
 
-The 2026-06-10 re-audit narrowed this finding considerably. Of the four consumers the original audit listed, only one real duplication remains:
+Resolved by #152. The last real duplication — `loadQuestionPlan` in `src/export/submissionExport.ts` re-implementing the five-query question/rubric assembly that `loadQuestionRowsFromDb` in `src/questions/questions.ts` already owns — is gone: `createSubmissionExport` now derives `ExportQuestionPlan` directly from `loadQuestionRowsFromDb`, mapped through a stricter `toRubric`.
 
-- `loadQuestionPlan` in `src/export/submissionExport.ts` re-implements, almost line for line, the five-query question/rubric assembly that `loadQuestionRowsFromDb` in `src/questions/questions.ts` already owns (questions, rubrics, boolean/numerical subtype rows, ordinal marks, then the same map-building). This is the seam worth closing, and it is best done as part of the export split (Priority 4) rather than as a standalone abstraction.
-
-The other consumers are fine as they are:
+The other consumers remain fine as they were:
 
 - the rubric overview already reuses `loadQuestionGrid`;
 - the import context loaders (`assessmentImportContext.ts`, `questionImportContext.ts`) intentionally load minimal, workflow-specific projections (rubric ids/types/labels, assessed-pair keys) driven by the parsed input. Forcing them onto the full question read model would load more than they need and couple them to a shape they do not use.
-
-### Candidate direction
-
-Have submission export derive its `ExportQuestionPlan` from `loadQuestionRowsFromDb` (or a thin mapping over it) instead of maintaining a parallel assembly. Keep the export-specific plan type; share only the source-data loading.
 
 ### Caution
 
@@ -608,29 +602,25 @@ Correctness semantics (what counts as complete, edge cases) are owned by #24 and
 
 Status in the [status table](#status-at-a-glance).
 
-Partially resolved by the 2026-05-28 export stream refactor (`plans/completed/2026-05-28-submission-export-stream-refactor.md`): CSV header/record building is a pure, unit-tested module (`src/export/submissionExportCsv.ts`), option parsing lives with the route (`exportOptions.ts`), and `submissionExport.test.ts` / `submissionExportCsv.test.ts` exist.
+Resolved. The 2026-05-28 export stream refactor (`plans/completed/2026-05-28-submission-export-stream-refactor.md`) made CSV header/record building a pure, unit-tested module (`src/export/submissionExportCsv.ts`) with option parsing living with the route (`exportOptions.ts`). The 2026-06-11 internals refactor (#152, `plans/completed/2026-06-11-submission-export-internals.md`) closed the remaining seams:
 
-### Remaining seams
+- the row-grouping state machine is now a pure async-generator transform, `groupSubmissionRows` in `src/export/submissionExportGrouping.ts`, unit-tested over an input row iterable without a database (`submissionExportGrouping.test.ts`);
+- `ExportQuestionPlan` is derived from `loadQuestionRowsFromDb` instead of a duplicated `loadQuestionPlan` assembly (Finding 8);
+- `createSubmissionExport` and `createCsvSubmissionExport` now take a `Kysely<DB>` handle per ADR 0007 instead of closing over the global `db`;
+- a characterization integration test (`submissionExport.integration.test.ts`) covers the end-to-end stream.
 
-Two remain inside `src/export/submissionExport.ts` (511 lines):
+Correctness semantics for export streaming remain owned by #32.
 
-- the row-grouping state machine — the `rows()` generator that detects submission boundaries in the streamed join and flushes the previous submission — is a closure inside `createSubmissionExport`, so it can only be tested through a real database stream. Extracting it as a pure async-generator transform over an input row iterable (`groupSubmissionRows`) would let the boundary, last-flush, and sparse-value tests in the list below run without a database;
-- `loadQuestionPlan` duplicates the question read model (Finding 8); derive the plan from `loadQuestionRowsFromDb` instead.
-
-The module also predates ADR 0007: it closes over the global `db` rather than exposing primitives that take a handle. Aligning it is worthwhile when touching the file, not as a separate pass.
-
-Correctness semantics for export streaming are owned by #32.
-
-### Tests to add
+### Tests added
 
 - stream boundary occurs exactly at submission changes;
 - last submission flushes correctly;
 - submission with no assessments still exports;
 - sparse assessment values export as empty cells;
 - mixed rubric types export correctly;
-- ordering is stable;
-- include options affect headers and rows consistently;
-- marks-only exports are not accidentally importable as assessment values unless explicitly supported.
+- ordering is stable.
+
+Include-options effects on headers/rows and marks-only export safeguards remain candidate additions if #32 surfaces gaps.
 
 ## Finding 11: import flows should expose parse, prepare, and write seams
 
@@ -811,11 +801,15 @@ App shell decomposition (Finding 12) remains open, but the ownership bucket is n
 
 ## Finding 18: route handlers are thinner; export internals remain the main split candidate
 
+### Current status
+
+Status in the [status table](#status-at-a-glance).
+
+Resolved by #152. The export internals split tracked by Finding 10 is done, and the filename inconsistency is fixed: both export routes now build filenames via the shared `buildDatedFilename` helper in `src/export/exportFilename.ts`, standardized on `YYYY-MM-DD`.
+
 ### Current behavior
 
-Both export route handlers are thin: load project, parse options, call the export helper, build response headers. No split is needed there. The remaining export work lives in `submissionExport.ts` and is tracked by Finding 10.
-
-One small inconsistency noted in the 2026-06-10 re-audit: the two routes build dated filenames with different date formats (`YYYYMMDD` for submissions, `YYYY-MM-DD` for questions). A shared `buildDatedFilename` helper would fix the inconsistency, but it is cosmetic; fold it into the next export change rather than doing it standalone.
+Both export route handlers are thin: load project, parse options, call the export helper, build response headers, and call `buildDatedFilename` for the download filename. No split is needed there.
 
 The previously sketched `src/export/http.ts` response helpers are not needed at two call sites.
 ## Finding 19: several components are reasonably split and should not be over-refactored
@@ -943,6 +937,8 @@ This is the single actionable list for the open findings. It carries the sequenc
 
 Priorities were renumbered in the 2026-06-10 re-audit: the former Priority 4 (assessment mutation split) closed with no action needed, the former Priority 6 (question/rubric read-model reuse) folded into the export work, and the former Priority 9 (app shell split) was dropped because the shell is already decomposed (Finding 12).
 
+Priorities were renumbered again in the 2026-06-11 re-audit: Priority 4 (submission export remaining seams) is done (#152), and the former Priorities 5-9 shifted down to 4-8.
+
 ### Priority 1: submission overview assessment read model — Done
 
 Completed 2026-06-10 in #145.
@@ -991,26 +987,23 @@ The remaining priorities below are the local seam cleanups that this reorganizat
 
 Related: ADR 0002, #115, `plans/completed/2026-06-02-source-reorganization.md`.
 
-### Priority 4: submission export remaining seams
+### Priority 4: submission export remaining seams — Done
 
-Why fourth (first open item):
+Completed 2026-06-11 in #152 (`plans/completed/2026-06-11-submission-export-internals.md`).
 
-- correctness-sensitive streaming path with Tier 1 reliability issue #32 attached;
-- the row-grouping state machine is the only correctness-critical logic left that cannot be tested without a database;
-- closing it also removes the last real read-model duplication (Finding 8's `loadQuestionPlan`).
+Delivered:
 
-Suggested deliverables:
+- extracted the submission row-grouping generator from `createSubmissionExport` into a pure async-generator transform (`groupSubmissionRows` in `src/export/submissionExportGrouping.ts`), unit-tested for boundary, last-flush, sparse-value, and ordering cases;
+- derived `ExportQuestionPlan` from `loadQuestionRowsFromDb` via a stricter `toRubric`, removing the duplicated `loadQuestionPlan` assembly (Finding 8);
+- aligned `createSubmissionExport` / `createCsvSubmissionExport` with ADR 0007 by taking a `Kysely<DB>` handle instead of closing over the global `db`;
+- unified the dated-filename format across both export routes via a shared `buildDatedFilename` helper, standardized on `YYYY-MM-DD` (Finding 18);
+- added a characterization integration test for the export stream.
 
-- extract the submission row-grouping generator from `createSubmissionExport` into a pure async-generator transform over an input row iterable, and unit-test the boundary, last-flush, sparse-value, and ordering cases from Finding 10's test list;
-- derive `ExportQuestionPlan` from `loadQuestionRowsFromDb` instead of the duplicated `loadQuestionPlan` assembly;
-- align the module with ADR 0007 (primitives take a handle) while touching it;
-- optionally unify the dated-filename format across the two export routes (Finding 18).
+Related: Findings 8, 10, 18; #32, #152.
 
-Related: Findings 8, 10, 18; #32.
+### Priority 4: assessment completion consolidation
 
-### Priority 5: assessment completion consolidation
-
-Why fifth:
+Why first (first open item):
 
 - duplicated business semantics that can silently disagree across the dashboard, submission overview, and grading pages;
 - Tier 1 reliability issues #24 and #26 depend on these semantics being defined once;
@@ -1024,9 +1017,9 @@ Suggested deliverables:
 
 Related: Finding 9; #24, #26, #59.
 
-### Priority 6: cache-tag hygiene
+### Priority 5: cache-tag hygiene
 
-Why sixth:
+Why second:
 
 - small and mechanical, but a typo in a hand-built tag string silently breaks invalidation;
 - unblocks documenting the mutation-to-tag map that #59 will need.
@@ -1039,9 +1032,9 @@ Suggested deliverables:
 
 Related: Finding 16; #59.
 
-### Priority 7: numeric draft field
+### Priority 6: numeric draft field
 
-Why seventh:
+Why third:
 
 - small focused UX win;
 - low risk;
@@ -1055,9 +1048,9 @@ Suggested deliverables:
 
 Related: Finding 13; #68.
 
-### Priority 8: grading-client extractions
+### Priority 7: grading-client extractions
 
-Why eighth:
+Why fourth:
 
 - removes verbatim duplication (quick-jump shortcut effect, save-error shaping) between the two grading clients;
 - small, mechanical, and keeps the two UIs independent.
@@ -1069,9 +1062,9 @@ Suggested deliverables:
 
 Related: Finding 14.
 
-### Priority 9: question-specific grading page cache-boundary review
+### Priority 8: question-specific grading page cache-boundary review
 
-Why ninth (last):
+Why last:
 
 - core grading UX, but the current split may already be correct under Next caching;
 - gated on #59, which owns the loading/caching/revalidation strategy;
@@ -1131,7 +1124,7 @@ Settled by ADR 0007: DB primitives take a required `Kysely<DB>` handle as their 
 ### Cache invalidation
 
 - Where invalidation lives is resolved by ADR 0007: in the app-level wrapper, after commit, never in a primitive.
-- Still open: the mutation-to-tag map should be documented (Finding 16, Priority 6), and read sites should stop hand-building tag strings.
+- Still open: the mutation-to-tag map should be documented (Finding 16, Priority 5), and read sites should stop hand-building tag strings.
 - Which pages must be fresh immediately after each mutation remains a #59 question.
 
 ### Import behavior
