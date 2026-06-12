@@ -10,26 +10,44 @@ Which current loading, caching, revalidation, and route-boundary mechanisms shou
 
 This investigation is intentionally exhaustive and exploratory. It is not an ADR and does not choose a final implementation strategy. It captures the current audit state for #59 so implementation work can be split into smaller, safer issues or PRs.
 
+The audit is anchored to the symptom reported in #59: switching between assessments often shows the loading skeleton, while the question-by-question workflow avoids it more effectively. Any finding that cannot be connected to that symptom, to cache correctness, or to developer experience should be treated as secondary.
+
 ## Executive summary
 
 The current codebase has already resolved the largest obvious loading problem: the submission overview no longer loads one assessment per question. It now uses a submission-level assessment loader that returns every question's rubric values for the selected submission in one query.
 
 The remaining opportunities are subtler. They are not broad rewrites. They are about making cached read boundaries deliberate, sharing canonical cached sources, avoiding hidden duplicate queries, and making cache invalidation auditable.
 
+Two findings added after a second audit pass change the picture for the #59 symptom itself. First, the two grading pages have opposite rendering topologies under `cacheComponents`: the question-specific page is built from cached sections with explicit link prefetch, while the submission overview body is fully dynamic with no prefetch on its main navigation. That asymmetry matches the reported observation that the question-by-question workflow avoids the skeleton. Second, every interactive save invalidates the coarse `assessments` tag, which busts the completion/progress caches the next navigation needs, so steady-state grading navigation is structurally cold. Query sharing alone does not fix either of these.
+
 Recommended priority order:
 
-1. Centralize cache-tag factories and decide whether each tag is real, especially `questions:${questionId}`.
-2. Document the mutation-to-tag invalidation map for all writes that affect project, question, submission, assessment, progress, overview, and import surfaces.
-3. Add explicit cache-life policy for core cached loaders instead of relying on mixed implicit defaults.
-4. Cache question definition reads, or explicitly document why authoring reads must remain uncached.
-5. Share one canonical cached question-row source between question rows, question grids, and question-specific reads.
-6. Remove hidden duplicate submission loading from question-scoped assessment progress.
-7. Share cached assessment-completion rows across completion projections.
-8. Revisit the question-specific grading page boundaries after tag hygiene and query-sharing work, not before.
-9. Improve loading UI around grading navigation only where data boundaries justify it.
-10. Measure rubric overview scale before changing its architecture.
+1. Verify nested cache-tag and cache-life propagation semantics empirically, and instrument the grading loop, before relying on any tag-level reasoning (Findings 17–19, Phase 0).
+2. Centralize cache-tag factories and decide whether each tag is real, especially `questions:${questionId}`.
+3. Document the mutation-to-tag invalidation map for all writes that affect project, question, submission, assessment, progress, overview, and import surfaces.
+4. Decide a per-tag-class freshness policy: read-your-writes (`updateTag`) for the assessment being edited, stale-while-revalidate (`revalidateTag`) for derived progress projections (Finding 19).
+5. Add explicit cache-life policy for core cached loaders instead of relying on mixed implicit defaults.
+6. Align the submission overview page's rendering topology and prefetch behavior with the question-specific page (Finding 18).
+7. Cache question definition reads, or explicitly document why authoring reads must remain uncached.
+8. Share one canonical cached question-row source between question rows, question grids, question-specific reads, and question definitions.
+9. Remove hidden duplicate submission loading from question-scoped assessment progress.
+10. Share cached assessment-completion rows across completion projections.
+11. Revisit the question-specific grading page boundaries after tag hygiene and query-sharing work, not before.
+12. Improve loading UI around grading navigation only where data boundaries justify it.
+13. Measure rubric overview scale before changing its architecture.
 
 ## Current architecture baseline
+
+### Rendering model and cache layers
+
+`next.config.ts` enables `cacheComponents: true` on Next 16. This makes four distinct layers relevant to #59, and they behave differently:
+
+- cached server components and functions (`"use cache"` scopes), invalidated by tags and bounded by `cacheLife`;
+- the route rendering topology: a route segment whose body is not a `"use cache"` scope is dynamic and must stream from the server on every navigation, suspending to the nearest `loading.tsx`/Suspense boundary;
+- the client router cache, refreshed by `updateTag`/`revalidateTag` from server actions;
+- link prefetching, which under `cacheComponents` can only prefetch the cached/static parts of a target route.
+
+Two propagation behaviors matter and are not equally documented. Cache-life propagation is documented: an inner cached function with a short `cacheLife` propagates that lifetime outward, and Next errors at prerender time when the outer scope has no explicit `cacheLife`. Cache-tag propagation from inner cached functions to enclosing `"use cache"` scopes is not clearly documented and community guidance conflicts. Several page sections register fewer tags than the data they render and are correct only if propagation exists (Finding 17). This must be verified empirically before tag-level reasoning is trusted.
 
 ### Project route loading
 
@@ -67,13 +85,13 @@ This should remain the model for route-specific read shapes: load at the natural
 | Project-scoped layout | Cached Project ID lookup plus client-side cosmetic slug correction | Mostly acceptable; repeated project reads only matter if nested pages bypass the cached helper | Keep current boundary |
 | Home/projects list | Cached project list | Low risk | Keep current boundary |
 | Questions management | Uncached question-definition read with assessment counts | Repeated multi-query authoring route load | Cache or explicitly document why uncached |
-| Question-specific grading page | Cached page sections, but overlapping data and hidden submission reload | Core grading navigation may cold-load more data than needed | Fix shared caches and progress loader before route-level rewrite |
-| Submission overview page | Consolidated submission assessment read | Depends on shared question/submission/completion caches | Keep shape, improve shared sources |
+| Question-specific grading page | Cached page sections with explicit prev/next prefetch, but overlapping data and hidden submission reload | Core grading navigation may cold-load more data than needed | Fix shared caches and progress loader before route-level rewrite |
+| Submission overview page | Consolidated submission assessment read, but the page body is fully dynamic (no `"use cache"` section) and quick-jump navigates without prefetch | Every navigation streams from the server and suspends to the root skeleton; likely the main source of the #59 symptom | Align topology and prefetch with the question page (Finding 18) |
 | Assessments index | Cached route section plus completion projection | Progress rows may be loaded independently elsewhere | Share cached completion rows |
 | Dashboard | Project and completion summary reads | Same base completion rows as other pages | Share cached completion rows |
 | Rubric overview | Cached full overview read | Scale risk from submissions x rubrics matrix | Measure before refactor |
 | Imports | Transaction-owned writes with coarse invalidation | Hard to audit semantic invalidation | Add semantic invalidation helpers/map |
-| Interactive assessment saves | Transaction-owned write plus tag updates | Exact tags and coarse tags are hard to review | Centralize tag helpers |
+| Interactive assessment saves | Transaction-owned write plus tag updates via `updateTag` | Coarse `assessments` invalidation busts completion/progress caches on every save, making the post-save navigation cold (Finding 19) | Centralize tag helpers; define per-tag-class freshness policy |
 
 ## Findings
 
@@ -157,6 +175,8 @@ Current examples:
 
 Cache invalidation is correctness-sensitive. Without an explicit map, new reads can register a tag that no mutation invalidates, or new writes can forget derived projections such as progress, overview, dashboard, or navigation state.
 
+The drift is already observable in comments: `assessedRubricCountsBySubmissionCacheTags` states it is "busted only by bulk imports, not by individual saves," but the tag list includes `assessmentQuestionCacheTag(questionId)`, which `saveAssessment` does invalidate. The behavior is the desirable one; the comment is wrong. A documented map is the cheapest defense against this kind of rot.
+
 #### Recommendation
 
 Add a mutation-to-tag map before or alongside implementation work. It can live in this investigation at first, then become an ADR/design/reference document once #59 chooses a final strategy.
@@ -236,7 +256,7 @@ Examples without explicit cache life:
 
 #### Why this matters
 
-A missing `cacheLife` may be correct, but right now it is not clear whether each omission is intentional. For #59, the cache lifetime should express a freshness policy:
+A missing `cacheLife` may be correct, but right now it is not clear whether each omission is intentional. Under `cacheComponents`, omission is not neutral: cache lifetimes propagate from inner cached functions to enclosing `"use cache"` scopes, and Next errors at prerender when a short-lived inner cache is nested in an outer scope without an explicit `cacheLife`. Page sections without `cacheLife` that compose 60-second loaders (for example the assessments index section composing `loadAssessmentCompletionBySubmission`) therefore inherit lifetimes implicitly today and could start failing if those routes ever become prerenderable. For #59, the cache lifetime should express a freshness policy:
 
 - stable authoring data can have a longer fallback lifetime if writes reliably invalidate it;
 - interactive assessment values should rely on exact tag invalidation, with a conservative fallback;
@@ -293,6 +313,8 @@ Caching this read should be safe if the invalidation map includes:
 #### Recommendation
 
 Add a cached read wrapper for question definitions, unless there is a deliberate product reason for this authoring page to always bypass cache.
+
+Note that `loadQuestionDefinitionsFromDb` composes `loadQuestionRowsFromDb`, the same expensive primitive behind Finding 5. The canonical cached question-row source planned in Phase 3 can serve this page too: derive question definitions from the cached rows plus the small assessment-count query, rather than implementing an independent cache for this route.
 
 Candidate tags:
 
@@ -352,6 +374,8 @@ export async function loadQuestionGrid(params, { db = defaultDb } = {}) {
 ```
 
 The exact implementation should respect ADR 0007 and avoid passing runtime DB handles into cached wrappers.
+
+A related hazard worth fixing in the same pass: the current cached wrappers (`loadQuestionRows`, `loadQuestionGrid`, `loadSubmissions`, `loadQuestionAssessment`, and others) declare a `{ db = defaultDb }` parameter on the `"use cache"` function itself. No call site passes one today, but the public signature invites `loadQuestionRows(params, { db: tx })`, which would pass a non-serializable transaction into a cached function — exactly what ADR 0007 rule 6 forbids, and what the in-code comment in `loadQuestionGrid` works around for composition only. The candidate shape above fixes this structurally by dispatching on `db === defaultDb` outside the cached function; the same dispatch pattern should be applied to every cached wrapper so the type signature can no longer express the violation.
 
 ### Finding 6: `loadQuestion` intentionally loads the whole project question set
 
@@ -464,6 +488,8 @@ This is a good shape compared with the old per-question assessment loading patte
 
 The page still asks for both project-wide progress and all question definitions. That is probably correct for an overview-by-submission route, but it means the route depends heavily on the quality of shared caches for submissions, question grid, and completion rows.
 
+Two structural facts also bound what shared caches can achieve here. First, `loadSubmissionAssessments` is keyed and tagged per submission, so the first visit to each submission is always a cold database read; with N submissions, a full grading pass pays N cold loads no matter how well caches are shared. Prefetching the previous/next submission is the natural mitigation, but see Finding 18: this page body is dynamic, so there is currently little for a prefetch to fetch. Second, the page's completion data is invalidated by every interactive save (Finding 19), so in the grade-then-navigate loop it is cold on arrival by construction.
+
 #### Recommendation
 
 Do not rewrite the page into one monolithic loader yet. First improve shared cached sources:
@@ -511,6 +537,8 @@ This may be correct because imports are request-scoped and bulk operations may n
 #### Why this matters
 
 The low-level invalidation mechanism differs across write paths. That increases review cost and makes it harder to see whether a mutation invalidates semantic data or only happens to call the right Next.js primitive.
+
+The mechanism choice is also a freshness policy, not just plumbing. `updateTag` expires immediately and gives read-your-own-writes semantics: the next read blocks on fresh data. `revalidateTag` serves stale data while revalidating in the background. For the exact assessment being edited, read-your-writes is correct. For derived projections such as completion and progress, stale-while-revalidate may be the better tradeoff, because blocking the next navigation on fresh progress data is a direct contributor to the #59 symptom (Finding 19). The semantic helpers below should make this per-tag-class choice explicit rather than inheriting it from whichever primitive a wrapper happens to call.
 
 #### Recommendation
 
@@ -592,6 +620,8 @@ The repository has a root `app/loading.tsx` skeleton. The app shell also has a S
 
 The high-frequency workflow is grading navigation. A generic page skeleton may not address the felt loading problem if the user loses question/submission context while moving through submissions or questions.
 
+Note that the skeleton's appearance is a downstream effect, not the root cause. The submission overview page suspends to the root skeleton because its body is dynamic and its data is freshly invalidated on arrival (Findings 18 and 19). Better loading UI makes the wait less disorienting; only the topology and invalidation work makes the wait shorter or removes it.
+
 #### Recommendation
 
 Add loading UI only after deciding data boundaries. Target these surfaces first:
@@ -634,7 +664,85 @@ For #59 implementation PRs, test the parts that are stable and cheap:
 
 Do not overfit tests to Next.js internals. Add end-to-end/cache-runtime tests only if a real regression appears or if the framework provides a stable test seam.
 
+### Finding 17: nested tag propagation semantics are unverified and load-bearing
+
+#### Current behavior
+
+Several `"use cache"` page sections register fewer tags than the data they render, and are correct only if tags from inner cached loaders propagate to the enclosing scope:
+
+- the assessments index section registers only `assessments`, but renders question order and the submission list; `reorderQuestions` invalidates only `questions`;
+- `SubmissionRubricSection` registers `assessments:${sub}:${q}`, `assessments:question:${q}`, the dead `questions:${q}`, and `submissions`, but not coarse `questions` or `assessments:all`; a bulk question import invalidates only the three coarse tags;
+- both grading-page sections compose `loadProjectByPublicId` without registering any project tag.
+
+Cache-life propagation is documented by Next.js. Tag propagation from nested cached functions is not clearly documented, and community guidance states the opposite (each layer independent).
+
+#### Why this matters
+
+If tags propagate, the page-level registrations are partially redundant and the under-registration above is harmless. If they do not, the cases above are live staleness bugs: a question import or reorder leaves cached grading sections stale until their implicit lifetime expires. Every other tag-level finding in this document assumes one of these two worlds without saying which.
+
+#### Recommendation
+
+Settle this empirically before Phase 1: a minimal two-level `"use cache"` fixture plus `revalidateTag`/`updateTag`, observed with `NEXT_PRIVATE_DEBUG_CACHE=1`. Then pick a rule and record it in ADR form or in `cacheTags.ts`: either page sections must register the full closure of tags for what they render (propagation not relied upon), or sections register only section-specific tags and propagation is the documented mechanism. Do not leave it mixed.
+
+### Finding 18: the two grading pages have opposite rendering topologies, which matches the #59 symptom
+
+#### Current behavior
+
+Under `cacheComponents: true`:
+
+- the question-specific grading page is composed of two `"use cache"` server sections, and its previous/next buttons are `next/link` with explicit `prefetch`;
+- the submission overview page body is a fully dynamic server component (no `"use cache"` scope) awaiting five loaders; its previous/next buttons rely on default link prefetch (which can only prefetch cached/static content, of which this page has none), and quick-jump navigates with `router.push`, which prefetches nothing;
+- the only loading boundary is the root `app/loading.tsx`, so the dynamic page suspends to a generic skeleton.
+
+#### Why this matters
+
+This asymmetry reproduces the issue report exactly: navigating submission-to-submission on the overview page streams a dynamic render from the server on every transition and shows the skeleton, while the question-by-question workflow can serve cached sections. No amount of query sharing changes the topology; a dynamic body must round-trip.
+
+#### Recommendation
+
+Treat the submission overview page's topology as a first-class #59 work item, after Finding 17 is settled and alongside the Phase 3/4 data work:
+
+1. extract the cacheable parts of the page body into `"use cache"` sections, mirroring the question page's split;
+2. give submission-to-submission navigation explicit prefetch, as the question page already does;
+3. only then revisit loading boundaries (Finding 14) for whatever remains genuinely dynamic.
+
+### Finding 19: interactive saves invalidate the progress caches that the next navigation needs
+
+#### Current behavior
+
+`saveAssessment` calls `updateTags` with the exact pair tag, the submission tag, coarse `assessments`, and `assessments:question:${q}`. Coarse `assessments` is registered by `loadAssessmentCompletionBySubmission`, `loadAssessmentCompletionSummary`, the assessments index section, and the rubric overview — across all projects.
+
+#### Why this matters
+
+The core grading loop is save-then-navigate. Because every save expires the coarse `assessments` tag with read-your-writes semantics, the completion/progress data the next page requests has always just been invalidated, so steady-state grading navigation cold-loads it by construction. Sharing completion rows (Finding 8) does not help here: a shared cache that is busted on every save shares nothing during grading. This is likely the second main contributor to the #59 symptom, alongside Finding 18.
+
+#### Recommendation
+
+Decide a deliberate freshness policy for derived progress data, as part of the Finding 11 helper work. Candidate options, not mutually exclusive:
+
+- stop registering coarse `assessments` on completion reads and invalidate them through granular tags plus `assessments:all` for imports, so a single save does not bust project-wide projections it barely changed;
+- use `revalidateTag` (stale-while-revalidate) rather than `updateTag` for progress projections, accepting one navigation of slightly stale progress in exchange for never blocking on it;
+- move progress below a Suspense boundary so navigation is never gated on it;
+- maintain progress optimistically in the client during a grading session, since the client already knows which rubric it just saved.
+
+Whichever option is chosen, the acceptance test is behavioral: after saving a rubric and clicking "next submission," the navigation should not block on recomputing project-wide completion.
+
 ## Improvement plan
+
+### Phase 0: establish ground truth
+
+Goal: stop reasoning about cache behavior from assumptions.
+
+Work:
+
+1. Verify nested tag and lifetime propagation with a minimal fixture and `NEXT_PRIVATE_DEBUG_CACHE=1` (Finding 17); record the result and the chosen tag-registration rule.
+2. Instrument the grading loop: log cache hits/misses and query counts while simulating save-then-navigate across submissions on both grading pages.
+3. Confirm or refute Findings 18 and 19 against the instrumented loop.
+
+Acceptance criteria:
+
+- The propagation rule is documented and every later phase can cite it.
+- There is a baseline measurement of the grading loop that later phases must improve, not regress.
 
 ### Phase 1: make cache behavior auditable
 
@@ -710,12 +818,16 @@ Goal: reduce visible waiting in the core grading workflow.
 
 Work:
 
-1. Add targeted loading boundaries for assessment pages if route transitions still feel blank after data work.
-2. Preserve question/submission context during loading where possible.
-3. Avoid generic skeletons that hide the whole workflow context.
+1. Restructure the submission overview page into cached sections plus a dynamic remainder, mirroring the question page (Finding 18).
+2. Add explicit prefetch to submission-to-submission navigation.
+3. Apply the chosen progress freshness policy so navigation does not block on just-invalidated completion data (Finding 19).
+4. Add targeted loading boundaries for assessment pages if route transitions still feel blank after data work.
+5. Preserve question/submission context during loading where possible.
+6. Avoid generic skeletons that hide the whole workflow context.
 
 Acceptance criteria:
 
+- After saving a rubric and navigating to the next submission, the transition does not block on recomputing project-wide completion.
 - The grading user keeps enough context during navigation to understand what is loading.
 - Loading UI matches the data boundaries chosen in earlier phases.
 
@@ -736,23 +848,28 @@ Acceptance criteria:
 
 ## Suggested implementation PR order
 
-1. `cache: centralize tag factories`
-2. `cache: document invalidation map`
-3. `cache: clarify core cache lifetimes`
-4. `questions: cache question definitions`
-5. `questions: share cached question rows`
-6. `assessments: share completion row cache`
-7. `assessments: avoid duplicate submission progress reads`
-8. `ui: improve grading loading boundaries`
-9. `assessments: measure rubric overview scale`
+1. `cache: verify propagation semantics and instrument grading loop`
+2. `cache: centralize tag factories`
+3. `cache: document invalidation map`
+4. `cache: define per-tag-class freshness policy (updateTag vs revalidateTag)`
+5. `cache: clarify core cache lifetimes`
+6. `questions: cache question definitions from the canonical row source`
+7. `questions: share cached question rows (and remove db handles from cached signatures)`
+8. `assessments: share completion row cache`
+9. `assessments: avoid duplicate submission progress reads`
+10. `assessments: decouple progress freshness from interactive saves`
+11. `ui: restructure submission overview into cached sections with prefetch`
+12. `ui: improve grading loading boundaries`
+13. `assessments: measure rubric overview scale`
 
-This order keeps correctness before performance refactors. Tag and invalidation clarity should come first because it reduces the risk of every later caching change.
+This order keeps correctness before performance refactors. Ground truth (propagation semantics and a measured grading loop) comes first because every tag-level decision depends on it; tag and invalidation clarity comes next because it reduces the risk of every later caching change.
 
 ## Non-goals
 
 - Do not redesign routing or slug canonicalization for #59. The current client-side cosmetic slug correction is aligned with the Project ID model.
+- Do not disable or work around `cacheComponents`; the audit assumes it stays.
 - Do not introduce a command bus, repository layer, or deep CQRS structure.
 - Do not make route loaders monolithic just to remove repeated function calls.
 - Do not move to project-scoped tags before centralizing tag helpers.
 - Do not optimize rubric overview before measuring realistic scale.
-- Do not add end-to-end cache-runtime tests unless there is a stable test seam or a real regression to guard.
+- Do not add end-to-end cache-runtime tests unless there is a stable test seam or a real regression to guard — with the exception of the one-off propagation fixture in Phase 0, which is throwaway diagnostic work, not a maintained test.
