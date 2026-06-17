@@ -1,6 +1,7 @@
 import "server-only";
 import { customAlphabet } from "nanoid";
-import { cacheLife, revalidateTag } from "next/cache";
+import { cacheLife } from "next/cache";
+import { invalidateProjectCreate } from "#db/cacheInvalidation.ts";
 import {
 	cacheTags,
 	projectCacheTag,
@@ -130,8 +131,7 @@ export async function createProject(input: {
 		throw new Error("Unable to create a unique project id.");
 	}
 
-	revalidateTag(projectListCacheTag(), "max");
-	revalidateTag(projectCacheTag(inserted.id), "max");
+	invalidateProjectCreate({ projectId: inserted.id });
 
 	return toProjectSummary(inserted);
 }

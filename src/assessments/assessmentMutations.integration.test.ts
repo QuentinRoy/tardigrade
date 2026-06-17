@@ -1,4 +1,4 @@
-import { updateTag } from "next/cache";
+import { revalidateTag, updateTag } from "next/cache";
 import { beforeEach, expect, test, vi } from "vitest";
 import { createAssessmentFixture } from "#test/assessments.ts";
 import { buildTestId, createTestDb } from "#test/dbIntegration.ts";
@@ -8,7 +8,11 @@ import { loadQuestionAssessmentFromDb } from "./assessments.ts";
 
 vi.mock("server-only", () => ({}));
 
-vi.mock("next/cache", () => ({ cacheTag: vi.fn(), updateTag: vi.fn() }));
+vi.mock("next/cache", () => ({
+	cacheTag: vi.fn(),
+	revalidateTag: vi.fn(),
+	updateTag: vi.fn(),
+}));
 
 beforeEach(() => {
 	vi.clearAllMocks();
@@ -215,7 +219,7 @@ test("saveAssessmentInDb rejects cross-project submission and question combinati
 	});
 });
 
-test("saveAssessment wrapper invalidates the granular, submission, coarse and question tags on success", async () => {
+test("saveAssessment wrapper updates the edited tags read-your-writes and revalidates the derived tags on success", async () => {
 	await using db = await createTestDb();
 	await using project = await createProject(
 		db,
@@ -238,10 +242,16 @@ test("saveAssessment wrapper invalidates the granular, submission, coarse and qu
 
 	expect(result).toEqual({ success: true });
 
-	const tags = vi.mocked(updateTag).mock.calls.map((call) => call[0]);
-	expect(tags).toEqual([
+	const updatedTags = vi.mocked(updateTag).mock.calls.map((call) => call[0]);
+	expect(updatedTags).toEqual([
 		`assessments:${fixture.submissionId}:${fixture.questionId}`,
 		`assessments:${fixture.submissionId}`,
+	]);
+
+	const revalidatedTags = vi
+		.mocked(revalidateTag)
+		.mock.calls.map((call) => call[0]);
+	expect(revalidatedTags).toEqual([
 		"assessments",
 		`assessments:question:${fixture.questionId}`,
 	]);
@@ -270,4 +280,5 @@ test("saveAssessment wrapper does not invalidate when the save fails validation"
 
 	expect(result.success).toBe(false);
 	expect(updateTag).not.toHaveBeenCalled();
+	expect(revalidateTag).not.toHaveBeenCalled();
 });

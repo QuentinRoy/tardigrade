@@ -1,4 +1,4 @@
-import { updateTag } from "next/cache";
+import { revalidateTag, updateTag } from "next/cache";
 import { beforeEach, expect, test, vi } from "vitest";
 import {
 	assessmentAggregateCacheTag,
@@ -28,6 +28,7 @@ vi.mock("server-only", () => ({}));
 vi.mock("next/cache", () => ({
 	cacheTag: vi.fn(),
 	cacheLife: vi.fn(),
+	revalidateTag: vi.fn(),
 	updateTag: vi.fn(),
 }));
 
@@ -499,7 +500,7 @@ test("reorderQuestionsInDb throws when the same id is provided more than once", 
 	expect(positions).toEqual({ [question.id]: 0 });
 });
 
-test("saveQuestionDefinition wrapper invalidates question and assessment tags after commit", async () => {
+test("saveQuestionDefinition wrapper updates the question list read-your-writes and revalidates assessment tags after commit", async () => {
 	await using db = await createTestDb();
 	await using project = await createProject(db, "Save Cache Project");
 	const questionId = buildTestId("question");
@@ -524,12 +525,58 @@ test("saveQuestionDefinition wrapper invalidates question and assessment tags af
 		{ db },
 	);
 
-	const tags = vi.mocked(updateTag).mock.calls.map((call) => call[0]);
-	expect(tags).toEqual([
-		questionListCacheTag(),
+	const updatedTags = vi.mocked(updateTag).mock.calls.map((call) => call[0]);
+	expect(updatedTags).toEqual([questionListCacheTag()]);
+
+	const revalidatedTags = vi
+		.mocked(revalidateTag)
+		.mock.calls.map((call) => call[0]);
+	expect(revalidatedTags).toEqual([
 		assessmentAggregateCacheTag(),
 		assessmentImportCacheTag(),
 		assessmentProgressForQuestionCacheTag(questionId),
+	]);
+});
+
+test("saveQuestionDefinition wrapper revalidates the previous question's progress when the id changes", async () => {
+	await using db = await createTestDb();
+	await using project = await createProject(db, "Save Rename Cache Project");
+	const fixture = await createAssessedBooleanQuestionFixture(db, project.rowId);
+	const renamedQuestionId = buildTestId("question-renamed");
+
+	await saveQuestionDefinition(
+		{
+			input: {
+				originalId: fixture.questionId,
+				id: renamedQuestionId,
+				label: "Renamed question",
+				rubrics: [
+					{
+						previousId: fixture.rubricId,
+						id: fixture.rubricId,
+						type: "boolean",
+						label: "Correct",
+						marks: 2,
+						falseMarks: 0,
+					},
+				],
+			},
+			projectId: project.id,
+		},
+		{ db },
+	);
+
+	const updatedTags = vi.mocked(updateTag).mock.calls.map((call) => call[0]);
+	expect(updatedTags).toEqual([questionListCacheTag()]);
+
+	const revalidatedTags = vi
+		.mocked(revalidateTag)
+		.mock.calls.map((call) => call[0]);
+	expect(revalidatedTags).toEqual([
+		assessmentAggregateCacheTag(),
+		assessmentImportCacheTag(),
+		assessmentProgressForQuestionCacheTag(renamedQuestionId),
+		assessmentProgressForQuestionCacheTag(fixture.questionId),
 	]);
 });
 
@@ -545,9 +592,10 @@ test("saveQuestionDefinition wrapper does not invalidate when persistence throws
 	).rejects.toThrow();
 
 	expect(updateTag).not.toHaveBeenCalled();
+	expect(revalidateTag).not.toHaveBeenCalled();
 });
 
-test("deleteQuestionDefinition wrapper invalidates question and assessment tags", async () => {
+test("deleteQuestionDefinition wrapper updates the question list read-your-writes and revalidates assessment tags", async () => {
 	await using db = await createTestDb();
 	await using project = await createProject(db, "Delete Cache Project");
 	const question = await createQuestion(db, project.rowId, 0);
@@ -557,16 +605,20 @@ test("deleteQuestionDefinition wrapper invalidates question and assessment tags"
 		{ db },
 	);
 
-	const tags = vi.mocked(updateTag).mock.calls.map((call) => call[0]);
-	expect(tags).toEqual([
-		questionListCacheTag(),
+	const updatedTags = vi.mocked(updateTag).mock.calls.map((call) => call[0]);
+	expect(updatedTags).toEqual([questionListCacheTag()]);
+
+	const revalidatedTags = vi
+		.mocked(revalidateTag)
+		.mock.calls.map((call) => call[0]);
+	expect(revalidatedTags).toEqual([
 		assessmentAggregateCacheTag(),
 		assessmentImportCacheTag(),
 		assessmentProgressForQuestionCacheTag(question.id),
 	]);
 });
 
-test("reorderQuestions wrapper invalidates the questions tag after commit", async () => {
+test("reorderQuestions wrapper updates the questions tag read-your-writes after commit", async () => {
 	await using db = await createTestDb();
 	await using project = await createProject(db, "Reorder Cache Project");
 	const first = await createQuestion(db, project.rowId, 0);
@@ -583,6 +635,7 @@ test("reorderQuestions wrapper invalidates the questions tag after commit", asyn
 		{ db },
 	);
 
-	const tags = vi.mocked(updateTag).mock.calls.map((call) => call[0]);
-	expect(tags).toEqual([questionListCacheTag()]);
+	const updatedTags = vi.mocked(updateTag).mock.calls.map((call) => call[0]);
+	expect(updatedTags).toEqual([questionListCacheTag()]);
+	expect(revalidateTag).not.toHaveBeenCalled();
 });
