@@ -1,6 +1,6 @@
 # Cache tags, lifetimes, and invalidation are centrally defined and explicitly mapped
 
-Status: proposed
+Status: accepted
 
 All cache tag strings are produced by helpers in `src/db/cacheTags.ts`. Every `"use cache"` scope registers the full set of tags for the data it renders and declares an explicit `cacheLife` from a named policy class. Every mutation invalidates through a semantic helper, and every registered tag appears in a documented mutation-to-tag map. No cached scope relies on undocumented Next.js behavior such as nested tag propagation.
 
