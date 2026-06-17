@@ -82,6 +82,7 @@ Implementation plans for a chosen approach.
 
 Durable facts about current system behavior, formats, and contracts.
 
+- [Cache invalidation map](reference/cache-invalidation-map.md)
 - [Database migrations](reference/database-migrations.md)
 - [Testing conventions](reference/testing-conventions.md)
 - Add new reference docs under `docs/reference/`.

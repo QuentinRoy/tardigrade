@@ -2,10 +2,11 @@ import { cacheTag, updateTag } from "next/cache";
 
 // This module is the only place that builds cache-tag strings (ADR 0008 rule 1).
 // Every accepted scope has a named helper; the vocabulary is closed, so adding a
-// tag means adding a helper here, a mutation-to-tag map entry, and at least one
-// invalidating mutation (ADR 0008 rule 2). Never depend on nested tag
-// propagation: a `"use cache"` scope registers the full closure of these tags for
-// everything it renders (ADR 0008 rule 3).
+// tag means adding a helper here, an entry in
+// `docs/reference/cache-invalidation-map.md`, and at least one invalidating
+// mutation (ADR 0008 rule 2). Never depend on nested tag propagation: a
+// `"use cache"` scope registers the full closure of these tags for everything it
+// renders (ADR 0008 rule 3).
 
 // Coarse list tags — one per entity collection.
 export function projectListCacheTag(): string {
