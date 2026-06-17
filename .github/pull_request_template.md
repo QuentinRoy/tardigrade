@@ -4,9 +4,9 @@
 
 ## Related issue
 
-<!-- Use `Fixes #...` or `Closes #...` when this PR completes the issue. Use `Related to #...` for partial work or supporting documentation. -->
-
-Related to #
+<!-- Delete this section if there is no related issue.
+Use `Fixes #...` or `Closes #...` when this PR completes the issue.
+Use `Related to #...` for partial work or supporting documentation. -->
 
 ## Plan
 
