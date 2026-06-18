@@ -39,7 +39,7 @@ Use this table to find the canonical guidance instead of copying rules into this
 - TypeScript public/helper APIs and function parameter design → `docs/guides/typescript-api-design.md`.
 - Avoiding barrel/re-export facade files; import from the owning module → `docs/adr/0004-avoid-barrel-files.md`.
 - Keeping feature folders and `src/ui` flat; no technical category subfolders → `docs/adr/0006-prefer-flat-module-structure.md`.
-- Cache tag helpers, lifetimes, invalidation primitives, and the mutation-to-tag map → `docs/adr/0008-cache-tags-lifetimes-and-invalidation.md`, `src/db/cacheTags.ts`, `docs/reference/cache-invalidation-map.md`.
+- Cache tag helpers, lifetimes, invalidation primitives, and the mutation-to-tag map → `docs/adr/0008-cache-tags-lifetimes-and-invalidation.md`, `src/db/cacheTags.ts`, `src/db/cacheInvalidation.ts`, `docs/reference/cache-invalidation-map.md`.
 - Database migration conventions → `docs/reference/database-migrations.md`.
 - Testing conventions and test-command selection → `docs/reference/testing-conventions.md`.
 - Accepted architecture decisions → `docs/adr/`.

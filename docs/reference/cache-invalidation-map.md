@@ -1,6 +1,6 @@
 # Cache invalidation map
 
-This map is the canonical record of which mutations invalidate which cache tags, and which cached scopes register each tag. It is maintained alongside `src/db/cacheTags.ts` as required by ADR 0008 rule 7: any PR that adds, removes, or renames a tag helper, a cached scope, or a mutation's invalidation call must update this document in the same change.
+This map is the canonical record of which mutations invalidate which cache tags, and which cached scopes register each tag. It is maintained alongside `src/db/cacheTags.ts` and `src/db/cacheInvalidation.ts` as required by ADR 0008 rule 7: any PR that adds, removes, or renames a tag helper, a semantic invalidation helper, a cached scope, or a mutation's invalidation call must update this document in the same change.
 
 See `docs/adr/0008-cache-tags-lifetimes-and-invalidation.md` for the rules that govern tag helpers, lifetimes, invalidation primitives, and the policy classes. See `docs/guides/nextjs-caching.md` for the four-layer model.
 
@@ -20,18 +20,20 @@ See `docs/adr/0008-cache-tags-lifetimes-and-invalidation.md` for the rules that 
 
 ## Mutations → tags invalidated
 
-`updateTag` expires the entry immediately (read-your-own-writes). `revalidateTag` serves stale data while refreshing in the background.
+Each mutation calls exactly one semantic helper from `src/db/cacheInvalidation.ts` after its transaction commits (ADR 0008 rule 6). The helper picks the primitive per tag class: `updateTag` (read-your-own-writes) expires the entry immediately and is used for the tags of the entity just edited, so the editor sees its own change; `revalidateTag("max")` serves stale data while refreshing in the background and is used for coarse aggregate and derived projection tags, so a save never blocks the next navigation on recomputing project-wide completion.
 
-| Mutation | Primitive | Tags | Source |
-|---|---|---|---|
-| `saveAssessment` | `updateTag` | `assessments:{sub}:{q}`, `assessments:{sub}`, `assessments`, `assessments:question:{q}` | `src/assessments/assessmentMutations.ts` |
-| `saveQuestionDefinition` | `updateTag` | `questions`, `assessments`, `assessments:all`, `assessments:question:{id}` (+ `assessments:question:{originalId}` when id changes) | `src/questions/questionDefinitionMutations.ts` |
-| `deleteQuestionDefinition` | `updateTag` | `questions`, `assessments`, `assessments:all`, `assessments:question:{id}` | `src/questions/questionDefinitionMutations.ts` |
-| `reorderQuestions` | `updateTag` | `questions` | `src/questions/questionDefinitionMutations.ts` |
-| `createProject` | `revalidateTag("max")` | `projects`, `projects:{id}` | `src/projects/projects.ts` |
-| `saveAssessments` (import) | `revalidateTag("max")` | `assessments`, `assessments:all` | `src/import/saveAssessments.ts` |
-| `saveQuestions` (import) | `revalidateTag("max")` | `questions`, `assessments`, `assessments:all` | `src/import/saveQuestions.ts` |
-| `saveStudents` (import) | `revalidateTag("max")` | `submissions`, `assessments`, `assessments:all` | `src/import/saveStudents.ts` |
+| Mutation | Helper | `updateTag` (read-your-writes) | `revalidateTag` (stale-while-revalidate) | Source |
+|---|---|---|---|---|
+| `saveAssessment` | `invalidateAssessmentSave` | `assessments:{sub}:{q}`, `assessments:{sub}` | `assessments`, `assessments:question:{q}` | `src/assessments/assessmentMutations.ts` |
+| `saveQuestionDefinition` | `invalidateQuestionDefinitionSave` | `questions` | `assessments`, `assessments:all`, `assessments:question:{id}` (+ `assessments:question:{originalId}` when id changes) | `src/questions/questionDefinitionMutations.ts` |
+| `deleteQuestionDefinition` | `invalidateQuestionDefinitionDelete` | `questions` | `assessments`, `assessments:all`, `assessments:question:{id}` | `src/questions/questionDefinitionMutations.ts` |
+| `reorderQuestions` | `invalidateQuestionReorder` | `questions` | (none) | `src/questions/questionDefinitionMutations.ts` |
+| `createProject` | `invalidateProjectCreate` | (none) | `projects`, `projects:{id}` | `src/projects/projects.ts` |
+| `saveAssessments` (import) | `invalidateAssessmentImport` | (none) | `assessments`, `assessments:all` | `src/import/saveAssessments.ts` |
+| `saveQuestions` (import) | `invalidateQuestionImport` | (none) | `questions`, `assessments`, `assessments:all` | `src/import/saveQuestions.ts` |
+| `saveStudents` (import) | `invalidateStudentImport` | (none) | `submissions`, `assessments`, `assessments:all` | `src/import/saveStudents.ts` |
+
+Import helpers and `invalidateProjectCreate` run from request-scoped actions (import actions, the create-project action). `revalidateTag` throws outside request scope, so these helpers must not be called from background jobs.
 
 ## Readers → tags registered
 
@@ -58,7 +60,8 @@ Page-level sections inherit `cacheLife` from inner cached functions; the lifetim
 
 Any PR that:
 - adds or removes a tag helper in `src/db/cacheTags.ts`,
+- adds, removes, or changes a semantic invalidation helper in `src/db/cacheInvalidation.ts`,
 - changes which tags a cached scope registers, or
-- changes which tags a mutation invalidates
+- changes which tags or primitive a mutation invalidates
 
 **must** update this map in the same PR. Reviewers reject caching changes with a missing or stale map entry (ADR 0008 rule 7).

@@ -1,12 +1,6 @@
 import "server-only";
 import type { Kysely } from "kysely";
-import {
-	assessmentAggregateCacheTag,
-	assessmentForSubmissionCacheTag,
-	assessmentForSubmissionQuestionCacheTag,
-	assessmentProgressForQuestionCacheTag,
-	updateTags,
-} from "#db/cacheTags.ts";
+import { invalidateAssessmentSave } from "#db/cacheInvalidation.ts";
 import type { DB } from "#db/generated/db.ts";
 import { db as defaultDb } from "#db/kysely.ts";
 import { assertNever } from "#utils/utils.ts";
@@ -295,12 +289,7 @@ export async function saveAssessment(
 		.execute((tx) => saveAssessmentInDb(tx, params));
 	const { submissionId, questionId } = params;
 	if (result.success) {
-		updateTags(
-			assessmentForSubmissionQuestionCacheTag({ submissionId, questionId }),
-			assessmentForSubmissionCacheTag(submissionId),
-			assessmentAggregateCacheTag(),
-			assessmentProgressForQuestionCacheTag(questionId),
-		);
+		invalidateAssessmentSave({ submissionId, questionId });
 	}
 
 	return result;

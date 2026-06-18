@@ -1,4 +1,4 @@
-import { cacheTag, updateTag } from "next/cache";
+import { cacheTag } from "next/cache";
 
 // This module is the only place that builds cache-tag strings (ADR 0008 rule 1).
 // Every accepted scope has a named helper; the vocabulary is closed, so adding a
@@ -64,11 +64,5 @@ export function assessmentProgressForQuestionCacheTag(
 export function cacheTags(...tags: string[]): void {
 	for (const tag of tags) {
 		cacheTag(tag);
-	}
-}
-
-export function updateTags(...tags: string[]): void {
-	for (const tag of tags) {
-		updateTag(tag);
 	}
 }
