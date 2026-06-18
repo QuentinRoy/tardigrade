@@ -116,17 +116,31 @@ jobs:
 
   test-storybook:
     name: test-storybook
+    # Run in Playwright's official image: the browser is prebaked, so there is no
+    # download from cdn.playwright.dev (which stalls intermittently on the
+    # runners) and no `playwright install --with-deps` apt step (which hangs on
+    # the ubuntu-latest needrestart prompt — actions/runner-images#11347). Keep
+    # the tag in sync with the playwright version resolved in pnpm-lock.yaml.
     runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.60.0-noble
     needs: changes
     if: needs.changes.outputs.non_docs_changed == 'true'
     steps:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Trust the workspace for git
+        # The container runs as root over a workspace owned by the runner user,
+        # so git would refuse with "dubious ownership".
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
       - uses: ./.github/actions/setup-node-pnpm
 
       - name: Install Playwright browsers
-        run: pnpm run storybook:browser:install:ci
+        # Prebaked in the image; this just verifies the matching binary is
+        # present (no download, no apt).
+        run: pnpm run storybook:browser:install
 
       - name: Storybook tests
         run: pnpm run test:storybook
