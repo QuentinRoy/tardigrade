@@ -282,23 +282,20 @@ async function loadQuestionRowsCached({
 	return loadQuestionRowsFromDb(defaultDb, { projectId });
 }
 
-// Dispatches outside the cached function so the cached inner scope never
-// declares a `db` handle (ADR 0007 rules 13–14). Passing `{ db }` bypasses
-// the cache; callers that need a specific handle (tests, transactions) use this
-// seam.
-export async function loadQuestionRows(
-	{ projectId }: { projectId: string },
-	{ db = defaultDb }: { db?: Kysely<DB> } = {},
-): Promise<QuestionRow[]> {
-	if (db !== defaultDb) return loadQuestionRowsFromDb(db, { projectId });
+export async function loadQuestionRows({
+	projectId,
+}: {
+	projectId: string;
+}): Promise<QuestionRow[]> {
 	return loadQuestionRowsCached({ projectId });
 }
 
-export async function loadQuestionGrid(
-	{ projectId }: { projectId: string },
-	{ db = defaultDb }: { db?: Kysely<DB> } = {},
-): Promise<Grid> {
-	return toQuestionGrid(await loadQuestionRows({ projectId }, { db }));
+export async function loadQuestionGrid({
+	projectId,
+}: {
+	projectId: string;
+}): Promise<Grid> {
+	return toQuestionGrid(await loadQuestionRowsCached({ projectId }));
 }
 
 export async function loadQuestion({

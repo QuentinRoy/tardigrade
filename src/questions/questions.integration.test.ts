@@ -5,11 +5,7 @@ import {
 	createAssessedBooleanQuestionFixture,
 	createOrdinalQuestionFixture,
 } from "#test/questions.ts";
-import {
-	loadQuestionGrid,
-	loadQuestionRows,
-	loadQuestionRowsFromDb,
-} from "./questions.ts";
+import { loadQuestionRowsFromDb } from "./questions.ts";
 
 vi.mock("server-only", () => ({}));
 
@@ -39,29 +35,6 @@ test("loadQuestionRowsFromDb returns only the rows scoped to the given project",
 				},
 			],
 		},
-	]);
-});
-
-test("loadQuestionRows returns rows through the injected handle", async () => {
-	await using db = await createTestDb();
-	await using project = await createProject(db, "Rows Wrapper Project");
-	const fixture = await createAssessedBooleanQuestionFixture(db, project.rowId);
-
-	const rows = await loadQuestionRows({ projectId: project.id }, { db });
-
-	expect(rows.map((row) => row.id)).toEqual([fixture.questionId]);
-});
-
-test("loadQuestionGrid wrapper returns the rubric grid through the injected handle", async () => {
-	await using db = await createTestDb();
-	await using project = await createProject(db, "Grid Wrapper Project");
-	const fixture = await createAssessedBooleanQuestionFixture(db, project.rowId);
-
-	const grid = await loadQuestionGrid({ projectId: project.id }, { db });
-
-	expect(Object.keys(grid)).toEqual([fixture.questionId]);
-	expect(grid[fixture.questionId]?.rubrics.map((rubric) => rubric.id)).toEqual([
-		fixture.rubricId,
 	]);
 });
 

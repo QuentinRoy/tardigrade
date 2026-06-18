@@ -44,9 +44,9 @@ The shipped assessment code already gestured at this with an optional `options.d
 
 12. A read wrapper owns caching only. It declares cache tags and `cacheLife`, delegates database work to its `...FromDb` primitive, and contains no data logic of its own.
 
-13. Cached read wrappers may use the same trailing `{ db = defaultDb } = {}` test seam as write wrappers. In production/runtime code, cached wrappers are called with domain arguments only. The optional `db` handle is for direct tests, where the cache directive is not the behavior under test.
+13. Cached read wrappers must not declare a `db` parameter. The test seam belongs on the `...FromDb` primitive: tests call it directly with a test handle (rule 1). A Kysely handle is a non-serializable class instance; passing one to a `"use cache"` function causes a Next.js serialization error at runtime — Next does not silently ignore it. Any existing cached wrapper that still carries a `db` parameter is grandfathered; remove it when the wrapper is next significantly modified.
 
-14. Because cached wrappers are production-called with domain arguments only, infrastructure handles do not become part of the intended application call shape. Do not pass a `db` handle to a cached wrapper from real Next.js runtime code.
+14. In tests, verify a read wrapper's data behavior by calling its `...FromDb` primitive directly with a test handle. The primitive tests cover data correctness; the wrapper adds only caching and tag registration, which are covered by the pure tag-helper unit tests. No wrapper integration test is needed to repeat the primitive's assertions.
 
 15. Cache tags are extracted to pure helpers and tested directly. Wrapper tests may verify that the wrapper uses the expected tag helper, but actual cache revalidation behavior is an end-to-end concern.
 
@@ -95,7 +95,7 @@ export async function saveQuestions(
 
 - Write wrappers are tested through the `{ db = defaultDb }` seam: a test passes a test-database handle and exercises the wrapper directly, with no module mocking and no dynamic import. These tests cover the transaction boundary and post-commit invalidation call.
 
-- Read wrappers are tested through the same seam when useful. These tests cover delegation to the primitive and use of cache tag helpers, not the Next.js cache runtime itself.
+- Cached read wrappers have no `db` seam. Tests call the `...FromDb` primitive directly with a test handle; the wrapper needs no integration test of its own (rule 14).
 
 - Actual cache behavior, including revalidation and tag busting, only runs under the real Next.js runtime and is treated as an end-to-end concern. That coverage is deferred until a caching regression warrants it; primitive coverage, wrapper seam tests, and pure tag-helper tests guard the realistic regressions in the meantime.
 

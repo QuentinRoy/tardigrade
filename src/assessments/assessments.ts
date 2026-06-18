@@ -29,6 +29,9 @@ export function loadAssessmentCacheTags({
 }
 
 // Returns the typed rubric values for a single submission/question assessment.
+// Grandfathered: `db` on a `"use cache"` function violates ADR 0007 rule 13.
+// Never pass a handle here at runtime — Kysely instances are not serializable and
+// Next.js will throw. Remove this param when this wrapper is next significantly modified.
 export async function loadQuestionAssessment(
 	{
 		submissionId,
@@ -50,6 +53,9 @@ export async function loadQuestionAssessment(
 // Returns every question's rubric values for a submission in one query, keyed by
 // Question ID. Lets the submission overview load all assessments at once instead
 // of issuing one request per question.
+// Grandfathered: `db` on a `"use cache"` function violates ADR 0007 rule 13.
+// Never pass a handle here at runtime — Kysely instances are not serializable and
+// Next.js will throw. Remove this param when this wrapper is next significantly modified.
 export async function loadSubmissionAssessments(
 	{ submissionId, projectId }: { submissionId: string; projectId: string },
 	{ db = defaultDb }: { db?: Kysely<DB> } = {},

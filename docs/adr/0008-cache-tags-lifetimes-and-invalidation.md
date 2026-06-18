@@ -35,7 +35,7 @@ Finally, the invalidation primitive is a freshness policy, not plumbing. `update
 
    Changing a class's duration is a one-line change in one place; a loader that needs to deviate from its class documents why at the call site.
 
-5. Cache keys must contain only domain arguments. Per ADR 0007 rules 13–14, the `{ db = defaultDb }` options object on a cached wrapper is a test seam only; runtime code never passes a handle to a cached wrapper. When a cached wrapper must compose another loader's data, it composes the `...FromDb` primitive with the default client, or dispatches on `db === defaultDb` outside the cached function. New cached wrappers should prefer the dispatch shape so the cached inner function does not declare a `db` parameter at all.
+5. Cache keys must contain only domain arguments. Cached wrappers must not declare a `db` parameter (ADR 0007 rule 13): a Kysely handle is not serializable and causes a Next.js runtime error if passed, and even a defaulted handle adds a non-domain entry to the key vocabulary. When a cached wrapper needs data from another loader, it calls the `...FromDb` primitive with `defaultDb` directly — not the public wrapper. If multiple public functions share the same expensive primitive call, introduce a private cached helper that both delegate to; neither public function should be a `"use cache"` scope itself.
 
 6. Mutations invalidate through semantic helpers named after the mutation, not after the mechanism: `invalidateAssessmentSave(...)`, `invalidateAssessmentImport(...)`, `invalidateQuestionDefinitionSave(...)`, and so on, colocated with `cacheTags.ts`. Wrappers and import actions call exactly one helper after commit. The helper chooses the primitive per tag class:
 
