@@ -43,7 +43,7 @@ Page-level sections inherit `cacheLife` from inner cached functions; the lifetim
 |---|---|---|---|
 | `loadProjectList` | `projects` | 60 s | `src/projects/projects.ts` |
 | `loadProjectByPublicId` | `projects`, `projects:{id}` | 60 s | `src/projects/projects.ts` |
-| `loadQuestionRowsCached` (internal; shared by `loadQuestionRows`, `loadQuestionGrid`, `loadQuestion`) | `questions` | 1 h | `src/questions/questions.ts` |
+| `loadQuestionRows` (shared by `loadQuestionGrid`, `loadQuestion`, which derive from it) | `questions` | 1 h | `src/questions/questions.ts` |
 | `loadSubmissions` | `submissions` | **none** (Finding 3; fix in PR5) | `src/submissions/submissions.ts` |
 | `loadQuestionAssessment` | `assessments:{sub}:{q}`, `assessments:all` | **none** (Finding 3; fix in PR5) | `src/assessments/assessments.ts` |
 | `loadSubmissionAssessments` | `assessments:{sub}`, `assessments:all` | **none** (Finding 3; fix in PR5) | `src/assessments/assessments.ts` |

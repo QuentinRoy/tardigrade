@@ -1,13 +1,24 @@
-import { expect, test, vi } from "vitest";
+import { cacheTag } from "next/cache";
+import { beforeEach, expect, test, vi } from "vitest";
 import { createTestDb } from "#test/dbIntegration.ts";
 import { createProject } from "#test/projects.ts";
 import {
 	createAssessedBooleanQuestionFixture,
 	createOrdinalQuestionFixture,
 } from "#test/questions.ts";
-import { loadQuestionRowsFromDb } from "./questions.ts";
+import {
+	loadQuestionRows,
+	loadQuestionRowsFromDb,
+	questionCacheTags,
+} from "./questions.ts";
 
 vi.mock("server-only", () => ({}));
+
+vi.mock("next/cache", () => ({ cacheTag: vi.fn(), cacheLife: vi.fn() }));
+
+beforeEach(() => {
+	vi.clearAllMocks();
+});
 
 test("loadQuestionRowsFromDb returns only the rows scoped to the given project", async () => {
 	await using db = await createTestDb();
@@ -36,6 +47,19 @@ test("loadQuestionRowsFromDb returns only the rows scoped to the given project",
 			],
 		},
 	]);
+});
+
+test("loadQuestionRows wrapper delegates to its primitive and declares its cache tags", async () => {
+	await using db = await createTestDb();
+	await using project = await createProject(db, "Rows Wrapper Project");
+	const fixture = await createAssessedBooleanQuestionFixture(db, project.rowId);
+
+	const rows = await loadQuestionRows({ projectId: project.id }, { db });
+
+	expect(rows.map((row) => row.id)).toEqual([fixture.questionId]);
+
+	const declaredTags = vi.mocked(cacheTag).mock.calls.map((call) => call[0]);
+	expect(declaredTags).toEqual(questionCacheTags());
 });
 
 test("loadQuestionRowsFromDb returns ordinalRubric with empty marks when the ordinalRubric row exists but has no ordinalRubricValue rows", async () => {

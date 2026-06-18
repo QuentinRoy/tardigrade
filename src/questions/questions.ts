@@ -269,33 +269,33 @@ export function toQuestionGrid(rows: QuestionRow[]): Grid {
 	);
 }
 
-// Canonical cached source for project question rows. No `db` param so the cache
-// key contains only domain arguments (ADR 0008 rule 5).
-async function loadQuestionRowsCached({
-	projectId,
-}: {
-	projectId: string;
-}): Promise<QuestionRow[]> {
+// Canonical cached source for project-wide question rows. `loadQuestionGrid` and
+// `loadQuestion` derive from this, so all three share one cache entry per project.
+//
+// The `db` option is a test seam only (ADR 0007 rules 13–14): runtime callers must
+// omit it. A Kysely handle is a non-serializable class instance, and `"use cache"`
+// serializes arguments to form the cache key, so passing one throws
+// `Cannot serialize class instance` at runtime. Tests mock `next/cache`, which makes
+// the directive inert so the handle reaches the primitive.
+export async function loadQuestionRows(
+	{ projectId }: { projectId: string },
+	{ db = defaultDb }: { db?: Kysely<DB> } = {},
+): Promise<QuestionRow[]> {
 	"use cache";
 	cacheTags(...questionCacheTags());
 	cacheLife("definitions");
-	return loadQuestionRowsFromDb(defaultDb, { projectId });
+	return loadQuestionRowsFromDb(db, { projectId });
 }
 
-export async function loadQuestionRows({
-	projectId,
-}: {
-	projectId: string;
-}): Promise<QuestionRow[]> {
-	return loadQuestionRowsCached({ projectId });
-}
-
+// Plain deriver: shares `loadQuestionRows`' cache entry at runtime. No `db` seam,
+// because its only logic beyond the shared source is the pure `toQuestionGrid`,
+// which is unit-tested directly.
 export async function loadQuestionGrid({
 	projectId,
 }: {
 	projectId: string;
 }): Promise<Grid> {
-	return toQuestionGrid(await loadQuestionRowsCached({ projectId }));
+	return toQuestionGrid(await loadQuestionRows({ projectId }));
 }
 
 export async function loadQuestion({
@@ -309,7 +309,7 @@ export async function loadQuestion({
 	// for grading navigation, which typically visits multiple questions. Add a
 	// per-question primitive only if measurement shows the broad load is costly
 	// (caching plan Decision 5).
-	const rows = await loadQuestionRowsCached({ projectId });
+	const rows = await loadQuestionRows({ projectId });
 	const row = rows.find((item) => item.id === questionId);
 	if (row == null) return undefined;
 	return { label: row.label ?? undefined, rubrics: row.rubrics.map(toRubric) };

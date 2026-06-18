@@ -95,9 +95,8 @@ export async function loadSubmissionsFromDb(
 	return { submissions, teamMembersBySubmissionId };
 }
 
-// Grandfathered: `db` on a `"use cache"` function violates ADR 0007 rule 13.
-// Never pass a handle here at runtime — Kysely instances are not serializable and
-// Next.js will throw. Remove this param when this wrapper is next significantly modified.
+// `db` is a test seam only (ADR 0007 rules 13–14): never pass a handle at runtime —
+// Kysely instances are not serializable and Next.js throws on the cache key.
 export async function loadSubmissions(
 	{ projectId }: { projectId?: string } = {},
 	{ db = defaultDb }: { db?: Kysely<DB> } = {},
