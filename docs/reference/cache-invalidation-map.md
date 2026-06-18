@@ -27,11 +27,11 @@ Each mutation calls exactly one semantic helper from `src/db/cacheInvalidation.t
 | `saveAssessment` | `invalidateAssessmentSave` | `assessments:{sub}:{q}`, `assessments:{sub}` | `assessments`, `assessments:question:{q}` | `src/assessments/assessmentMutations.ts` |
 | `saveQuestionDefinition` | `invalidateQuestionDefinitionSave` | `questions` | `assessments`, `assessments:all`, `assessments:question:{id}` (+ `assessments:question:{originalId}` when id changes) | `src/questions/questionDefinitionMutations.ts` |
 | `deleteQuestionDefinition` | `invalidateQuestionDefinitionDelete` | `questions` | `assessments`, `assessments:all`, `assessments:question:{id}` | `src/questions/questionDefinitionMutations.ts` |
-| `reorderQuestions` | `invalidateQuestionReorder` | `questions` | — | `src/questions/questionDefinitionMutations.ts` |
-| `createProject` | `invalidateProjectCreate` | — | `projects`, `projects:{id}` | `src/projects/projects.ts` |
-| `saveAssessments` (import) | `invalidateAssessmentImport` | — | `assessments`, `assessments:all` | `src/import/saveAssessments.ts` |
-| `saveQuestions` (import) | `invalidateQuestionImport` | — | `questions`, `assessments`, `assessments:all` | `src/import/saveQuestions.ts` |
-| `saveStudents` (import) | `invalidateStudentImport` | — | `submissions`, `assessments`, `assessments:all` | `src/import/saveStudents.ts` |
+| `reorderQuestions` | `invalidateQuestionReorder` | `questions` | (none) | `src/questions/questionDefinitionMutations.ts` |
+| `createProject` | `invalidateProjectCreate` | (none) | `projects`, `projects:{id}` | `src/projects/projects.ts` |
+| `saveAssessments` (import) | `invalidateAssessmentImport` | (none) | `assessments`, `assessments:all` | `src/import/saveAssessments.ts` |
+| `saveQuestions` (import) | `invalidateQuestionImport` | (none) | `questions`, `assessments`, `assessments:all` | `src/import/saveQuestions.ts` |
+| `saveStudents` (import) | `invalidateStudentImport` | (none) | `submissions`, `assessments`, `assessments:all` | `src/import/saveStudents.ts` |
 
 Import helpers and `invalidateProjectCreate` run from request-scoped actions (import actions, the create-project action). `revalidateTag` throws outside request scope, so these helpers must not be called from background jobs.
 
