@@ -23,7 +23,7 @@ Umbrella: #59. Each PR below is a native GitHub sub-issue of #59 (#155–#167), 
 
 | Step | Issue | Status |
 | --- | --- | --- |
-| PR1 | #155 | Done (doc-only; instrumentation was throwaway) |
+| PR1 | #155 | Done — #184 |
 | PR2 | #156 | Done — #168 |
 | PR3 | #157 | Done — #170 |
 | PR4 | #158 | Done — #171 |
