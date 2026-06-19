@@ -37,6 +37,19 @@ pnpm test:storybook <changed-stories-stem>
 
 Vitest runs Storybook in headless mode via Playwright, so no separate Storybook server is needed.
 
+## Module aliases in tests
+
+The node test projects (`unit` and `integration`) alias `server-only` to an empty
+module (`src/test/serverOnlyStub.ts`), configured in `vitest.config.ts`. `server-only`
+is a build-time guard against importing server modules into a client bundle; it has no
+purpose under Vitest's node environment, so tests do not need to mock it. Import server
+modules directly — do not add `vi.mock("server-only", () => ({}))`.
+
+Other test doubles (for example `next/cache`) stay explicit per file, so each test
+states the runtime behavior it is standing in for. Only neutralize a dependency globally
+when, like `server-only`, it has no behavior worth asserting and stubbing it every time is
+pure boilerplate.
+
 ## Disposable fixtures
 
 Prefer `using` or `await using` for resources that need setup with matching teardown, such as spies, mocks, temporary databases, projects, or fixtures. This keeps setup and cleanup together at the call site, makes ownership explicit, and ensures cleanup happens when the enclosing scope exits, including on failure.

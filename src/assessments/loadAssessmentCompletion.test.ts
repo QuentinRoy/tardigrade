@@ -1,11 +1,9 @@
-import { expect, test, vi } from "vitest";
+import { expect, test } from "vitest";
 import {
 	assessedRubricCountsBySubmissionCacheTags,
 	assessmentCompletionBySubmissionCacheTags,
 	assessmentCompletionSummaryCacheTags,
 } from "./loadAssessmentCompletion.ts";
-
-vi.mock("server-only", () => ({}));
 
 test("assessedRubricCountsBySubmissionCacheTags scopes invalidation to the given question", () => {
 	expect(assessedRubricCountsBySubmissionCacheTags("q-1")).toEqual([

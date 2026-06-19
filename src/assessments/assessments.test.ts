@@ -1,7 +1,5 @@
-import { expect, test, vi } from "vitest";
+import { expect, test } from "vitest";
 import { loadAssessmentCacheTags } from "./assessments.ts";
-
-vi.mock("server-only", () => ({}));
 
 test("loadAssessmentCacheTags declares the granular tag and the assessments:all fallback for a single question", () => {
 	expect(

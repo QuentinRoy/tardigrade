@@ -11,8 +11,6 @@ import {
 import { saveQuestions } from "./saveQuestions.ts";
 import type { ImportedQuestions } from "./types.ts";
 
-vi.mock("server-only", () => ({}));
-
 vi.mock("next/cache", () => ({ revalidateTag: vi.fn() }));
 
 beforeEach(() => {

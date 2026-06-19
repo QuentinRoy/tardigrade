@@ -7,8 +7,6 @@ import { createProject } from "#test/projects.ts";
 import { saveAssessments } from "./saveAssessments.ts";
 import type { ImportedAssessmentRow } from "./types.ts";
 
-vi.mock("server-only", () => ({}));
-
 vi.mock("next/cache", () => ({ revalidateTag: vi.fn() }));
 
 beforeEach(() => {

@@ -12,8 +12,6 @@ import {
 	loadSubmissionAssessmentsFromDb,
 } from "./assessments.ts";
 
-vi.mock("server-only", () => ({}));
-
 vi.mock("next/cache", () => ({
 	cacheTag: vi.fn(),
 	cacheLife: vi.fn(),

@@ -1,7 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("server-only", () => ({}));
-
 const deleteQuestionDefinition = vi.fn();
 const saveQuestionDefinition = vi.fn();
 const reorderQuestions = vi.fn();
