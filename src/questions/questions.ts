@@ -287,29 +287,29 @@ export async function loadQuestionRows(
 	return loadQuestionRowsFromDb(db, { projectId });
 }
 
-// Plain deriver: shares `loadQuestionRows`' cache entry at runtime. No `db` seam,
-// because its only logic beyond the shared source is the pure `toQuestionGrid`,
-// which is unit-tested directly.
-export async function loadQuestionGrid({
-	projectId,
-}: {
-	projectId: string;
-}): Promise<Grid> {
-	return toQuestionGrid(await loadQuestionRows({ projectId }));
+// Plain deriver: shares `loadQuestionRows`' cache entry at runtime. Forwards its
+// own `db` option unchanged (no destructured default) so callers can use the same
+// test seam without knowing this is a deriver. Omitted, the forwarded value stays
+// `undefined`, so the call collapses to the exact shape `loadQuestionRows` gets
+// when called directly and the cache entry is shared, not split. Resolving a
+// default here before forwarding would pass a real handle into the cached
+// function even on the no-args runtime path — never do that (ADR 0007 rule 14).
+export async function loadQuestionGrid(
+	{ projectId }: { projectId: string },
+	options?: { db?: Kysely<DB> },
+): Promise<Grid> {
+	return toQuestionGrid(await loadQuestionRows({ projectId }, options));
 }
 
-export async function loadQuestion({
-	projectId,
-	questionId,
-}: {
-	projectId: string;
-	questionId: string;
-}): Promise<Question | undefined> {
+export async function loadQuestion(
+	{ projectId, questionId }: { projectId: string; questionId: string },
+	options?: { db?: Kysely<DB> },
+): Promise<Question | undefined> {
 	// Intentionally loads the whole project question set: warms the shared row cache
 	// for grading navigation, which typically visits multiple questions. Add a
 	// per-question primitive only if measurement shows the broad load is costly
 	// (caching plan Decision 5).
-	const rows = await loadQuestionRows({ projectId });
+	const rows = await loadQuestionRows({ projectId }, options);
 	const row = rows.find((item) => item.id === questionId);
 	if (row == null) return undefined;
 	return { label: row.label ?? undefined, rubrics: row.rubrics.map(toRubric) };
