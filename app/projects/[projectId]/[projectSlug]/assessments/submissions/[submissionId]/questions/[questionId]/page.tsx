@@ -4,7 +4,10 @@ import Container from "@mui/material/Container";
 import Typography from "@mui/material/Typography";
 import { notFound } from "next/navigation";
 import { loadQuestionAssessment } from "#assessments/assessments.ts";
-import { loadAssessedRubricCountsBySubmission } from "#assessments/loadAssessmentCompletion.ts";
+import {
+	buildAssessedRubricCountsBySubmission,
+	loadAssessedRubricCounts,
+} from "#assessments/loadAssessmentCompletion.ts";
 import SubmissionAssessmentClient from "#assessments/SubmissionAssessmentClient.tsx";
 import {
 	assessmentForSubmissionQuestionCacheTag,
@@ -118,22 +121,21 @@ async function SubmissionRubricSection({
 
 	const project = await loadProjectByPublicId(projectId, { required: true });
 
-	const [question, submissions, assessments, progressBySubmissionId] =
-		await Promise.all([
-			loadQuestion({ questionId, projectId: project.id }),
-			loadSubmissions({ projectId: project.id }),
-			loadQuestionAssessment({
-				submissionId,
-				questionId,
-				projectId: project.id,
-			}),
-			loadAssessedRubricCountsBySubmission({
-				questionId,
-				projectId: project.id,
-			}),
-		]);
+	const [question, submissions, assessments, rubricCounts] = await Promise.all([
+		loadQuestion({ questionId, projectId: project.id }),
+		loadSubmissions({ projectId: project.id }),
+		loadQuestionAssessment({ submissionId, questionId, projectId: project.id }),
+		loadAssessedRubricCounts({ questionId, projectId: project.id }),
+	]);
 	const hasSubmission = submissions.some(
 		(submission) => submission.id === submissionId,
+	);
+
+	// Reuses the submissions already loaded above instead of querying them again
+	// inside the progress primitive (Finding 7).
+	const progressBySubmissionId = buildAssessedRubricCountsBySubmission(
+		submissions.map((submission) => submission.id),
+		rubricCounts,
 	);
 
 	if (question == null || !hasSubmission) {
