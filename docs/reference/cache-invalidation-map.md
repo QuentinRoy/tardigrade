@@ -53,8 +53,8 @@ Page-level sections inherit `cacheLife` from inner cached functions; the lifetim
 | `loadAssessmentCompletionSummary` | `submissions`, `questions`, `assessments` | 60 s | `src/assessments/loadAssessmentCompletion.ts` |
 | `loadRubricOverviewData` | `questions`, `submissions`, `assessments` | 60 s | `src/assessments/rubricOverview.ts` |
 | `QuestionHeaderSection` (page) | `projects:{id}`, `questions` | inherits | `app/.../questions/[questionId]/page.tsx` |
-| `SubmissionRubricSection` (page) | `projects:{id}`, `questions`, `submissions`, `assessments:{sub}:{q}`, `assessments:question:{q}`, `assessments:all` | inherits | `app/.../questions/[questionId]/page.tsx` |
-| `ProjectAssessmentPageContent` (page) | `projects:{id}`, `questions`, `submissions`, `assessments` | inherits | `app/.../assessments/page.tsx` |
+
+`SubmissionRubricSection` and `ProjectAssessmentPageContent` have no page-level `"use cache"` wrapper: each calls already-cached loaders directly, and leaves the per-submission progress used by the on-demand lookup dialog (or, on the assessments index, the inline progress badges) uncached and unawaited so it streams in under Suspense instead of blocking navigation on a project-wide completion recompute (Finding 19, PR10).
 
 ## Maintenance rule
 

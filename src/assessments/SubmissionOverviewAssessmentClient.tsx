@@ -38,7 +38,9 @@ type SubmissionOverviewAssessmentClientProps = {
 	projectSlug: string;
 	questions: QuestionAssessmentSection[];
 	submissions: Submission[];
-	progressBySubmissionId: Record<string, { completed: number; total: number }>;
+	progressPromise: Promise<
+		Record<string, { completed: number; total: number }>
+	>;
 	currentSubmissionId: string;
 };
 
@@ -47,7 +49,7 @@ export default function SubmissionOverviewAssessmentClient({
 	projectSlug,
 	questions: initialQuestions,
 	submissions,
-	progressBySubmissionId,
+	progressPromise,
 	currentSubmissionId,
 }: SubmissionOverviewAssessmentClientProps): ReactElement {
 	const router = useRouter();
@@ -230,7 +232,7 @@ export default function SubmissionOverviewAssessmentClient({
 				onClose={() => setQuickJumpOpen(false)}
 				onSelectSubmission={navigateToSubmission}
 				submissions={submissions}
-				progressBySubmissionId={progressBySubmissionId}
+				progressPromise={progressPromise}
 				progressLabel="questions"
 			/>
 
