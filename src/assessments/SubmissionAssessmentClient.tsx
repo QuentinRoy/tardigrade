@@ -26,7 +26,9 @@ type SubmissionAssessmentClientProps = {
 	questionLabel?: string | undefined;
 	rubrics: AssessedRubric[];
 	submissions: Submission[];
-	progressBySubmissionId: Record<string, { completed: number; total: number }>;
+	progressPromise: Promise<
+		Record<string, { completed: number; total: number }>
+	>;
 	currentSubmissionId: string;
 };
 
@@ -37,7 +39,7 @@ export default function SubmissionAssessmentClient({
 	questionLabel,
 	rubrics: initialRubrics,
 	submissions,
-	progressBySubmissionId,
+	progressPromise,
 	currentSubmissionId,
 }: SubmissionAssessmentClientProps): ReactElement {
 	const router = useRouter();
@@ -210,7 +212,7 @@ export default function SubmissionAssessmentClient({
 				onClose={() => setQuickJumpOpen(false)}
 				onSelectSubmission={navigateToSubmission}
 				submissions={submissions}
-				progressBySubmissionId={progressBySubmissionId}
+				progressPromise={progressPromise}
 				progressLabel="rubrics"
 			/>
 
