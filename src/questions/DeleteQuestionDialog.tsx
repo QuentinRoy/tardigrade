@@ -6,7 +6,6 @@ import {
 	Dialog,
 	DialogActions,
 	DialogContent,
-	type DialogProps,
 	DialogTitle,
 	Stack,
 	TextField,

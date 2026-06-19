@@ -1,10 +1,4 @@
-import type { Selectable } from "kysely";
-import type {
-	Submission as DbSubmission,
-	Student,
-	SubmissionType,
-	Team,
-} from "#db/generated/db.ts";
+import type { SubmissionType } from "#db/generated/db.ts";
 import type { Simplify } from "#utils/utils.ts";
 
 export type { SubmissionType };

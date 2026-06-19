@@ -14,8 +14,6 @@ import {
 	questionCacheTags,
 } from "./questions.ts";
 
-vi.mock("server-only", () => ({}));
-
 vi.mock("next/cache", () => ({ cacheTag: vi.fn(), cacheLife: vi.fn() }));
 
 beforeEach(() => {

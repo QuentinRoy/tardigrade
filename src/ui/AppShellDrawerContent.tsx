@@ -28,7 +28,7 @@ import {
 	projectQuestionsPath,
 } from "#projects/projectPaths.ts";
 import { useLocalStorage } from "#utils/useLocalStorage.ts";
-import { type ProjectRouteContext } from "./AppShell.shared.ts";
+import type { ProjectRouteContext } from "./AppShell.shared.ts";
 
 const EXPORT_STORAGE_KEY = "export-csv-options-v1";
 
@@ -206,103 +206,101 @@ export default function AppShellDrawerContent({
 	];
 
 	return (
-		<>
-			<Stack divider={<Divider flexItem />}>
-				<Box sx={{ px: 2, py: 1.5 }}>
-					<Typography component="p" variant="overline" color="text.secondary">
-						Project
-					</Typography>
-					<List disablePadding>
-						<ListItemButton
-							component={NextLink}
-							href={changeProjectPath()}
-							{...(onDismiss && { onClick: onDismiss })}
-							sx={{ borderRadius: 1 }}
-						>
-							<ListItemText primary={projectName} secondary="Change project" />
-						</ListItemButton>
-					</List>
-				</Box>
-				<NavigationZone
-					title="Assess"
-					items={assessmentItems}
-					onNavigate={onDismiss}
-				/>
-				<NavigationZone
-					title="Manage"
-					items={managementItems}
-					onNavigate={onDismiss}
-				/>
-				<NavigationZone
-					title="Import"
-					items={importItems}
-					onNavigate={onDismiss}
-				/>
-				<Box sx={{ px: 2, py: 1.5 }}>
-					<Typography component="p" variant="overline" color="text.secondary">
-						Export Submissions
-					</Typography>
-					<Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-						Configure columns before download.
-					</Typography>
-					<FormGroup sx={{ mb: 2 }}>
-						<FormControlLabel
-							control={
-								<Checkbox
-									checked={exportOptions.includeRubricAssessment}
-									onChange={(event) => {
-										setExportOptions((current) => ({
-											...current,
-											includeRubricAssessment: event.target.checked,
-										}));
-									}}
-								/>
-							}
-							label="Rubric assessment"
-						/>
-						<FormControlLabel
-							control={
-								<Checkbox
-									checked={exportOptions.includeRubricMarks}
-									onChange={(event) => {
-										setExportOptions((current) => ({
-											...current,
-											includeRubricMarks: event.target.checked,
-										}));
-									}}
-								/>
-							}
-							label="Rubric marks"
-						/>
-					</FormGroup>
-					<Button
+		<Stack divider={<Divider flexItem />}>
+			<Box sx={{ px: 2, py: 1.5 }}>
+				<Typography component="p" variant="overline" color="text.secondary">
+					Project
+				</Typography>
+				<List disablePadding>
+					<ListItemButton
 						component={NextLink}
-						href={exportHref}
-						variant="contained"
-						fullWidth
+						href={changeProjectPath()}
 						{...(onDismiss && { onClick: onDismiss })}
+						sx={{ borderRadius: 1 }}
 					>
-						Download Submissions
-					</Button>
-				</Box>
-				<Box sx={{ px: 2, py: 1.5 }}>
-					<Typography component="p" variant="overline" color="text.secondary">
-						Export Questions
-					</Typography>
-					<Button
-						component={NextLink}
-						href={projectExportQuestionsPath(
-							projectRouteContext.projectId,
-							projectRouteContext.projectSlug,
-						)}
-						variant="outlined"
-						fullWidth
-						{...(onDismiss && { onClick: onDismiss })}
-					>
-						Download Questions
-					</Button>
-				</Box>
-			</Stack>
-		</>
+						<ListItemText primary={projectName} secondary="Change project" />
+					</ListItemButton>
+				</List>
+			</Box>
+			<NavigationZone
+				title="Assess"
+				items={assessmentItems}
+				onNavigate={onDismiss}
+			/>
+			<NavigationZone
+				title="Manage"
+				items={managementItems}
+				onNavigate={onDismiss}
+			/>
+			<NavigationZone
+				title="Import"
+				items={importItems}
+				onNavigate={onDismiss}
+			/>
+			<Box sx={{ px: 2, py: 1.5 }}>
+				<Typography component="p" variant="overline" color="text.secondary">
+					Export Submissions
+				</Typography>
+				<Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+					Configure columns before download.
+				</Typography>
+				<FormGroup sx={{ mb: 2 }}>
+					<FormControlLabel
+						control={
+							<Checkbox
+								checked={exportOptions.includeRubricAssessment}
+								onChange={(event) => {
+									setExportOptions((current) => ({
+										...current,
+										includeRubricAssessment: event.target.checked,
+									}));
+								}}
+							/>
+						}
+						label="Rubric assessment"
+					/>
+					<FormControlLabel
+						control={
+							<Checkbox
+								checked={exportOptions.includeRubricMarks}
+								onChange={(event) => {
+									setExportOptions((current) => ({
+										...current,
+										includeRubricMarks: event.target.checked,
+									}));
+								}}
+							/>
+						}
+						label="Rubric marks"
+					/>
+				</FormGroup>
+				<Button
+					component={NextLink}
+					href={exportHref}
+					variant="contained"
+					fullWidth
+					{...(onDismiss && { onClick: onDismiss })}
+				>
+					Download Submissions
+				</Button>
+			</Box>
+			<Box sx={{ px: 2, py: 1.5 }}>
+				<Typography component="p" variant="overline" color="text.secondary">
+					Export Questions
+				</Typography>
+				<Button
+					component={NextLink}
+					href={projectExportQuestionsPath(
+						projectRouteContext.projectId,
+						projectRouteContext.projectSlug,
+					)}
+					variant="outlined"
+					fullWidth
+					{...(onDismiss && { onClick: onDismiss })}
+				>
+					Download Questions
+				</Button>
+			</Box>
+		</Stack>
 	);
 }

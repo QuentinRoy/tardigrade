@@ -58,7 +58,7 @@ type DraggableQuestionItemProps = {
 	onSelectQuestion: (questionId: string) => void;
 };
 
-const DraggableQuestionItem = memo(function DraggableQuestionItem({
+const DraggableQuestionItem = memo(function DraggableQuestionItemRow({
 	definition,
 	isSelected,
 	isDragInProgress,

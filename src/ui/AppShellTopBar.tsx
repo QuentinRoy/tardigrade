@@ -8,7 +8,7 @@ import IconButton from "@mui/material/IconButton";
 import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
 import NextLink from "next/link";
-import { type ReactNode } from "react";
+import type { ReactNode } from "react";
 
 type AppShellTopBarProps = {
 	title: string;

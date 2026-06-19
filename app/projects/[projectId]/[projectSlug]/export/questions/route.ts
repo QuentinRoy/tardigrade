@@ -9,7 +9,7 @@ type RouteParams = {
 	params: Promise<{ projectId: string; projectSlug: string }>;
 };
 
-export async function GET(request: NextRequest, { params }: RouteParams) {
+export async function GET(_request: NextRequest, { params }: RouteParams) {
 	const { projectId } = await params;
 	const project = await loadProjectByPublicId(projectId);
 

@@ -25,7 +25,7 @@ type ExternalTemplateContext = {
 const TEST_DATABASE_PREFIX = "grading_test_db";
 const TEST_TEMPLATE_PREFIX = "grading_test_tpl";
 const runTag = sanitizeDbIdentifier(
-	process.env.GITHUB_RUN_ID ?? `${Date.now()}_${process.pid}`,
+	process.env["GITHUB_RUN_ID"] ?? `${Date.now()}_${process.pid}`,
 );
 
 let externalTemplatePromise: Promise<ExternalTemplateContext> | null = null;
@@ -104,7 +104,7 @@ async function dropDatabase(
 }
 
 function readExternalAdminUrl(): URL {
-	const url = process.env.TEST_DATABASE_URL;
+	const url = process.env["TEST_DATABASE_URL"];
 
 	if (url == null || url.length === 0) {
 		throw new Error("TEST_DATABASE_URL must be set for integration tests");

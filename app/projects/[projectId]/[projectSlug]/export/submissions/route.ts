@@ -20,7 +20,7 @@ export async function GET(
 
 	const searchParams = new URL(request.url).searchParams;
 
-	let options;
+	let options: ReturnType<typeof parseExportOptions>;
 	try {
 		options = parseExportOptions(searchParams);
 	} catch (error) {

@@ -1,8 +1,5 @@
-import { afterAll, beforeAll, expect, test, vi } from "vitest";
-
-vi.mock("server-only", () => ({}));
-
 import type { Kysely } from "kysely";
+import { afterAll, beforeAll, expect, test } from "vitest";
 import type { DB } from "#db/generated/db.ts";
 import {
 	createTestDb,

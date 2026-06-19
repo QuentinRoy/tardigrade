@@ -5,10 +5,10 @@ const config: StorybookConfig = {
 	stories: ["../src/**/*.stories.@(ts|tsx)"],
 	addons: ["@storybook/addon-vitest"],
 	framework: { name: "@storybook/nextjs-vite", options: {} },
-	async viteFinal(config) {
+	async viteFinal(viteConfig) {
 		const { mergeConfig } = await import("vite");
 
-		return mergeConfig(config, {
+		return mergeConfig(viteConfig, {
 			resolve: {
 				alias: {
 					dns: path.resolve(process.cwd(), "src/storybook/empty-module.ts"),

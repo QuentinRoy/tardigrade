@@ -23,9 +23,9 @@ export default function BooleanGradeControl({
 		<ToggleButtonGroup
 			value={buttonValue}
 			exclusive
-			onChange={(_, value: boolean | null) => {
-				if (value != null) {
-					onAssess(value);
+			onChange={(_, nextValue: boolean | null) => {
+				if (nextValue != null) {
+					onAssess(nextValue);
 				}
 			}}
 			aria-label="Boolean rubric assessment"

@@ -1,7 +1,7 @@
 import "@fontsource/monaspace-neon";
 
 import Box from "@mui/material/Box";
-import React from "react";
+import type React from "react";
 import { getHighlighter } from "./shiki-setup.ts";
 
 type CodeSnippetProps = { children: string; language?: string };
@@ -31,6 +31,8 @@ export default async function CodeSnippet({
 				"& code": { fontFamily: "'Monaspace Neon', monospace" },
 			}}
 		>
+			{/** biome-ignore lint/security/noDangerouslySetInnerHtml: This is fine here,
+			  we generate the HTML safely from shiki highlighter. */}
 			<Box className="code" dangerouslySetInnerHTML={{ __html: html }} />
 		</Box>
 	);

@@ -1,4 +1,4 @@
-import { expect, test, vi } from "vitest";
+import { expect, test } from "vitest";
 import { createTestDb } from "#test/dbIntegration.ts";
 import { createProject } from "#test/projects.ts";
 import {
@@ -11,8 +11,6 @@ import {
 	loadQuestionDefinitions,
 	loadQuestionDefinitionsFromDb,
 } from "./questionDefinitions.ts";
-
-vi.mock("server-only", () => ({}));
 
 test("loadQuestionDefinitionsFromDb returns scoped definitions with assessment counts", async () => {
 	await using db = await createTestDb();

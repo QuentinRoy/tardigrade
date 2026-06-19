@@ -1,7 +1,7 @@
 "use client";
 
 import { TextField } from "@mui/material";
-import { type ReactElement } from "react";
+import type { ReactElement } from "react";
 import type { QuestionRubricFieldErrors } from "./errors.ts";
 import RubricEditorPaper from "./RubricEditorPaper.tsx";
 import type { RubricEditorValue } from "./types.ts";

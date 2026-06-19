@@ -22,7 +22,10 @@
 		"erasableSyntaxOnly": true,
 		"plugins": [{ "name": "next" }],
 		"strictNullChecks": true,
-		"exactOptionalPropertyTypes": true
+		"exactOptionalPropertyTypes": true,
+		"noImplicitReturns": true,
+		"noFallthroughCasesInSwitch": true,
+		"noPropertyAccessFromIndexSignature": true
 	},
 	"include": [
 		"**/*.ts",

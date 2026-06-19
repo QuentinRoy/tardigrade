@@ -2,8 +2,6 @@ import { describe, expect, test, vi } from "vitest";
 import type { QuestionRow } from "./questions.ts";
 import { questionCacheTags, toQuestionGrid, toRubric } from "./questions.ts";
 
-vi.mock("server-only", () => ({}));
-
 test("questionCacheTags declares the questions tag", () => {
 	expect(questionCacheTags()).toEqual(["questions"]);
 });

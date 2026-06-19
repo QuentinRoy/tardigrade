@@ -1,4 +1,4 @@
-import { type Kysely } from "kysely";
+import type { Kysely } from "kysely";
 import { expect, test } from "vitest";
 import { buildTestId, createTestDb } from "#test/dbIntegration.ts";
 import { createProject } from "#test/projects.ts";

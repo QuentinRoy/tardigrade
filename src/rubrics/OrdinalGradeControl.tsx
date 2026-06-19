@@ -24,9 +24,9 @@ export default function OrdinalGradeControl({
 			orientation="vertical"
 			exclusive
 			sx={{ width: "fit-content", alignItems: "stretch" }}
-			onChange={(_, value: string | null) => {
-				if (value != null) {
-					onAssess(value);
+			onChange={(_, nextValue: string | null) => {
+				if (nextValue != null) {
+					onAssess(nextValue);
 				}
 			}}
 			aria-label="Ordinal rubric assessment"

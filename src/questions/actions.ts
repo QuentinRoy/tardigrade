@@ -11,7 +11,7 @@ import {
 	parseDeletePayload,
 	parseQuestionDefinitionPayload,
 } from "./schemas.ts";
-import { type QuestionsActionState } from "./state.ts";
+import type { QuestionsActionState } from "./state.ts";
 
 export async function saveQuestionAction(
 	projectId: string,
