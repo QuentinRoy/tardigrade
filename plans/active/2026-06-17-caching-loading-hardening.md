@@ -33,7 +33,7 @@ Umbrella: #59. Each PR below is a native GitHub sub-issue of #59 (#155–#167), 
 | PR8 | #162 | Done — #181 |
 | PR9 | #163 | Done — #182 |
 | PR10 | #164 | Not started |
-| PR11 | #165 | Not started |
+| PR11 | #165 | Done — #187 |
 | PR12 | #166 | Not started |
 | PR13 | #167 | Not started |
 
@@ -161,7 +161,7 @@ The tag-registration rule is already decided (Decision 1 / ADR 0008 rule 3: full
 ### Phase 5 — improve perceived loading for grading navigation
 
 - **PR10 `assessments: decouple progress freshness from interactive saves`** (Finding 19). Apply Decision 3. **Acceptance (behavioral)**: after saving a rubric and clicking "next submission," navigation does not block on recomputing project-wide completion. **Depends on**: PR1 (baseline), PR4, PR8.
-- **PR11 `ui: restructure submission overview into cached sections with prefetch`** (Finding 18). Extract cacheable parts of the overview body into `"use cache"` sections mirroring the question page; give submission-to-submission navigation explicit prefetch. **Depends on**: PR1, PR6, PR8.
+- **PR11 `ui: prefetch submission-to-submission navigation on the overview page`** (Finding 18). Originally scoped as "extract cacheable parts of the overview body into `"use cache"` sections mirroring the question page," but PR10 removed the question page's page-level `"use cache"` wrapper too (a promise created for Suspense streaming can't be returned from inside a `"use cache"` scope), so both pages now share the same no-page-wrapper-relies-on-individually-cached-loaders shape — there is no longer a cached question page to mirror. The one concrete gap left: the question page's prev/next buttons set `prefetch`, the overview page's didn't. Add it. **Depends on**: PR10.
 - **PR12 `ui: improve grading loading boundaries`** (Finding 14). Add targeted Suspense/skeletons that preserve question/submission context, only where data boundaries justify it. **Acceptance**: the grading user keeps question/submission context during navigation; loading UI matches the data boundaries chosen in earlier phases; no generic skeleton hides the whole workflow. **Depends on**: PR11.
 
 ### Phase 6 — measure, then optimize rubric overview
