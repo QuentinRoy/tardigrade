@@ -1,4 +1,4 @@
-import { type Kysely } from "kysely";
+import type { Kysely } from "kysely";
 
 const projectForeignKeys = [
 	{ table: "assessment", constraint: "Assessment_projectId_fkey" },

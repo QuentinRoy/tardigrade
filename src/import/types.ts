@@ -1,6 +1,6 @@
-import { z } from "zod";
+import type { z } from "zod";
 import type { SubmissionType } from "#submissions/types.ts";
-import {
+import type {
 	assessmentRowSchema,
 	booleanRubricSchema,
 	numericalRubricSchema,

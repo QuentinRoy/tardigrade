@@ -133,7 +133,7 @@ export async function saveAssessmentInDb(
 
 	async function saveBooleanAssessment(
 		value: Extract<AssessmentRubricValue, { type: "boolean" }>,
-	): Promise<SaveAssessmentResult | void> {
+	): Promise<SaveAssessmentResult | undefined> {
 		await Promise.all([
 			db
 				.insertInto("booleanRubricAssessment")
@@ -153,11 +153,13 @@ export async function saveAssessmentInDb(
 				.where("rubricAssessmentId", "=", rubricAssessmentId)
 				.execute(),
 		]);
+
+		return undefined;
 	}
 
 	async function saveOrdinalAssessment(
 		value: Extract<AssessmentRubricValue, { type: "ordinal" }>,
-	): Promise<SaveAssessmentResult | void> {
+	): Promise<SaveAssessmentResult | undefined> {
 		const ordinalLabels = await db
 			.selectFrom("ordinalRubricValue")
 			.innerJoin(
@@ -193,11 +195,13 @@ export async function saveAssessmentInDb(
 				.where("rubricAssessmentId", "=", rubricAssessmentId)
 				.execute(),
 		]);
+
+		return undefined;
 	}
 
 	async function saveNumericalAssessment(
 		value: Extract<AssessmentRubricValue, { type: "numerical" }>,
-	): Promise<SaveAssessmentResult | void> {
+	): Promise<SaveAssessmentResult | undefined> {
 		const parsed = value.score;
 		if (!Number.isFinite(parsed)) {
 			return { success: false, error: assessmentErrors.invalidScore };
@@ -249,9 +253,11 @@ export async function saveAssessmentInDb(
 				.where("rubricAssessmentId", "=", rubricAssessmentId)
 				.execute(),
 		]);
+
+		return undefined;
 	}
 
-	const result = await (async (): Promise<SaveAssessmentResult | void> => {
+	const result = await (async (): Promise<SaveAssessmentResult | undefined> => {
 		switch (rubricValue.type) {
 			case "boolean": {
 				return await saveBooleanAssessment(rubricValue);

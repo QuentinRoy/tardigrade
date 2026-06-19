@@ -20,7 +20,6 @@ import { loadProjectByPublicId } from "#projects/projects.ts";
 import { loadQuestion } from "#questions/questions.ts";
 import { attachAssessment } from "#rubrics/rubric.ts";
 import { loadSubmissions } from "#submissions/submissions.ts";
-import CodeSnippet from "#ui/CodeSnippet.tsx";
 import MuiNextLink from "#ui/MuiNextLink.tsx";
 
 type PageParams = {

@@ -2,7 +2,7 @@
 
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
-import { type ReactElement } from "react";
+import type { ReactElement } from "react";
 import BaseImportForm from "./BaseImportForm.tsx";
 import { QUESTIONS_YAML_PLACEHOLDER } from "./constants.ts";
 import type { ImportState } from "./importState.ts";

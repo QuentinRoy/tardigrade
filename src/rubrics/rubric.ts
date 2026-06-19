@@ -75,7 +75,7 @@ export function markOrdinalRubric(
 	rubric: RubricForType<"ordinal">,
 	selectedLabel: string,
 ): number {
-	let marksForLabel = rubric.marks[selectedLabel];
+	const marksForLabel = rubric.marks[selectedLabel];
 	if (marksForLabel == null) {
 		throw new Error(
 			`Selected label "${selectedLabel}" not found in rubric marks`,

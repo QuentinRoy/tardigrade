@@ -11,9 +11,8 @@ import {
 	type SelectChangeEvent,
 	Stack,
 	TextField,
-	Typography,
 } from "@mui/material";
-import { type ReactElement, type ReactNode } from "react";
+import type { ReactElement, ReactNode } from "react";
 import { assertNever } from "#utils/utils.ts";
 import type { QuestionRubricFieldErrors } from "./errors.ts";
 import type { RubricEditorValue } from "./types.ts";

@@ -61,9 +61,9 @@ export async function saveStudentImportPlanInDb(
 	const projectRowId = projectRow.rowId;
 
 	const teamNames = new Set(
-		submissionsByOwner
-			.filter((s) => s.type === "team" && s.teamName)
-			.map((s) => s.teamName!),
+		submissionsByOwner.flatMap((s) =>
+			s.type === "team" && s.teamName ? [s.teamName] : [],
+		),
 	);
 
 	const teamsByName = new Map<string, number>();

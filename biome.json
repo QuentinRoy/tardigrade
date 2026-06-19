@@ -1,7 +1,7 @@
 {
 	"$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
 	"vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
-	"files": { "ignoreUnknown": false },
+	"files": { "ignoreUnknown": false, "includes": ["**", "!.claude"] },
 	"formatter": {
 		"enabled": true,
 		"formatWithErrors": false,
@@ -17,16 +17,38 @@
 	},
 	"linter": {
 		"enabled": true,
+		"domains": {
+			"project": "recommended",
+			"react": "recommended",
+			"next": "recommended",
+			"test": "recommended",
+			"types": "recommended",
+			"playwright": "all"
+		},
 		"rules": {
-			"recommended": false,
-			"complexity": { "noUselessTypeConstraint": "error" },
+			"preset": "recommended",
+			"complexity": {
+				"noUselessTypeConstraint": "error",
+				"useLiteralKeys": "off"
+			},
 			"correctness": {
 				"noUnusedVariables": "error",
-				"useImportExtensions": "error"
+				"useExhaustiveDependencies": "error",
+				"useHookAtTopLevel": "error",
+				"useImportExtensions": "error",
+				"useJsxKeyInIterable": {
+					"level": "error",
+					"options": { "checkShorthandFragments": true }
+				},
+				"noNestedComponentDefinitions": "error",
+				"noUndeclaredDependencies": "error",
+				"useJsonImportAttributes": "error"
 			},
+			"security": { "noSecrets": "off" },
 			"style": {
 				"noCommonJs": "error",
 				"noNamespace": "error",
+				"noNonNullAssertion": "error",
 				"noRestrictedImports": {
 					"level": "error",
 					"options": {
@@ -53,18 +75,25 @@
 				},
 				"useArrayLiterals": "error",
 				"useAsConstAssertion": "error",
-				"useBlockStatements": "off",
-				"useConst": "off"
+				"useImportType": "error"
 			},
 			"suspicious": {
+				"noArrayIndexKey": "error",
 				"noConsole": "error",
 				"noExplicitAny": "error",
 				"noExtraNonNullAssertion": "error",
-				"noMisleadingInstantiator": "error",
 				"noNonNullAssertedOptionalChain": "error",
-				"noUnsafeDeclarationMerging": "error",
-				"noUnusedExpressions": "off",
-				"useNamespaceKeyword": "error"
+				"noUnnecessaryConditions": "off",
+				"noShadow": "error",
+				"useArraySortCompare": "error"
+			},
+			"nursery": {
+				"noMisusedPromises": "error",
+				"noFloatingPromises": "error",
+				"useReduceTypeParameter": "error",
+				"useAwaitThenable": "error",
+				"noUnsafePlusOperands": "error",
+				"noUselessTypeConversion": "error"
 			}
 		},
 		"includes": ["**", "!data/**/*.js", "!.next/**/*"]
@@ -85,7 +114,7 @@
 	"html": { "formatter": { "selfCloseVoidElements": "never" } },
 	"overrides": [
 		{
-			"includes": ["*.ts", "*.tsx", "*.mts", "*.cts"],
+			"includes": ["**/*.ts", "**/*.tsx", "**/*.mts", "**/*.cts"],
 			"linter": {
 				"rules": {
 					"complexity": { "noArguments": "error" },
@@ -113,6 +142,15 @@
 						"noWith": "off",
 						"useGetterReturn": "off"
 					}
+				}
+			}
+		},
+		{
+			"includes": ["**/*.test.ts", "**/*.test.tsx"],
+			"linter": {
+				"rules": {
+					"style": { "noNonNullAssertion": "off" },
+					"suspicious": { "noShadow": "off" }
 				}
 			}
 		}

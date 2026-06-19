@@ -11,7 +11,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 function createDb() {
-	const connectionString = process.env.DATABASE_URL;
+	const connectionString = process.env["DATABASE_URL"];
 
 	if (connectionString == null || connectionString.length === 0) {
 		throw new Error("DATABASE_URL is required to run migrations");
@@ -87,7 +87,7 @@ async function hardConfirm(
 }
 
 async function runReset() {
-	const dbUrl = process.env.DATABASE_URL;
+	const dbUrl = process.env["DATABASE_URL"];
 	if (dbUrl == null || dbUrl.length === 0) {
 		throw new Error("DATABASE_URL is required");
 	}

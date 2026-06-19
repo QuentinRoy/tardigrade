@@ -23,7 +23,7 @@ async function addProjectIdColumn({
 	db,
 	table,
 	defaultProjectId,
-	constraint,
+	constraint: constraintName,
 }: {
 	db: Kysely<MigrationDB>;
 	table: TableWithProjectName;
@@ -49,7 +49,7 @@ async function addProjectIdColumn({
 	await db.schema
 		.alterTable(table)
 		.addForeignKeyConstraint(
-			constraint,
+			constraintName,
 			["project_id"],
 			"project",
 			["id"],

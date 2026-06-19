@@ -182,7 +182,7 @@ export function buildSubmissionExportRecord(params: {
 	}
 
 	if (!hasMissingAssessment) {
-		row.grand_total_marks = grandTotalMarks;
+		row["grand_total_marks"] = grandTotalMarks;
 	}
 
 	return row;

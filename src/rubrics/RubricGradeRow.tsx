@@ -3,7 +3,7 @@
 import Box from "@mui/material/Box";
 import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
-import { type ReactElement } from "react";
+import type { ReactElement } from "react";
 import type { AssessmentRubricValue } from "#assessments/types.ts";
 import BooleanGradeControl from "./BooleanGradeControl.tsx";
 import NumericalGradeControl from "./NumericalGradeControl.tsx";

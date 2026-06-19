@@ -1,7 +1,7 @@
 "use client";
 
 import { Button, Stack } from "@mui/material";
-import { type ReactElement } from "react";
+import type { ReactElement } from "react";
 import BooleanRubricEditorPaper from "./BooleanRubricEditorPaper.tsx";
 import type { QuestionRubricFieldErrors } from "./errors.ts";
 import NumericalRubricEditorPaper from "./NumericalRubricEditorPaper.tsx";

@@ -133,7 +133,7 @@ describe("groupStudentsIntoSubmissions", () => {
 		const teamIds = submissions
 			.filter((submission) => submission.type === "team")
 			.map((submission) => submission.id)
-			.sort();
+			.sort((a, b) => a.localeCompare(b));
 
 		expect(teamIds).toEqual(["team-team-a", "team-team-a-2"]);
 	});

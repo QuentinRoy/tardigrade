@@ -10,7 +10,7 @@ const PG_NUMERIC_OID = 1700;
 pgTypes.setTypeParser(PG_NUMERIC_OID, (value) => Number(value));
 
 function createKyselyClient() {
-	const connectionString = process.env.DATABASE_URL;
+	const connectionString = process.env["DATABASE_URL"];
 
 	if (connectionString == null || connectionString.length === 0) {
 		throw new Error("DATABASE_URL is required to initialize Kysely");

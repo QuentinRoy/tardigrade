@@ -179,17 +179,17 @@ export default async function integrationGlobalSetup(): Promise<
 	void | (() => Promise<void>)
 > {
 	if (
-		process.env.TEST_DATABASE_URL != null &&
-		process.env.TEST_DATABASE_URL !== ""
+		process.env["TEST_DATABASE_URL"] != null &&
+		process.env["TEST_DATABASE_URL"] !== ""
 	) {
 		return;
 	}
 
 	const port = await getFreePort();
-	const postgresUser = process.env.POSTGRES_USER ?? DEFAULT_POSTGRES_USER;
+	const postgresUser = process.env["POSTGRES_USER"] ?? DEFAULT_POSTGRES_USER;
 	const postgresPassword =
-		process.env.POSTGRES_PASSWORD ?? DEFAULT_POSTGRES_PASSWORD;
-	const postgresDb = process.env.POSTGRES_DB ?? DEFAULT_POSTGRES_DB;
+		process.env["POSTGRES_PASSWORD"] ?? DEFAULT_POSTGRES_PASSWORD;
+	const postgresDb = process.env["POSTGRES_DB"] ?? DEFAULT_POSTGRES_DB;
 	const composeProject = `grading_it_${randomUUID().replaceAll("-", "")}`;
 
 	const composeEnv: NodeJS.ProcessEnv = {
@@ -224,7 +224,7 @@ export default async function integrationGlobalSetup(): Promise<
 		upSucceeded = true;
 		await waitForTcpReady(DEFAULT_HOST, port);
 		await waitForQueryReady(testDbUrl);
-		process.env.TEST_DATABASE_URL = testDbUrl;
+		process.env["TEST_DATABASE_URL"] = testDbUrl;
 	} catch (error) {
 		if (upSucceeded) {
 			await run(

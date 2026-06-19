@@ -1,7 +1,5 @@
-import type { Kysely } from "kysely";
 import { revalidateTag } from "next/cache";
 import { beforeEach, expect, test, vi } from "vitest";
-import type { DB } from "#db/generated/db.ts";
 import { createTestDb } from "#test/dbIntegration.ts";
 import { createProject } from "#test/projects.ts";
 import {
