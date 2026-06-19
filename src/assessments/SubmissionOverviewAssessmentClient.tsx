@@ -331,6 +331,7 @@ function SubmissionNavigation({
 					projectSlug,
 					previousSubmissionId ?? currentSubmissionId,
 				)}
+				prefetch={previousSubmissionId != null}
 				variant="outlined"
 				disabled={previousSubmissionId == null}
 			>
@@ -343,6 +344,7 @@ function SubmissionNavigation({
 					projectSlug,
 					nextSubmissionId ?? currentSubmissionId,
 				)}
+				prefetch={nextSubmissionId != null}
 				variant="outlined"
 				disabled={nextSubmissionId == null}
 			>
