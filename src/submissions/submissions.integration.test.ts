@@ -10,8 +10,6 @@ import {
 	submissionsCacheTags,
 } from "./submissions.ts";
 
-vi.mock("server-only", () => ({}));
-
 vi.mock("next/cache", () => ({ cacheTag: vi.fn(), cacheLife: vi.fn() }));
 
 beforeEach(() => {

@@ -6,8 +6,6 @@ import { createProject } from "#test/projects.ts";
 import { saveAssessment, saveAssessmentInDb } from "./assessmentMutations.ts";
 import { loadQuestionAssessmentFromDb } from "./assessments.ts";
 
-vi.mock("server-only", () => ({}));
-
 vi.mock("next/cache", () => ({
 	cacheTag: vi.fn(),
 	revalidateTag: vi.fn(),

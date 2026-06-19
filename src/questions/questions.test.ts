@@ -1,7 +1,5 @@
-import { describe, expect, test, vi } from "vitest";
+import { describe, expect, test } from "vitest";
 import { questionCacheTags, toRubric } from "./questions.ts";
-
-vi.mock("server-only", () => ({}));
 
 test("questionCacheTags declares the questions tag", () => {
 	expect(questionCacheTags()).toEqual(["questions"]);

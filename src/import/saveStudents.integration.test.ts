@@ -5,8 +5,6 @@ import { createProject } from "#test/projects.ts";
 import { saveStudents } from "./saveStudents.ts";
 import type { NormalizedImportedSubmission } from "./types.ts";
 
-vi.mock("server-only", () => ({}));
-
 vi.mock("next/cache", () => ({ revalidateTag: vi.fn() }));
 
 beforeEach(() => {
