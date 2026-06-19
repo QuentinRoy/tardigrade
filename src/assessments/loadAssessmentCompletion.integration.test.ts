@@ -7,12 +7,15 @@ import { createProject } from "#test/projects.ts";
 import {
 	assessedRubricCountsBySubmissionCacheTags,
 	assessmentCompletionRowsCacheTags,
+	buildAssessedRubricCountsBySubmission,
+	loadAssessedRubricCounts,
 	loadAssessedRubricCountsBySubmission,
 	loadAssessedRubricCountsBySubmissionFromDb,
 	loadAssessmentCompletionBySubmission,
 	loadAssessmentCompletionBySubmissionFromDb,
 	loadAssessmentCompletionSummary,
 	loadAssessmentCompletionSummaryFromDb,
+	rubricAssessmentsCountCacheTags,
 } from "./loadAssessmentCompletion.ts";
 
 vi.mock("next/cache", () => ({ cacheTag: vi.fn(), cacheLife: vi.fn() }));
@@ -286,6 +289,34 @@ test("loadAssessedRubricCountsBySubmission wrapper delegates to its primitive an
 	);
 });
 
+test("loadAssessedRubricCounts plus buildAssessedRubricCountsBySubmission matches the combined primitive, given the same submission ids", async () => {
+	await using db = await createTestDb();
+	await using project = await createProject(db, "Question Progress Split");
+	const questionId = buildTestId("question");
+	const submissionId = await createSubmission(db, project.rowId);
+	await createQuestion(db, project.rowId, questionId, {
+		rubricId: buildTestId("rubric"),
+	});
+
+	const combined = await loadAssessedRubricCountsBySubmissionFromDb(db, {
+		questionId,
+		projectId: project.id,
+	});
+
+	// Reuses an already-loaded submission id instead of letting the counts
+	// primitive query submissions itself (Finding 7).
+	const counts = await loadAssessedRubricCounts(
+		{ questionId, projectId: project.id },
+		{ db },
+	);
+	const split = buildAssessedRubricCountsBySubmission(
+		[String(submissionId)],
+		counts,
+	);
+
+	expect(split).toEqual(combined);
+});
+
 test("loadAssessmentCompletionBySubmission is a plain deriver that shares loadAssessmentCompletionRows' cache entry", async () => {
 	await using db = await createTestDb();
 	await using project = await createProject(db, "Overview Progress Wrapper");
@@ -396,8 +427,12 @@ test("loadAssessmentCompletionSummary is a plain deriver that shares loadAssessm
 		rubrics: { completed: 0, total: 1 },
 	});
 
-	// No own cache scope (ADR 0008 rule 5): only `loadAssessmentCompletionRows`
-	// registers tags.
+	// No own cache scope (ADR 0008 rule 5): registers the tags of the two cached
+	// sources it composes, `loadAssessmentCompletionRows` and
+	// `loadRubricAssessmentsCount`.
 	const declaredTags = vi.mocked(cacheTag).mock.calls.map((call) => call[0]);
-	expect(declaredTags).toEqual(assessmentCompletionRowsCacheTags());
+	expect(declaredTags).toEqual([
+		...assessmentCompletionRowsCacheTags(),
+		...rubricAssessmentsCountCacheTags(),
+	]);
 });

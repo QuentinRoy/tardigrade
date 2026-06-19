@@ -49,6 +49,7 @@ Page-level sections inherit `cacheLife` from inner cached functions; the lifetim
 | `loadQuestionAssessment` | `assessments:{sub}:{q}`, `assessments:all` | 5 min (`values`) | `src/assessments/assessments.ts` |
 | `loadSubmissionAssessments` | `assessments:{sub}`, `assessments:all` | 5 min (`values`) | `src/assessments/assessments.ts` |
 | `loadAssessmentCompletionRows` (shared by `loadAssessmentCompletionBySubmission` and `loadAssessmentCompletionSummary`, plain derivers that compose it) | `submissions`, `questions`, `assessments` | 60 s | `src/assessments/loadAssessmentCompletion.ts` |
+| `loadRubricAssessmentsCount` (composed by `loadAssessmentCompletionSummary` alongside `loadAssessmentCompletionRows`) | `assessments` | 60 s | `src/assessments/loadAssessmentCompletion.ts` |
 | `loadAssessedRubricCountsBySubmission` | `submissions`, `questions`, `assessments:question:{q}`, `assessments:all` | 60 s | `src/assessments/loadAssessmentCompletion.ts` |
 | `loadRubricOverviewData` | `questions`, `submissions`, `assessments` | 60 s | `src/assessments/rubricOverview.ts` |
 | `QuestionHeaderSection` (page) | `projects:{id}`, `questions` | inherits | `app/.../questions/[questionId]/page.tsx` |

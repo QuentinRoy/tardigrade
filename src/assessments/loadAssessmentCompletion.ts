@@ -160,22 +160,26 @@ export async function loadAssessmentCompletionBySubmission(
 	return buildCompletionBySubmission(rows);
 }
 
-// `db` may be the global client or a caller-supplied transaction.
-export async function loadAssessedRubricCountsBySubmissionFromDb(
+export type AssessedRubricCounts = {
+	totalRubrics: number;
+	completedBySubmissionId: Map<string, number>;
+};
+
+// `db` may be the global client or a caller-supplied transaction. Counts only —
+// does not load submission ids, so a caller that already has the project's
+// submissions (for example a page that also renders the roster) can build the
+// per-submission result from `buildAssessedRubricCountsBySubmission` below
+// instead of querying submissions twice (Finding 7).
+export async function loadAssessedRubricCountsFromDb(
 	db: Kysely<DB>,
 	{ questionId, projectId }: { questionId: string; projectId: string },
-): Promise<Record<string, CompletionMetric>> {
+): Promise<AssessedRubricCounts> {
 	const projectRowIdQuery = db
 		.selectFrom("project")
 		.select("rowId")
 		.where("id", "=", projectId);
 
-	const [submissions, rubricCountRow, assessmentCounts] = await Promise.all([
-		db
-			.selectFrom("submission")
-			.where("submission.projectId", "in", projectRowIdQuery)
-			.select("id")
-			.execute(),
+	const [rubricCountRow, assessmentCounts] = await Promise.all([
 		db
 			.selectFrom("rubric")
 			.where("rubric.projectId", "in", projectRowIdQuery)
@@ -201,17 +205,34 @@ export async function loadAssessedRubricCountsBySubmissionFromDb(
 			.execute(),
 	]);
 
-	const totalRubrics = Number(rubricCountRow.count);
-	const completedBySubmissionId = new Map<string, number>(
-		assessmentCounts.map((row) => [
-			String(row.submissionId),
-			Number(row.completed),
-		]),
-	);
+	return {
+		totalRubrics: Number(rubricCountRow.count),
+		completedBySubmissionId: new Map(
+			assessmentCounts.map((row) => [
+				String(row.submissionId),
+				Number(row.completed),
+			]),
+		),
+	};
+}
 
+// Plain wrapper exposing the default db for callers outside `src/`, such as a
+// page composing this inside its own `"use cache"` scope (ADR 0007 rule 5).
+export async function loadAssessedRubricCounts(
+	{ questionId, projectId }: { questionId: string; projectId: string },
+	{ db = defaultDb }: { db?: Kysely<DB> } = {},
+): Promise<AssessedRubricCounts> {
+	return loadAssessedRubricCountsFromDb(db, { questionId, projectId });
+}
+
+// Pure builder: per-submission completed/total rubric counts for one question,
+// from already-loaded submission ids plus the counts above.
+export function buildAssessedRubricCountsBySubmission(
+	submissionIds: string[],
+	{ totalRubrics, completedBySubmissionId }: AssessedRubricCounts,
+): Record<string, CompletionMetric> {
 	return Object.fromEntries(
-		submissions.map((submission) => {
-			const submissionId = String(submission.id);
+		submissionIds.map((submissionId) => {
 			const completed = Math.min(
 				completedBySubmissionId.get(submissionId) ?? 0,
 				totalRubrics,
@@ -219,6 +240,31 @@ export async function loadAssessedRubricCountsBySubmissionFromDb(
 
 			return [submissionId, { completed, total: totalRubrics }];
 		}),
+	);
+}
+
+// `db` may be the global client or a caller-supplied transaction.
+export async function loadAssessedRubricCountsBySubmissionFromDb(
+	db: Kysely<DB>,
+	{ questionId, projectId }: { questionId: string; projectId: string },
+): Promise<Record<string, CompletionMetric>> {
+	const projectRowIdQuery = db
+		.selectFrom("project")
+		.select("rowId")
+		.where("id", "=", projectId);
+
+	const [submissions, counts] = await Promise.all([
+		db
+			.selectFrom("submission")
+			.where("submission.projectId", "in", projectRowIdQuery)
+			.select("id")
+			.execute(),
+		loadAssessedRubricCountsFromDb(db, { questionId, projectId }),
+	]);
+
+	return buildAssessedRubricCountsBySubmission(
+		submissions.map((submission) => String(submission.id)),
+		counts,
 	);
 }
 
@@ -254,6 +300,25 @@ export async function loadRubricAssessmentsCountFromDb(
 		.executeTakeFirstOrThrow();
 
 	return Number(row.count);
+}
+
+export function rubricAssessmentsCountCacheTags(): string[] {
+	return [assessmentAggregateCacheTag()];
+}
+
+// Canonical cached source for the project-wide rubric-assessment count, so the
+// uncached project dashboard page (`app/.../[projectSlug]/page.tsx`) doesn't run
+// this query on every request even though completion rows are cached.
+export async function loadRubricAssessmentsCount(
+	{ projectId }: { projectId: string },
+	options?: { db?: Kysely<DB> },
+): Promise<number> {
+	"use cache";
+	cacheTags(...rubricAssessmentsCountCacheTags());
+	cacheLife("projection");
+	return loadRubricAssessmentsCountFromDb(options?.db ?? defaultDb, {
+		projectId,
+	});
 }
 
 // Pure builder: completion summary from shared completion rows plus the rubric
@@ -314,7 +379,7 @@ export async function loadAssessmentCompletionSummary(
 ): Promise<AssessmentCompletionSummary> {
 	const [rows, rubricAssessmentsCount] = await Promise.all([
 		loadAssessmentCompletionRows({ projectId }, options),
-		loadRubricAssessmentsCountFromDb(options?.db ?? defaultDb, { projectId }),
+		loadRubricAssessmentsCount({ projectId }, options),
 	]);
 
 	return buildCompletionSummary(rows, rubricAssessmentsCount);
