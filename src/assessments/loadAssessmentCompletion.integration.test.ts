@@ -6,8 +6,7 @@ import { buildTestId, createTestDb } from "#test/dbIntegration.ts";
 import { createProject } from "#test/projects.ts";
 import {
 	assessedRubricCountsBySubmissionCacheTags,
-	assessmentCompletionBySubmissionCacheTags,
-	assessmentCompletionSummaryCacheTags,
+	assessmentCompletionRowsCacheTags,
 	buildAssessedRubricCountsBySubmission,
 	loadAssessedRubricCounts,
 	loadAssessedRubricCountsBySubmission,
@@ -16,6 +15,7 @@ import {
 	loadAssessmentCompletionBySubmissionFromDb,
 	loadAssessmentCompletionSummary,
 	loadAssessmentCompletionSummaryFromDb,
+	rubricAssessmentsCountCacheTags,
 } from "./loadAssessmentCompletion.ts";
 
 vi.mock("next/cache", () => ({ cacheTag: vi.fn(), cacheLife: vi.fn() }));
@@ -317,7 +317,7 @@ test("loadAssessedRubricCounts plus buildAssessedRubricCountsBySubmission matche
 	expect(split).toEqual(combined);
 });
 
-test("loadAssessmentCompletionBySubmission wrapper delegates to its primitive and declares its cache tags", async () => {
+test("loadAssessmentCompletionBySubmission is a plain deriver that shares loadAssessmentCompletionRows' cache entry", async () => {
 	await using db = await createTestDb();
 	await using project = await createProject(db, "Overview Progress Wrapper");
 	const submissionId = await createSubmission(db, project.rowId);
@@ -332,8 +332,10 @@ test("loadAssessmentCompletionBySubmission wrapper delegates to its primitive an
 
 	expect(overview[String(submissionId)]).toEqual({ completed: 0, total: 1 });
 
+	// No own cache scope (ADR 0008 rule 5): only `loadAssessmentCompletionRows`
+	// registers tags.
 	const declaredTags = vi.mocked(cacheTag).mock.calls.map((call) => call[0]);
-	expect(declaredTags).toEqual(assessmentCompletionBySubmissionCacheTags());
+	expect(declaredTags).toEqual(assessmentCompletionRowsCacheTags());
 });
 
 test("a zero-rubric question counts as complete per submission and consistently with the summary", async () => {
@@ -406,7 +408,7 @@ test("loadAssessmentCompletionSummaryFromDb returns vacuous aggregates for an em
 	});
 });
 
-test("loadAssessmentCompletionSummary wrapper delegates to its primitive and declares its cache tags", async () => {
+test("loadAssessmentCompletionSummary is a plain deriver that shares loadAssessmentCompletionRows' cache entry", async () => {
 	await using db = await createTestDb();
 	await using project = await createProject(db, "Summary Wrapper");
 	await createSubmission(db, project.rowId);
@@ -425,6 +427,12 @@ test("loadAssessmentCompletionSummary wrapper delegates to its primitive and dec
 		rubrics: { completed: 0, total: 1 },
 	});
 
+	// No own cache scope (ADR 0008 rule 5): registers the tags of the two cached
+	// sources it composes, `loadAssessmentCompletionRows` and
+	// `loadRubricAssessmentsCount`.
 	const declaredTags = vi.mocked(cacheTag).mock.calls.map((call) => call[0]);
-	expect(declaredTags).toEqual(assessmentCompletionSummaryCacheTags());
+	expect(declaredTags).toEqual([
+		...assessmentCompletionRowsCacheTags(),
+		...rubricAssessmentsCountCacheTags(),
+	]);
 });
