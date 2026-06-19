@@ -8,6 +8,8 @@ import {
 	assessedRubricCountsBySubmissionCacheTags,
 	assessmentCompletionBySubmissionCacheTags,
 	assessmentCompletionSummaryCacheTags,
+	buildAssessedRubricCountsBySubmission,
+	loadAssessedRubricCounts,
 	loadAssessedRubricCountsBySubmission,
 	loadAssessedRubricCountsBySubmissionFromDb,
 	loadAssessmentCompletionBySubmission,
@@ -285,6 +287,34 @@ test("loadAssessedRubricCountsBySubmission wrapper delegates to its primitive an
 	expect(declaredTags).toEqual(
 		assessedRubricCountsBySubmissionCacheTags(sharedQuestionId),
 	);
+});
+
+test("loadAssessedRubricCounts plus buildAssessedRubricCountsBySubmission matches the combined primitive, given the same submission ids", async () => {
+	await using db = await createTestDb();
+	await using project = await createProject(db, "Question Progress Split");
+	const questionId = buildTestId("question");
+	const submissionId = await createSubmission(db, project.rowId);
+	await createQuestion(db, project.rowId, questionId, {
+		rubricId: buildTestId("rubric"),
+	});
+
+	const combined = await loadAssessedRubricCountsBySubmissionFromDb(db, {
+		questionId,
+		projectId: project.id,
+	});
+
+	// Reuses an already-loaded submission id instead of letting the counts
+	// primitive query submissions itself (Finding 7).
+	const counts = await loadAssessedRubricCounts(
+		{ questionId, projectId: project.id },
+		{ db },
+	);
+	const split = buildAssessedRubricCountsBySubmission(
+		[String(submissionId)],
+		counts,
+	);
+
+	expect(split).toEqual(combined);
 });
 
 test("loadAssessmentCompletionBySubmission wrapper delegates to its primitive and declares its cache tags", async () => {
