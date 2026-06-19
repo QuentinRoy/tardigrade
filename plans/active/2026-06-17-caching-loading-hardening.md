@@ -23,7 +23,7 @@ Umbrella: #59. Each PR below is a native GitHub sub-issue of #59 (#155–#167), 
 
 | Step | Issue | Status |
 | --- | --- | --- |
-| PR1 | #155 | Deferred → before Phase 5 |
+| PR1 | #155 | Done (doc-only; instrumentation was throwaway) |
 | PR2 | #156 | Done — #168 |
 | PR3 | #157 | Done — #170 |
 | PR4 | #158 | Done — #171 |
@@ -57,6 +57,19 @@ Confirmed in source at HEAD `89e3a0a`, so later phases need not re-derive it:
 - Four readers omit `cacheLife`: `loadQuestionGrid`, `loadSubmissions`, `loadQuestionAssessment`, `loadSubmissionAssessments` (Finding 3).
 - `#153` made `loadAssessmentCompletionRowsFromDb` a shared **primitive**, but the cached projections still call it independently, so there is no shared cached **entry** yet (Finding 8 still open).
 - Page-level ad-hoc tag strings exist (`app/.../questions/[questionId]/page.tsx:58,103-106`; `app/.../assessments/page.tsx:43`) — not produced by `src/db/cacheTags.ts` (Finding 1).
+
+## Measured baseline (PR1, 2026-06-19)
+
+Measured against a production build (`next build && next start`) — dev mode does not exercise the Data Cache the same way (every `"use cache"` body re-executed on every request in `next dev`, even on an unchanged repeat request, so dev-mode query counts are not representative). Seeded a throwaway project (3 questions, 8 submissions, one pre-existing assessment) into the local dev Postgres for the run; the seed/cleanup scripts and the temporary per-query `console.log` added to `src/db/kysely.ts`'s `log` option were removed afterward — this measurement is the only lasting artifact, per PR1's "any throwaway instrumentation is removed" acceptance.
+
+Method: drove the app with a real browser (Playwright), counting executed SQL statements between page loads/clicks via the temporary query log.
+
+- **Cold first load** of the question-specific grading page (`.../submissions/{id}/questions/{id}`): 21 queries.
+- **Warm repeat load of the same URL**: 5 queries, not 0. `loadQuestion` (via `loadQuestionRows`, PR6), `loadSubmissions`, and `loadQuestionAssessment` were cache hits (0 queries); the question-scoped progress read (`loadAssessedRubricCountsBySubmission`, tagged `assessments:question:{q}`) missed and re-ran its two queries. This is a real, if modest, gap: that scope's own cache entry does not stay warm as long as its siblings even with no intervening save — confirms part of Finding 19's class of problem (progress projections are the least stable reads on this page) but the cost here is small (2 cheap count queries, not a project-wide aggregate).
+- **Submission-overview page** (`.../submissions/{id}`, Finding 18 — no page-level `"use cache"` wrapper): cold load 5 queries; an exact repeat of the same URL was a full hit (0 queries). Per-function caching works here even without a page-level scope; Finding 18's risk is about consistency/prefetch UX and the lack of one shared tag closure, not raw duplicate-query cost, at least at this project size.
+- **Decisive test for Finding 19** (coarse `assessments` over-coupling): warmed submission-overview pages for two different submissions (0 queries on repeat visits to each). Saved an assessment for a third, unrelated submission. Immediately revisiting one of the two already-warm overview pages forced a full project-wide recompute (3 queries: all submission ids, all questions' rubric counts, all assessment counts project-wide) even though the visited submission was untouched by the save. **Confirms Finding 19 exactly**: `saveAssessment` busts the coarse `assessments` tag project-wide, and `loadAssessmentCompletionBySubmission` (registering that coarse tag) recomputes for everyone on the next visit, not just for the submission that was saved.
+
+This baseline is what PR10 (decouple progress freshness from interactive saves) and PR11 (cached submission-overview sections) must not regress, and the bar they should clear: the decisive-test scenario above (save submission A, then visit submission B's overview) should no longer force a full project-wide recompute on B's visit.
 
 ## Invalidation map (verified — Phase 1 promotes this to `docs/reference/cache-invalidation-map.md`)
 
