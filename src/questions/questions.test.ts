@@ -1,4 +1,4 @@
-import { describe, expect, test, vi } from "vitest";
+import { describe, expect, test } from "vitest";
 import type { QuestionRow } from "./questions.ts";
 import { questionCacheTags, toQuestionGrid, toRubric } from "./questions.ts";
 
