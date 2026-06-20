@@ -1,6 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+	// Pin the workspace root to this config's directory. Git worktrees under
+	// .claude/worktrees/ each carry their own pnpm-workspace.yaml, so otherwise
+	// Turbopack detects multiple lockfiles and infers the outer repo as root.
+	turbopack: { root: import.meta.dirname },
 	cacheComponents: true,
 	cacheLife: {
 		// questions, rubrics — writes are the freshness mechanism
