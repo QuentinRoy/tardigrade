@@ -34,7 +34,7 @@ Umbrella: #59. Each PR below is a native GitHub sub-issue of #59 (#155–#167), 
 | PR9 | #163 | Done — #182 |
 | PR10 | #164 | Done — #186 |
 | PR11 | #165 | Not started |
-| PR12 | #166 | Not started |
+| PR12 | #166 | Done — #188 |
 | PR13 | #167 | Not started |
 
 ## Guidance consulted
