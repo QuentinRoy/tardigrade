@@ -26,6 +26,10 @@ function MetricCard({
 	return (
 		<Paper
 			variant="outlined"
+			// Group the metric under its title so it has a single accessible name
+			// (assistive tech and tests can target "Submissions assessed" etc.).
+			role="group"
+			aria-label={title}
 			sx={{
 				p: 2,
 				display: "flex",

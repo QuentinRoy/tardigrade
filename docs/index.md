@@ -69,6 +69,7 @@ Short records of durable architecture decisions.
 - [0006 Prefer flat module structure](adr/0006-prefer-flat-module-structure.md)
 - [0007 DB primitives take a handle; wrappers own transactions and cache](adr/0007-db-primitives-take-a-handle-wrappers-own-transactions-and-cache.md)
 - [0008 Cache tags, lifetimes, and invalidation](adr/0008-cache-tags-lifetimes-and-invalidation.md)
+- [0009 Server-side logging with pino](adr/0009-server-side-logging-with-pino.md)
 - Add new ADRs under `docs/adr/`.
 
 ## Designs

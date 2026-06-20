@@ -4,6 +4,22 @@ Status: Current reference
 
 This document records project-specific testing conventions that should remain stable across individual test files.
 
+## Test file placement
+
+- Unit and integration test cases are **co-located** with the module they test
+  under `src/`, next to the source file (for example
+  `src/assessments/assessmentCompletion.test.ts`). Vitest discovers them via the
+  `src/**/*.{test,spec}.{ts,tsx,js,jsx}` glob in `vitest.config.ts`.
+- Shared test tooling — global setup, database helpers, fixture builders — lives
+  in `src/test/`. That directory holds tooling, not test cases.
+- The end-to-end tier lives in the root `e2e/` directory, not under `src/`. It is
+  a separate test tier with its own runner (`@playwright/test`, configured by the
+  root `playwright.config.ts`), and the smoke test spans the whole app rather than
+  any single module, so it has no module to co-locate with. Keeping it out of
+  `src/` also keeps the two runners partitioned by directory: Vitest owns
+  `src/**`, Playwright owns `e2e/**`. A `.spec.ts` placed under `src/` would be
+  picked up by the Vitest unit project and fail under the wrong runner.
+
 ## Test command selection
 
 After code changes, run repository checks and the targeted tests that match the files changed.
@@ -36,6 +52,47 @@ pnpm test:storybook <changed-stories-stem>
 ```
 
 Vitest runs Storybook in headless mode via Playwright, so no separate Storybook server is needed.
+
+## End-to-end tier
+
+`e2e/grading-workflow.spec.ts` is a single, narrow Playwright smoke test for the
+happy-path grading workflow (create project → import questions/students/assessments
+→ dashboard completion → reload → export). It is separate from the Storybook
+Vitest browser project and from `test:unit`/`test:integration`: it drives a real
+browser against a production `next build` + `next start` server and a real
+Postgres, so it is the only tier that exercises browser UI, server actions/routes,
+persistence, and production cache invalidation together. Edge cases stay in unit
+and integration tests; this tier is not a UI regression suite.
+
+Run it locally with:
+
+```bash
+pnpm build
+pnpm test:e2e
+```
+
+A build must exist first; `playwright.config.ts`'s `webServer` runs `pnpm start`
+(no rebuild) and reuses an already-running server locally (`reuseExistingServer`).
+
+The database contract is an empty, migrated Postgres — never a developer's
+database. The test database is resolved in `playwright.config.ts` itself
+(top-level `await`, not a `globalSetup` file — Playwright starts `webServer`
+before running `globalSetup`, which would otherwise let the production server
+boot against a developer's real database before the override took effect) and
+passed through `webServer.env`. It uses `TEST_DATABASE_URL` if set (CI's `e2e`
+job runs its own service container; see `.github/workflows/ci.yml`), otherwise
+it provisions an ephemeral Docker Postgres, the same pattern as
+`src/test/integrationGlobalSetup.ts`; `e2e/globalTeardown.ts` tears it down. All
+test data is created through the UI; the only fixtures are the import payloads
+under `e2e/fixtures/`.
+
+In CI, the `build` job uploads its `.next` output as an artifact; the `e2e` job
+downloads it and runs `pnpm test:e2e` against it, so the production build never
+runs twice.
+
+Selectors are accessible-first (`getByRole` / `getByLabel`); treat a missing
+accessible name as a real accessibility gap to fix on the component, not a reason
+to reach for `data-testid`.
 
 ## Module aliases in tests
 

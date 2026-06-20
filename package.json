@@ -20,6 +20,7 @@
 		"test:integration": "vitest run --project=integration",
 		"test:storybook": "vitest run --project=storybook",
 		"test:watch": "vitest --project=unit --project=integration --project=storybook",
+		"test:e2e": "dotenvx run --convention=flow -- playwright test",
 		"check": "biome check --error-on-warnings --max-diagnostics=none",
 		"check-types": "tsc --noEmit",
 		"db:migrate:down": "dotenvx run --convention=flow -- node src/db/migrate.ts down",
@@ -53,6 +54,7 @@
 		"next": "^16.2.6",
 		"pg": "^8.21.0",
 		"pg-cursor": "^2.20.0",
+		"pino": "^10.3.1",
 		"react": "^19.0.0",
 		"react-dom": "^19.0.0",
 		"server-only": "^0.0.1",
@@ -63,6 +65,7 @@
 	"devDependencies": {
 		"@biomejs/biome": "2.5.0",
 		"@dotenvx/dotenvx": "^1.69.1",
+		"@playwright/test": "1.60.0",
 		"@storybook/addon-vitest": "^10.4.1",
 		"@storybook/nextjs-vite": "^10.4.1",
 		"@types/js-yaml": "^4.0.9",

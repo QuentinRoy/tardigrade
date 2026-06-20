@@ -193,6 +193,82 @@ jobs:
       - name: Build
         run: pnpm run build
 
+      - name: Upload build output
+        uses: actions/upload-artifact@v4
+        with:
+          name: next-build
+          path: .next/
+          # `.next` is a dot-directory; upload-artifact excludes hidden paths
+          # by default, which would otherwise upload zero files.
+          include-hidden-files: true
+          retention-days: 1
+
+  e2e:
+    name: e2e
+    runs-on: ubuntu-latest
+    # Run in Playwright's official image (see the `test-storybook` job comment):
+    # the browser is prebaked, so there is no download from cdn.playwright.dev
+    # and no `playwright install --with-deps` apt step.
+    container:
+      image: mcr.microsoft.com/playwright:v1.60.0-noble
+    needs: [changes, build]
+    if: needs.changes.outputs.non_docs_changed == 'true'
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Trust the workspace for git
+        # The container runs as root over a workspace owned by the runner user,
+        # so git would refuse with "dubious ownership".
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+      - uses: ./.github/actions/setup-node-pnpm
+
+      - name: Download build output
+        # Reuses the `build` job's production build; no rebuild here.
+        uses: actions/download-artifact@v4
+        with:
+          name: next-build
+          path: .next/
+
+      - name: Install Playwright browsers
+        # Prebaked in the image; this just verifies the matching binary is
+        # present (no download, no apt).
+        run: pnpm run storybook:browser:install
+
+      - name: E2E smoke test
+        # Inside a containerized job, service containers are reachable by their
+        # service id, not `localhost`. `TEST_DATABASE_URL` makes
+        # `playwright.config.ts` reuse this service container (and migrate it)
+        # instead of provisioning its own ephemeral Postgres.
+        env:
+          TEST_DATABASE_URL: postgresql://postgres:postgres@postgres:5432/postgres
+        run: pnpm run test:e2e
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
   ci-status:
     name: ci-status
     runs-on: ubuntu-latest
@@ -205,6 +281,7 @@ jobs:
         test-integration,
         test-storybook,
         build,
+        e2e,
       ]
     if: always()
     steps:
@@ -228,7 +305,8 @@ jobs:
             "${{ needs.test-unit.result }}" \
             "${{ needs.test-integration.result }}" \
             "${{ needs.test-storybook.result }}" \
-            "${{ needs.build.result }}"
+            "${{ needs.build.result }}" \
+            "${{ needs.e2e.result }}"
           do
             if [ "$result" != "success" ]; then
               echo "A required CI job did not succeed: $result"
