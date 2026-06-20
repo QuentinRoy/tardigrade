@@ -28,7 +28,9 @@ function createKyselyClient() {
 	// here instead of throwing keeps a single transient disconnect from
 	// taking down the server.
 	pool.on("error", (error) => {
-		logger.error({ error }, "Postgres pool error");
+		// pino only applies its Error serializer (message/type/stack) to the
+		// `err` key by default, so the error must be logged under that key.
+		logger.error({ err: error }, "Postgres pool error");
 	});
 
 	return new Kysely<DB>({
