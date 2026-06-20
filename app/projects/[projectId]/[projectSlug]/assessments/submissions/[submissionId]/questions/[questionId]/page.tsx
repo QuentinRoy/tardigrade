@@ -10,13 +10,9 @@ import {
 } from "#assessments/loadAssessmentCompletion.ts";
 import SubmissionAssessmentClient from "#assessments/SubmissionAssessmentClient.tsx";
 import {
-	assessmentForSubmissionQuestionCacheTag,
-	assessmentImportCacheTag,
-	assessmentProgressForQuestionCacheTag,
 	cacheTags,
 	projectCacheTag,
 	questionListCacheTag,
-	submissionListCacheTag,
 } from "#db/cacheTags.ts";
 import { projectAssessmentsPath } from "#projects/projectPaths.ts";
 import { loadProjectByPublicId } from "#projects/projects.ts";
@@ -100,6 +96,11 @@ async function QuestionHeaderSection({
 	);
 }
 
+// No "use cache" here: `loadQuestion`, `loadSubmissions` and `loadQuestionAssessment`
+// each cache themselves. The rubric progress used by the lookup dialog is
+// deliberately left uncached and unawaited at this scope so a save-then-navigate
+// never blocks on recomputing it — it streams in via Suspense once the dialog
+// opens (Finding 19).
 async function SubmissionRubricSection({
 	questionId,
 	submissionId,
@@ -109,38 +110,37 @@ async function SubmissionRubricSection({
 	submissionId: string;
 	projectId: string;
 }) {
-	"use cache";
-	cacheTags(
-		projectCacheTag(projectId),
-		questionListCacheTag(),
-		submissionListCacheTag(),
-		assessmentForSubmissionQuestionCacheTag({ submissionId, questionId }),
-		assessmentProgressForQuestionCacheTag(questionId),
-		assessmentImportCacheTag(),
-	);
-
 	const project = await loadProjectByPublicId(projectId, { required: true });
 
-	const [question, submissions, assessments, rubricCounts] = await Promise.all([
+	// Doesn't depend on `submissions`, so it's started alongside the Promise.all
+	// below rather than after it, keeping the progress work parallel and
+	// shortening the wait if the lookup dialog is opened quickly.
+	const rubricCountsPromise = loadAssessedRubricCounts({
+		questionId,
+		projectId: project.id,
+	});
+
+	const [question, submissions, assessments] = await Promise.all([
 		loadQuestion({ questionId, projectId: project.id }),
 		loadSubmissions({ projectId: project.id }),
 		loadQuestionAssessment({ submissionId, questionId, projectId: project.id }),
-		loadAssessedRubricCounts({ questionId, projectId: project.id }),
 	]);
 	const hasSubmission = submissions.some(
 		(submission) => submission.id === submissionId,
 	);
 
-	// Reuses the submissions already loaded above instead of querying them again
-	// inside the progress primitive (Finding 7).
-	const progressBySubmissionId = buildAssessedRubricCountsBySubmission(
-		submissions.map((submission) => submission.id),
-		rubricCounts,
-	);
-
 	if (question == null || !hasSubmission) {
 		notFound();
 	}
+
+	// Reuses the submissions already loaded above instead of querying them again
+	// inside the progress primitive (Finding 7).
+	const progressPromise = rubricCountsPromise.then((rubricCounts) =>
+		buildAssessedRubricCountsBySubmission(
+			submissions.map((submission) => submission.id),
+			rubricCounts,
+		),
+	);
 
 	const rubricsWithAssessments = question.rubrics.map((rubric) =>
 		attachAssessment(rubric, assessments),
@@ -155,7 +155,7 @@ async function SubmissionRubricSection({
 			questionLabel={question.label}
 			rubrics={rubricsWithAssessments}
 			submissions={submissions}
-			progressBySubmissionId={progressBySubmissionId}
+			progressPromise={progressPromise}
 			currentSubmissionId={submissionId}
 		/>
 	);
