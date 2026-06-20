@@ -169,12 +169,23 @@ jobs:
 
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+      NEXT_TELEMETRY_DISABLED: "1"
 
     steps:
       - name: Checkout
         uses: actions/checkout@v6
 
       - uses: ./.github/actions/setup-node-pnpm
+
+      - name: Cache Next.js build
+        uses: actions/cache@v4
+        with:
+          path: .next/cache
+          # Bust when deps or source change; restore-keys gives a warm partial
+          # cache when only source changed.
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('**/*.[jt]s', '**/*.[jt]sx') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('pnpm-lock.yaml') }}-
 
       - name: Migrate database
         run: pnpm run db:migrate:up
