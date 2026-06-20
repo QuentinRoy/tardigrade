@@ -1,9 +1,9 @@
 # Execution plan: end-to-end grading workflow smoke test
 
-Status: Active
+Status: Completed
 Date: 2026-06-19
-Resolution: Pending
-Follow-up: Fold the durable run/convention facts into `docs/reference/testing-conventions.md` once the harness lands.
+Resolution: All delivery steps landed on this PR — harness, fixtures, the spec, CI gating, and the testing-conventions update.
+Follow-up: None
 
 Tracks issue #183.
 

@@ -20,6 +20,17 @@ export default async function globalTeardown(): Promise<void> {
 		return;
 	}
 
-	const port = Number(process.env["E2E_TEARDOWN_POSTGRES_PORT"]);
+	const rawPort = process.env["E2E_TEARDOWN_POSTGRES_PORT"];
+	const port = Number(rawPort);
+	if (rawPort == null || rawPort === "" || !Number.isInteger(port)) {
+		// A compose project without a valid port means `playwright.config.ts`
+		// set one teardown variable but not the other — a setup bug, not a
+		// teardown-time error. Fail loudly rather than passing "NaN" to
+		// `docker compose`, which would leave the container running.
+		throw new Error(
+			`E2E_TEARDOWN_POSTGRES_PORT must be an integer when E2E_TEARDOWN_COMPOSE_PROJECT is set; got ${JSON.stringify(rawPort)}.`,
+		);
+	}
+
 	await teardownEphemeralPostgres({ composeProject, port });
 }
