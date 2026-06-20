@@ -1,8 +1,11 @@
 import Box from "@mui/material/Box";
 import Breadcrumbs from "@mui/material/Breadcrumbs";
 import Container from "@mui/material/Container";
+import Skeleton from "@mui/material/Skeleton";
 import Typography from "@mui/material/Typography";
 import { notFound } from "next/navigation";
+import type { ReactElement } from "react";
+import { Suspense } from "react";
 import { loadQuestionAssessment } from "#assessments/assessments.ts";
 import {
 	buildAssessedRubricCountsBySubmission,
@@ -44,11 +47,13 @@ async function ProjectQuestionSubmissionPageContent({
 	return (
 		<Container maxWidth="md" sx={{ py: 5 }}>
 			<QuestionHeaderSection projectId={projectId} questionId={questionId} />
-			<SubmissionRubricSection
-				questionId={questionId}
-				submissionId={submissionId}
-				projectId={projectId}
-			/>
+			<Suspense fallback={<SubmissionRubricSectionSkeleton />}>
+				<SubmissionRubricSection
+					questionId={questionId}
+					submissionId={submissionId}
+					projectId={projectId}
+				/>
+			</Suspense>
 		</Container>
 	);
 }
@@ -153,5 +158,36 @@ async function SubmissionRubricSection({
 			progressPromise={progressPromise}
 			currentSubmissionId={submissionId}
 		/>
+	);
+}
+
+// Mirrors `SubmissionAssessmentClient`'s layout (current-submission card,
+// prev/next/lookup buttons, rubric rows) so the question header above stays in
+// place and the page doesn't jump once assessment values and progress load.
+function SubmissionRubricSectionSkeleton(): ReactElement {
+	return (
+		<>
+			<Box
+				sx={{
+					mb: 2,
+					p: 2,
+					border: "1px solid",
+					borderColor: "divider",
+					borderRadius: 1,
+				}}
+			>
+				<Skeleton variant="text" width={140} height={20} />
+				<Skeleton variant="text" width={200} height={32} />
+				<Skeleton variant="text" width={120} height={20} />
+			</Box>
+			<Box sx={{ mb: 4, display: "flex", gap: 1 }}>
+				<Skeleton variant="rounded" width={140} height={36} />
+				<Skeleton variant="rounded" width={120} height={36} />
+				<Skeleton variant="rounded" width={80} height={36} />
+			</Box>
+			{[0, 1, 2].map((index) => (
+				<Skeleton key={index} variant="rounded" height={56} sx={{ mb: 1 }} />
+			))}
+		</>
 	);
 }
