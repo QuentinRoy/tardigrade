@@ -1,6 +1,6 @@
 # Caching and loading hardening (#59)
 
-Status: Active
+Status: Completed
 Date: 2026-06-17
 Source: `docs/investigations/2026-06-11-caching-loading-audit.md` (#59); ADR 0008 (proposed); `docs/guides/nextjs-caching.md`
 Umbrella issue: #59
