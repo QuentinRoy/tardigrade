@@ -2,8 +2,9 @@
 
 import { Stack } from "@mui/material";
 import type { ReactElement } from "react";
+import NumberField from "#ui/NumberField.tsx";
 import type { QuestionRubricFieldErrors } from "./errors.ts";
-import RubricEditorPaper, { NumberField } from "./RubricEditorPaper.tsx";
+import RubricEditorPaper from "./RubricEditorPaper.tsx";
 import type { RubricEditorValue } from "./types.ts";
 
 type BooleanRubric = Extract<RubricEditorValue, { type: "boolean" }>;
@@ -33,11 +34,13 @@ export default function BooleanRubricEditorPaper({
 					label="True marks"
 					value={rubric.marks}
 					onChange={(value) => onChange({ ...rubric, marks: value })}
+					error={fieldErrors?.marks}
 				/>
 				<NumberField
 					label="False marks"
 					value={rubric.falseMarks ?? 0}
 					onChange={(value) => onChange({ ...rubric, falseMarks: value })}
+					error={fieldErrors?.falseMarks}
 				/>
 			</Stack>
 		</RubricEditorPaper>

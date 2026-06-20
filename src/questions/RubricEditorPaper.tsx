@@ -76,26 +76,6 @@ export function createRubric(
 	}
 }
 
-export function NumberField({
-	label,
-	value,
-	onChange,
-}: {
-	label: string;
-	value: number;
-	onChange: (value: number) => void;
-}): ReactElement {
-	return (
-		<TextField
-			label={label}
-			type="number"
-			value={value}
-			onChange={(event) => onChange(Number(event.target.value))}
-			size="small"
-		/>
-	);
-}
-
 type RubricEditorPaperProps = {
 	rubric: RubricEditorValue;
 	onChange: (rubric: RubricEditorValue) => void;

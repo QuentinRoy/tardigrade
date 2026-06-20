@@ -2,7 +2,7 @@
 
 Status: Current investigation
 Date: 2026-05-25
-Last updated: 2026-06-20 (Finding 4 / Priority 8 resolved now that #59 closed)
+Last updated: 2026-06-20 (Finding 13 / Priority 6 resolved; Finding 4 / Priority 8 resolved now that #59 closed)
 Related: #99, #59, #68, #110, #24, #26, #32; #115 (closed umbrella), #51 (closed)
 
 ## Table of contents
@@ -61,12 +61,11 @@ Resolved or largely resolved since the first audit:
 14. submission export internals (#152) are restructured: row grouping is a pure, unit-tested `submissionExportGrouping.ts` module; `ExportQuestionPlan` is derived from `loadQuestionRowsFromDb` via a stricter `toRubric` instead of a duplicated assembly; `createSubmissionExport` / `createCsvSubmissionExport` take a `Kysely<DB>` handle per ADR 0007; and both export routes share a `buildDatedFilename` helper for `YYYY-MM-DD` filenames.
 15. assessment completion semantics are consolidated (#24 closed; `plans/completed/2026-06-11-assessment-completion-consolidation.md`): **Assessment Completion** is documented once in `CONTEXT.md` and implemented once in `buildAssessmentCompletion`, with `loadAssessmentCompletion.ts` replacing `assessmentsProgress.ts` / `submissionProgress.ts` and the client-side `summarizeQuestionSections` aligned with the same rule.
 
-The highest-value remaining work, in order:
+The highest-value remaining work:
 
-1. numeric rubric editing in the question editor (#68);
-2. grading-client duplication (quick-jump shortcut, save-error shaping).
+1. grading-client duplication (quick-jump shortcut, save-error shaping).
 
-Cache-tag hygiene (former item 1) and the question-specific grading page cache-boundary review (former item 4) are resolved now that #59 closed; see Findings 4 and 16.
+Numeric rubric editing (#68; former item 1), cache-tag hygiene (former cache item), and the question-specific grading page cache-boundary review (former item 4) are resolved; see Findings 13, 4, and 16.
 
 The recurring problem is no longer mixed ownership — that is solved — but duplicated domain logic across read models. The remaining seams below are local responsibility boundaries inside the owning feature folders.
 
@@ -88,7 +87,7 @@ This table is the single source of truth for each finding's status. The per-find
 | 10. Export submissions state machine needs smaller seams | Resolved | `plans/completed/2026-06-11-submission-export-internals.md`, #152 |
 | 11. Import parse/prepare/write seams | Resolved | [design](../design/2026-06-10-import-parse-prepare-write-seams.md), `plans/completed/2026-06-10-import-parse-prepare-write-seams.md`, #146, #147, #148 |
 | 12. App shell navigation mixes concerns | Mostly resolved; optional export-options extraction | Finding body |
-| 13. Numeric rubric editing parses too eagerly | Open (narrowed to question editor `NumberField`) | Priority 6, #68 |
+| 13. Numeric rubric editing parses too eagerly | Resolved | Priority 6, #68 |
 | 14. Grading clients duplicate workflow behavior | Open (partial reuse exists) | Priority 7 |
 | 15. Server action contract boundaries | Resolved | ADR 0007, finding body |
 | 16. Cache tags and invalidation scattered | Resolved | Priority 5, #59 (closed) |
@@ -676,23 +675,31 @@ Mostly resolved. The shell is now split along the lines this finding asked for: 
 
 ## Finding 13: numeric rubric editing parses too eagerly
 
-### Current behavior
+### Current status
 
-Narrowed by the 2026-06-10 re-audit to one component. `NumberField` in `src/questions/RubricEditorPaper.tsx` converts on every keystroke (`onChange={(event) => onChange(Number(event.target.value))}`), which breaks natural intermediate states such as `-`, `-0`, `1.`, and `0.`. It is used for all numeric rubric editor inputs (boolean marks, ordinal marks, numerical min/max score and marks).
+Status in the [status table](#status-at-a-glance).
 
-The grading side is already correct: `src/rubrics/NumericalGradeControl.tsx` keeps a string-backed draft, parses on blur or Enter, and clamps to range. It is the in-repo model to copy.
+Resolved 2026-06-20 (#68). See Priority 6 for what shipped.
 
-### Candidate rewrite
+### Original behavior
 
-Rework `NumberField` to the `NumericalGradeControl` pattern:
+Narrowed by the 2026-06-10 re-audit to one component. `NumberField` in `src/questions/RubricEditorPaper.tsx` converted on every keystroke (`onChange={(event) => onChange(Number(event.target.value))}`), which broke natural intermediate states such as `-`, `-0`, `1.`, and `0.`. It was used for all numeric rubric editor inputs (boolean marks, ordinal marks, numerical min/max score and marks).
 
-- store draft text while editing;
-- allow intermediate states;
-- parse on blur or submit;
-- show validation without rewriting text too early;
-- preserve numeric value type in the submitted payload.
+The root cause was not the keystroke-level parsing itself but the field being a *controlled* React input: forcing `value` back onto the DOM input on every render fights the user mid-edit (e.g. typing `-` reads as `NaN` and the component reasserts the last valid value, erasing the keystroke). A naive look at `<input type="number">`'s `.value` getter for incomplete text (it sanitizes to `""` for a lone `-`) can suggest the browser itself blocks these states regardless of controlled vs. uncontrolled — that is not the case: an *uncontrolled* `type="number"` input lets the user type and see `-`, `-0`, `1.`, etc. while editing; the DOM-level sanitization of the `.value` getter is invisible to the user as long as nothing forces the field's displayed text.
 
-Keep it colocated in `src/questions` while the rubric editor is the only consumer; promote to `src/ui/NumericDraftField.tsx` only if a second consumer appears.
+### Why not the `NumericalGradeControl` pattern
+
+`src/rubrics/NumericalGradeControl.tsx` (string-backed draft, parse on blur/Enter, clamp to range) was the original candidate model, but it does not transfer cleanly: clamping requires a min/max range that rubric editor fields do not have (and adding one would silently coerce, not validate), and committing/reverting on blur is more intrusive during editing than necessary given the question editor already has a real submit flow with server-side validation.
+
+### What shipped
+
+`src/ui/NumberField.tsx` is now a small, promoted (not `src/questions`-local) uncontrolled numeric input:
+
+- `defaultValue` instead of `value`, so the browser owns the displayed text while typing;
+- `onChange` reports every edit, including `NaN` for an empty or unparseable draft, instead of skipping or reverting;
+- validation happens at form submission, not on blur: an `error` prop renders server-side field errors from the existing (previously unused) `QuestionRubricFieldErrors` plumbing in `src/questions/errors.ts`.
+
+`BooleanRubricEditorPaper.tsx` and `NumericalRubricEditorPaper.tsx` use it for all boolean/numerical numeric fields and wire `fieldErrors` through. `src/questions/schemas.ts` gives the numeric rubric fields meaningful Zod error messages (e.g. "Marks must be a valid number") so an emptied field is rejected with a clear error on submit rather than silently keeping its last valid value.
 
 ## Finding 14: grading clients duplicate stable workflow behavior
 
@@ -1034,17 +1041,14 @@ Related: Finding 16; #59 (closed).
 
 ### Priority 6: numeric draft field
 
-Why third:
+Completed 2026-06-20 (#68).
 
-- small focused UX win;
-- low risk;
-- addresses #68.
+Delivered:
 
-Suggested deliverables:
-
-- rework `NumberField` in `src/questions/RubricEditorPaper.tsx` to the string-backed draft pattern already used by `src/rubrics/NumericalGradeControl.tsx`;
-- add regression tests for intermediate input states (`-`, `-0`, `1.`, `0.`);
-- keep the component colocated in `src/questions` until a second consumer appears.
+- promoted `NumberField` to `src/ui/NumberField.tsx` as an uncontrolled numeric input (`defaultValue`, not `value`), so the browser owns the displayed text while the user types intermediate states like `-`, `-0`, `1.`, `0.`;
+- `onChange` reports every edit including `NaN` for an empty/unparseable draft, instead of skipping it or reverting to the last valid value;
+- validation moved to form submission: `NumberField` gained an `error` prop wired to the existing `QuestionRubricFieldErrors` plumbing, and `src/questions/schemas.ts` gives the numeric rubric fields meaningful Zod error messages;
+- Storybook play-function regression tests cover negative numbers, decimals, negative decimals, and the empty-field-reports-`NaN` case.
 
 Related: Finding 13; #68.
 
