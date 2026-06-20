@@ -3,6 +3,7 @@ import "server-only";
 import { CamelCasePlugin, Kysely, PostgresDialect } from "kysely";
 import { Pool, types as pgTypes } from "pg";
 import Cursor from "pg-cursor";
+import { logger } from "../logger.ts";
 import type { DB } from "./generated/db.ts";
 
 const PG_NUMERIC_OID = 1700;
@@ -17,6 +18,16 @@ function createKyselyClient() {
 	}
 
 	const pool = new Pool({ connectionString });
+
+	// node-postgres re-emits a backend-initiated client disconnect (Postgres
+	// restart, network blip, connection-limit kill, failover, ...) as an
+	// 'error' event on the pool. With no listener attached, Node's
+	// EventEmitter throws, crashing the whole Next.js server process. Logging
+	// here instead of throwing keeps a single transient disconnect from
+	// taking down the server.
+	pool.on("error", (error) => {
+		logger.error({ error }, "Postgres pool error");
+	});
 
 	return new Kysely<DB>({
 		dialect: new PostgresDialect({ pool, cursor: Cursor }),
