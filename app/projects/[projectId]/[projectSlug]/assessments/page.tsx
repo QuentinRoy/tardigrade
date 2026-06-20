@@ -229,10 +229,13 @@ function SubmissionListSkeleton({
 							ml: 2,
 							minWidth: 60,
 							display: "flex",
-							justifyContent: "flex-end",
+							flexDirection: "column",
+							alignItems: "flex-end",
+							gap: 0.5,
 						}}
 					>
 						<Skeleton variant="text" width={36} height={20} />
+						<Skeleton variant="rounded" width={44} height={4} />
 					</Box>
 				</ListItemButton>
 			))}
