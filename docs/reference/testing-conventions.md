@@ -59,11 +59,16 @@ A build must exist first; `playwright.config.ts`'s `webServer` runs `pnpm start`
 (no rebuild) and reuses an already-running server locally (`reuseExistingServer`).
 
 The database contract is an empty, migrated Postgres — never a developer's
-database. `e2e/globalSetup.ts` uses `TEST_DATABASE_URL` if set (CI reuses the
-`build` job's service container; see `.github/workflows/ci.yml`), otherwise it
-provisions and tears down an ephemeral Docker Postgres, the same pattern as
-`src/test/integrationGlobalSetup.ts`. All test data is created through the UI; the
-only fixtures are the import payloads under `e2e/fixtures/`.
+database. `e2e/globalSetup.ts` uses `TEST_DATABASE_URL` if set (CI's `e2e` job
+runs its own service container and migrates it via `globalSetup.ts`; see
+`.github/workflows/ci.yml`), otherwise it provisions and tears down an ephemeral
+Docker Postgres, the same pattern as `src/test/integrationGlobalSetup.ts`. All
+test data is created through the UI; the only fixtures are the import payloads
+under `e2e/fixtures/`.
+
+In CI, the `build` job uploads its `.next` output as an artifact; the `e2e` job
+downloads it and runs `pnpm test:e2e` against it, so the production build never
+runs twice.
 
 Selectors are accessible-first (`getByRole` / `getByLabel`); treat a missing
 accessible name as a real accessibility gap to fix on the component, not a reason

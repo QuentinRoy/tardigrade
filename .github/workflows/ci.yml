@@ -148,11 +148,6 @@ jobs:
   build:
     name: build
     runs-on: ubuntu-latest
-    # Run in Playwright's official image (see the `test-storybook` job comment):
-    # the build job also runs the gating E2E smoke test, and this keeps the
-    # browser prebaked with no separate job and no rebuild.
-    container:
-      image: mcr.microsoft.com/playwright:v1.60.0-noble
     needs:
       [changes, check-types, check, test-unit, test-integration, test-storybook]
     if: needs.changes.outputs.non_docs_changed == 'true'
@@ -173,9 +168,52 @@ jobs:
           - 5432:5432
 
     env:
-      # Inside a containerized job, service containers are reachable by their
-      # service id, not `localhost`.
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/postgres
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - uses: ./.github/actions/setup-node-pnpm
+
+      - name: Migrate database
+        run: pnpm run db:migrate:up
+
+      - name: Build
+        run: pnpm run build
+
+      - name: Upload build output
+        uses: actions/upload-artifact@v4
+        with:
+          name: next-build
+          path: .next/
+          retention-days: 1
+
+  e2e:
+    name: e2e
+    runs-on: ubuntu-latest
+    # Run in Playwright's official image (see the `test-storybook` job comment):
+    # the browser is prebaked, so there is no download from cdn.playwright.dev
+    # and no `playwright install --with-deps` apt step.
+    container:
+      image: mcr.microsoft.com/playwright:v1.60.0-noble
+    needs: [changes, build]
+    if: needs.changes.outputs.non_docs_changed == 'true'
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
 
     steps:
       - name: Checkout
@@ -188,11 +226,12 @@ jobs:
 
       - uses: ./.github/actions/setup-node-pnpm
 
-      - name: Migrate database
-        run: pnpm run db:migrate:up
-
-      - name: Build
-        run: pnpm run build
+      - name: Download build output
+        # Reuses the `build` job's production build; no rebuild here.
+        uses: actions/download-artifact@v4
+        with:
+          name: next-build
+          path: .next/
 
       - name: Install Playwright browsers
         # Prebaked in the image; this just verifies the matching binary is
@@ -200,10 +239,10 @@ jobs:
         run: pnpm run storybook:browser:install
 
       - name: E2E smoke test
-        # `TEST_DATABASE_URL` makes `e2e/globalSetup.ts` reuse this service
-        # container instead of provisioning its own ephemeral Postgres, and
-        # `playwright.config.ts`'s `webServer` runs the build from the step
-        # above (`next start`, no rebuild).
+        # Inside a containerized job, service containers are reachable by their
+        # service id, not `localhost`. `TEST_DATABASE_URL` makes
+        # `e2e/globalSetup.ts` reuse this service container (and migrate it)
+        # instead of provisioning its own ephemeral Postgres.
         env:
           TEST_DATABASE_URL: postgresql://postgres:postgres@postgres:5432/postgres
         run: pnpm run test:e2e
@@ -228,6 +267,7 @@ jobs:
         test-integration,
         test-storybook,
         build,
+        e2e,
       ]
     if: always()
     steps:
@@ -251,7 +291,8 @@ jobs:
             "${{ needs.test-unit.result }}" \
             "${{ needs.test-integration.result }}" \
             "${{ needs.test-storybook.result }}" \
-            "${{ needs.build.result }}"
+            "${{ needs.build.result }}" \
+            "${{ needs.e2e.result }}"
           do
             if [ "$result" != "success" ]; then
               echo "A required CI job did not succeed: $result"
