@@ -1,8 +1,21 @@
 # Investigation: caching and loading audit
 
-Status: Current investigation
+Status: Resolved
 Date: 2026-06-11
-Related: #59, `docs/investigations/2026-05-25-source-structure-and-tech-debt-audit.md`, `docs/investigations/2026-05-26-read-write-separation-and-schema-change-resilience.md`, ADR 0007
+Last updated: 2026-06-20 (#59 closed; all 13 planned PRs landed)
+Related: #59 (closed), `docs/investigations/2026-05-25-source-structure-and-tech-debt-audit.md`, `docs/investigations/2026-05-26-read-write-separation-and-schema-change-resilience.md`, ADR 0007, ADR 0008, `docs/reference/cache-invalidation-map.md`, `plans/completed/2026-06-17-caching-loading-hardening.md`
+
+## Current status
+
+Resolved. All 13 PRs in the [suggested implementation PR order](#suggested-implementation-pr-order) landed (#168, #170, #171, #174, #176, #180, #181, #182, #184, #186, #187, #189, #193), tracked in `plans/completed/2026-06-17-caching-loading-hardening.md`. ADR 0008 (cache tags, lifetimes, and invalidation) was accepted and `docs/reference/cache-invalidation-map.md` now documents the live mutation-to-tag map this investigation's Finding 2 only sketched as a candidate. Umbrella issue #59 closed 2026-06-20.
+
+Key outcomes against the original symptom (submission-overview navigation showing the loading skeleton more than the question-by-question workflow):
+
+- Finding 18 (rendering-topology asymmetry) and Finding 19 (coarse `assessments` tag busting project-wide progress on every save) were both confirmed by measurement (see the plan's "Measured baseline" sections) and fixed: progress freshness was decoupled from interactive saves (PR10), and submission-to-submission navigation gained explicit prefetch (PR11/PR12).
+- Finding 12 (rubric overview scale) was measured at 200 submissions x 20 rubrics and found not to need a refactor (PR13); the plan's own conclusion is "no refactor," matching this investigation's "measure before changing architecture" recommendation.
+- The dead `questions:${questionId}` tag (Findings 1, 17) and the under-registered cache sections were resolved by centralizing tag factories (PR2) and applying the "register the full tag closure, never depend on propagation" rule (now ADR 0008 rule 3).
+
+The findings and phased plan below are kept as the historical record of the audit; current behavior and the authoritative tag/invalidation map live in ADR 0008 and `docs/reference/cache-invalidation-map.md`.
 
 ## Question
 
@@ -503,6 +516,10 @@ Only consider a route-specific `loadSubmissionAssessmentPage` read model if meas
 
 ### Finding 10: question-specific grading page cache boundaries need a focused review
 
+#### Current status
+
+Resolved in PR9 (#182, `assessments: avoid duplicate submission progress reads`). After sharing question rows (PR6) and avoiding the duplicate submissions reload (Finding 7), the page's two `"use cache"` sections were re-checked and kept as-is: shared caches removed the real duplication, so no monolithic route loader was introduced.
+
 #### Current behavior
 
 The question-specific grading page is split into cached server sections:
@@ -555,6 +572,10 @@ invalidateStudentImport(...)
 These helpers should be small and boring. Their value is reviewability, not abstraction for its own sake.
 
 ### Finding 12: rubric overview is cached, but scale risk remains
+
+#### Current status
+
+Resolved in PR13 (#189, `assessments: measure rubric overview scale`). Measured at 200 submissions x 20 rubrics (3,606 assessments): query and in-memory build time were negligible, warm round-trip stayed well under 300ms, and the large decoded payload compressed well. Per this finding's own "do not refactor blindly" framing, no refactor was made.
 
 #### Current behavior
 
@@ -666,6 +687,10 @@ Do not overfit tests to Next.js internals. Add end-to-end/cache-runtime tests on
 
 ### Finding 17: never depend on nested tag propagation
 
+#### Current status
+
+Resolved. The decision below is now ADR 0008 rule 3 (accepted). PR2 (#168) centralized tag factories and fixed the under-registered sections named below, including registering the project tag explicitly in the grading sections.
+
 #### Current behavior
 
 Several `"use cache"` page sections register fewer tags than the data they render, and are correct only if tags from inner cached loaders propagate to the enclosing scope:
@@ -685,6 +710,10 @@ Whether or not tag propagation happens to work, it is undocumented and may be in
 Never depend on nested tag propagation. Every `"use cache"` scope registers the full closure of tags for everything it renders (ADR 0008 rule 3, now unconditional). Do not verify propagation empirically: a positive result is unsafe to rely on because the behavior is undocumented and may change. Fix the under-registered sections above as part of Phase 1 (PR2). Cache-life propagation is documented; handle it with explicit `cacheLife` per ADR 0008 rule 4.
 
 ### Finding 18: the two grading pages have opposite rendering topologies, which matches the #59 symptom
+
+#### Current status
+
+Resolved in PR11 (#187, `ui: prefetch submission-to-submission navigation on the overview page`). PR10 also removed the question page's page-level `"use cache"` wrapper (a Suspense-streaming promise cannot be returned from inside a `"use cache"` scope), so both pages converged on the same shape: no page-level cache wrapper, relying on individually cached loaders. The one remaining concrete gap, missing prefetch on the overview page's prev/next buttons, was closed in PR11; PR12 (#193) added targeted loading boundaries.
 
 #### Current behavior
 
@@ -707,6 +736,10 @@ Treat the submission overview page's topology as a first-class #59 work item, af
 3. only then revisit loading boundaries (Finding 14) for whatever remains genuinely dynamic.
 
 ### Finding 19: interactive saves invalidate the progress caches that the next navigation needs
+
+#### Current status
+
+Resolved in PR10 (#186, `assessments: decouple progress freshness from interactive saves`). The plan's measured baseline confirmed this finding exactly (saving an assessment for one submission forced a full project-wide recompute when revisiting an unrelated, already-warm submission overview); PR10's acceptance test is that saving a rubric and clicking "next submission" no longer blocks on recomputing project-wide completion.
 
 #### Current behavior
 
@@ -848,21 +881,23 @@ Acceptance criteria:
 
 ## Suggested implementation PR order
 
-1. `cache: instrument grading loop and baseline #59` (tag-registration rule decided — never depend on propagation — not verified)
-2. `cache: centralize tag factories`
-3. `cache: document invalidation map`
-4. `cache: define per-tag-class freshness policy (updateTag vs revalidateTag)`
-5. `cache: clarify core cache lifetimes`
-6. `questions: cache question definitions from the canonical row source`
-7. `questions: share cached question rows (and remove db handles from cached signatures)`
-8. `assessments: share completion row cache`
-9. `assessments: avoid duplicate submission progress reads`
-10. `assessments: decouple progress freshness from interactive saves`
-11. `ui: restructure submission overview into cached sections with prefetch`
-12. `ui: improve grading loading boundaries`
-13. `assessments: measure rubric overview scale`
+All 13 PRs below landed; see `plans/completed/2026-06-17-caching-loading-hardening.md` for the per-PR tracking table and sub-issue numbers (#155-#167).
 
-This order keeps correctness before performance refactors. The tag-registration rule is already decided (never depend on propagation — Finding 17); the remaining ground truth (a measured grading loop) comes first; tag and invalidation clarity comes next because it reduces the risk of every later caching change.
+1. `cache: instrument grading loop and baseline #59` (tag-registration rule decided — never depend on propagation — not verified) — Done (#184)
+2. `cache: centralize tag factories` — Done (#168)
+3. `cache: document invalidation map` — Done (#170)
+4. `cache: define per-tag-class freshness policy (updateTag vs revalidateTag)` — Done (#171)
+5. `cache: clarify core cache lifetimes` — Done (#174)
+6. `questions: cache question definitions from the canonical row source` — Done (#176, shipped before PR7 in the plan's renumbering)
+7. `questions: share cached question rows (and remove db handles from cached signatures)` — Done (#180)
+8. `assessments: share completion row cache` — Done (#181)
+9. `assessments: avoid duplicate submission progress reads` — Done (#182)
+10. `assessments: decouple progress freshness from interactive saves` — Done (#186)
+11. `ui: restructure submission overview into cached sections with prefetch` — Done (#187, narrowed to prefetch only; see Finding 18)
+12. `ui: improve grading loading boundaries` — Done (#193)
+13. `assessments: measure rubric overview scale` — Done (#189)
+
+This order kept correctness before performance refactors. The tag-registration rule was decided up front (never depend on propagation — Finding 17); tag and invalidation clarity landed next because it reduced the risk of every later caching change.
 
 ## Non-goals
 

@@ -2,7 +2,7 @@
 
 Status: Current investigation
 Date: 2026-05-25
-Last updated: 2026-06-11 (re-audited after the submission export internals refactor)
+Last updated: 2026-06-20 (Finding 4 / Priority 8 resolved now that #59 closed)
 Related: #99, #59, #68, #110, #24, #26, #32; #115 (closed umbrella), #51 (closed)
 
 ## Table of contents
@@ -63,12 +63,12 @@ Resolved or largely resolved since the first audit:
 
 The highest-value remaining work, in order:
 
-1. cache-tag hygiene: pages hand-build tag strings that `src/db/cacheTags.ts` already owns, and one registered tag is never invalidated;
-2. numeric rubric editing in the question editor (#68);
-3. grading-client duplication (quick-jump shortcut, save-error shaping);
-4. question-specific grading page cache-boundary review, gated on #59.
+1. numeric rubric editing in the question editor (#68);
+2. grading-client duplication (quick-jump shortcut, save-error shaping).
 
-The recurring problem is no longer mixed ownership — that is solved — but duplicated domain logic across read models and small hygiene drift around cache tags. The remaining seams below are local responsibility boundaries inside the owning feature folders.
+Cache-tag hygiene (former item 1) and the question-specific grading page cache-boundary review (former item 4) are resolved now that #59 closed; see Findings 4 and 16.
+
+The recurring problem is no longer mixed ownership — that is solved — but duplicated domain logic across read models. The remaining seams below are local responsibility boundaries inside the owning feature folders.
 
 ## Status at a glance
 
@@ -79,19 +79,19 @@ This table is the single source of truth for each finding's status. The per-find
 | 1. Project route context and slug handling | Resolved | ADR 0005, #141 |
 | 2. Project-scoped pages repeat route resolution | Resolved | ADR 0005 |
 | 3. Submission overview assessment loading too fragmented | Resolved | #145; Priority 1 |
-| 4. Question-specific grading page cache boundaries | Open (review, gated on #59) | Priority 8, #59 |
+| 4. Question-specific grading page cache boundaries | Resolved | Priority 8, #59 (closed), #182 |
 | 5. Question definition persistence split and relocated | Resolved | ADR 0002, #137 |
 | 6. Assessment reads and writes split and relocated | Resolved; follow-up review done, no further split | ADR 0002, ADR 0007, #137 |
 | 7. Raw database types versus feature-facing types | Mostly resolved; submission type boundary remains | ADR 0002, #137 |
 | 8. Question/rubric read-model assembly duplicated | Resolved | #152 |
-| 9. Assessment completion semantics duplicated | Resolved; #26 and #59 stay open | `plans/completed/2026-06-11-assessment-completion-consolidation.md`, #24, #26, #59 |
+| 9. Assessment completion semantics duplicated | Resolved; #26 stays open | `plans/completed/2026-06-11-assessment-completion-consolidation.md`, #24, #26, #59 (closed) |
 | 10. Export submissions state machine needs smaller seams | Resolved | `plans/completed/2026-06-11-submission-export-internals.md`, #152 |
 | 11. Import parse/prepare/write seams | Resolved | [design](../design/2026-06-10-import-parse-prepare-write-seams.md), `plans/completed/2026-06-10-import-parse-prepare-write-seams.md`, #146, #147, #148 |
 | 12. App shell navigation mixes concerns | Mostly resolved; optional export-options extraction | Finding body |
 | 13. Numeric rubric editing parses too eagerly | Open (narrowed to question editor `NumberField`) | Priority 6, #68 |
 | 14. Grading clients duplicate workflow behavior | Open (partial reuse exists) | Priority 7 |
 | 15. Server action contract boundaries | Resolved | ADR 0007, finding body |
-| 16. Cache tags and invalidation scattered | Open (now concrete) | Priority 5 |
+| 16. Cache tags and invalidation scattered | Resolved | Priority 5, #59 (closed) |
 | 17. `shared` bucket renamed to `src/ui` | Resolved | #137 |
 | 18. Route handlers thinner; export internals remain | Resolved | #152 |
 | 19. Reasonably split components — do not over-refactor | Guidance | — |
@@ -111,7 +111,7 @@ Important related documents:
 - [Grading workflows and product positioning](./2026-05-22-grading-workflows-and-product-positioning.md) owns workflow and product-scope questions such as spreadsheet replacement, LMS integration, and explicit import/export operations.
 - [Offline support](./2026-05-19-offline-support.md) owns local storage, command outbox, sync, and conflict strategy questions.
 - ADR 0007 owns the persistence layering: DB primitives take a required handle; app-level wrappers own transactions and post-commit cache invalidation.
-- #59 should own final loading, caching, revalidation, and route-boundary strategy.
+- #59 (closed) owned final loading, caching, revalidation, and route-boundary strategy; settled in ADR 0008 and `docs/investigations/2026-06-11-caching-loading-audit.md`.
 - Reliability issues #24 (progress aggregation), #26 (rubric overview analytics), and #32 (export streaming) own the correctness semantics that Findings 9 and 10 touch; this document owns only the structural seams.
 
 Folder names and target source shapes in this document are therefore provisional. They should be revisited if terminology or product-model investigations converge differently.
@@ -414,9 +414,7 @@ Both share row-loading and rubric-value mapping helpers. `assessmentCacheTag` (i
 
 Status in the [status table](#status-at-a-glance).
 
-Re-audited 2026-06-10. The page (`app/.../submissions/[submissionId]/questions/[questionId]/page.tsx`) splits into two cached sections, `QuestionHeaderSection` and `SubmissionRubricSection`. Both load the project and the question; the overlap is mostly absorbed by `"use cache"` on the underlying loaders (`loadQuestion` composes the cached `loadQuestionRows`), so the repeated reads are cheaper than they look. The structural question — are these the intended cache boundaries — still belongs to #59 and remains open.
-
-One concrete defect surfaced by the re-audit is no longer hypothetical: both sections hand-build cache tag strings (`` `assessments:${submissionId}:${questionId}` ``, `` `assessments:question:${questionId}` ``, `` `questions:${questionId}` ``) instead of calling the `assessmentCacheTag` / `assessmentQuestionCacheTag` helpers in `src/db/cacheTags.ts`. That drift is tracked under Finding 16, not here.
+Resolved. #59 closed 2026-06-20 (`docs/investigations/2026-06-11-caching-loading-audit.md`, `plans/completed/2026-06-17-caching-loading-hardening.md`). The structural question this finding deferred to #59 — are the current cached sections the intended boundary — was answered in PR9 (#182, "avoid duplicate submission progress reads"): after sharing question rows (PR6) and removing the duplicate submissions reload, the page's two sections were re-checked and kept as-is, with no monolithic route loader introduced. The hand-built cache tag strings noted below were fixed in PR2 (#168, cache-tag centralization), tracked under Finding 16.
 
 ### Current behavior
 
@@ -578,7 +576,7 @@ Status in the [status table](#status-at-a-glance).
 
 Resolved 2026-06-11 (`plans/completed/2026-06-11-assessment-completion-consolidation.md`, closes #24). The **Assessment Completion** rule is now defined once in `CONTEXT.md` and implemented once in the pure builder `buildAssessmentCompletion` (`src/assessments/assessmentCompletion.ts`). `loadAssessmentCompletion.ts` replaces `assessmentsProgress.ts` and `submissionProgress.ts` with a shared `loadAssessmentCompletionRowsFromDb` primitive and three thin loaders mapped through the builder: `loadAssessmentCompletionSummary` (was `loadGlobalAssessmentProgress`), `loadAssessmentCompletionBySubmission` (was `loadSubmissionOverviewProgress`), and `loadAssessedRubricCountsBySubmission` (was `loadSubmissionQuestionProgress`, sharing the least and keeping its own queries). Zero-rubric questions and empty-grouping vacuous truth are now handled identically across the summary, by-submission, and client-side `summarizeQuestionSections` projections. The original behavior described below is kept for context; its evidence path `src/assessment/progressAggregator.ts` was already stale.
 
-#26 (rubric overview analytics) and #59 (caching audit) remain open and were not changed by this consolidation.
+#26 (rubric overview analytics) remains open and was not changed by this consolidation. #59 (caching audit) was open at the time but has since closed, addressed separately by `plans/completed/2026-06-17-caching-loading-hardening.md`.
 
 ### Original behavior
 
@@ -739,6 +737,10 @@ Question actions (`src/questions/actions.ts`) parse payloads via `schemas.ts`, c
 No further work is planned. The standing rule for new actions: keep heavy business logic out of the action, delegate to an ADR 0007 wrapper, and return a typed action state.
 
 ## Finding 16: cache tags and invalidation are useful but scattered
+
+### Current status
+
+Resolved. `src/db/cacheTags.ts` is now the only tag-string factory (PR2, #168), the never-invalidated `questions:${questionId}` tag's fate was decided and applied, and the mutation-to-tag map is documented in `docs/reference/cache-invalidation-map.md` per ADR 0008 rule 7 (PR3, #170). See `docs/investigations/2026-06-11-caching-loading-audit.md` Finding 1/2/17 and `plans/completed/2026-06-17-caching-loading-hardening.md`.
 
 ### Current behavior
 
@@ -1014,24 +1016,21 @@ Delivered:
 - aligned client-side `summarizeQuestionSections` with the documented rule (zero-rubric questions count as complete);
 - added empty-project page-level guards on the dashboard and assessments page.
 
-#26 (rubric overview analytics) and #59 (caching audit) remain open; no cache policy changes were made here.
+#26 (rubric overview analytics) remains open; no cache policy changes were made here. #59 (caching audit) was open at the time but has since closed (see Finding 9 status above).
 
 Related: Finding 9; #24, #26, #59.
 
-### Priority 5: cache-tag hygiene
+### Priority 5: cache-tag hygiene — Done
 
-Why second:
+Completed 2026-06-20 in #168/#170, as part of `plans/completed/2026-06-17-caching-loading-hardening.md` (#59).
 
-- small and mechanical, but a typo in a hand-built tag string silently breaks invalidation;
-- unblocks documenting the mutation-to-tag map that #59 will need.
+Delivered:
 
-Suggested deliverables:
+- replaced hard-coded tag strings in `app/` pages with `cacheTags.ts` helper calls;
+- decided and applied the fate of the never-invalidated per-question `questions:{id}` tag;
+- documented the mutation-to-tag map in `docs/reference/cache-invalidation-map.md` next to `cacheTags.ts`, per ADR 0008 rule 7.
 
-- replace hard-coded tag strings in `app/` pages with `cacheTags.ts` helper calls;
-- invalidate or remove the never-invalidated per-question `questions:{id}` tag;
-- document the mutation-to-tag map next to `cacheTags.ts`.
-
-Related: Finding 16; #59.
+Related: Finding 16; #59 (closed).
 
 ### Priority 6: numeric draft field
 
@@ -1063,20 +1062,16 @@ Suggested deliverables:
 
 Related: Finding 14.
 
-### Priority 8: question-specific grading page cache-boundary review
+### Priority 8: question-specific grading page cache-boundary review — Done
 
-Why last:
+Completed 2026-06-20 in #182, as part of `plans/completed/2026-06-17-caching-loading-hardening.md` (#59).
 
-- core grading UX, but the current split may already be correct under Next caching;
-- gated on #59, which owns the loading/caching/revalidation strategy;
-- avoid refactoring only to dedupe cached reads.
+Delivered:
 
-Suggested deliverables:
+- confirmed the current cached-section split is correct after sharing question rows (PR6) and removing the duplicate submissions reload (Finding 7 of the caching audit);
+- no monolithic route loader was introduced.
 
-- document intended boundaries and which repeated cached reads are intentional;
-- only extract a loader if it clarifies semantics without fighting cache boundaries.
-
-Related: Finding 4; #59.
+Related: Finding 4; #59 (closed).
 
 ## Open questions
 
@@ -1122,11 +1117,11 @@ Settled by the 2026-06-02 reorganization, delivered as a single PR (#137) of seq
 
 Settled by ADR 0007: DB primitives take a required `Kysely<DB>` handle as their first parameter (no optional-handle ambiguity, no transaction-bound factories); app-level wrappers own the global client and the transaction boundary. Caller-owned transactions own post-commit cache invalidation.
 
-### Cache invalidation
+### Cache invalidation — resolved
 
 - Where invalidation lives is resolved by ADR 0007: in the app-level wrapper, after commit, never in a primitive.
-- Still open: the mutation-to-tag map should be documented (Finding 16, Priority 5), and read sites should stop hand-building tag strings.
-- Which pages must be fresh immediately after each mutation remains a #59 question.
+- The mutation-to-tag map is documented (Finding 16, Priority 5) in `docs/reference/cache-invalidation-map.md`, and read sites no longer hand-build tag strings.
+- Per-tag-class freshness (which pages must be fresh immediately after each mutation) is settled by ADR 0008 and #59 (closed); see `docs/investigations/2026-06-11-caching-loading-audit.md`.
 
 ### Import behavior
 
