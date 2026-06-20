@@ -244,7 +244,7 @@ jobs:
       - name: E2E smoke test
         # Inside a containerized job, service containers are reachable by their
         # service id, not `localhost`. `TEST_DATABASE_URL` makes
-        # `e2e/globalSetup.ts` reuse this service container (and migrate it)
+        # `playwright.config.ts` reuse this service container (and migrate it)
         # instead of provisioning its own ephemeral Postgres.
         env:
           TEST_DATABASE_URL: postgresql://postgres:postgres@postgres:5432/postgres
