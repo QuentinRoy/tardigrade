@@ -3,12 +3,14 @@ import "server-only";
 import { CamelCasePlugin, Kysely, PostgresDialect } from "kysely";
 import { Pool, types as pgTypes } from "pg";
 import Cursor from "pg-cursor";
-import { logger } from "../logger.ts";
+import { createLogger } from "../utils/logger.ts";
 import type { DB } from "./generated/db.ts";
 
 const PG_NUMERIC_OID = 1700;
 
 pgTypes.setTypeParser(PG_NUMERIC_OID, (value) => Number(value));
+
+const logger = createLogger("db");
 
 function createKyselyClient() {
 	const connectionString = process.env["DATABASE_URL"];

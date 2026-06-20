@@ -2,7 +2,7 @@
 
 Status: accepted
 
-All server-side code that needs to report an unexpected or operational event it does not throw — a background failure, a recovered error, a startup/shutdown notice — logs through the shared logger at `src/logger.ts`, not `console.*`. Biome's `noConsole` rule already forbids `console.*` outside that one exception; this ADR establishes what replaces it and when to use it.
+All server-side code that needs to report an unexpected or operational event it does not throw — a background failure, a recovered error, a startup/shutdown notice — logs through a scoped logger created from `src/utils/logger.ts`, not `console.*`. Biome's `noConsole` rule already forbids `console.*` outside that one exception; this ADR establishes what replaces it and when to use it.
 
 ## Why
 
@@ -12,14 +12,13 @@ All server-side code that needs to report an unexpected or operational event it 
 
 ## Rules
 
-1. Server-side code imports `logger` from `src/logger.ts` to report something worth knowing about that is not itself thrown as an error to a caller. Typical cases: a caught error that is intentionally swallowed (like the pool `'error'` listener), a recovered retry, or a startup/shutdown notice.
-2. Do not log and then also throw or re-throw the same error from the same code path — that produces duplicate noise. Log at the point where the error is being swallowed or handled, not at every layer it passes through.
-3. Call `logger.error(...)`, `logger.warn(...)`, etc. with a structured first argument (`{ error }`, `{ submissionId }`, ...) and a short message string second, following pino's `(mergingObject, message)` call shape — not string concatenation. This keeps log lines machine-parseable.
-4. Do not log values that fall inside the **System-wide Row ID Boundary** (CONTEXT.md) or any student-identifying grading content (names, submitted answers, grades) in a log line. Logging is for operational/diagnostic context, not domain payloads. Log identifiers that are already public (Project ID, submission ID used as an opaque token) rather than full records.
-5. `src/logger.ts` stays a thin export of one configured `pino()` instance. Do not introduce a second logger instance, a wrapper module, or per-feature logger configuration without revisiting this ADR.
-6. This is not a request-tracing or audit-logging system. If a feature needs structured audit trails, per-request correlation IDs, or log shipping to an external sink, treat that as a new decision, not an extension of this one.
-
-`src/logger.ts` is a cross-cutting infrastructure module (like `src/db`), not a feature folder, so it is exempt from [ADR-0006](0006-prefer-flat-module-structure.md)'s feature-folder flatness rule by the same reasoning `src/db` is.
+1. Server-side code obtains a logger with `createLogger(scope)` from `src/utils/logger.ts` to report something worth knowing about that is not itself thrown as an error to a caller. Typical cases: a caught error that is intentionally swallowed (like the pool `'error'` listener), a recovered retry, or a startup/shutdown notice. Create the scoped logger once at module top and reuse it.
+2. `scope` is a closed union — the feature folders (`assessments`, `export`, `import`, `projects`, `questions`, `rubrics`, `submissions`) plus the `db` infrastructure module. A module logs under the scope of the subsystem it belongs to. Adding a scope means extending the `LogScope` union in `src/utils/logger.ts`; do not pass a free-form string. The closed union exists so scope names cannot drift or be typo'd across call sites, and so logs are filterable by a known, stable set of subsystems.
+3. Do not log and then also throw or re-throw the same error from the same code path — that produces duplicate noise. Log at the point where the error is being swallowed or handled, not at every layer it passes through.
+4. Call `logger.error(...)`, `logger.warn(...)`, etc. with a structured first argument (`{ error }`, `{ submissionId }`, ...) and a short message string second, following pino's `(mergingObject, message)` call shape — not string concatenation. This keeps log lines machine-parseable. (The `scope` field is attached automatically by the child logger; do not repeat it per call.)
+5. Do not log values that fall inside the **System-wide Row ID Boundary** (CONTEXT.md) or any student-identifying grading content (names, submitted answers, grades) in a log line. Logging is for operational/diagnostic context, not domain payloads. Log identifiers that are already public (Project ID, submission ID used as an opaque token) rather than full records.
+6. `src/utils/logger.ts` stays a thin module: one root `pino()` instance and the `createLogger` scope factory. Do not introduce a second root instance, a wrapper layer, or per-feature logger configuration without revisiting this ADR.
+7. This is not a request-tracing or audit-logging system. If a feature needs structured audit trails, per-request correlation IDs, or log shipping to an external sink, treat that as a new decision, not an extension of this one.
 
 ## Considered Options
 
@@ -27,9 +26,11 @@ All server-side code that needs to report an unexpected or operational event it 
 - **Empty no-op `pool.on("error", () => {})`**: rejected. Prevents the crash but silently discards diagnostic information about a real operational event (a database disconnect), making the next incident harder to diagnose.
 - **`consola`**: considered; rejected in favor of `pino` for being closer to a de facto Node.js server-logging standard with broader ecosystem support, even though `consola`'s pretty-printed output has lower setup overhead.
 - **Defer the decision and use `process.stderr.write` for now**: rejected once a library choice (`pino`) was made; an ad-hoc placeholder would just be a second thing to migrate away from later.
+- **A top-level `src/logger.ts` file**: rejected. `src` otherwise contains only directories, and a single loose top-level file would be the first exception to that pattern. `src/utils/` already holds cross-cutting helpers and is not a feature folder, so placing the logger there fits the existing structure without a new carve-out.
+- **A free-form `logger.child({ scope })` at each call site, or no scopes at all**: rejected. With the scope vocabulary already fixed by the feature-folder structure, a closed `LogScope` union costs almost nothing to enforce at this one call site and prevents scope-string drift before it can start. Leaving scopes unstructured would defer that cost to a later, larger cleanup.
 
 ## Consequences
 
-- Future server-side code that needs to report a non-thrown error or operational event has one obvious place to import from (`src/logger.ts`) instead of reaching for `console.*` or inventing another ad-hoc pattern.
+- Future server-side code that needs to report a non-thrown error or operational event has one obvious place to import from (`src/utils/logger.ts`) instead of reaching for `console.*` or inventing another ad-hoc pattern, and tags it with a known subsystem scope.
 - `pino` is now a runtime dependency; no log transport, redaction, or shipping configuration exists yet — only the default synchronous-by-default pino instance. Adding those is a separate, deliberate decision when a real need (e.g., production log aggregation) arises.
 - `AGENTS.md`'s "Error handling UX" section governs *user-facing* error messages; this ADR governs *operational* logging that is never shown to a user. The two are not in tension, but a future contributor should not conflate "log it" with "tell the user."
