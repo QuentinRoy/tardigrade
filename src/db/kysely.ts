@@ -3,11 +3,14 @@ import "server-only";
 import { CamelCasePlugin, Kysely, PostgresDialect } from "kysely";
 import { Pool, types as pgTypes } from "pg";
 import Cursor from "pg-cursor";
+import { createLogger } from "../utils/logger.ts";
 import type { DB } from "./generated/db.ts";
 
 const PG_NUMERIC_OID = 1700;
 
 pgTypes.setTypeParser(PG_NUMERIC_OID, (value) => Number(value));
+
+const logger = createLogger("db");
 
 function createKyselyClient() {
 	const connectionString = process.env["DATABASE_URL"];
@@ -17,6 +20,18 @@ function createKyselyClient() {
 	}
 
 	const pool = new Pool({ connectionString });
+
+	// node-postgres re-emits a backend-initiated client disconnect (Postgres
+	// restart, network blip, connection-limit kill, failover, ...) as an
+	// 'error' event on the pool. With no listener attached, Node's
+	// EventEmitter throws, crashing the whole Next.js server process. Logging
+	// here instead of throwing keeps a single transient disconnect from
+	// taking down the server.
+	pool.on("error", (error) => {
+		// pino only applies its Error serializer (message/type/stack) to the
+		// `err` key by default, so the error must be logged under that key.
+		logger.error({ err: error }, "Postgres pool error");
+	});
 
 	return new Kysely<DB>({
 		dialect: new PostgresDialect({ pool, cursor: Cursor }),

@@ -40,6 +40,7 @@ Use this table to find the canonical guidance instead of copying rules into this
 - Avoiding barrel/re-export facade files; import from the owning module → `docs/adr/0004-avoid-barrel-files.md`.
 - Keeping feature folders and `src/ui` flat; no technical category subfolders → `docs/adr/0006-prefer-flat-module-structure.md`.
 - Cache tag helpers, lifetimes, invalidation primitives, and the mutation-to-tag map → `docs/adr/0008-cache-tags-lifetimes-and-invalidation.md`, `src/db/cacheTags.ts`, `src/db/cacheInvalidation.ts`, `docs/reference/cache-invalidation-map.md`.
+- Server-side logging (when to log, what not to log, scoped loggers) → `docs/adr/0009-server-side-logging-with-pino.md`, `src/utils/logger.ts`.
 - Database migration conventions → `docs/reference/database-migrations.md`.
 - Testing conventions and test-command selection → `docs/reference/testing-conventions.md`.
 - Accepted architecture decisions → `docs/adr/`.
