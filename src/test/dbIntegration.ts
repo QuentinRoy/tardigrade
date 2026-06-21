@@ -29,6 +29,47 @@ const runTag = sanitizeDbIdentifier(
 	process.env["GITHUB_RUN_ID"] ?? `${Date.now()}_${process.pid}`,
 );
 
+// Postgres reports these SQLSTATE codes when it terminates a client
+// connection as part of its own shutdown: our own dropDatabase() below calls
+// pg_terminate_backend on every per-test cleanup, and the Docker-managed
+// Postgres container's own shutdown can do the same. Either way, a pool can
+// still be flushing its graceful `pool.end()` call when this happens. Node's
+// EventEmitter throws on an 'error' event with no listener attached, which
+// would otherwise crash the worker even though the test itself already
+// passed. See src/db/kysely.ts for the same guard on the app's own pool.
+const POSTGRES_SHUTDOWN_ERROR_CODES = new Set([
+	"57P01", // admin_shutdown
+	"57P02", // crash_shutdown
+	"57P03", // cannot_connect_now
+]);
+
+export function isPostgresShutdownError(error: unknown): boolean {
+	if (typeof error !== "object" || error === null || !("code" in error)) {
+		return false;
+	}
+
+	return (
+		typeof error.code === "string" &&
+		POSTGRES_SHUTDOWN_ERROR_CODES.has(error.code)
+	);
+}
+
+function createTestPool(connectionString: string): Pool {
+	const pool = new Pool({ connectionString, max: TEST_DB_POOL_MAX });
+
+	pool.on("error", (error) => {
+		if (isPostgresShutdownError(error)) {
+			return;
+		}
+
+		// Anything else is unexpected, but it also surfaces through the
+		// rejected promise of the query that was in flight, so there is no
+		// need to log it again here.
+	});
+
+	return pool;
+}
+
 export function buildTestId(prefix: string): string {
 	return `${prefix}-${randomUUID()}`;
 }
@@ -132,7 +173,7 @@ type DisposableAdminPool = {
 function createDisposableAdminPool(
 	connectionString: string,
 ): DisposableAdminPool {
-	const pool = new Pool({ connectionString, max: TEST_DB_POOL_MAX });
+	const pool = createTestPool(connectionString);
 
 	return {
 		pool,
@@ -151,9 +192,7 @@ function createDisposableMigrationDb(
 	connectionString: string,
 ): DisposableMigrationDb {
 	const db = new Kysely<DB>({
-		dialect: new PostgresDialect({
-			pool: new Pool({ connectionString, max: TEST_DB_POOL_MAX }),
-		}),
+		dialect: new PostgresDialect({ pool: createTestPool(connectionString) }),
 		plugins: [new CamelCasePlugin()],
 	});
 
@@ -212,23 +251,16 @@ export async function dropTestTemplate(templateDbName: string): Promise<void> {
 export async function startTestDatabase(): Promise<StartedTestDatabase> {
 	const adminConnectionUrl = readExternalAdminUrl();
 	const templateDbName = readTemplateDbName();
-	const adminPool = new Pool({
-		connectionString: adminConnectionUrl.toString(),
-		max: TEST_DB_POOL_MAX,
-	});
+	const adminPool = createTestPool(adminConnectionUrl.toString());
 	const databaseName = buildDbName(TEST_DATABASE_PREFIX);
 
 	await createDatabaseFromTemplate(adminPool, databaseName, templateDbName);
 
 	const db = new Kysely<DB>({
 		dialect: new PostgresDialect({
-			pool: new Pool({
-				connectionString: buildConnectionString(
-					adminConnectionUrl,
-					databaseName,
-				),
-				max: TEST_DB_POOL_MAX,
-			}),
+			pool: createTestPool(
+				buildConnectionString(adminConnectionUrl, databaseName),
+			),
 			cursor: Cursor,
 		}),
 		plugins: [new CamelCasePlugin()],
