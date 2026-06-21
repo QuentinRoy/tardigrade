@@ -3,9 +3,7 @@
 	"version": "0.1.0",
 	"private": true,
 	"type": "module",
-	"imports": {
-		"#*": "./src/*"
-	},
+	"imports": { "#*": "./src/*" },
 	"scripts": {
 		"db:down": "dotenvx run --convention=flow -- docker compose down",
 		"db:logs": "dotenvx run --convention=flow -- docker compose logs -f postgres",
@@ -84,7 +82,5 @@
 		"vitest": "^4.1.9"
 	},
 	"packageManager": "pnpm@11.1.1",
-	"engines": {
-		"node": ">=26"
-	}
+	"engines": { "node": ">=26" }
 }
