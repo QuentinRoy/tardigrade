@@ -32,11 +32,11 @@ const runTag = sanitizeDbIdentifier(
 // Postgres reports these SQLSTATE codes when it terminates a client
 // connection as part of its own shutdown: our own dropDatabase() below calls
 // pg_terminate_backend on every per-test cleanup, and the Docker-managed
-// Postgres container's own shutdown can do the same. Either way, a pool can
+// Postgres container's own shutdown can do the same. Either way, a client can
 // still be flushing its graceful `pool.end()` call when this happens. Node's
 // EventEmitter throws on an 'error' event with no listener attached, which
 // would otherwise crash the worker even though the test itself already
-// passed. See src/db/kysely.ts for the same guard on the app's own pool.
+// passed.
 const POSTGRES_SHUTDOWN_ERROR_CODES = new Set([
 	"57P01", // admin_shutdown
 	"57P02", // crash_shutdown
@@ -57,14 +57,21 @@ export function isPostgresShutdownError(error: unknown): boolean {
 function createTestPool(connectionString: string): Pool {
 	const pool = new Pool({ connectionString, max: TEST_DB_POOL_MAX });
 
-	pool.on("error", (error) => {
-		if (isPostgresShutdownError(error)) {
-			return;
-		}
+	// A pool-level `pool.on("error", ...)` listener alone does not reliably
+	// catch every backend-initiated disconnect: a known node-postgres gap
+	// (https://github.com/brianc/node-postgres/issues/1986) lets one idle
+	// client throw as an uncaught exception instead of emitting on the pool.
+	// Listen on each client instead, matching src/db/kysely.ts's app pool.
+	pool.on("connect", (client) => {
+		client.on("error", (error) => {
+			if (isPostgresShutdownError(error)) {
+				return;
+			}
 
-		// Anything else is unexpected, but it also surfaces through the
-		// rejected promise of the query that was in flight, so there is no
-		// need to log it again here.
+			// Anything else is unexpected, but it also surfaces through the
+			// rejected promise of the query that was in flight, so there is no
+			// need to log it again here.
+		});
 	});
 
 	return pool;
