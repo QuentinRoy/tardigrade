@@ -9,8 +9,10 @@ const booleanRubricDefinitionSchema = z.object({
 	description: z.string().trim().optional(),
 	label: z.string().trim().optional(),
 	type: z.literal("boolean"),
-	marks: z.number(),
-	falseMarks: z.number().optional(),
+	marks: z.number({ error: "Marks must be a valid number" }),
+	falseMarks: z
+		.number({ error: "False marks must be a valid number" })
+		.optional(),
 });
 
 const ordinalRubricDefinitionSchema = z.object({
@@ -32,10 +34,10 @@ const numericalRubricDefinitionSchema = z.object({
 	description: z.string().trim().optional(),
 	label: z.string().trim().optional(),
 	type: z.literal("numerical"),
-	minScore: z.number(),
-	maxScore: z.number(),
-	minMarks: z.number(),
-	maxMarks: z.number(),
+	minScore: z.number({ error: "Min score must be a valid number" }),
+	maxScore: z.number({ error: "Max score must be a valid number" }),
+	minMarks: z.number({ error: "Min marks must be a valid number" }),
+	maxMarks: z.number({ error: "Max marks must be a valid number" }),
 	reversed: z.boolean(),
 });
 

@@ -2,8 +2,9 @@
 
 import { Stack, Switch, Typography } from "@mui/material";
 import type { ReactElement } from "react";
+import NumberField from "#ui/NumberField.tsx";
 import type { QuestionRubricFieldErrors } from "./errors.ts";
-import RubricEditorPaper, { NumberField } from "./RubricEditorPaper.tsx";
+import RubricEditorPaper from "./RubricEditorPaper.tsx";
 import type { RubricEditorValue } from "./types.ts";
 
 type NumericalRubric = Extract<RubricEditorValue, { type: "numerical" }>;
@@ -32,25 +33,29 @@ export default function NumericalRubricEditorPaper({
 				<Stack direction="row" spacing={1} sx={{ flexWrap: "wrap" }}>
 					<NumberField
 						label="Min score"
-						value={rubric.minScore}
+						defaultValue={rubric.minScore}
 						onChange={(value) => onChange({ ...rubric, minScore: value })}
+						error={fieldErrors?.minScore}
 					/>
 					<NumberField
 						label="Max score"
-						value={rubric.maxScore}
+						defaultValue={rubric.maxScore}
 						onChange={(value) => onChange({ ...rubric, maxScore: value })}
+						error={fieldErrors?.maxScore}
 					/>
 				</Stack>
 				<Stack direction="row" spacing={1} sx={{ flexWrap: "wrap" }}>
 					<NumberField
 						label="Min marks"
-						value={rubric.minMarks}
+						defaultValue={rubric.minMarks}
 						onChange={(value) => onChange({ ...rubric, minMarks: value })}
+						error={fieldErrors?.minMarks}
 					/>
 					<NumberField
 						label="Max marks"
-						value={rubric.maxMarks}
+						defaultValue={rubric.maxMarks}
 						onChange={(value) => onChange({ ...rubric, maxMarks: value })}
+						error={fieldErrors?.maxMarks}
 					/>
 				</Stack>
 				<Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
