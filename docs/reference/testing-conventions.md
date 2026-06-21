@@ -75,16 +75,33 @@ A build must exist first; `playwright.config.ts`'s `webServer` runs `pnpm start`
 (no rebuild) and reuses an already-running server locally (`reuseExistingServer`).
 
 The database contract is an empty, migrated Postgres — never a developer's
-database. The test database is resolved in `playwright.config.ts` itself
-(top-level `await`, not a `globalSetup` file — Playwright starts `webServer`
+database. `playwright.config.ts` itself never provisions or tears down a
+database; it only requires `TEST_DATABASE_URL` to already be set and migrates
+it (top-level `await`, not a `globalSetup` file — Playwright starts `webServer`
 before running `globalSetup`, which would otherwise let the production server
-boot against a developer's real database before the override took effect) and
-passed through `webServer.env`. It uses `TEST_DATABASE_URL` if set (CI's `e2e`
-job runs its own service container; see `.github/workflows/ci.yml`), otherwise
-it provisions an ephemeral Docker Postgres, the same pattern as
-`src/test/integrationGlobalSetup.ts`; `e2e/globalTeardown.ts` tears it down. All
-test data is created through the UI; the only fixtures are the import payloads
-under `e2e/fixtures/`.
+boot against a developer's real database before the override took effect), then
+passes it through `webServer.env`.
+
+`TEST_DATABASE_URL` itself is set by whichever process invokes Playwright:
+
+- In CI, the `e2e` job points it at its own Postgres service container (see
+  `.github/workflows/ci.yml`), which outlives the job.
+- Locally, `pnpm test:e2e` runs `e2e/runE2e.ts`, which provisions an ephemeral
+  Docker Postgres (the same pattern as `src/test/integrationGlobalSetup.ts`),
+  sets `TEST_DATABASE_URL`, and runs Playwright as a child process. The
+  ephemeral database is provisioned and torn down in this wrapper — a process
+  that outlives `webServer` — rather than inside `playwright.config.ts` or a
+  `globalTeardown` file, so the database is only ever torn down *after*
+  Playwright has stopped the production server. Tearing it down while the
+  server still holds open connections previously made Postgres kill those
+  connections out from under the running server, which surfaced as a burst of
+  `terminating connection due to administrator command` errors logged by the
+  server right as the suite finished — harmless to the (already-passed) test
+  run, but noisy. `runE2e.ts` also tears down on `SIGINT`/`SIGTERM`, so an
+  interrupted run does not leak the container.
+
+All test data is created through the UI; the only fixtures are the import
+payloads under `e2e/fixtures/`.
 
 In CI, the `build` job uploads its `.next` output as an artifact; the `e2e` job
 downloads it and runs `pnpm test:e2e` against it, so the production build never

@@ -23,14 +23,21 @@ function createKyselyClient() {
 
 	// node-postgres re-emits a backend-initiated client disconnect (Postgres
 	// restart, network blip, connection-limit kill, failover, ...) as an
-	// 'error' event on the pool. With no listener attached, Node's
-	// EventEmitter throws, crashing the whole Next.js server process. Logging
-	// here instead of throwing keeps a single transient disconnect from
-	// taking down the server.
-	pool.on("error", (error) => {
-		// pino only applies its Error serializer (message/type/stack) to the
-		// `err` key by default, so the error must be logged under that key.
-		logger.error({ err: error }, "Postgres pool error");
+	// 'error' event. A pool-level `pool.on("error", ...)` listener alone is not
+	// reliable here: reproducing a multi-connection disconnect locally showed
+	// one idle client routinely throwing "Connection terminated unexpectedly"
+	// as an uncaught exception instead of emitting on the pool (a known
+	// node-postgres gap, https://github.com/brianc/node-postgres/issues/1986).
+	// Listening on each client individually catches every case, including that
+	// one. With no listener attached to a client, Node's EventEmitter throws,
+	// crashing the whole Next.js server process. Logging here instead of
+	// throwing keeps a single transient disconnect from taking down the server.
+	pool.on("connect", (client) => {
+		client.on("error", (error) => {
+			// pino only applies its Error serializer (message/type/stack) to the
+			// `err` key by default, so the error must be logged under that key.
+			logger.error({ err: error }, "Postgres pool error");
+		});
 	});
 
 	return new Kysely<DB>({
