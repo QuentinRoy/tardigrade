@@ -87,29 +87,38 @@ async function waitForTcpReady(host: string, port: number): Promise<void> {
 	throw new Error(`Postgres did not become reachable on ${host}:${port}`);
 }
 
+function createDisposablePool(connectionString: string): {
+	pool: Pool;
+	[Symbol.asyncDispose](): Promise<void>;
+} {
+	const pool = new Pool({ connectionString });
+
+	return {
+		pool,
+		async [Symbol.asyncDispose](): Promise<void> {
+			await pool.end();
+		},
+	};
+}
+
 async function waitForQueryReady(connectionString: string): Promise<void> {
 	const maxAttempts = 60;
 
 	for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-		const pool = new Pool({ connectionString });
+		await using pool = createDisposablePool(connectionString);
 
 		try {
-			await pool.query("select 1");
+			await pool.pool.query("select 1");
 			return;
 		} catch {
 			await delay(1000);
-		} finally {
-			await pool.end();
 		}
 	}
 
 	throw new Error("Postgres did not become query-ready in time");
 }
 
-async function stopAndRemoveContainers(
-	composeProject: string,
-	composeEnv: NodeJS.ProcessEnv,
-): Promise<void> {
+function guardAgainstShutdownExceptions(): Disposable {
 	const onUncaughtException = (error: unknown): void => {
 		if (isPostgresShutdownError(error)) {
 			return;
@@ -121,27 +130,36 @@ async function stopAndRemoveContainers(
 
 	process.on("uncaughtException", onUncaughtException);
 
-	try {
-		await run(
-			"docker",
-			[
-				"compose",
-				"-p",
-				composeProject,
-				"stop",
-				"-t",
-				TEARDOWN_STOP_TIMEOUT_SECONDS,
-			],
-			composeEnv,
-		);
-		await run(
-			"docker",
-			["compose", "-p", composeProject, "down", "-v", "--remove-orphans"],
-			composeEnv,
-		);
-	} finally {
-		process.removeListener("uncaughtException", onUncaughtException);
-	}
+	return {
+		[Symbol.dispose](): void {
+			process.removeListener("uncaughtException", onUncaughtException);
+		},
+	};
+}
+
+async function stopAndRemoveContainers(
+	composeProject: string,
+	composeEnv: NodeJS.ProcessEnv,
+): Promise<void> {
+	using _guard = guardAgainstShutdownExceptions();
+
+	await run(
+		"docker",
+		[
+			"compose",
+			"-p",
+			composeProject,
+			"stop",
+			"-t",
+			TEARDOWN_STOP_TIMEOUT_SECONDS,
+		],
+		composeEnv,
+	);
+	await run(
+		"docker",
+		["compose", "-p", composeProject, "down", "-v", "--remove-orphans"],
+		composeEnv,
+	);
 }
 
 function buildTestDatabaseUrl(params: {
