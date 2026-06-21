@@ -1,8 +1,5 @@
 import { defineConfig, devices } from "@playwright/test";
-import {
-	migrateToLatest,
-	provisionEphemeralPostgres,
-} from "./e2e/ephemeralPostgres.ts";
+import { migrateToLatest } from "./e2e/ephemeralPostgres.ts";
 
 // Standalone Playwright runner for the end-to-end grading smoke test. It is
 // separate from the Storybook Vitest browser project: this suite drives the
@@ -32,29 +29,22 @@ const baseURL = `http://127.0.0.1:${port}`;
 // through `webServer.env`, so the production server is started with the right
 // connection string from the very first instant.
 //
-// `TEST_DATABASE_URL` is used verbatim if set (CI's `e2e` job supplies its own
-// service container). Otherwise this provisions an ephemeral Docker Postgres,
-// the same pattern as `src/test/integrationGlobalSetup.ts`; the corresponding
-// teardown lives in `e2e/globalTeardown.ts`, which still runs as a normal
-// `globalTeardown` file (only the webServer's *startup* ordering is the
-// problem, not teardown).
+// `TEST_DATABASE_URL` must already be set by the caller: CI's `e2e` job points
+// it at its own long-lived service container, and `pnpm test:e2e` runs
+// `e2e/runE2e.ts`, which provisions an ephemeral Postgres and sets it before
+// invoking Playwright. Provisioning and teardown of that ephemeral database
+// intentionally live outside this config, in a process that outlives
+// `webServer` — so the database is only ever torn down *after* Playwright has
+// stopped the production server, never while it is still connected.
 async function resolveTestDatabaseUrl(): Promise<string> {
 	const explicitUrl = process.env["TEST_DATABASE_URL"];
-	if (explicitUrl != null && explicitUrl !== "") {
-		await migrateToLatest(explicitUrl);
-		return explicitUrl;
+	if (explicitUrl == null || explicitUrl === "") {
+		throw new Error(
+			"TEST_DATABASE_URL is required to run this suite. Use `pnpm test:e2e`, which sets it via e2e/runE2e.ts.",
+		);
 	}
-
-	const {
-		composeProject,
-		port: postgresPort,
-		databaseUrl,
-	} = await provisionEphemeralPostgres();
-	// Consumed by `globalTeardown.ts`, which runs in this same process.
-	process.env["E2E_TEARDOWN_COMPOSE_PROJECT"] = composeProject;
-	process.env["E2E_TEARDOWN_POSTGRES_PORT"] = String(postgresPort);
-	await migrateToLatest(databaseUrl);
-	return databaseUrl;
+	await migrateToLatest(explicitUrl);
+	return explicitUrl;
 }
 
 const databaseUrl = await resolveTestDatabaseUrl();
@@ -67,7 +57,6 @@ export default defineConfig({
 	forbidOnly: isCi,
 	retries: isCi ? 2 : 0,
 	reporter: isCi ? [["list"], ["html", { open: "never" }]] : "list",
-	globalTeardown: "./e2e/globalTeardown.ts",
 	use: { baseURL, trace: "on-first-retry", video: "retain-on-failure" },
 	projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
 	webServer: {

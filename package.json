@@ -20,7 +20,7 @@
 		"test:integration": "vitest run --project=integration",
 		"test:storybook": "vitest run --project=storybook",
 		"test:watch": "vitest --project=unit --project=integration --project=storybook",
-		"test:e2e": "dotenvx run --convention=flow -- playwright test",
+		"test:e2e": "dotenvx run --convention=flow -- node e2e/runE2e.ts",
 		"check": "biome check --error-on-warnings --max-diagnostics=none",
 		"check-types": "tsc --noEmit",
 		"db:migrate:down": "dotenvx run --convention=flow -- node src/db/migrate.ts down",
