@@ -123,7 +123,7 @@ jobs:
     # the tag in sync with the playwright version resolved in pnpm-lock.yaml.
     runs-on: ubuntu-latest
     container:
-      image: mcr.microsoft.com/playwright:v1.60.0-noble
+      image: mcr.microsoft.com/playwright:v1.61.0-noble
     needs: changes
     if: needs.changes.outputs.non_docs_changed == 'true'
     steps:
@@ -211,7 +211,7 @@ jobs:
     # the browser is prebaked, so there is no download from cdn.playwright.dev
     # and no `playwright install --with-deps` apt step.
     container:
-      image: mcr.microsoft.com/playwright:v1.60.0-noble
+      image: mcr.microsoft.com/playwright:v1.61.0-noble
     needs: [changes, build]
     if: needs.changes.outputs.non_docs_changed == 'true'
 
