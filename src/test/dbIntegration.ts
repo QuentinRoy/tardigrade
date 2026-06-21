@@ -124,6 +124,18 @@ function readTemplateDbName(): string {
 	return name;
 }
 
+function createDisposableAdminPool(
+	connectionString: string,
+): Pool & AsyncDisposable {
+	const pool = new Pool({ connectionString, max: TEST_DB_POOL_MAX });
+
+	return Object.assign(pool, {
+		async [Symbol.asyncDispose](): Promise<void> {
+			await pool.end();
+		},
+	});
+}
+
 // Runs once from integrationGlobalSetup.ts, before any test file starts, so
 // the migrations only run once even when test files run in parallel across
 // workers. Each test then clones this template instead of migrating from
@@ -132,40 +144,35 @@ export async function buildTestTemplate(
 	migrationFolder: string,
 ): Promise<string> {
 	const adminConnectionUrl = readExternalAdminUrl();
-	const adminPool = new Pool({
-		connectionString: adminConnectionUrl.toString(),
-		max: TEST_DB_POOL_MAX,
-	});
+	await using adminPool = createDisposableAdminPool(
+		adminConnectionUrl.toString(),
+	);
 	const templateDbName = buildDbName(TEST_TEMPLATE_PREFIX);
 
-	try {
-		await createDatabase(adminPool, templateDbName);
+	await createDatabase(adminPool, templateDbName);
 
-		const templateDb = new Kysely<DB>({
-			dialect: new PostgresDialect({
-				pool: new Pool({
-					connectionString: buildConnectionString(
-						adminConnectionUrl,
-						templateDbName,
-					),
-					max: TEST_DB_POOL_MAX,
-				}),
+	const templateDb = new Kysely<DB>({
+		dialect: new PostgresDialect({
+			pool: new Pool({
+				connectionString: buildConnectionString(
+					adminConnectionUrl,
+					templateDbName,
+				),
+				max: TEST_DB_POOL_MAX,
 			}),
-			plugins: [new CamelCasePlugin()],
-		});
+		}),
+		plugins: [new CamelCasePlugin()],
+	});
 
-		try {
-			const migrator = createMigrator(templateDb, migrationFolder);
-			const { error } = await migrator.migrateToLatest();
+	try {
+		const migrator = createMigrator(templateDb, migrationFolder);
+		const { error } = await migrator.migrateToLatest();
 
-			if (error != null) {
-				throw error;
-			}
-		} finally {
-			await templateDb.destroy();
+		if (error != null) {
+			throw error;
 		}
 	} finally {
-		await adminPool.end();
+		await templateDb.destroy();
 	}
 
 	return templateDbName;
@@ -173,16 +180,11 @@ export async function buildTestTemplate(
 
 export async function dropTestTemplate(templateDbName: string): Promise<void> {
 	const adminConnectionUrl = readExternalAdminUrl();
-	const adminPool = new Pool({
-		connectionString: adminConnectionUrl.toString(),
-		max: TEST_DB_POOL_MAX,
-	});
+	await using adminPool = createDisposableAdminPool(
+		adminConnectionUrl.toString(),
+	);
 
-	try {
-		await dropDatabase(adminPool, templateDbName);
-	} finally {
-		await adminPool.end();
-	}
+	await dropDatabase(adminPool, templateDbName);
 }
 
 export async function startTestDatabase(): Promise<StartedTestDatabase> {
