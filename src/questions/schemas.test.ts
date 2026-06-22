@@ -105,3 +105,109 @@ describe("questionDefinitionSchema numeric rubric fields", () => {
 		);
 	});
 });
+
+function buildNumericalQuestion(overrides: {
+	minScore: number;
+	maxScore: number;
+	minMarks: number;
+	maxMarks: number;
+}) {
+	return {
+		id: "q1",
+		rubrics: [{ id: "r1", type: "numerical", reversed: false, ...overrides }],
+	};
+}
+
+describe("questionDefinitionSchema numerical rubric bounds", () => {
+	it("rejects a numerical rubric with minScore === maxScore", () => {
+		const result = questionDefinitionSchema.safeParse(
+			buildNumericalQuestion({
+				minScore: 5,
+				maxScore: 5,
+				minMarks: 0,
+				maxMarks: 10,
+			}),
+		);
+
+		expect(result.success).toBe(false);
+		const issue = result.error?.issues.find(
+			(issue) => issue.path.join(".") === "rubrics.0.maxScore",
+		);
+		expect(issue?.message).toBe("Max score must be greater than min score");
+	});
+
+	it("rejects a numerical rubric with minScore > maxScore", () => {
+		const result = questionDefinitionSchema.safeParse(
+			buildNumericalQuestion({
+				minScore: 10,
+				maxScore: 5,
+				minMarks: 0,
+				maxMarks: 10,
+			}),
+		);
+
+		expect(result.success).toBe(false);
+		const issue = result.error?.issues.find(
+			(issue) => issue.path.join(".") === "rubrics.0.maxScore",
+		);
+		expect(issue?.message).toBe("Max score must be greater than min score");
+	});
+
+	it("accepts a numerical rubric with minScore < maxScore", () => {
+		const result = questionDefinitionSchema.safeParse(
+			buildNumericalQuestion({
+				minScore: 0,
+				maxScore: 10,
+				minMarks: 0,
+				maxMarks: 10,
+			}),
+		);
+
+		expect(result.success).toBe(true);
+	});
+
+	it("rejects a numerical rubric with minMarks > maxMarks", () => {
+		const result = questionDefinitionSchema.safeParse(
+			buildNumericalQuestion({
+				minScore: 0,
+				maxScore: 10,
+				minMarks: 10,
+				maxMarks: 0,
+			}),
+		);
+
+		expect(result.success).toBe(false);
+		const issue = result.error?.issues.find(
+			(issue) => issue.path.join(".") === "rubrics.0.maxMarks",
+		);
+		expect(issue?.message).toBe(
+			"Max marks must be greater than or equal to min marks",
+		);
+	});
+
+	it("accepts a numerical rubric with minMarks === maxMarks", () => {
+		const result = questionDefinitionSchema.safeParse(
+			buildNumericalQuestion({
+				minScore: 0,
+				maxScore: 10,
+				minMarks: 5,
+				maxMarks: 5,
+			}),
+		);
+
+		expect(result.success).toBe(true);
+	});
+
+	it("accepts a numerical rubric with minMarks < maxMarks", () => {
+		const result = questionDefinitionSchema.safeParse(
+			buildNumericalQuestion({
+				minScore: 0,
+				maxScore: 10,
+				minMarks: 0,
+				maxMarks: 10,
+			}),
+		);
+
+		expect(result.success).toBe(true);
+	});
+});

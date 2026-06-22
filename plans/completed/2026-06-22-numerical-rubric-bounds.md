@@ -265,24 +265,24 @@ behavior; no broad refactors.
 
 ## Acceptance (Tier 1 Definition of Done)
 
-- [ ] `markNumericalRubric` throws only on `scoreRange === 0`; inverted ranges and
+- [x] `markNumericalRubric` throws only on `scoreRange === 0`; inverted ranges and
       out-of-range scores return finite values; inverted marks unchanged. Slices
       1–3 + the Step-0 net green.
-- [ ] `questionDefinitionSchema` rejects `minScore >= maxScore`
+- [x] `questionDefinitionSchema` rejects `minScore >= maxScore`
       (`rubrics.<i>.maxScore`) and `minMarks > maxMarks` (`rubrics.<i>.maxMarks`);
       flat-marks and valid cases accepted. Slice 4 green.
-- [ ] New migration adds both CHECK constraints with a working `down()`; slice 5
+- [x] New migration adds both CHECK constraints with a working `down()`; slice 5
       integration tests green; migration applies cleanly.
-- [ ] `CONTEXT.md` gains the `Numerical Rubric Bounds` entry (decision 7).
-- [ ] Regression check (TDD discipline): temporarily revert each GREEN change and
+- [x] `CONTEXT.md` gains the `Numerical Rubric Bounds` entry (decision 7).
+- [x] Regression check (TDD discipline): temporarily revert each GREEN change and
       confirm its RED test fails, then restore.
-- [ ] `pnpm run check --fix`, `pnpm run check-types`, `pnpm test:unit rubric schemas`,
+- [x] `pnpm run check --fix`, `pnpm run check-types`, `pnpm test:unit rubric schemas`,
       `pnpm test src/db/` all green.
-- [ ] R-010 promoted to Verified in
+- [x] R-010 promoted to Verified in
       `plans/active/2026-05-17-reliability-hardening.md`: rewrite Risk/Next Action
       (now: marking function made a pure computer guarding only zero-width ranges;
       both numerical bounds enforced at editor + DB — the prior "no behavior
       change expected" is false), link test files, refresh Section 3 dashboard
       (Tier 1: 0 open, 7 verified) and milestones (M4/M5), add a Change Log entry.
       PR body includes `Fixes #23`.
-- [ ] Move this plan to `plans/completed/` on merge.
+- [x] Move this plan to `plans/completed/` on merge.

@@ -575,3 +575,99 @@ test("rubric subtype triggers reject mismatched subtype rows and roll back trans
 	expect(ordinalRows).toHaveLength(0);
 	expect(baselineBooleanRows).toHaveLength(1);
 });
+
+test("numerical rubric score range check rejects a collapsed or inverted range and rolls back transactional writes", async () => {
+	await using db = await createTestDb();
+	await using project = await createProject(
+		db,
+		"Constraint Numerical Score Range Project",
+	);
+	const rubricRowIds = await createSubtypeConstraintFixture(db, project.id);
+
+	await expect(
+		db
+			.insertInto("numericalRubric")
+			.values({
+				rubricId: rubricRowIds.numerical,
+				minScore: 5,
+				maxScore: 5,
+				minMarks: 0,
+				maxMarks: 10,
+				reversed: false,
+			})
+			.execute(),
+	).rejects.toThrow("numerical_rubric_score_range_check");
+
+	await expect(
+		db
+			.insertInto("numericalRubric")
+			.values({
+				rubricId: rubricRowIds.numerical,
+				minScore: 10,
+				maxScore: 5,
+				minMarks: 0,
+				maxMarks: 10,
+				reversed: false,
+			})
+			.execute(),
+	).rejects.toThrow("numerical_rubric_score_range_check");
+
+	const persisted = await db
+		.selectFrom("numericalRubric")
+		.select("rubricId")
+		.where("rubricId", "=", rubricRowIds.numerical)
+		.execute();
+
+	expect(persisted).toHaveLength(0);
+});
+
+test("numerical rubric marks range check rejects inverted marks and rolls back transactional writes", async () => {
+	await using db = await createTestDb();
+	await using project = await createProject(
+		db,
+		"Constraint Numerical Marks Range Project",
+	);
+	const rubricRowIds = await createSubtypeConstraintFixture(db, project.id);
+
+	await expect(
+		db
+			.insertInto("numericalRubric")
+			.values({
+				rubricId: rubricRowIds.numerical,
+				minScore: 0,
+				maxScore: 10,
+				minMarks: 10,
+				maxMarks: 0,
+				reversed: false,
+			})
+			.execute(),
+	).rejects.toThrow("numerical_rubric_marks_range_check");
+
+	await db
+		.insertInto("numericalRubric")
+		.values({
+			rubricId: rubricRowIds.numerical,
+			minScore: 0,
+			maxScore: 10,
+			minMarks: 5,
+			maxMarks: 5,
+			reversed: false,
+		})
+		.execute();
+
+	const persisted = await db
+		.selectFrom("numericalRubric")
+		.select(["rubricId", "minMarks", "maxMarks"])
+		.where("rubricId", "=", rubricRowIds.numerical)
+		.execute();
+
+	const normalizedPersisted = persisted.map((row) => ({
+		rubricId: row.rubricId,
+		minMarks: Number(row.minMarks),
+		maxMarks: Number(row.maxMarks),
+	}));
+
+	expect(normalizedPersisted).toEqual([
+		{ rubricId: rubricRowIds.numerical, minMarks: 5, maxMarks: 5 },
+	]);
+});
