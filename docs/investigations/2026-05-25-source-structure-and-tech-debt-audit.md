@@ -2,7 +2,7 @@
 
 Status: Current investigation
 Date: 2026-05-25
-Last updated: 2026-06-20 (Finding 13 / Priority 6 resolved; Finding 4 / Priority 8 resolved now that #59 closed)
+Last updated: 2026-06-21 (Finding 14 / Priority 7 extraction approach settled — plans/active/2026-06-21-grading-client-extractions.md; 2026-06-20: Finding 13 / Priority 6 and Finding 4 / Priority 8 resolved after #59 closed)
 Related: #99, #59, #68, #110, #24, #26, #32; #115 (closed umbrella), #51 (closed)
 
 ## Table of contents
@@ -63,7 +63,7 @@ Resolved or largely resolved since the first audit:
 
 The highest-value remaining work:
 
-1. grading-client duplication (quick-jump shortcut, save-error shaping).
+1. grading-client duplication — extract the quick-jump shortcut/state hook; the save-error shaping stays inline (WET). Approach settled 2026-06-21 in `plans/active/2026-06-21-grading-client-extractions.md`.
 
 Numeric rubric editing (#68; former item 1), cache-tag hygiene (former cache item), and the question-specific grading page cache-boundary review (former item 4) are resolved; see Findings 13, 4, and 16.
 
@@ -88,7 +88,7 @@ This table is the single source of truth for each finding's status. The per-find
 | 11. Import parse/prepare/write seams | Resolved | [design](../design/2026-06-10-import-parse-prepare-write-seams.md), `plans/completed/2026-06-10-import-parse-prepare-write-seams.md`, #146, #147, #148 |
 | 12. App shell navigation mixes concerns | Mostly resolved; optional export-options extraction | Finding body |
 | 13. Numeric rubric editing parses too eagerly | Resolved | Priority 6, #68 |
-| 14. Grading clients duplicate workflow behavior | Open (partial reuse exists) | Priority 7 |
+| 14. Grading clients duplicate workflow behavior | Open; approach settled, plan active | Priority 7, plans/active/2026-06-21-grading-client-extractions.md |
 | 15. Server action contract boundaries | Resolved | ADR 0007, finding body |
 | 16. Cache tags and invalidation scattered | Resolved | Priority 5, #59 (closed) |
 | 17. `shared` bucket renamed to `src/ui` | Resolved | #137 |
@@ -703,6 +703,12 @@ The root cause was not the keystroke-level parsing itself but the field being a 
 
 ## Finding 14: grading clients duplicate stable workflow behavior
 
+### Current status
+
+Status in the [status table](#status-at-a-glance).
+
+The extraction approach was settled by a 2026-06-21 grilling session and is recorded in `plans/active/2026-06-21-grading-client-extractions.md`: extract only the quick-jump hook and remove the redundant current-submission lookup; keep the save-error payload inline. Two deliberate changes from the candidate list below — the hook is named `useSubmissionQuickJump` because it owns the dialog open/close state (not just the shortcut), and `buildSaveErrorContext` is dropped because it reduces to an object literal and the WET-before-DRY principle favors leaving it inline.
+
 ### Current behavior
 
 Re-confirmed 2026-06-10. Reuse already exists through `useAssessmentSession` (optimistic save state, pending tracking, navigation lookup via `getSubmissionNavigation` in `submissionNavigation.ts`). What remains duplicated between `SubmissionAssessmentClient.tsx` and `SubmissionOverviewAssessmentClient.tsx` is:
@@ -715,9 +721,11 @@ The previous/next navigation toolbars are similar but intentionally different (d
 
 ### Candidate extractions
 
+Original candidates (superseded by the decision in **Current status**):
+
 ```txt
-src/assessments/useSubmissionQuickJumpShortcut.ts
-src/assessments/buildSaveErrorContext.ts
+src/assessments/useSubmissionQuickJumpShortcut.ts   -> useSubmissionQuickJump (also owns open/close state)
+src/assessments/buildSaveErrorContext.ts            -> dropped; save-error payload kept inline (WET)
 ```
 
 A shared `SubmissionNavigation` component parameterized by a link builder is possible but lower value; the earlier `useCurrentSubmission` idea is already covered by `getSubmissionNavigation`.
@@ -1054,15 +1062,22 @@ Related: Finding 13; #68.
 
 ### Priority 7: grading-client extractions
 
-Why fourth:
+Approach settled 2026-06-21 in `plans/active/2026-06-21-grading-client-extractions.md`.
 
-- removes verbatim duplication (quick-jump shortcut effect, save-error shaping) between the two grading clients;
+Why this is the remaining item:
+
+- removes verbatim duplication (the quick-jump shortcut effect) between the two grading clients;
 - small, mechanical, and keeps the two UIs independent.
 
-Suggested deliverables:
+Deliverables:
 
-- extract `useSubmissionQuickJumpShortcut` and `buildSaveErrorContext` into `src/assessments`;
+- extract `useSubmissionQuickJump` into `src/assessments` — it owns the Cmd/Ctrl+K listener (with the focus guard) plus the dialog open/close state;
+- route each client's current-submission lookup through the shared `getSubmissionNavigation` and collapse the duplicated null guard;
+- keep the save-error payload inline in each `saveRubric`; `buildSaveErrorContext` was evaluated and dropped (it reduces to an object literal — WET-before-DRY applies);
+- cover the hook with one Storybook play harness (Cmd/Ctrl+K opens, input-focus guard, Escape/close), since the Node unit tier cannot exercise window/DOM code;
 - leave the navigation toolbars separate unless a parameterized component falls out naturally.
+
+A dedicated implementation issue is still needed when work starts (the #115 umbrella is closed); no existing issue tracks this (tangential: #30, #84, #86).
 
 Related: Finding 14.
 

@@ -6,7 +6,7 @@ import Typography from "@mui/material/Typography";
 import NextLink from "next/link";
 import { useRouter } from "next/navigation";
 import type { ReactElement } from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { projectAssessmentSubmissionPath } from "#projects/projectPaths.ts";
 import type { AssessedRubric } from "#rubrics/types.ts";
 import { getSubmissionLabel } from "#submissions/getSubmissionLabel.ts";
@@ -17,8 +17,10 @@ import { summarizeRubrics } from "./assessmentSummary.ts";
 import RubricGradeList from "./RubricGradeList.tsx";
 import SubmissionQuickJumpDialog from "./SubmissionQuickJumpDialog.tsx";
 import { saveAssessment } from "./saveAssessment.ts";
+import { getSubmissionNavigation } from "./submissionNavigation.ts";
 import type { AssessmentRubricValue } from "./types.ts";
 import { useAssessmentSession } from "./useAssessmentSession.ts";
+import { useSubmissionQuickJump } from "./useSubmissionQuickJump.ts";
 
 type QuestionAssessmentSection = {
 	questionId: string;
@@ -54,9 +56,11 @@ export default function SubmissionOverviewAssessmentClient({
 }: SubmissionOverviewAssessmentClientProps): ReactElement {
 	const router = useRouter();
 	const { addError } = useSaveErrors();
-	const [isQuickJumpOpen, setQuickJumpOpen] = useState(false);
-	const currentSubmission = submissions.find(
-		(submission) => submission.id === currentSubmissionId,
+	const quickJump = useSubmissionQuickJump();
+
+	const { currentSubmission } = getSubmissionNavigation(
+		submissions,
+		currentSubmissionId,
 	);
 	const currentSubmissionLabel =
 		currentSubmission != null
@@ -85,7 +89,6 @@ export default function SubmissionOverviewAssessmentClient({
 
 	const {
 		currentSubmissionIndex,
-		currentSubmission: sessionCurrentSubmission,
 		previousSubmission,
 		nextSubmission,
 		savedRubrics,
@@ -171,42 +174,13 @@ export default function SubmissionOverviewAssessmentClient({
 
 	const summary = summarizeRubrics(optimisticRubrics);
 
-	useEffect(() => {
-		const onKeyDown = (event: KeyboardEvent) => {
-			const key = event.key.toLowerCase();
-			const isShortcut = (event.metaKey || event.ctrlKey) && key === "k";
-
-			if (!isShortcut) {
-				return;
-			}
-
-			const target = event.target;
-			if (target instanceof HTMLElement) {
-				const tagName = target.tagName.toLowerCase();
-				if (
-					target.isContentEditable ||
-					tagName === "input" ||
-					tagName === "textarea"
-				) {
-					return;
-				}
-			}
-
-			event.preventDefault();
-			setQuickJumpOpen(true);
-		};
-
-		window.addEventListener("keydown", onKeyDown);
-		return () => window.removeEventListener("keydown", onKeyDown);
-	}, []);
-
 	const navigateToSubmission = (submissionId: string) => {
 		router.push(
 			projectAssessmentSubmissionPath(projectId, projectSlug, submissionId),
 		);
 	};
 
-	if (sessionCurrentSubmission == null || currentSubmission == null) {
+	if (currentSubmission == null) {
 		return (
 			<Typography variant="body1" sx={{ mb: 3 }}>
 				No submissions found in database.
@@ -224,12 +198,12 @@ export default function SubmissionOverviewAssessmentClient({
 				totalSubmissions={submissions.length}
 				previousSubmissionId={previousSubmission?.id}
 				nextSubmissionId={nextSubmission?.id}
-				onOpenLookup={() => setQuickJumpOpen(true)}
+				onOpenLookup={quickJump.open}
 			/>
 
 			<SubmissionQuickJumpDialog
-				open={isQuickJumpOpen}
-				onClose={() => setQuickJumpOpen(false)}
+				open={quickJump.isOpen}
+				onClose={quickJump.close}
 				onSelectSubmission={navigateToSubmission}
 				submissions={submissions}
 				progressPromise={progressPromise}

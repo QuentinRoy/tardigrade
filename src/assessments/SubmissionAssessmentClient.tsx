@@ -5,7 +5,7 @@ import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
 import NextLink from "next/link";
 import { useRouter } from "next/navigation";
-import { type ReactElement, useEffect, useState } from "react";
+import type { ReactElement } from "react";
 import { projectAssessmentSubmissionQuestionPath } from "#projects/projectPaths.ts";
 import type { AssessedRubric } from "#rubrics/types.ts";
 import { getSubmissionLabel } from "#submissions/getSubmissionLabel.ts";
@@ -16,8 +16,10 @@ import { summarizeRubrics } from "./assessmentSummary.ts";
 import RubricGradeList from "./RubricGradeList.tsx";
 import SubmissionQuickJumpDialog from "./SubmissionQuickJumpDialog.tsx";
 import { saveAssessment } from "./saveAssessment.ts";
+import { getSubmissionNavigation } from "./submissionNavigation.ts";
 import type { AssessmentRubricValue } from "./types.ts";
 import { useAssessmentSession } from "./useAssessmentSession.ts";
+import { useSubmissionQuickJump } from "./useSubmissionQuickJump.ts";
 
 type SubmissionAssessmentClientProps = {
 	projectId: string;
@@ -44,9 +46,11 @@ export default function SubmissionAssessmentClient({
 }: SubmissionAssessmentClientProps): ReactElement {
 	const router = useRouter();
 	const { addError } = useSaveErrors();
-	const [isQuickJumpOpen, setQuickJumpOpen] = useState(false);
-	const currentSubmission = submissions.find(
-		(submission) => submission.id === currentSubmissionId,
+	const quickJump = useSubmissionQuickJump();
+
+	const { currentSubmission } = getSubmissionNavigation(
+		submissions,
+		currentSubmissionId,
 	);
 	const currentSubmissionLabel =
 		currentSubmission != null
@@ -55,7 +59,6 @@ export default function SubmissionAssessmentClient({
 
 	const {
 		currentSubmissionIndex,
-		currentSubmission: sessionCurrentSubmission,
 		previousSubmission,
 		nextSubmission,
 		savedRubrics,
@@ -98,35 +101,6 @@ export default function SubmissionAssessmentClient({
 		summarizeRubrics(optimisticRubrics);
 	const isCompleted = totalRubrics > 0 && completedRubrics === totalRubrics;
 
-	useEffect(() => {
-		const onKeyDown = (event: KeyboardEvent) => {
-			const key = event.key.toLowerCase();
-			const isShortcut = (event.metaKey || event.ctrlKey) && key === "k";
-
-			if (!isShortcut) {
-				return;
-			}
-
-			const target = event.target;
-			if (target instanceof HTMLElement) {
-				const tagName = target.tagName.toLowerCase();
-				if (
-					target.isContentEditable ||
-					tagName === "input" ||
-					tagName === "textarea"
-				) {
-					return;
-				}
-			}
-
-			event.preventDefault();
-			setQuickJumpOpen(true);
-		};
-
-		window.addEventListener("keydown", onKeyDown);
-		return () => window.removeEventListener("keydown", onKeyDown);
-	}, []);
-
 	const navigateToSubmission = (submissionId: string) => {
 		router.push(
 			projectAssessmentSubmissionQuestionPath(
@@ -138,7 +112,7 @@ export default function SubmissionAssessmentClient({
 		);
 	};
 
-	if (sessionCurrentSubmission == null || currentSubmission == null) {
+	if (currentSubmission == null) {
 		return (
 			<Typography variant="body1" sx={{ mb: 3 }}>
 				No submissions found in database.
@@ -199,7 +173,7 @@ export default function SubmissionAssessmentClient({
 				>
 					Next submission
 				</Button>
-				<Button variant="contained" onClick={() => setQuickJumpOpen(true)}>
+				<Button variant="contained" onClick={quickJump.open}>
 					Lookup
 				</Button>
 				<Typography variant="body2" sx={{ alignSelf: "center", ml: 1 }}>
@@ -208,8 +182,8 @@ export default function SubmissionAssessmentClient({
 			</Box>
 
 			<SubmissionQuickJumpDialog
-				open={isQuickJumpOpen}
-				onClose={() => setQuickJumpOpen(false)}
+				open={quickJump.isOpen}
+				onClose={quickJump.close}
 				onSelectSubmission={navigateToSubmission}
 				submissions={submissions}
 				progressPromise={progressPromise}
@@ -220,7 +194,7 @@ export default function SubmissionAssessmentClient({
 				savedRubrics={savedRubrics}
 				rubrics={optimisticRubrics}
 				pendingByIndex={pendingByIndex}
-				disabled={sessionCurrentSubmission == null}
+				disabled={false}
 				onAssess={(index, assessment) => assess(index, assessment)}
 			/>
 
