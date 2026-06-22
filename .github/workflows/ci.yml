@@ -139,6 +139,19 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: pnpm exec playwright install chromium
 
+      - name: Restore Storybook and Vite caches
+        id: storybook-cache
+        uses: actions/cache@v5
+        with:
+          path: |
+            node_modules/.vite
+            node_modules/.cache/storybook
+          key: >-
+            ${{ runner.os }}-storybook-vite-
+            ${{ hashFiles('pnpm-lock.yaml', 'vite.config.*', '.storybook/**') }}
+          restore-keys: |
+            ${{ runner.os }}-storybook-vite-${{ hashFiles('pnpm-lock.yaml') }}-
+
       - name: Storybook tests
         run: pnpm run test:storybook
 
