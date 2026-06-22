@@ -47,14 +47,14 @@ Open-ended audits and option analysis. Investigations may contain hypotheses and
 
 - [Source structure and technical debt audit](investigations/2026-05-25-source-structure-and-tech-debt-audit.md)
 - [Caching and loading audit](investigations/2026-06-11-caching-loading-audit.md)
-- [Investigation overlap audit](investigations/2026-05-25-investigation-overlap-audit.md)
 - [Read-write separation and schema-change resilience](investigations/2026-05-26-read-write-separation-and-schema-change-resilience.md)
 - [Offline support and local assessment storage](investigations/2026-05-19-offline-support.md)
 - [Repository documentation architecture](investigations/2026-05-19-repo-documentation-architecture.md)
+
+### Completed investigations
+
+- [Investigation overlap audit](investigations/2026-05-25-investigation-overlap-audit.md) — coordinated #115/#117 sequencing; all related issues are now closed.
 - [Agent instruction architecture audit](investigations/2026-05-26-agent-instruction-architecture-audit.md)
-
-### Completed workflow convention investigations
-
 - [Commit message conventions](investigations/2026-05-20-commit-message-conventions.md)
 
 ## ADRs
@@ -111,4 +111,4 @@ Temporary work artifacts for agent-assisted implementation.
 
 - Keep investigations in `docs/investigations/` until a decision is durable enough for an ADR.
 - Prefer the smallest document type that captures the needed context.
-- Use the [investigation overlap audit](investigations/2026-05-25-investigation-overlap-audit.md) when a topic appears to span multiple current investigations or planning artifacts.
+- The [investigation overlap audit](investigations/2026-05-25-investigation-overlap-audit.md) is completed; it's a historical ownership map from the #115/#117 sequencing period, not an actively maintained routing document. For a topic spanning multiple current investigations, check each investigation's own status and "Related" issues directly.

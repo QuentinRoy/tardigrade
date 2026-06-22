@@ -1,9 +1,11 @@
 # Investigation: overlap between ongoing investigations and planning artifacts
 
-Status: Current investigation
+Status: Completed
 Date: 2026-05-25
-Last reviewed: 2026-05-26
+Last reviewed: 2026-06-22
 Related: #115, #117, PR #116
+Resolution: This document existed to keep the source-structure audit, reliability plan, and read-write-separation investigation from silently contradicting each other while #115/#117 sequencing was in flight. All four issues it was coordinating around are now closed (#115, #117, #59, #51), and the source-structure audit's prioritized backlog is empty (see `docs/investigations/2026-05-25-source-structure-and-tech-debt-audit.md`). The ownership map and risk analysis below are kept for historical context but are no longer actively maintained; some specifics are stale (for example, the caching/loading investigation it called for now exists at `docs/investigations/2026-06-11-caching-loading-audit.md`, and the read-write-separation investigation is now "largely implemented"). The product/domain investigations it also mapped (terminology, assessment target model, mark/grade/weighting, grading workflows and product positioning, offline support, repo documentation architecture) remain open on their own; consult them directly rather than through this document.
+Follow-up: None.
 
 ## Question
 
