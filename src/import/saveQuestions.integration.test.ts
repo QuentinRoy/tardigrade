@@ -1,12 +1,15 @@
 import { revalidateTag } from "next/cache";
 import { beforeEach, expect, test, vi } from "vitest";
+import { runForcedInterleaving } from "#test/concurrency.ts";
 import { createTestDb } from "#test/dbIntegration.ts";
 import { createProject } from "#test/projects.ts";
 import {
 	createAssessedBooleanQuestionFixture,
 	createBooleanQuestionFixture,
 } from "#test/questions.ts";
-import { saveQuestions } from "./saveQuestions.ts";
+import { prepareQuestionImport } from "./prepareQuestionImport.ts";
+import { loadQuestionImportContextFromDb } from "./questionImportContext.ts";
+import { saveQuestionImportPlanInDb, saveQuestions } from "./saveQuestions.ts";
 import type { ImportedQuestions } from "./types.ts";
 
 vi.mock("next/cache", () => ({ revalidateTag: vi.fn() }));
@@ -362,4 +365,105 @@ test("saveQuestions wrapper invalidates question and assessment tags after the i
 		["assessments", "max"],
 		["assessments:all", "max"],
 	]);
+});
+
+// Lighter, overlap-invariant coverage (per the plan): assert the row-level
+// contract only (no corruption, no thrown error, last-write-wins), not
+// reported counts. Targets the rubric delete-then-recreate path on a type
+// change (`saveQuestions.ts`), the spot most plausible to misbehave since the
+// subtype tables (boolean/ordinal/numerical rubric) must never end up with
+// stale rows for the previous type.
+test("saveQuestionImportPlanInDb keeps a single rubric definition when two imports race the same rubric type change", async () => {
+	await using db = await createTestDb();
+	await using project = await createProject(
+		db,
+		"Concurrency Question Import Project",
+	);
+	const fixture = await createBooleanQuestionFixture(db, project.rowId);
+
+	function makeOrdinalImport(marks: Record<string, number>): ImportedQuestions {
+		return [
+			{
+				id: fixture.questionId,
+				label: "Boolean question",
+				rubrics: [
+					{ id: fixture.rubricId, type: "ordinal", label: "Correct", marks },
+				],
+			},
+		];
+	}
+
+	const questionsToMarksAB = makeOrdinalImport({ good: 1, bad: 0 });
+	const questionsToMarksXY = makeOrdinalImport({ yes: 2, no: 0 });
+
+	// Both plans are built against the same pre-race snapshot (rubric still
+	// boolean, no linked assessments), mirroring two graders importing the
+	// same in-flight change before either write lands.
+	const [contextAB, contextXY] = await Promise.all([
+		loadQuestionImportContextFromDb(db, {
+			questions: questionsToMarksAB,
+			projectId: project.id,
+		}),
+		loadQuestionImportContextFromDb(db, {
+			questions: questionsToMarksXY,
+			projectId: project.id,
+		}),
+	]);
+
+	const planAB = prepareQuestionImport({
+		questions: questionsToMarksAB,
+		context: contextAB,
+	});
+	const planXY = prepareQuestionImport({
+		questions: questionsToMarksXY,
+		context: contextXY,
+	});
+
+	await runForcedInterleaving(db, {
+		first: (tx) =>
+			saveQuestionImportPlanInDb(tx, { plan: planAB, projectId: project.id }),
+		second: (tx) =>
+			saveQuestionImportPlanInDb(tx, { plan: planXY, projectId: project.id }),
+	});
+
+	const rubricRows = await db
+		.selectFrom("rubric")
+		.select(["rowId", "type"])
+		.where("projectId", "=", project.rowId)
+		.where("id", "=", fixture.rubricId)
+		.execute();
+	expect(rubricRows).toHaveLength(1);
+	expect(rubricRows[0]?.type).toBe("ordinal");
+	const rubricRowId = rubricRows[0]?.rowId;
+
+	const [booleanRows, ordinalRubricRows] = await Promise.all([
+		db
+			.selectFrom("booleanRubric")
+			.select("rubricId")
+			.where("rubricId", "=", rubricRowId ?? -1)
+			.execute(),
+		db
+			.selectFrom("ordinalRubric")
+			.select("id")
+			.where("rubricId", "=", rubricRowId ?? -1)
+			.execute(),
+	]);
+	expect(booleanRows).toHaveLength(0);
+	expect(ordinalRubricRows).toHaveLength(1);
+
+	const ordinalValues = await db
+		.selectFrom("ordinalRubricValue")
+		.select("label")
+		.where("ordinalRubricId", "=", ordinalRubricRows[0]?.id ?? -1)
+		.execute();
+	const labels = ordinalValues.map((value) => value.label).sort();
+
+	expect([
+		["bad", "good"],
+		["no", "yes"],
+	]).toContainEqual(labels);
+
+	// Documents current behavior, not a committed policy: the writer that
+	// commits last (the second writer, here) wins.
+	expect(labels).toEqual(["no", "yes"]);
 });

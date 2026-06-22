@@ -1,6 +1,7 @@
 import { revalidateTag, updateTag } from "next/cache";
 import { beforeEach, expect, test, vi } from "vitest";
 import { createAssessmentFixture } from "#test/assessments.ts";
+import { runForcedInterleaving } from "#test/concurrency.ts";
 import { buildTestId, createTestDb } from "#test/dbIntegration.ts";
 import { createProject } from "#test/projects.ts";
 import { saveAssessment, saveAssessmentInDb } from "./assessmentMutations.ts";
@@ -15,6 +16,10 @@ vi.mock("next/cache", () => ({
 beforeEach(() => {
 	vi.clearAllMocks();
 });
+
+function assertFound(): never {
+	throw new Error("Expected the row written by the race to be present.");
+}
 
 test("saveAssessmentInDb round-trips boolean, ordinal and numerical assessments", async () => {
 	await using db = await createTestDb();
@@ -279,4 +284,207 @@ test("saveAssessment wrapper does not invalidate when the save fails validation"
 	expect(result.success).toBe(false);
 	expect(updateTag).not.toHaveBeenCalled();
 	expect(revalidateTag).not.toHaveBeenCalled();
+});
+
+// Scenario A: two writers target the same (submission, question, rubric).
+// Required invariant: exactly one value survives, untorn and unblended. The
+// grouping row's `INSERT ... ON CONFLICT DO NOTHING` makes the second writer
+// block on the first writer's uncommitted unique tuple, which is the lock
+// `runForcedInterleaving` waits on before letting the first writer commit.
+test("saveAssessmentInDb keeps a single untorn value when two writers race the same rubric", async () => {
+	await using db = await createTestDb();
+	await using project = await createProject(
+		db,
+		"Concurrency Same Rubric Project",
+	);
+	const fixture = await createAssessmentFixture(db, project.id);
+
+	const { firstResult, secondResult } = await runForcedInterleaving(db, {
+		first: (tx) =>
+			saveAssessmentInDb(tx, {
+				submissionId: fixture.submissionId,
+				questionId: fixture.questionId,
+				rubric: {
+					rubricId: fixture.rubricIds.boolean,
+					type: "boolean",
+					passed: true,
+				},
+			}),
+		second: (tx) =>
+			saveAssessmentInDb(tx, {
+				submissionId: fixture.submissionId,
+				questionId: fixture.questionId,
+				rubric: {
+					rubricId: fixture.rubricIds.boolean,
+					type: "boolean",
+					passed: false,
+				},
+			}),
+	});
+
+	expect(firstResult).toEqual({ success: true });
+	expect(secondResult).toEqual({ success: true });
+
+	const assessmentRows = await db
+		.selectFrom("assessment")
+		.select("id")
+		.where("submissionId", "=", Number(fixture.submissionId))
+		.execute();
+	expect(assessmentRows).toHaveLength(1);
+	const assessmentId = assessmentRows[0]?.id ?? assertFound();
+
+	const rubricAssessmentRows = await db
+		.selectFrom("rubricAssessment")
+		.select("id")
+		.where("assessmentId", "=", assessmentId)
+		.execute();
+	expect(rubricAssessmentRows).toHaveLength(1);
+
+	const rubricAssessmentId = rubricAssessmentRows[0]?.id ?? assertFound();
+	const [booleanRows, ordinalRows, numericalRows] = await Promise.all([
+		db
+			.selectFrom("booleanRubricAssessment")
+			.select("passed")
+			.where("rubricAssessmentId", "=", rubricAssessmentId)
+			.execute(),
+		db
+			.selectFrom("ordinalRubricAssessment")
+			.select("id")
+			.where("rubricAssessmentId", "=", rubricAssessmentId)
+			.execute(),
+		db
+			.selectFrom("numericalRubricAssessment")
+			.select("id")
+			.where("rubricAssessmentId", "=", rubricAssessmentId)
+			.execute(),
+	]);
+
+	expect(booleanRows).toHaveLength(1);
+	expect(ordinalRows).toHaveLength(0);
+	expect(numericalRows).toHaveLength(0);
+	expect([true, false]).toContain(booleanRows[0]?.passed);
+
+	// Documents current behavior, not a committed policy: the writer that
+	// commits last (the second writer, here) wins. This is not a contract a
+	// future multi-user concurrency policy is obligated to preserve.
+	expect(booleanRows[0]?.passed).toBe(false);
+});
+
+// Scenario B: two writers target the same (submission, question) but different
+// rubrics — the common real race from optimistic-UI saves of several rubrics
+// on one question. Required invariant: both rubric assessments coexist; only
+// the parent `assessment` grouping row is shared.
+test("saveAssessmentInDb keeps both rubric assessments when two writers race different rubrics on the same question", async () => {
+	await using db = await createTestDb();
+	await using project = await createProject(
+		db,
+		"Concurrency Different Rubrics Project",
+	);
+	const fixture = await createAssessmentFixture(db, project.id);
+
+	const { firstResult, secondResult } = await runForcedInterleaving(db, {
+		first: (tx) =>
+			saveAssessmentInDb(tx, {
+				submissionId: fixture.submissionId,
+				questionId: fixture.questionId,
+				rubric: {
+					rubricId: fixture.rubricIds.boolean,
+					type: "boolean",
+					passed: true,
+				},
+			}),
+		second: (tx) =>
+			saveAssessmentInDb(tx, {
+				submissionId: fixture.submissionId,
+				questionId: fixture.questionId,
+				rubric: {
+					rubricId: fixture.rubricIds.ordinal,
+					type: "ordinal",
+					selectedLabel: "A",
+				},
+			}),
+	});
+
+	expect(firstResult).toEqual({ success: true });
+	expect(secondResult).toEqual({ success: true });
+
+	const assessmentRows = await db
+		.selectFrom("assessment")
+		.select("id")
+		.where("submissionId", "=", Number(fixture.submissionId))
+		.execute();
+	expect(assessmentRows).toHaveLength(1);
+
+	const loaded = await loadQuestionAssessmentFromDb(db, {
+		submissionId: fixture.submissionId,
+		projectId: fixture.projectId,
+		questionId: fixture.questionId,
+	});
+	const byRubricId = new Map(loaded.map((value) => [value.rubricId, value]));
+
+	expect(byRubricId.get(fixture.rubricIds.boolean)).toEqual({
+		rubricId: fixture.rubricIds.boolean,
+		type: "boolean",
+		passed: true,
+	});
+	expect(byRubricId.get(fixture.rubricIds.ordinal)).toEqual({
+		rubricId: fixture.rubricIds.ordinal,
+		type: "ordinal",
+		selectedLabel: "A",
+	});
+});
+
+// Lightweight smoke check on the wrapper, which opens its own transaction per
+// call. Naive Promise.all-over-pool parallelism is not the authoritative
+// proof (the forced-interleaving tests above are); this just confirms the
+// wrapper doesn't error or deadlock under ordinary concurrent usage.
+test("saveAssessment wrapper does not error under naive parallel saves", async () => {
+	await using db = await createTestDb();
+	await using project = await createProject(db, "Concurrency Smoke Project");
+	const fixture = await createAssessmentFixture(db, project.id);
+
+	const results = await Promise.all([
+		saveAssessment(
+			{
+				submissionId: fixture.submissionId,
+				questionId: fixture.questionId,
+				rubric: {
+					rubricId: fixture.rubricIds.boolean,
+					type: "boolean",
+					passed: true,
+				},
+			},
+			{ db },
+		),
+		saveAssessment(
+			{
+				submissionId: fixture.submissionId,
+				questionId: fixture.questionId,
+				rubric: {
+					rubricId: fixture.rubricIds.ordinal,
+					type: "ordinal",
+					selectedLabel: "A",
+				},
+			},
+			{ db },
+		),
+		saveAssessment(
+			{
+				submissionId: fixture.submissionId,
+				questionId: fixture.questionId,
+				rubric: {
+					rubricId: fixture.rubricIds.numerical,
+					type: "numerical",
+					score: 5,
+				},
+			},
+			{ db },
+		),
+	]);
+
+	expect(results).toEqual([
+		{ success: true },
+		{ success: true },
+		{ success: true },
+	]);
 });

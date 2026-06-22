@@ -1,8 +1,11 @@
 import { revalidateTag } from "next/cache";
 import { beforeEach, expect, test, vi } from "vitest";
+import { runForcedInterleaving } from "#test/concurrency.ts";
 import { createTestDb } from "#test/dbIntegration.ts";
 import { createProject } from "#test/projects.ts";
-import { saveStudents } from "./saveStudents.ts";
+import { prepareStudentImport } from "./prepareStudentImport.ts";
+import { saveStudentImportPlanInDb, saveStudents } from "./saveStudents.ts";
+import { loadStudentImportContextFromDb } from "./studentImportContext.ts";
 import type { NormalizedImportedSubmission } from "./types.ts";
 
 vi.mock("next/cache", () => ({ revalidateTag: vi.fn() }));
@@ -169,4 +172,86 @@ test("saveStudents wrapper invalidates submission and assessment tags after the 
 		["assessments", "max"],
 		["assessments:all", "max"],
 	]);
+});
+
+// Lighter, overlap-invariant coverage (per the plan): assert the row-level
+// contract only (no corruption, no thrown error, last-write-wins), not
+// reported counts, which are allowed to drift under concurrent imports.
+// Targets the `studentToTeam` delete-then-reinsert path
+// (`saveStudents.ts:150`), the spot most plausible to misbehave under
+// overlapping writes since it spans a delete and an insert on the same row.
+test("saveStudentImportPlanInDb keeps a single team membership when two imports race the same student onto different teams", async () => {
+	await using db = await createTestDb();
+	await using project = await createProject(
+		db,
+		"Concurrency Student Import Project",
+	);
+
+	const sharedStudentId = "shared-student";
+
+	function makeMoveToTeam(teamName: string): NormalizedImportedSubmission[] {
+		return [
+			{
+				id: `submission-${teamName}`,
+				type: "team",
+				team: teamName,
+				students: [
+					{ id: sharedStudentId, lastName: "Shared", firstName: "Student" },
+				],
+			},
+		];
+	}
+
+	const submissionsToTeamB = makeMoveToTeam("Team B");
+	const submissionsToTeamC = makeMoveToTeam("Team C");
+
+	const [contextB, contextC] = await Promise.all([
+		loadStudentImportContextFromDb(db, {
+			submissions: submissionsToTeamB,
+			projectId: project.id,
+		}),
+		loadStudentImportContextFromDb(db, {
+			submissions: submissionsToTeamC,
+			projectId: project.id,
+		}),
+	]);
+
+	const planB = prepareStudentImport({
+		submissions: submissionsToTeamB,
+		context: contextB,
+	});
+	const planC = prepareStudentImport({
+		submissions: submissionsToTeamC,
+		context: contextC,
+	});
+
+	await runForcedInterleaving(db, {
+		first: (tx) =>
+			saveStudentImportPlanInDb(tx, { plan: planB, projectId: project.id }),
+		second: (tx) =>
+			saveStudentImportPlanInDb(tx, { plan: planC, projectId: project.id }),
+	});
+
+	const studentRows = await db
+		.selectFrom("student")
+		.select("rowId")
+		.where("projectId", "=", project.rowId)
+		.where("id", "=", sharedStudentId)
+		.execute();
+	expect(studentRows).toHaveLength(1);
+	const studentRowId = studentRows[0]?.rowId;
+
+	const teamMemberships = await db
+		.selectFrom("studentToTeam")
+		.innerJoin("team", "team.id", "studentToTeam.teamId")
+		.select("team.name")
+		.where("studentToTeam.studentId", "=", studentRowId ?? -1)
+		.execute();
+
+	expect(teamMemberships).toHaveLength(1);
+	expect(["Team B", "Team C"]).toContain(teamMemberships[0]?.name);
+
+	// Documents current behavior, not a committed policy: the writer that
+	// commits last (the second writer, here) wins.
+	expect(teamMemberships[0]?.name).toBe("Team C");
 });
