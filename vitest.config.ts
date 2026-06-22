@@ -38,14 +38,12 @@ export default defineConfig({
 					name: "integration",
 					environment: "node",
 					include: [integrationPattern],
-					// Files run in parallel across workers. Each test gets its own
-					// database (cloned from a template built once in global setup,
-					// see integrationGlobalSetup.ts), so isolation holds without
-					// `fileParallelism: false`. Capped so concurrent per-test
-					// connection pools (see TEST_DB_POOL_MAX in dbIntegration.ts)
-					// stay well under Postgres's default max_connections.
+					// Files run in parallel across workers. Each test starts its own
+					// throwaway Postgres container (see createTestDb in
+					// dbIntegration.ts), so isolation holds without
+					// `fileParallelism: false`. Capped so the number of Postgres
+					// containers running concurrently stays modest.
 					maxWorkers: 4,
-					globalSetup: ["src/test/integrationGlobalSetup.ts"],
 					alias: nodeTestAlias,
 					sequence: { groupOrder: 1 },
 				},

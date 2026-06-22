@@ -14,16 +14,16 @@ Run:
 pnpm run test:integration
 ```
 
-This runs `vitest --project=integration`. The integration project's global setup
-(`src/test/integrationGlobalSetup.ts`):
+This runs `vitest --project=integration`. For each test, `createTestDb()` in
+`src/test/dbIntegration.ts`:
 
-1. starts a single throwaway `postgres:17-alpine` container via Testcontainers,
-2. builds a migrated template database once,
-3. runs the integration tests in parallel — each test clones the template into
-   its own database, so the tests stay isolated,
-4. drops the template and stops the container when the run finishes.
+1. starts a throwaway `postgres:17-alpine` container via Testcontainers,
+2. migrates it to the latest schema,
+3. hands the test an isolated database, then stops the container when the
+   test's scope exits.
 
-The container is ephemeral and removed after the run.
+Tests run in parallel across workers, and each test is isolated by its own
+container. The containers are ephemeral and removed as the tests finish.
 
 ## CI workflow
 

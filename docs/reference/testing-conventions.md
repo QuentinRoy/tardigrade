@@ -43,8 +43,9 @@ For changes under `src/db/`, run:
 pnpm test src/db/
 ```
 
-`src/db/` tests are not mirrored per source file. Integration tests spin up a
-Postgres container via Testcontainers (see `src/test/integrationGlobalSetup.ts`).
+`src/db/` tests are not mirrored per source file. Each integration test spins up
+its own Postgres container via Testcontainers (see `createTestDb` in
+`src/test/dbIntegration.ts`).
 
 For changed Storybook stories, run:
 
