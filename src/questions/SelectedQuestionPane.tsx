@@ -12,15 +12,16 @@ import {
 } from "@mui/material";
 import { type ReactElement, useActionState, useState } from "react";
 import DeleteQuestionDialog from "./DeleteQuestionDialog.tsx";
+import type { QuestionsActionState } from "./state.ts";
 import { initialQuestionsActionState } from "./state.ts";
 import type { QuestionDefinition } from "./types.ts";
 
 type SelectedQuestionPaneProps = {
 	definition?: QuestionDefinition | undefined;
 	deleteAction: (
-		state: import("./state.ts").QuestionsActionState,
+		state: QuestionsActionState,
 		formData: FormData,
-	) => Promise<import("./state.ts").QuestionsActionState>;
+	) => Promise<QuestionsActionState>;
 	onEdit: () => void;
 	onDeleteSuccess: () => void;
 };
@@ -33,13 +34,16 @@ export default function SelectedQuestionPane({
 }: SelectedQuestionPaneProps): ReactElement {
 	const [deleteOpen, setDeleteOpen] = useState(false);
 	const [deleteState, deleteFormAction] = useActionState(
-		deleteAction,
+		async (state: QuestionsActionState, formData: FormData) => {
+			const result = await deleteAction(state, formData);
+			if (result.status === "success") {
+				setDeleteOpen(false);
+				onDeleteSuccess();
+			}
+			return result;
+		},
 		initialQuestionsActionState,
 	);
-
-	if (deleteState.status === "success") {
-		onDeleteSuccess();
-	}
 
 	return (
 		<Stack spacing={2}>
