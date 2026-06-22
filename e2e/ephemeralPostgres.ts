@@ -4,9 +4,9 @@ import net from "node:net";
 import { setTimeout as delay } from "node:timers/promises";
 import { Pool } from "pg";
 
-// Self-contained ephemeral Postgres for the E2E suite, modelled on
-// `src/test/integrationGlobalSetup.ts`: a throwaway Docker Compose project on a
-// free port, torn down with `down -v`. It is never a developer's database.
+// Self-contained ephemeral Postgres for the E2E suite: a throwaway Docker
+// Compose project on a free port, torn down with `down -v`. It is never a
+// developer's database.
 
 const HOST = "127.0.0.1";
 const POSTGRES_USER = "postgres";

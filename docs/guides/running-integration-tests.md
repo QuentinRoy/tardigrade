@@ -2,7 +2,9 @@
 
 Status: Current guide
 
-Integration tests use a single database contract in all environments: `TEST_DATABASE_URL`.
+Integration tests provision their own Postgres with
+[Testcontainers](https://node.testcontainers.org/), the same way locally and in
+CI. Docker must be available in both environments.
 
 ## Local workflow
 
@@ -12,28 +14,24 @@ Run:
 pnpm run test:integration
 ```
 
-This runs `vitest --project=integration` directly. The integration project global setup automatically:
+This runs `vitest --project=integration`. The integration project's global setup
+(`src/test/integrationGlobalSetup.ts`):
 
-1. starts an isolated Docker Compose Postgres service,
-2. waits for the database to be reachable,
-3. runs integration tests,
-4. tears down containers, networks, and volumes.
+1. starts a single throwaway `postgres:17-alpine` container via Testcontainers,
+2. builds a migrated template database once,
+3. runs the integration tests in parallel — each test clones the template into
+   its own database, so the tests stay isolated,
+4. drops the template and stops the container when the run finishes.
 
-This keeps local runs reproducible with near-zero runtime footprint after completion.
+The container is ephemeral and removed after the run.
 
 ## CI workflow
 
-CI runs the same integration suite while providing `TEST_DATABASE_URL` from a Postgres service container.
+CI runs the exact same path. The `test-integration` job runs on a standard
+`ubuntu-latest` runner, and Testcontainers uses that runner's Docker daemon to
+start the container — there is no Postgres service container.
 
-## Using an existing database
+## Requirements
 
-If you already have a running database for debugging:
-
-```bash
-TEST_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/postgres \
-pnpm run test:integration
-```
-
-When `TEST_DATABASE_URL` is set, global setup skips Docker Compose and uses that database.
-
-If Docker is unavailable and `TEST_DATABASE_URL` is not set, integration tests will fail during global setup.
+Docker must be running. If the Docker daemon is unavailable, integration tests
+fail during global setup while Testcontainers tries to start the container.

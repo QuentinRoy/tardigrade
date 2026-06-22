@@ -43,7 +43,8 @@ For changes under `src/db/`, run:
 pnpm test src/db/
 ```
 
-`src/db/` tests are not mirrored per source file. Integration tests spin up Docker.
+`src/db/` tests are not mirrored per source file. Integration tests spin up a
+Postgres container via Testcontainers (see `src/test/integrationGlobalSetup.ts`).
 
 For changed Storybook stories, run:
 
@@ -87,8 +88,9 @@ passes it through `webServer.env`.
 - In CI, the `e2e` job points it at its own Postgres service container (see
   `.github/workflows/ci.yml`), which outlives the job.
 - Locally, `pnpm test:e2e` runs `e2e/runE2e.ts`, which provisions an ephemeral
-  Docker Postgres (the same pattern as `src/test/integrationGlobalSetup.ts`),
-  sets `TEST_DATABASE_URL`, and runs Playwright as a child process. The
+  Docker Postgres (via its own Docker Compose helper in
+  `e2e/ephemeralPostgres.ts`), sets `TEST_DATABASE_URL`, and runs Playwright as a
+  child process. The
   ephemeral database is provisioned and torn down in this wrapper — a process
   that outlives `webServer` — rather than inside `playwright.config.ts` or a
   `globalTeardown` file, so the database is only ever torn down *after*

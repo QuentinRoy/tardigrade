@@ -88,21 +88,6 @@ jobs:
     needs: changes
     if: needs.changes.outputs.non_docs_changed == 'true'
 
-    services:
-      postgres:
-        image: postgres:17-alpine
-        env:
-          POSTGRES_DB: postgres
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-        options: >-
-          --health-cmd "pg_isready -U postgres -d postgres"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -110,8 +95,10 @@ jobs:
       - uses: ./.github/actions/setup-node-pnpm
 
       - name: Integration tests
-        env:
-          TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+        # Postgres is provisioned by Testcontainers (see
+        # src/test/integrationGlobalSetup.ts) against the Docker daemon on the
+        # ubuntu-latest runner — the same path as local runs, so there is no
+        # service container here.
         run: pnpm run test:integration
 
   test-storybook:
