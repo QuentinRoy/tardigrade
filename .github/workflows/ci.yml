@@ -116,31 +116,28 @@ jobs:
 
   test-storybook:
     name: test-storybook
-    # Run in Playwright's official image: the browser is prebaked, so there is no
-    # download from cdn.playwright.dev (which stalls intermittently on the
-    # runners) and no `playwright install --with-deps` apt step (which hangs on
-    # the ubuntu-latest needrestart prompt — actions/runner-images#11347). Keep
-    # the tag in sync with the playwright version resolved in pnpm-lock.yaml.
+    # Measurement branch: compare this native, cached-browser setup against the
+    # official Playwright-image baseline. Do not use --with-deps here: it was
+    # previously prone to hanging on the ubuntu-latest needrestart prompt.
     runs-on: ubuntu-latest
-    container:
-      image: mcr.microsoft.com/playwright:v1.61.0-noble
     needs: changes
     if: needs.changes.outputs.non_docs_changed == 'true'
     steps:
       - name: Checkout
         uses: actions/checkout@v7
 
-      - name: Trust the workspace for git
-        # The container runs as root over a workspace owned by the runner user,
-        # so git would refuse with "dubious ownership".
-        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
-
       - uses: ./.github/actions/setup-node-pnpm
 
-      - name: Install Playwright browsers
-        # Prebaked in the image; this just verifies the matching binary is
-        # present (no download, no apt).
-        run: pnpm run storybook:browser:install
+      - name: Restore Playwright Chromium
+        id: playwright-cache
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-chromium-${{ hashFiles('pnpm-lock.yaml') }}
+
+      - name: Install Playwright Chromium
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: pnpm exec playwright install chromium
 
       - name: Storybook tests
         run: pnpm run test:storybook
