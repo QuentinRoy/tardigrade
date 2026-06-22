@@ -114,6 +114,10 @@ _Avoid_: silent zero-marks fallback, tolerant read-side defaults
 An ordinal **Rubric Definition** must define at least two mark entries, enforced identically at every write boundary (editor and import). An ordinal rubric is a choice between labels; fewer than two is not an authorable state.
 _Avoid_: empty ordinal marks as a draft state, per-boundary minimums that disagree
 
+**Numerical Rubric Bounds**:
+A numerical **Rubric Definition** must satisfy `minScore < maxScore` (a collapsed or inverted score range is not authorable) and `minMarks <= maxMarks` (marks may be flat but not inverted). Both are enforced identically at every write boundary — editor, import, and a DB CHECK. The marking function is a pure computer: it trusts validated inputs and throws only on a zero-width score range, the one case that would otherwise yield `NaN` rather than a finite mark.
+_Avoid_: zero-width or inverted score ranges, inverted marks ranges, tolerant `NaN` marks, per-boundary rules that disagree, re-validating rubric shape inside the marking function
+
 ### Assessment
 
 **Assessment**:

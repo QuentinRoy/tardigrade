@@ -38,19 +38,9 @@ export function markNumericalRubric(
 	score: number,
 ): number {
 	const scoreRange = rubric.maxScore - rubric.minScore;
-	if (scoreRange < 0) {
+	if (scoreRange === 0) {
 		throw new Error(
-			`Invalid rubric: maxScore (${rubric.maxScore}) must be greater than or equal to minScore (${rubric.minScore})`,
-		);
-	}
-	if (score > rubric.maxScore) {
-		throw new Error(
-			`Score (${score}) cannot be greater than rubric maxScore (${rubric.maxScore})`,
-		);
-	}
-	if (score < rubric.minScore) {
-		throw new Error(
-			`Score (${score}) cannot be less than rubric minScore (${rubric.minScore})`,
+			`Cannot mark a numerical rubric with a zero-width score range (minScore and maxScore are both ${rubric.minScore})`,
 		);
 	}
 

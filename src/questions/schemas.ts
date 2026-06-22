@@ -98,6 +98,28 @@ export const questionDefinitionSchema = z
 				}
 			}
 		}
+
+		question.rubrics.forEach((rubric, index) => {
+			if (rubric.type !== "numerical") {
+				return;
+			}
+
+			if (rubric.minScore >= rubric.maxScore) {
+				ctx.addIssue({
+					code: "custom",
+					message: "Max score must be greater than min score",
+					path: ["rubrics", index, "maxScore"],
+				});
+			}
+
+			if (rubric.minMarks > rubric.maxMarks) {
+				ctx.addIssue({
+					code: "custom",
+					message: "Max marks must be greater than or equal to min marks",
+					path: ["rubrics", index, "maxMarks"],
+				});
+			}
+		});
 	});
 
 export const deleteQuestionSchema = z.object({
