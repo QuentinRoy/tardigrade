@@ -44,7 +44,7 @@ export default defineConfig({
 					// `fileParallelism: false`. Capped so concurrent per-test
 					// connection pools (see TEST_DB_POOL_MAX in dbIntegration.ts)
 					// stay well under Postgres's default max_connections.
-					maxWorkers: 4,
+					maxWorkers: 6,
 					globalSetup: ["src/test/integrationGlobalSetup.ts"],
 					alias: nodeTestAlias,
 					sequence: { groupOrder: 1 },
