@@ -45,7 +45,14 @@ export default function QuestionsManagementClient({
 	>(questions[0]?.id);
 
 	const [saveState, saveFormAction] = useActionState(
-		saveAction,
+		async (state: QuestionsActionState, formData: FormData) => {
+			const result = await saveAction(state, formData);
+			if (result.status === "success") {
+				router.refresh();
+				setMode("view");
+			}
+			return result;
+		},
 		initialQuestionsActionState,
 	);
 
@@ -59,13 +66,6 @@ export default function QuestionsManagementClient({
 			setSelectedQuestionId(questions[0]?.id);
 		}
 	}, [questions, selectedQuestionId]);
-
-	useEffect(() => {
-		if (saveState.status === "success") {
-			router.refresh();
-			setMode("view");
-		}
-	}, [router, saveState.status]);
 
 	return (
 		<Container component="main" maxWidth="xl" sx={{ py: 5 }}>
