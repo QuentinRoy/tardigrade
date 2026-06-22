@@ -1,6 +1,6 @@
 # R-004 — Concurrency: prove write-path integrity under concurrent in-flight saves
 
-Status: Implemented — tests pass; awaiting PR
+Status: Done — [#211](https://github.com/QuentinRoy/grading/pull/211) (closes issue #20)
 Created: 2026-06-22
 Parent: `plans/active/2026-05-17-reliability-hardening.md` (risk R-004, Tier 0, issue #20)
 
