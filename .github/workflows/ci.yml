@@ -103,9 +103,10 @@ jobs:
 
   test-storybook:
     name: test-storybook
-    # Measurement branch: compare this native, cached-browser setup against the
-    # official Playwright-image baseline. Do not use --with-deps here: it was
-    # previously prone to hanging on the ubuntu-latest needrestart prompt.
+    # Cache Chromium and install it only on cache misses. This avoids pulling the
+    # full Playwright Docker image for Storybook tests. Do not use
+    # `playwright install --with-deps`: its apt/needrestart path has previously
+    # hung on GitHub-hosted Ubuntu runners.
     runs-on: ubuntu-latest
     needs: changes
     if: needs.changes.outputs.non_docs_changed == 'true'
