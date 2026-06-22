@@ -57,21 +57,33 @@ export function isPostgresShutdownError(error: unknown): boolean {
 function createTestPool(connectionString: string): Pool {
 	const pool = new Pool({ connectionString, max: TEST_DB_POOL_MAX });
 
-	// A pool-level `pool.on("error", ...)` listener alone does not reliably
-	// catch every backend-initiated disconnect: a known node-postgres gap
-	// (https://github.com/brianc/node-postgres/issues/1986) lets one idle
-	// client throw as an uncaught exception instead of emitting on the pool.
-	// Listen on each client instead, matching src/db/kysely.ts's app pool.
-	pool.on("connect", (client) => {
-		client.on("error", (error) => {
-			if (isPostgresShutdownError(error)) {
-				return;
-			}
+	// A backend-initiated disconnect happens routinely during teardown: our own
+	// dropDatabase() calls pg_terminate_backend on every per-test cleanup, and
+	// the Docker-managed Postgres container's own shutdown can do the same.
+	// node-postgres reports it as an 'error' event, and an unhandled 'error'
+	// event crashes the worker even though the test itself already passed.
+	//
+	// The event lands on a different channel depending on the connection's
+	// state, so both must carry a listener:
+	//   - a checked-out client emits on the client itself (listen per client);
+	//   - an idle client's error is re-emitted on the *pool* by node-postgres'
+	//     internal idle listener (pg-pool makeIdleListener -> pool.emit('error')),
+	//     so a per-client listener alone misses it (see
+	//     https://github.com/brianc/node-postgres/issues/1986) — listen on the
+	//     pool as well.
+	//
+	// Swallow the expected shutdown SQLSTATEs on both channels. Anything a test
+	// actually depends on still surfaces through that operation's own rejected
+	// promise, so there is no need to log it again here.
+	const ignoreShutdownDisconnect = (error: unknown): void => {
+		if (isPostgresShutdownError(error)) {
+			return;
+		}
+	};
 
-			// Anything else is unexpected, but it also surfaces through the
-			// rejected promise of the query that was in flight, so there is no
-			// need to log it again here.
-		});
+	pool.on("error", ignoreShutdownDisconnect);
+	pool.on("connect", (client) => {
+		client.on("error", ignoreShutdownDisconnect);
 	});
 
 	return pool;
