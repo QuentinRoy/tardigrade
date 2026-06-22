@@ -1,9 +1,11 @@
 # Investigation: source structure and technical debt audit
 
-Status: Current investigation
+Status: Completed
 Date: 2026-05-25
-Last updated: 2026-06-21 (Finding 14 / Priority 7 extraction approach settled — plans/active/2026-06-21-grading-client-extractions.md; 2026-06-20: Finding 13 / Priority 6 and Finding 4 / Priority 8 resolved after #59 closed)
+Last updated: 2026-06-22 (Finding 14 / Priority 7 done — #197 merged, `plans/completed/2026-06-21-grading-client-extractions.md`; 2026-06-20: Finding 13 / Priority 6 and Finding 4 / Priority 8 resolved after #59 closed)
 Related: #99, #59, #68, #110, #24, #26, #32; #115 (closed umbrella), #51 (closed)
+Resolution: All 8 prioritized backlog items are Done (see [status table](#status-at-a-glance) and [Prioritized rewrite backlog](#prioritized-rewrite-backlog)). The two findings still marked "mostly resolved" (Finding 7, Finding 12) have no remaining work owned by this document: Finding 7's narrow remainder is deferred to #136; Finding 12's remainder is intentionally deprioritized until export options grow. No further audit pass is planned.
+Follow-up: None — pick up Finding 7's remainder under #136 if/when that issue is worked; pick up Finding 12's remainder only if export options grow beyond two checkboxes.
 
 ## Table of contents
 
@@ -60,14 +62,11 @@ Resolved or largely resolved since the first audit:
 13. the app shell (Finding 12) has been decomposed (`AppShell`, `AppShellTopBar`, `AppShellDrawerContent`, `AppShellNavigationShell`, `AppShellLoadingShell`, `AppShell.shared.ts`); only export-options extraction remains optional;
 14. submission export internals (#152) are restructured: row grouping is a pure, unit-tested `submissionExportGrouping.ts` module; `ExportQuestionPlan` is derived from `loadQuestionRowsFromDb` via a stricter `toRubric` instead of a duplicated assembly; `createSubmissionExport` / `createCsvSubmissionExport` take a `Kysely<DB>` handle per ADR 0007; and both export routes share a `buildDatedFilename` helper for `YYYY-MM-DD` filenames.
 15. assessment completion semantics are consolidated (#24 closed; `plans/completed/2026-06-11-assessment-completion-consolidation.md`): **Assessment Completion** is documented once in `CONTEXT.md` and implemented once in `buildAssessmentCompletion`, with `loadAssessmentCompletion.ts` replacing `assessmentsProgress.ts` / `submissionProgress.ts` and the client-side `summarizeQuestionSections` aligned with the same rule.
-
-The highest-value remaining work:
-
-1. grading-client duplication — extract the quick-jump shortcut/state hook; the save-error shaping stays inline (WET). Approach settled 2026-06-21 in `plans/active/2026-06-21-grading-client-extractions.md`.
+16. grading-client duplication is extracted (#197; `plans/completed/2026-06-21-grading-client-extractions.md`): `useSubmissionQuickJump` owns the Cmd/Ctrl+K listener and dialog open/close state, and both clients route their current-submission lookup through `getSubmissionNavigation`; the save-error payload stays inline per the WET-before-DRY decision.
 
 Numeric rubric editing (#68; former item 1), cache-tag hygiene (former cache item), and the question-specific grading page cache-boundary review (former item 4) are resolved; see Findings 13, 4, and 16.
 
-The recurring problem is no longer mixed ownership — that is solved — but duplicated domain logic across read models. The remaining seams below are local responsibility boundaries inside the owning feature folders.
+No prioritized backlog item remains open. The recurring problem is no longer mixed ownership — that is solved — and the duplicated-domain-logic problem across read models (Finding 9) and grading clients (Finding 14) is also resolved. Remaining items are either guidance (Finding 19), open product/architecture questions tracked elsewhere (Findings 7, 12), or owned by other open issues (#26, #32) outside this document's scope.
 
 ## Status at a glance
 
@@ -88,7 +87,7 @@ This table is the single source of truth for each finding's status. The per-find
 | 11. Import parse/prepare/write seams | Resolved | [design](../design/2026-06-10-import-parse-prepare-write-seams.md), `plans/completed/2026-06-10-import-parse-prepare-write-seams.md`, #146, #147, #148 |
 | 12. App shell navigation mixes concerns | Mostly resolved; optional export-options extraction | Finding body |
 | 13. Numeric rubric editing parses too eagerly | Resolved | Priority 6, #68 |
-| 14. Grading clients duplicate workflow behavior | Open; approach settled, plan active | Priority 7, plans/active/2026-06-21-grading-client-extractions.md |
+| 14. Grading clients duplicate workflow behavior | Resolved | Priority 7, #197, `plans/completed/2026-06-21-grading-client-extractions.md` |
 | 15. Server action contract boundaries | Resolved | ADR 0007, finding body |
 | 16. Cache tags and invalidation scattered | Resolved | Priority 5, #59 (closed) |
 | 17. `shared` bucket renamed to `src/ui` | Resolved | #137 |
@@ -111,7 +110,7 @@ Important related documents:
 - [Offline support](./2026-05-19-offline-support.md) owns local storage, command outbox, sync, and conflict strategy questions.
 - ADR 0007 owns the persistence layering: DB primitives take a required handle; app-level wrappers own transactions and post-commit cache invalidation.
 - #59 (closed) owned final loading, caching, revalidation, and route-boundary strategy; settled in ADR 0008 and `docs/investigations/2026-06-11-caching-loading-audit.md`.
-- Reliability issues #24 (progress aggregation), #26 (rubric overview analytics), and #32 (export streaming) own the correctness semantics that Findings 9 and 10 touch; this document owns only the structural seams.
+- Reliability issues #24 (progress aggregation, closed), #26 (rubric overview analytics, open), and #32 (export streaming, open) own the correctness semantics that Findings 9 and 10 touch; this document owns only the structural seams.
 
 Folder names and target source shapes in this document are therefore provisional. They should be revisited if terminology or product-model investigations converge differently.
 
@@ -707,21 +706,23 @@ The root cause was not the keystroke-level parsing itself but the field being a 
 
 Status in the [status table](#status-at-a-glance).
 
-The extraction approach was settled by a 2026-06-21 grilling session and is recorded in `plans/active/2026-06-21-grading-client-extractions.md`: extract only the quick-jump hook and remove the redundant current-submission lookup; keep the save-error payload inline. Two deliberate changes from the candidate list below — the hook is named `useSubmissionQuickJump` because it owns the dialog open/close state (not just the shortcut), and `buildSaveErrorContext` is dropped because it reduces to an object literal and the WET-before-DRY principle favors leaving it inline.
+Resolved 2026-06-22 in #197 (`plans/completed/2026-06-21-grading-client-extractions.md`): extracted only the quick-jump hook and removed the redundant current-submission lookup; the save-error payload stays inline. Two deliberate changes from the candidate list below — the hook is named `useSubmissionQuickJump` because it owns the dialog open/close state (not just the shortcut), and `buildSaveErrorContext` was dropped because it reduces to an object literal and the WET-before-DRY principle favors leaving it inline.
 
-### Current behavior
+### Current behavior (as of the 2026-06-10 re-audit, before the fix)
 
-Re-confirmed 2026-06-10. Reuse already exists through `useAssessmentSession` (optimistic save state, pending tracking, navigation lookup via `getSubmissionNavigation` in `submissionNavigation.ts`). What remains duplicated between `SubmissionAssessmentClient.tsx` and `SubmissionOverviewAssessmentClient.tsx` is:
+Reuse already existed through `useAssessmentSession` (optimistic save state, pending tracking, navigation lookup via `getSubmissionNavigation` in `submissionNavigation.ts`). What remained duplicated between `SubmissionAssessmentClient.tsx` and `SubmissionOverviewAssessmentClient.tsx` was:
 
 - the Cmd/Ctrl+K quick-jump keyboard shortcut `useEffect` — copied verbatim, including the input/textarea/contentEditable guard;
 - quick-jump dialog open state and the current-submission label lookup around it;
 - save-error context shaping (project/submission/question ids and labels assembled into the `SaveError` payload) inside each `saveRubric` callback.
 
-The previous/next navigation toolbars are similar but intentionally different (different target paths, prefetch and completion-color behavior on the question page only), so unifying them is optional.
+The first two were extracted into `useSubmissionQuickJump` (#197); the save-error shaping stays inline (WET-before-DRY decision in **Current status**).
+
+The previous/next navigation toolbars are similar but intentionally different (different target paths, prefetch and completion-color behavior on the question page only), so unifying them stays optional and was not done.
 
 ### Candidate extractions
 
-Original candidates (superseded by the decision in **Current status**):
+Original candidates (implemented per the decision in **Current status**, except where noted):
 
 ```txt
 src/assessments/useSubmissionQuickJumpShortcut.ts   -> useSubmissionQuickJump (also owns open/close state)
@@ -1060,26 +1061,19 @@ Delivered:
 
 Related: Finding 13; #68.
 
-### Priority 7: grading-client extractions
+### Priority 7: grading-client extractions — Done
 
-Approach settled 2026-06-21 in `plans/active/2026-06-21-grading-client-extractions.md`.
+Completed 2026-06-22 in #197 (`plans/completed/2026-06-21-grading-client-extractions.md`).
 
-Why this is the remaining item:
+Delivered:
 
-- removes verbatim duplication (the quick-jump shortcut effect) between the two grading clients;
-- small, mechanical, and keeps the two UIs independent.
+- extracted `useSubmissionQuickJump` into `src/assessments` — it owns the Cmd/Ctrl+K listener (with the focus guard) plus the dialog open/close state;
+- routed each client's current-submission lookup through the shared `getSubmissionNavigation` and collapsed the duplicated null guard;
+- kept the save-error payload inline in each `saveRubric`; `buildSaveErrorContext` was evaluated and dropped (it reduces to an object literal — WET-before-DRY applies);
+- covered the hook with one Storybook play harness (Cmd/Ctrl+K opens, input-focus guard, Escape/close), since the Node unit tier cannot exercise window/DOM code;
+- left the navigation toolbars separate — no parameterized component fell out naturally.
 
-Deliverables:
-
-- extract `useSubmissionQuickJump` into `src/assessments` — it owns the Cmd/Ctrl+K listener (with the focus guard) plus the dialog open/close state;
-- route each client's current-submission lookup through the shared `getSubmissionNavigation` and collapse the duplicated null guard;
-- keep the save-error payload inline in each `saveRubric`; `buildSaveErrorContext` was evaluated and dropped (it reduces to an object literal — WET-before-DRY applies);
-- cover the hook with one Storybook play harness (Cmd/Ctrl+K opens, input-focus guard, Escape/close), since the Node unit tier cannot exercise window/DOM code;
-- leave the navigation toolbars separate unless a parameterized component falls out naturally.
-
-A dedicated implementation issue is still needed when work starts (the #115 umbrella is closed); no existing issue tracks this (tangential: #30, #84, #86).
-
-Related: Finding 14.
+Related: Finding 14; #197.
 
 ### Priority 8: question-specific grading page cache-boundary review — Done
 

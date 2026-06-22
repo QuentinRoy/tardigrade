@@ -1,8 +1,8 @@
 # Investigation: Read-Write Separation and Schema-Change Resilience
 
-Status: Largely implemented; remaining scope tracked as R-007/R-008 in `plans/active/2026-05-17-reliability-hardening.md`
+Status: Largely implemented; remaining scope tracked as R-008 in `plans/active/2026-05-17-reliability-hardening.md`
 Date: 2026-05-18
-Last reviewed: 2026-06-11
+Last reviewed: 2026-06-22 (R-007 closed by PR #153, assessment completion consolidation; only R-008 remains open)
 Owner: Unassigned
 Related: #115 (closed), #117 (closed), #51 (closed), `plans/active/2026-05-17-reliability-hardening.md`
 
@@ -18,19 +18,20 @@ Implemented:
 - **Source reorganization**: `plans/completed/2026-06-02-source-reorganization.md` moved the original `src/db/questions.ts` and `src/db/assessments.ts` hotspots into `src/questions/` and `src/assessments/` (see §5 for current paths).
 - The orchestrating roadmap issue #117, the source-structure umbrella #115, and the identifier-naming issue #51 are all closed.
 
-Remaining (Phase C for progress/overview reads, Phase D hardening):
+Remaining (Phase C for overview reads, Phase D hardening):
 
-- `src/assessments/submissionProgress.ts`, `src/assessments/assessmentsProgress.ts`, `src/assessments/rubricOverview.ts`, and `src/assessments/rubricOverviewBuilder.ts` have adopted the ADR 0007 primitive/wrapper shape but have not had a dedicated read-projection extraction or test-hardening pass.
-- This remaining scope is tracked as **R-007** (progress metrics) and **R-008** (rubric overview analytics) in `plans/active/2026-05-17-reliability-hardening.md`, which now reference this investigation for the proposed projection-module direction.
+- progress reads got their dedicated read-projection extraction in `plans/completed/2026-06-11-assessment-completion-consolidation.md`: `src/assessments/submissionProgress.ts` and `src/assessments/assessmentsProgress.ts` were replaced by `src/assessments/loadAssessmentCompletion.ts` (shared primitive plus loaders) and the pure `src/assessments/assessmentCompletion.ts` builder. R-007 is now Verified.
+- `src/assessments/rubricOverview.ts` and `src/assessments/rubricOverviewBuilder.ts` have adopted the ADR 0007 primitive/wrapper shape but have not had a dedicated read-projection extraction or test-hardening pass.
+- This remaining scope is tracked as **R-008** (rubric overview analytics) in `plans/active/2026-05-17-reliability-hardening.md`, which references this investigation for the proposed projection-module direction.
 
-This document is retained as background and rationale for the accepted direction and for the remaining R-007/R-008 work. It no longer represents an undecided proposal.
+This document is retained as background and rationale for the accepted direction and for the remaining R-008 work. It no longer represents an undecided proposal.
 
 Document ownership boundaries (historical, still accurate):
 
 - #115 and `docs/investigations/2026-05-25-source-structure-and-tech-debt-audit.md` owned the broader source-structure and technical-debt audit (closed).
 - #117 owned the DX sequencing roadmap (closed).
 - #51 owned database identifier naming conventions (closed).
-- `plans/active/2026-05-17-reliability-hardening.md` owns reliability risks, priority, and test evidence, including the remaining R-007/R-008 scope from this investigation.
+- `plans/active/2026-05-17-reliability-hardening.md` owns reliability risks, priority, and test evidence, including the remaining R-008 scope from this investigation.
 
 ## 1. Problem Statement
 
@@ -98,7 +99,7 @@ Direct overlap:
 - R-003, questions/rubrics mutation safety: boundary extraction reduces write-path complexity and mutation side effects.
 - R-005, project isolation: centralized project-scoped repositories reduce cross-project leakage risk.
 - R-006, export correctness: read projections isolate stream/shape logic from write schemas.
-- R-007, progress metric correctness: projection-only modules simplify aggregate correctness testing.
+- R-007, progress metric correctness: Verified — `loadAssessmentCompletion.ts`/`assessmentCompletion.ts` are the projection-only modules this overlap anticipated.
 - R-011, question/rubric save semantics: write modules make save behavior explicit and testable.
 
 Related but indirect:
@@ -156,8 +157,7 @@ Write-heavy hotspots (extracted, see §0):
 Read/projection-heavy hotspots:
 
 - `src/export/submissionExport.ts`, `src/export/submissionExportGrouping.ts` (extracted, see §0)
-- `src/assessments/submissionProgress.ts` (formerly `src/db/submissionProgress.ts`) — remaining, R-007
-- `src/assessments/assessmentsProgress.ts` (formerly `src/db/assessmentsProgress.ts`) — remaining, R-007
+- `src/assessments/loadAssessmentCompletion.ts` / `assessmentCompletion.ts` (formerly `src/db/submissionProgress.ts` / `src/db/assessmentsProgress.ts`) — extracted, R-007 Verified
 - `src/assessments/rubricOverview.ts` / `rubricOverviewBuilder.ts` (formerly `src/db/rubricOverview.ts`) — remaining, R-008
 
 Cross-cutting schema boundary:
@@ -282,12 +282,12 @@ This investigation can be considered resolved when one of the following happens:
 If implemented, the underlying refactor track would be complete when:
 
 - ✅ write paths are isolated behind stable command/write functions or repository contracts (questions, assessments, import);
-- ⏳ read/reporting paths are isolated behind projection/read-model functions — done for export; **not yet done** for progress (R-007) and rubric overview (R-008);
+- ✅ read/reporting paths are isolated behind projection/read-model functions — done for export and for progress (R-007, via `buildAssessmentCompletion`/`loadAssessmentCompletion.ts`, PR #153); **not yet done** for rubric overview (R-008);
 - ✅ app-level code no longer depends on storage key shape details in the targeted write areas;
-- ⏳ reliability tracker issues that overlap this refactor have updated status/evidence — R-003, R-005, R-006, R-011 updated/Verified; R-007/R-008 remain Open and now carry the projection-extraction direction from this investigation;
+- ⏳ reliability tracker issues that overlap this refactor have updated status/evidence — R-003, R-005, R-006, R-007, R-011 Verified; R-008 remains Open and still carries the projection-extraction direction from this investigation;
 - not yet assessed: schema-change implementation effort in a subsequent migration.
 
-This investigation remains open only for the R-007/R-008 scope; once those land (or are explicitly deferred with rationale), this document can be archived or moved to `docs/design/` as a closed-out reference.
+This investigation remains open only for the R-008 scope; once it lands (or is explicitly deferred with rationale), this document can be archived or moved to `docs/design/` as a closed-out reference.
 
 ## 11. Follow-Up Tracking Updates Required When Execution Starts
 
@@ -296,9 +296,9 @@ Status of original follow-ups:
 - ✅ #117 — closed; the roadmap explicitly tracked moving this investigation out of `plans/active/` and reconciling it with #115/#51.
 - ✅ #115 — closed (source-structure umbrella).
 - ✅ #51 — closed (identifier naming).
-- ✅ `plans/active/2026-05-17-reliability-hardening.md` — R-006 promoted to Verified with evidence from the 2026-06-11 export internals refactor; R-003, R-005, R-011 already Verified; R-007 and R-008 updated with current paths and a pointer back to this investigation for the remaining projection-extraction direction.
+- ✅ `plans/active/2026-05-17-reliability-hardening.md` — R-006 promoted to Verified with evidence from the 2026-06-11 export internals refactor; R-003, R-005, R-011 already Verified; R-007 promoted to Verified 2026-06-22 after `plans/completed/2026-06-11-assessment-completion-consolidation.md` landed; R-008 still updated with current paths and a pointer back to this investigation for the remaining projection-extraction direction.
 
 Remaining tracker actions (now owned by `plans/active/2026-05-17-reliability-hardening.md`, not this document):
 
-- Create a smaller `plans/active/...` plan for the R-007/R-008 projection extraction when that work starts.
-- Re-score R-007 and R-008 after that extraction lands.
+- Create a smaller `plans/active/...` plan for the R-008 projection extraction when that work starts.
+- Re-score R-008 after that extraction lands.
