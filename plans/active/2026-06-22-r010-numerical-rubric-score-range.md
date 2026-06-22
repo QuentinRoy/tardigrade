@@ -8,231 +8,270 @@ Branch: `r010-numerical-rubric-score-range`
 ## Purpose
 
 R-010 began as "add characterization tests for `markNumericalRubric` boundaries."
-Grilling (`/grill-with-docs`, 2026-06-22) found that a numerical rubric carries
-two well-formedness rules that are enforced **inconsistently** across write
-boundaries, so the task grew into enforcing both identically everywhere, plus
-failing loudly in the marking function where an arithmetic breakdown exists.
+Grilling (`/grill-with-docs`, 2026-06-22) reshaped it into two coordinated
+changes:
 
-The two rules:
+1. **Establish one rule for the marking function** — it is a *pure computer* that
+   throws only when it cannot produce a finite result, and trusts its inputs
+   otherwise. Today it is an inconsistent mix: it computes, but also validates
+   (inverted range, out-of-range score) while *silently* returning `NaN` for the
+   one case it should reject. We make it consistent.
+2. **Enforce the two numerical-rubric well-formedness rules at every write
+   boundary** — `minScore < maxScore` and `minMarks <= maxMarks` — closing the
+   editor and DB gaps so these states are impossible to persist. All rubric
+   validity then lives at the write boundaries, not in the marking function.
 
-1. **Score range** — `minScore < maxScore` (strict). A collapsed range
-   (`minScore === maxScore`) breaks the marking math: `markNumericalRubric`
-   (`src/rubrics/rubric.ts:36`) guards only `scoreRange < 0`, so for a collapsed
-   range the score is forced to equal both bounds, `scoreOffset` is `0`, and the
-   interpolation computes `0 / 0 = NaN`, returned **silently**. `markRubric`
-   calls straight in, so `NaN` would reach export, the assessment summary, the
-   rubric overview, and `RubricGradeRow`.
-2. **Marks ordering** — `minMarks <= maxMarks` (non-strict; flat is allowed,
-   inverted is not). This one has **no** arithmetic hazard:
-   `markNumericalRubric` interpolates `minMarks > maxMarks` perfectly well (the
-   `(maxMarks − minMarks)` term just goes negative, producing a descending
-   mapping). It is purely a write-boundary well-formedness rule.
+### The marking function today (`src/rubrics/rubric.ts:36`)
 
-Current enforcement (before this task):
+```
+if (scoreRange < 0) throw …          // validation (inverted range)
+if (score > maxScore) throw …        // validation (out-of-range score)
+if (score < minScore) throw …        // validation (out-of-range score)
+return minMarks + scoreOffset*(maxMarks-minMarks)/scoreRange
+```
+
+- `scoreRange === 0` (collapsed range) is **not** caught: `scoreOffset/0`
+  produces `NaN` (or `Infinity`), returned silently. `markRubric` feeds it into
+  export, the assessment summary, the rubric overview, and `RubricGradeRow`, so
+  `NaN` can reach displayed/exported grades.
+- `scoreRange < 0` (inverted) and out-of-range scores are **computable** — they
+  yield finite values — so the existing throws are *validation*, not
+  computational necessity. (Verified: with `minScore 10, maxScore 5, minMarks 0,
+  maxMarks 10, score 7`, removing the guards gives `(−3·10)/−5 = 6`, finite.)
+
+### Current enforcement of the two rules (before this task)
 
 | Boundary | `minScore < maxScore` | `minMarks <= maxMarks` |
 |---|---|---|
 | Import zod (`src/import/schemas.ts:63`, `:60`) | ✅ | ✅ |
 | Editor zod (`src/questions/schemas.ts`) | ❌ | ❌ |
 | DB (`numerical_rubric`) | ❌ | ❌ |
-| `markNumericalRubric` | partial (`< 0` only, `=== 0` → `NaN`) | tolerant (by design) |
 
-`CONTEXT.md` already warns against exactly this ("enforced identically at every
-write boundary"). This task closes the editor and DB gaps for both rules and
-fixes the marking function's `NaN` hole for the score range.
+`CONTEXT.md` already warns against this asymmetry ("enforced identically at every
+write boundary"). The interactive write path also rejects `maxScore <= minScore`
+(`src/assessments/assessmentMutations.ts:225`) and the DB trigger
+`enforce_numerical_score_bounds` (`20260514000001`) rejects out-of-range
+*assessment scores* on every write path — so once the editor and DB CHECK close
+their gaps, the marking function can safely trust its inputs.
 
 ## Decisions locked (do not re-litigate)
 
-1. **Score range: collapsed range throws in the marking function.** The user
-   considered returning `minMarks` (the `scoreOffset → 0` limit) but chose to
-   **throw**. The guard in `src/rubrics/rubric.ts` becomes `scoreRange <= 0`
-   (was `< 0`), message drops "or equal to":
-   `Invalid rubric: maxScore (X) must be greater than minScore (Y)`. Deliberate
-   behavior change (silent `NaN` → throw). It is an **invariant violation**
-   error, not a user-facing recoverable one — keep it a plain `Error`, no
-   actionable-recovery shaping, consistent with the `CONTEXT.md` *Rubric Subtype
-   Invariant* fail-loudly stance.
-2. **Marks ordering does NOT throw in the marking function.** `markNumericalRubric`
-   keeps tolerating any marks ordering — there is no arithmetic basis to throw
-   (no `NaN`), and a descending mapping is well-defined. Recorded explicitly so
-   the implementer does not "helpfully" add a marks throw. The marks rule lives
-   only at the write boundaries (editor, import, DB).
-3. **Enforce both rules at every write boundary (defense in depth), because the
-   user required these states to be "impossible":**
+1. **`markNumericalRubric` becomes a pure computer: it throws iff it cannot
+   compute a finite result.** The only such case is a **zero-width score range**
+   (`scoreRange === 0`), where `scoreOffset/0` is `NaN`/`Infinity`. End state:
+
+   ```ts
+   const scoreRange = rubric.maxScore - rubric.minScore;
+   if (scoreRange === 0) {
+     throw new Error(
+       `Cannot mark a numerical rubric with a zero-width score range ` +
+       `(minScore and maxScore are both ${rubric.minScore})`,
+     );
+   }
+   const scoreOffset = rubric.reversed
+     ? rubric.maxScore - score
+     : score - rubric.minScore;
+   return rubric.minMarks +
+     (scoreOffset * (rubric.maxMarks - rubric.minMarks)) / scoreRange;
+   ```
+
+   Concretely this means:
+   - **Add** the `scoreRange === 0` guard (closes the silent-`NaN` hole). `=== 0`
+     also catches the `x/0 → Infinity` sub-case where a stray score accompanies a
+     collapsed range, so it covers every division-by-zero.
+   - **Remove** the `scoreRange < 0` (inverted) throw — inverted ranges compute a
+     finite descending value, and the editor + DB CHECK now make them
+     unrepresentable.
+   - **Remove** both out-of-range-score throws — out-of-range scores extrapolate
+     to a finite value, and the DB trigger `enforce_numerical_score_bounds`
+     already makes them unpersistable on every path.
+   - **No marks-ordering throw** — `minMarks > maxMarks` computes a finite
+     descending value; it is never the marking function's concern.
+
+   Rationale for keeping *only* the zero-width guard while removing the others:
+   all four prevented states are blocked upstream by write boundaries, so none is
+   reachable in practice; but the zero-width case is the only one whose
+   "leakage" symptom is **non-finite garbage** (`NaN`/`Infinity`) silently
+   entering grades, versus a wrong-but-finite number. The guard is one cheap line
+   against the single catastrophic, hard-to-detect failure. This is the
+   `CONTEXT.md` *Rubric Subtype Invariant* "fail loudly instead of substituting
+   defaults" applied precisely where a silent default would be `NaN`.
+
+2. **All rubric well-formedness rules live only at the write boundaries.** The
+   marking function does not validate rubric configuration or score range
+   membership. This removes the duplication concern: the validity rules are not
+   copied into the marking function at all.
+
+3. **Enforce both rules at every write boundary (defense in depth):**
    - **Editor zod** (`src/questions/schemas.ts`): add both checks → close gaps.
    - **DB CHECK** (`numerical_rubric`): add both checks via one new migration.
    - **Import zod** (`src/import/schemas.ts`): already enforces both → leave it.
-   Strictness matches the existing import rules and the marking math: score is
-   strict (`>`), marks is non-strict (`>=`).
-4. **Editor check placement.** Add both inside the existing `superRefine` on
+   Strictness matches import and the math: score strict (`>`), marks non-strict
+   (`>=`, flat marks are valid).
+
+4. **Editor check placement.** Both go inside the existing `superRefine` on
    `questionDefinitionSchema` (`src/questions/schemas.ts:57`), where rubric-level
-   cross-field validation already lives (id uniqueness). Iterate
-   `question.rubrics`; for a `type === "numerical"` rubric:
+   cross-field validation already lives (id uniqueness). For a
+   `type === "numerical"` rubric:
    - `minScore >= maxScore` → issue at `["rubrics", index, "maxScore"]`, message
      `Max score must be greater than min score`.
    - `minMarks > maxMarks` → issue at `["rubrics", index, "maxMarks"]`, message
      `Max marks must be greater than or equal to min marks`.
-   This sidesteps any `discriminatedUnion` + `.refine` friction and co-locates
-   the rules with the other rubric validation.
-5. **DB constraints are a new migration**, never a rewrite of the committed
-   `20260513000000_init.ts`. One migration file
+
+5. **DB constraints are a new migration**, never a rewrite of committed
+   `20260513000000_init.ts`. One file
    `src/db/migrations/<timestamp>_enforce_numerical_rubric_bounds.ts` adding both:
    - `CHECK ("max_score" > "min_score")` (`numerical_rubric_score_range_check`)
    - `CHECK ("max_marks" >= "min_marks")` (`numerical_rubric_marks_range_check`)
-   with a `down()` dropping both. Columns confirmed: `min_score`/`max_score`/
+   with `down()` dropping both. Columns confirmed `min_score`/`max_score`/
    `min_marks`/`max_marks`, all `numeric(10, 2)` notNull
-   (`20260513000000_init.ts:201-204`). Follow
-   `docs/reference/database-migrations.md`. Building both checks up across
-   slices 4–5 in the same not-yet-applied local migration is allowed under the
-   migration discipline's local-development exception.
-6. **No ADR.** This applies the already-documented *Rubric Subtype Invariant* /
-   fail-loudly pattern, precedented by R-002's DB enforcement on this exact
-   table. Not hard-to-reverse, not surprising.
+   (`20260513000000_init.ts:201-204`). Per `docs/reference/database-migrations.md`.
+   Building both checks across slices 4–5 in the same not-yet-applied local
+   migration is allowed under the local-development exception.
+
+6. **No ADR.** Applies the documented *Rubric Subtype Invariant* / fail-loudly
+   pattern, precedented by R-002's DB enforcement on this table. Not
+   hard-to-reverse, not surprising.
+
 7. **Add a `CONTEXT.md` glossary entry, `Numerical Rubric Bounds`**, parallel to
-   *Ordinal Marks Minimum*, covering both rules and their asymmetry. Land it in
-   the same PR as the enforcement so the glossary never describes an unenforced
-   rule. Proposed text:
+   *Ordinal Marks Minimum*. Land it in the same PR. Proposed text:
 
    > **Numerical Rubric Bounds**:
    > A numerical **Rubric Definition** must satisfy `minScore < maxScore` (a
    > collapsed or inverted score range is not authorable) and
    > `minMarks <= maxMarks` (marks may be flat but not inverted). Both are
    > enforced identically at every write boundary — editor, import, and a DB
-   > CHECK. The marking function additionally fails loudly on a violated score
-   > range (`scoreRange <= 0`) rather than returning `NaN`; it tolerates any
-   > marks ordering arithmetically, so the marks rule lives only at the write
-   > boundaries.
+   > CHECK. The marking function is a pure computer: it trusts validated inputs
+   > and throws only on a zero-width score range, the one case that would
+   > otherwise yield `NaN` rather than a finite mark.
    > _Avoid_: zero-width or inverted score ranges, inverted marks ranges,
-   > tolerant `NaN` marks, per-boundary rules that disagree.
+   > tolerant `NaN` marks, per-boundary rules that disagree, re-validating rubric
+   > shape inside the marking function.
 
-## TDD execution (behavior changes go red→green; characterization is a net)
+## TDD execution
 
-Per `/tdd` (user instruction: "any behavior change must follow /tdd pattern for
-the new boundaries"). The marking-function score-range throw and the two
-write-boundary additions are the behavior changes and each get a failing test
-first. The `markNumericalRubric` characterization tests pin **existing**
-behavior, are green the moment written, and act as a golden-master net — they are
-not TDD slices and writing them is not horizontal slicing.
+Per `/tdd` (user: "any behavior change must follow /tdd"). The marking function
+now has **four** behavior changes (add zero-width throw; remove inverted throw;
+remove both out-of-range throws — observable as "now returns a finite value"),
+plus the two write-boundary additions. Each behavior change gets a failing test
+first. Only the genuinely unchanged behaviors are characterization (green on
+arrival); writing those is not horizontal slicing.
 
-Do the work as vertical slices, in this order. Run the targeted test after each
-step; do not batch.
+Vertical slices, in order. Run the targeted test after each step.
 
 ### Step 0 — Characterization net (green immediately), `src/rubrics/rubric.test.ts`
 
-Before touching `rubric.ts`, add tests asserting today's behavior. Rename the
-stale `describe("scoreToMarks")` / `describe("booleanToMarks")` blocks to the
-actual function names. Cases (all pass against current code):
+Assert today's behavior that survives the change. Rename the stale
+`describe("scoreToMarks")` / `describe("booleanToMarks")` blocks to the real
+function names. Cases (pass before and after):
 
-- non-reversed edge: `score === minScore → minMarks`.
-- non-reversed edge: `score === maxScore → maxMarks`.
-- reversed edge: `score === minScore → maxMarks`.
-- reversed edge: `score === maxScore → minMarks`.
-- mid-range interpolation with non-zero `minMarks` and/or negative marks
-  (characterizes the linear formula beyond the `minMarks = 0` happy path).
-- `score > maxScore` throws.
-- `score < minScore` throws.
-- `minScore > maxScore` (strictly inverted, `scoreRange < 0`) throws.
-- **inverted marks are tolerated** (decision 2): `minMarks > maxMarks` does not
-  throw and produces the expected descending mark (e.g. `minMarks: 5,
-  maxMarks: 0`, mid-score → a value below `minMarks`). Pins the deliberate
-  no-throw decision so a later change can't silently add a marks throw.
+- maps low scores to low marks (existing); reverses when requested (existing).
+- non-reversed edges: `score === minScore → minMarks`, `score === maxScore →
+  maxMarks`.
+- reversed edges: `score === minScore → maxMarks`, `score === maxScore →
+  minMarks`.
+- mid-range interpolation with non-zero `minMarks` and/or negative marks.
+- inverted marks tolerated: `minMarks > maxMarks` returns the descending value,
+  no throw (true today and after).
 
-### Slice 1 — `markNumericalRubric` collapsed score range (behavior change)
+### Slice 1 — zero-width score range throws (behavior change)
 
-- **RED:** `markNumericalRubric throws when minScore === maxScore`. Fails today
-  (returns `NaN`, no throw).
-- **GREEN:** change the guard to `scoreRange <= 0` and update the message
-  (decision 1).
+- **RED:** `throws when minScore === maxScore` — fails today (returns `NaN`).
+- **GREEN:** add the `scoreRange === 0` guard (decision 1).
 
-### Slice 2 — Editor zod: score range (new boundary), `src/questions/schemas.ts`
+### Slice 2 — inverted score range computes, no throw (behavior change)
 
-- **RED:** in `src/questions/schemas.test.ts`, `questionDefinitionSchema rejects a
-  numerical rubric with minScore === maxScore` — `result.success === false`,
-  issue at `rubrics.0.maxScore`, message `Max score must be greater than min
-  score`. Fails today (parses fine). Use `safeParse` + `issue.path.join(".")`
-  matching as in that file.
-- **GREEN:** add the score-range `superRefine` check (decision 4).
-- **Then (green after impl):** `rejects minScore > maxScore`; `accepts minScore <
-  maxScore`.
+- **RED:** `markNumericalRubric with minScore > maxScore returns the finite
+  descending value` (e.g. the `6` worked example) — fails today (the `< 0` guard,
+  and the out-of-range guards, throw).
+- **GREEN:** remove the `scoreRange < 0` guard **and** both out-of-range-score
+  guards (they jointly block inverted ranges). Only `scoreRange === 0` remains.
 
-### Slice 3 — Editor zod: marks ordering (new boundary), `src/questions/schemas.ts`
+### Slice 3 — out-of-range score extrapolates, no throw (behavior change)
 
-- **RED:** `questionDefinitionSchema rejects a numerical rubric with minMarks >
-  maxMarks` — issue at `rubrics.0.maxMarks`, message `Max marks must be greater
-  than or equal to min marks`. Fails today.
-- **GREEN:** add the marks-ordering `superRefine` check (decision 4).
-- **Then (green after impl):** `accepts minMarks === maxMarks` (flat marks are
-  valid); `accepts minMarks < maxMarks`.
+- **RED:** `markNumericalRubric with score > maxScore returns the extrapolated
+  value` and `score < minScore` likewise — fails today (throws). (After slice 2
+  the guards are already gone, so author this test alongside slice 2's removal
+  and confirm both behaviors in one removal; kept as a named slice for the
+  observable behavior it pins.)
+- **GREEN:** covered by slice 2's guard removal; this slice exists to assert the
+  extrapolation behavior explicitly.
 
-### Slice 4 — DB CHECK: score range (new boundary)
+### Slice 4 — Editor zod: both rules, `src/questions/schemas.ts`
 
-- **RED:** in `src/db/constraints.integration.test.ts`, a `numericalRubric`
-  insert with `maxScore === minScore` is rejected and rolls back in a
-  transaction (mirror the existing R-002 rollback assertions; the file already
-  inserts into `numericalRubric` directly). Fails today.
-- **GREEN:** new migration (decision 5) adding the
-  `numerical_rubric_score_range_check`.
-- **Then (green):** `maxScore < minScore` likewise rejected.
+- **RED (score):** `questionDefinitionSchema rejects a numerical rubric with
+  minScore === maxScore` — issue at `rubrics.0.maxScore`, message `Max score must
+  be greater than min score`. Fails today. (`safeParse` + `issue.path.join(".")`
+  as in that file.)
+- **GREEN:** add the score-range `superRefine` check.
+- **RED (marks):** `rejects a numerical rubric with minMarks > maxMarks` — issue
+  at `rubrics.0.maxMarks`, message `Max marks must be greater than or equal to
+  min marks`. Fails today.
+- **GREEN:** add the marks-ordering `superRefine` check.
+- **Then (green):** `rejects minScore > maxScore`; `accepts minScore < maxScore`;
+  `accepts minMarks === maxMarks`; `accepts minMarks < maxMarks`.
 
-### Slice 5 — DB CHECK: marks ordering (new boundary)
+### Slice 5 — DB CHECK: both rules
 
-- **RED:** a `numericalRubric` insert with `maxMarks < minMarks` is rejected and
-  rolls back. Fails today.
+- **RED (score):** in `src/db/constraints.integration.test.ts`, a
+  `numericalRubric` insert with `maxScore === minScore` is rejected and rolls
+  back (mirror the existing R-002 rollback assertions; the file already inserts
+  into `numericalRubric` directly). Fails today.
+- **GREEN:** new migration adding `numerical_rubric_score_range_check`.
+- **RED (marks):** insert with `maxMarks < minMarks` is rejected and rolls back.
+  Fails today.
 - **GREEN:** add `numerical_rubric_marks_range_check` to the same migration.
-- **Then (green):** `maxMarks === minMarks` is accepted (flat marks valid).
+- **Then (green):** `maxScore < minScore` rejected; `maxMarks === minMarks`
+  accepted.
 
 ### Refactor / simplify pass
 
-After all slices are green, run the simplify pass
-(`.agents/skills/simplify/SKILL.md`) over the touched code only (`rubric.ts`,
-`schemas.ts`, the migration, the three test files). Preserve behavior; no broad
-refactors.
+After all slices green, run `.agents/skills/simplify/SKILL.md` over touched code
+only (`rubric.ts`, `schemas.ts`, the migration, the three test files). Preserve
+behavior; no broad refactors.
 
 ## Verified facts (checked against code 2026-06-22)
 
-- **`markNumericalRubric` guards only `scoreRange < 0`** (`src/rubrics/rubric.ts:41`);
-  `minScore === maxScore` reaches `0 / 0` and returns `NaN`. It applies no marks
-  ordering constraint — `minMarks > maxMarks` interpolates fine (descending).
-- **Interactive write path already rejects `maxScore <= minScore`**
-  (`src/assessments/assessmentMutations.ts:225`) at assessment-save time, but
-  does not stop a collapsed/inverted-bounds *rubric config* from being authored.
-- **Import zod already enforces both rules:** `minScore < maxScore`
-  (`src/import/schemas.ts:63`) and `minMarks <= maxMarks` (`:60`). Its other
-  four numerical refinements (`:39`–`:50`) exist only because import makes the
-  fields optional and defaults them via `.transform`; the editor types all four
-  as required `z.number()`, so those have no editor analog and are not part of
-  this parity work.
-- **Editor zod enforces neither cross-field rule.**
-  `numericalRubricDefinitionSchema` (`src/questions/schemas.ts:31`) only types
-  the numbers; the `superRefine` (`:57`) checks only rubric-id uniqueness.
-- **DB has no range/ordering checks.** `numerical_rubric` declares
-  `min_score`/`max_score`/`min_marks`/`max_marks` as `notNull` `numeric(10, 2)`
-  with no CHECK (`20260513000000_init.ts:197-204`). The only numerical DB guards
-  are the assessment-score-bounds trigger (`20260514000001_…`) and the
-  subtype-match trigger.
-- **Callers of `markNumericalRubric` (via `markRubric`)**: `submissionExport.ts:195`,
-  `assessmentSummary.ts:23`, `rubricOverviewBuilder.ts:250`,
-  `RubricGradeRow.tsx:35`. All would surface `NaN` today on a collapsed-range
-  rubric with a recorded assessment.
+- **Inverted/out-of-range are computable, not necessary throws.** Worked example
+  above; the existing throws (`rubric.ts:41,46,51`) are validation choices.
+- **Zero-width is the only non-finite case.** `scoreRange === 0` ⇒
+  `scoreOffset/0` ⇒ `NaN` (offset 0) or `Infinity` (offset ≠ 0). Removing the
+  other guards never introduces `NaN`/`Infinity`.
+- **Write boundaries make the removed guards redundant in practice:**
+  - DB trigger `enforce_numerical_score_bounds` (`20260514000001`) rejects
+    out-of-range assessment scores BEFORE INSERT on
+    `numerical_rubric_assessment`, on every write path (interactive *and*
+    import) — so any persisted score is in `[minScore, maxScore]`.
+  - The new editor + DB CHECK reject collapsed/inverted ranges — so any
+    persisted rubric has `minScore < maxScore`.
+- **Import zod already enforces both rules** (`src/import/schemas.ts:63`, `:60`);
+  its other numerical refinements (`:39`–`:50`) exist only for import's optional
+  fields and have no editor analog.
+- **Editor zod enforces neither cross-field rule** (`src/questions/schemas.ts:31`,
+  superRefine `:57` checks only id uniqueness).
+- **DB has no range/ordering CHECK** on `numerical_rubric`
+  (`20260513000000_init.ts:197-204`).
+- **No caller depends on the removed throws.** `markRubric` callers
+  (`submissionExport.ts:195`, `assessmentSummary.ts:23`,
+  `rubricOverviewBuilder.ts:250`, `RubricGradeRow.tsx:35`) propagate the result;
+  none catches or expects a throw. `rubric.test.ts` has no throw assertions
+  today.
 
 ## Out of scope
 
-- Import schema changes (already correct) and the interactive assessment write
-  path (already correct).
-- A marks throw in `markNumericalRubric` (decision 2 — deliberately not added).
-- Reworking `markNumericalRubric`'s existing out-of-range / inverted-score
-  throws — characterized, not changed.
+- Import schema and interactive assessment-write-path changes (already correct).
+- Removing/altering the DB `enforce_numerical_score_bounds` trigger (it is the
+  guarantee that lets the marking function drop its out-of-range guards).
 
 ## Acceptance (Tier 1 Definition of Done)
 
-- [ ] `markNumericalRubric` throws on `scoreRange <= 0` with the updated message;
-      keeps tolerating inverted marks; slice-1 RED test and the Step-0
-      characterization net all green.
+- [ ] `markNumericalRubric` throws only on `scoreRange === 0`; inverted ranges and
+      out-of-range scores return finite values; inverted marks unchanged. Slices
+      1–3 + the Step-0 net green.
 - [ ] `questionDefinitionSchema` rejects `minScore >= maxScore`
       (`rubrics.<i>.maxScore`) and `minMarks > maxMarks` (`rubrics.<i>.maxMarks`);
-      slices 2–3 tests green, including the flat-marks accept case.
-- [ ] New migration adds `numerical_rubric_score_range_check` and
-      `numerical_rubric_marks_range_check` with a working `down()`; slices 4–5
+      flat-marks and valid cases accepted. Slice 4 green.
+- [ ] New migration adds both CHECK constraints with a working `down()`; slice 5
       integration tests green; migration applies cleanly.
 - [ ] `CONTEXT.md` gains the `Numerical Rubric Bounds` entry (decision 7).
 - [ ] Regression check (TDD discipline): temporarily revert each GREEN change and
@@ -240,10 +279,10 @@ refactors.
 - [ ] `pnpm run check --fix`, `pnpm run check-types`, `pnpm test:unit rubric schemas`,
       `pnpm test src/db/` all green.
 - [ ] R-010 promoted to Verified in
-      `plans/active/2026-05-17-reliability-hardening.md`: rewrite the Risk/Next
-      Action wording (it became multi-layer enforcement of both numerical bounds
-      with a deliberate `NaN → throw` change — the prior "no behavior change
-      expected" is now false), link the test files, refresh the Section 3
-      dashboard (Tier 1: 0 open, 7 verified) and milestones (M4/M5), add a Change
-      Log entry. PR body includes `Fixes #23`.
+      `plans/active/2026-05-17-reliability-hardening.md`: rewrite Risk/Next Action
+      (now: marking function made a pure computer guarding only zero-width ranges;
+      both numerical bounds enforced at editor + DB — the prior "no behavior
+      change expected" is false), link test files, refresh Section 3 dashboard
+      (Tier 1: 0 open, 7 verified) and milestones (M4/M5), add a Change Log entry.
+      PR body includes `Fixes #23`.
 - [ ] Move this plan to `plans/completed/` on merge.
