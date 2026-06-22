@@ -1,6 +1,6 @@
 # R-010 — Numerical rubric bounds invariants (score range + marks ordering)
 
-Status: Active
+Status: Done
 Created: 2026-06-22
 Parent: `plans/active/2026-05-17-reliability-hardening.md` (risk R-010, Tier 1, issue [#23](https://github.com/QuentinRoy/grading/issues/23))
 Branch: `numerical-rubric-bounds`
