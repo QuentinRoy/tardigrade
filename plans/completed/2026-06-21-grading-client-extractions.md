@@ -1,6 +1,6 @@
 # Grading-client extractions
 
-Status: Active
+Status: Completed
 Date: 2026-06-21
 Source: `docs/investigations/2026-05-25-source-structure-and-tech-debt-audit.md` Priority 7 / Finding 14
 Issue: none yet — a dedicated implementation issue is needed when work starts (the #115 umbrella is closed). No existing issue tracks this; tangential ones are #30 (assessment-session optimistic tests), #84 (iPad save errors), #86 (message centralization).
