@@ -1,14 +1,31 @@
 import { buildDatedFilename } from "#export/exportFilename.ts";
 import { createCsvSubmissionExport } from "#export/submissionExport.ts";
+import type { ExportOptions } from "#export/submissionExportCsv.ts";
 import { loadProjectByPublicId } from "#projects/projects.ts";
 import { createLogger } from "#utils/logger.ts";
-import { parseExportOptions } from "./exportOptions.ts";
 
 const logger = createLogger("export");
 
 type RouteParams = {
 	params: Promise<{ projectId: string; projectSlug: string }>;
 };
+
+// Reads the export's `include` query params. Route-internal: the only caller is
+// GET below, and its parsing contract is covered through the route tests.
+function parseExportOptions(searchParams: URLSearchParams): ExportOptions {
+	const includeSet = new Set<"rubric-assessment" | "rubric-marks">();
+	for (const include of searchParams.getAll("include")) {
+		if (include !== "rubric-assessment" && include !== "rubric-marks") {
+			throw new Error(`Invalid include option: ${include}`);
+		}
+		includeSet.add(include);
+	}
+
+	return {
+		includeRubricAssessment: includeSet.has("rubric-assessment"),
+		includeRubricMarks: includeSet.has("rubric-marks"),
+	};
+}
 
 export async function GET(
 	request: Request,
@@ -23,7 +40,7 @@ export async function GET(
 
 	const searchParams = new URL(request.url).searchParams;
 
-	let options: ReturnType<typeof parseExportOptions>;
+	let options: ExportOptions;
 	try {
 		options = parseExportOptions(searchParams);
 	} catch (error) {

@@ -30,6 +30,15 @@ function buildRequest(query = ""): Request {
 	);
 }
 
+function csvStream(): ReadableStream<Uint8Array> {
+	return new ReadableStream({
+		start(controller) {
+			controller.enqueue(new TextEncoder().encode("a,b\n1,2\n"));
+			controller.close();
+		},
+	});
+}
+
 describe("GET /export/submissions", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
@@ -71,14 +80,7 @@ describe("GET /export/submissions", () => {
 			slug: "intro-to-grading",
 			name: "Intro to Grading",
 		});
-		createCsvSubmissionExport.mockResolvedValue(
-			new ReadableStream({
-				start(controller) {
-					controller.enqueue(new TextEncoder().encode("a,b\n1,2\n"));
-					controller.close();
-				},
-			}),
-		);
+		createCsvSubmissionExport.mockResolvedValue(csvStream());
 
 		const response = await GET(buildRequest(), { params });
 
@@ -90,6 +92,32 @@ describe("GET /export/submissions", () => {
 		const disposition = response.headers.get("content-disposition");
 		expect(disposition).toMatch(
 			/^attachment; filename="submission-assessments-intro-to-grading-\d{4}-\d{2}-\d{2}\.csv"$/,
+		);
+		expect(createCsvSubmissionExport).toHaveBeenCalledWith(
+			{ includeRubricAssessment: false, includeRubricMarks: false },
+			"project-1",
+		);
+	});
+
+	it("parses repeated include params and passes the options to the export", async () => {
+		loadProjectByPublicId.mockResolvedValue({
+			id: "project-1",
+			slug: "intro-to-grading",
+			name: "Intro to Grading",
+		});
+		createCsvSubmissionExport.mockResolvedValue(csvStream());
+
+		const response = await GET(
+			buildRequest(
+				"?include=rubric-assessment&include=rubric-marks&include=rubric-assessment",
+			),
+			{ params },
+		);
+
+		expect(response.status).toBe(200);
+		expect(createCsvSubmissionExport).toHaveBeenCalledWith(
+			{ includeRubricAssessment: true, includeRubricMarks: true },
+			"project-1",
 		);
 	});
 
