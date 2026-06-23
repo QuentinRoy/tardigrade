@@ -3,6 +3,7 @@ import type { Kysely } from "kysely";
 import { invalidateQuestionImport } from "#db/cacheInvalidation.ts";
 import type { DB } from "#db/generated/db.ts";
 import { db as defaultDb } from "#db/kysely.ts";
+import { ImportBlockedError } from "./importErrors.ts";
 import {
 	prepareQuestionImport,
 	type QuestionImportBlockingDiagnostic,
@@ -26,10 +27,10 @@ function formatBlockingDiagnostic(
 
 function questionImportBlockedError(
 	blockingDiagnostics: QuestionImportBlockingDiagnostic[],
-): Error {
+): ImportBlockedError {
 	const lines = blockingDiagnostics.map(formatBlockingDiagnostic);
 
-	return new Error(
+	return new ImportBlockedError(
 		`Question import errors:\n${lines.join("\n")}\nNothing was imported. Fix the listed issues and retry.`,
 	);
 }

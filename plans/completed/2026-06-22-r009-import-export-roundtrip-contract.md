@@ -2,7 +2,7 @@
 
 Status: Completed
 Created: 2026-06-22
-Parent: `plans/active/2026-05-17-reliability-hardening.md` (risk R-009, Tier 1, issue [#27](https://github.com/QuentinRoy/grading/issues/27))
+Parent: `plans/completed/2026-05-17-reliability-hardening.md` (risk R-009, Tier 1, issue [#27](https://github.com/QuentinRoy/grading/issues/27))
 
 ## Purpose
 
@@ -130,7 +130,7 @@ Lock in two contracts that are currently implicit:
 - [x] `pnpm run check --fix`, `pnpm run check-types`, targeted
       `pnpm test src/import/` green.
 - [x] R-009 promoted to Verified in
-      `plans/active/2026-05-17-reliability-hardening.md` with linked test
+      `plans/completed/2026-05-17-reliability-hardening.md` with linked test
       files; dashboard counts and Change Log updated. PR body includes
       `Fixes #27`.
 

@@ -16,7 +16,7 @@ export type SaveAssessmentParams = {
 	rubric: AssessmentRubricValue;
 };
 
-const assessmentErrors = {
+export const assessmentErrors = {
 	contextMissing:
 		"We couldn't match this grade to the selected student work. Reload and try again. If this keeps happening, report this issue.",
 	criterionMissing:
@@ -28,6 +28,8 @@ const assessmentErrors = {
 	invalidScore: "Enter a valid score and try again.",
 	invalidScoreRange:
 		"This score range is currently unavailable. Reload and try again. If it still fails, report this issue.",
+	unexpected:
+		"Something went wrong saving this grade. Reload and try again. If this keeps happening, report this issue.",
 };
 
 // Performs all validation + persistence against the given db. No cache work.

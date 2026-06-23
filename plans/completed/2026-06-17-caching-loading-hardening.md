@@ -182,7 +182,7 @@ The tag-registration rule is already decided (Decision 1 / ADR 0008 rule 3: full
 
 ## Cross-plan sequencing (reliability hardening)
 
-`plans/active/2026-05-17-reliability-hardening.md` R-007 (progress metrics) and R-008 (rubric overview analytics) want to add correctness tests to `loadAssessmentCompletion.ts` and `rubricOverview.ts` — the exact files PR8/PR9/PR10/PR13 restructure. Sequence deliberately: land PR8–PR10 (completion sharing + freshness) and decide PR13 before R-007/R-008 pin integration tests, so the tests land on settled shapes. Note this in both plans when execution starts.
+`plans/completed/2026-05-17-reliability-hardening.md` R-007 (progress metrics) and R-008 (rubric overview analytics) want to add correctness tests to `loadAssessmentCompletion.ts` and `rubricOverview.ts` — the exact files PR8/PR9/PR10/PR13 restructure. Sequence deliberately: land PR8–PR10 (completion sharing + freshness) and decide PR13 before R-007/R-008 pin integration tests, so the tests land on settled shapes. Note this in both plans when execution starts.
 
 ## Non-goals
 

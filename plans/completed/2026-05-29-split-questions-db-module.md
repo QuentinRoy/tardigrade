@@ -16,7 +16,7 @@ This plan captures agreed decisions from planning discussions on 2026-05-29.
 - docs/index.md
 - docs/reference/testing-conventions.md
 - docs/investigations/2026-05-25-source-structure-and-tech-debt-audit.md
-- plans/active/2026-05-17-reliability-hardening.md
+- plans/completed/2026-05-17-reliability-hardening.md
 
 ## Scope
 

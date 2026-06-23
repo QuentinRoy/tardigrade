@@ -5,6 +5,7 @@ import { invalidateAssessmentImport } from "#db/cacheInvalidation.ts";
 import type { DB } from "#db/generated/db.ts";
 import { db as defaultDb } from "#db/kysely.ts";
 import { loadAssessmentImportContextFromDb } from "./assessmentImportContext.ts";
+import { ImportBlockedError } from "./importErrors.ts";
 import {
 	type AssessmentImportBlockingDiagnostic,
 	type AssessmentImportPlan,
@@ -36,10 +37,10 @@ function formatBlockingDiagnostic(
 
 function assessmentImportBlockedError(
 	blockingDiagnostics: AssessmentImportBlockingDiagnostic[],
-): Error {
+): ImportBlockedError {
 	const lines = blockingDiagnostics.map(formatBlockingDiagnostic);
 
-	return new Error(
+	return new ImportBlockedError(
 		`Assessment import errors:\n${lines.join("\n")}\nNothing was imported. Fix the listed issues and retry.`,
 	);
 }

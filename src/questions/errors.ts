@@ -1,4 +1,12 @@
 import { ZodError } from "zod";
+import { createLogger } from "#utils/logger.ts";
+
+const logger = createLogger("questions");
+
+export const questionsMessages = {
+	unexpected:
+		"Something went wrong saving this question. Reload and try again. If this keeps happening, report this issue.",
+};
 
 export type QuestionRubricFieldErrors = {
 	id?: string | undefined;
@@ -106,9 +114,6 @@ export function toQuestionsValidationError(error: unknown): {
 		return zodErrorToQuestionsValidationError(error);
 	}
 
-	if (error instanceof Error) {
-		return { fieldErrors: {}, formErrors: [error.message] };
-	}
-
-	return { fieldErrors: {}, formErrors: ["Unknown question validation error"] };
+	logger.error({ err: error }, "Unexpected error during question save");
+	return { fieldErrors: {}, formErrors: [questionsMessages.unexpected] };
 }
