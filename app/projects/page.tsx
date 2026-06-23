@@ -14,6 +14,7 @@ import { redirect } from "next/navigation";
 import { projectDashboardPath } from "#projects/projectPaths.ts";
 import { createProject, loadProjects } from "#projects/projects.ts";
 import AppShell from "#ui/AppShell.tsx";
+import { toCreateProjectErrorMessage } from "./createProjectErrorMessage.ts";
 
 function isNextRedirectError(error: unknown): boolean {
 	if (typeof error !== "object" || error == null || !("digest" in error)) {
@@ -22,18 +23,6 @@ function isNextRedirectError(error: unknown): boolean {
 
 	const digest = error.digest;
 	return typeof digest === "string" && digest.startsWith("NEXT_REDIRECT");
-}
-
-function toCreateProjectErrorMessage(error: unknown): string {
-	if (error instanceof Error) {
-		if (error.message === "Project name is required.") {
-			return "Project name is required. Enter a name and try again.";
-		}
-
-		return `Could not create project: ${error.message} Please edit the name and try again.`;
-	}
-
-	return "Could not create project. Reload the page and try again.";
 }
 
 type ProjectsPageProps = { searchParams: Promise<{ error?: string }> };

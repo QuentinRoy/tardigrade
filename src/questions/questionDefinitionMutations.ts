@@ -82,7 +82,12 @@ export async function saveQuestionDefinitionInDb(
 	const originalId = input.originalId?.trim() || requestedId;
 
 	if (requestedId.length === 0) {
-		throw new Error("Question id is required.");
+		// Defensive: questionDefinitionSchema already requires a non-empty id, so
+		// this should be unreachable through validated input. Typed as a domain
+		// error so it stays a recognized, actionable message if it is ever hit.
+		throw new QuestionsValidationError({
+			fieldErrors: { questionId: "Question id is required." },
+		});
 	}
 
 	assertUniqueIds(
