@@ -226,7 +226,7 @@ domain/validation messages (including import blocking diagnostics) are unchanged
 
 ### PR 2 — Optimistic-save hook tests (closes #30)
 
-Status: Merged ([#219](https://github.com/QuentinRoy/grading/pull/219)).
+Status: Completed ([#219](https://github.com/QuentinRoy/grading/pull/219)).
 
 Covers tracker risk R-013.
 
@@ -258,7 +258,7 @@ matches saved state after settlement; `onError` fires exactly on failure.
 
 ### PR 3 — Export route tests + submissions-route shaping (closes #28)
 
-Status: Implemented, landing via this PR ([#220](https://github.com/QuentinRoy/grading/pull/220)).
+Status: Completed ([#220](https://github.com/QuentinRoy/grading/pull/220)).
 
 Covers tracker risk R-014.
 
