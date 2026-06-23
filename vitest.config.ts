@@ -21,7 +21,10 @@ export default defineConfig({
 				test: {
 					name: "unit",
 					environment: "node",
-					include: ["src/**/*.{test,spec}.{ts,tsx,js,jsx}"],
+					include: [
+						"src/**/*.{test,spec}.{ts,tsx,js,jsx}",
+						"app/**/*.{test,spec}.{ts,tsx}",
+					],
 					exclude: [integrationPattern],
 					alias: nodeTestAlias,
 					// Each project below sets its own `maxWorkers`. Vitest requires

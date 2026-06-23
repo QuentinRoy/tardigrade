@@ -4,6 +4,9 @@ import { buildDatedFilename } from "#export/exportFilename.ts";
 import { exportQuestionsToYaml } from "#export/questionsExport.ts";
 import { loadProjectByPublicId } from "#projects/projects.ts";
 import { loadQuestionGrid } from "#questions/questions.ts";
+import { createLogger } from "#utils/logger.ts";
+
+const logger = createLogger("export");
 
 type RouteParams = {
 	params: Promise<{ projectId: string; projectSlug: string }>;
@@ -34,6 +37,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
 			},
 		});
 	} catch (error) {
+		logger.error({ err: error }, "Failed to export questions");
 		return NextResponse.json(
 			{
 				error:

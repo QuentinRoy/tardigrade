@@ -1,7 +1,10 @@
 import { buildDatedFilename } from "#export/exportFilename.ts";
 import { createCsvSubmissionExport } from "#export/submissionExport.ts";
 import { loadProjectByPublicId } from "#projects/projects.ts";
+import { createLogger } from "#utils/logger.ts";
 import { parseExportOptions } from "./exportOptions.ts";
+
+const logger = createLogger("export");
 
 type RouteParams = {
 	params: Promise<{ projectId: string; projectSlug: string }>;
@@ -28,18 +31,25 @@ export async function GET(
 		return Response.json({ error: message }, { status: 400 });
 	}
 
-	const body = await createCsvSubmissionExport(options, project.id);
+	try {
+		const body = await createCsvSubmissionExport(options, project.id);
 
-	const filename = buildDatedFilename({
-		baseName: `submission-assessments-${project.slug}`,
-		extension: "csv",
-	});
+		const filename = buildDatedFilename({
+			baseName: `submission-assessments-${project.slug}`,
+			extension: "csv",
+		});
 
-	return new Response(body, {
-		headers: {
-			"content-type": "text/csv; charset=utf-8",
-			"content-disposition": `attachment; filename="${filename}"`,
-			"cache-control": "no-store",
-		},
-	});
+		return new Response(body, {
+			headers: {
+				"content-type": "text/csv; charset=utf-8",
+				"content-disposition": `attachment; filename="${filename}"`,
+				"cache-control": "no-store",
+			},
+		});
+	} catch (error) {
+		logger.error({ err: error }, "Failed to export submissions");
+		const message =
+			error instanceof Error ? error.message : "Failed to export submissions";
+		return Response.json({ error: message }, { status: 500 });
+	}
 }
