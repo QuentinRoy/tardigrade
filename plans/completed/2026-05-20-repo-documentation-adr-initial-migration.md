@@ -35,7 +35,7 @@ Completed:
   - Audited all files in `docs/plans/` for status, structure, and relevance.
   - Removed most legacy plan files due to unclear status, lack of actionable content, or redundancy.
   - Only retained known active and completed plans, moving them to `plans/active/` or `plans/completed/` as appropriate.
-  - Moved the reliability hardening tracker plan to `plans/active/2026-05-17-reliability-hardening.md`.
+  - Moved the reliability hardening tracker plan to `plans/completed/2026-05-17-reliability-hardening.md`.
 - **Audited open GitHub issues:**
   - Cross-checked all removed plan files against open issues for references.
   - Found multiple open reliability issues referencing the old tracker plan.

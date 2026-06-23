@@ -1,6 +1,6 @@
 Status: Done — #210
 Date: 2026-06-22
-Source: `docs/investigations/2026-05-26-read-write-separation-and-schema-change-resilience.md` §0/§5 (remaining Phase C scope); `plans/active/2026-05-17-reliability-hardening.md` R-008
+Source: `docs/investigations/2026-05-26-read-write-separation-and-schema-change-resilience.md` §0/§5 (remaining Phase C scope); `plans/completed/2026-05-17-reliability-hardening.md` R-008
 PRs: closes #26, implemented in #210
 
 # Rubric overview projection extraction (R-008)
@@ -27,7 +27,7 @@ This plan corrects that gap as well as the test matrix.
 - `docs/reference/testing-conventions.md` (co-located tests, integration tier via Testcontainers)
 - `plans/completed/2026-06-11-assessment-completion-consolidation.md` (the R-007 precedent this mirrors)
 - `docs/investigations/2026-05-26-read-write-separation-and-schema-change-resilience.md`
-- `plans/active/2026-05-17-reliability-hardening.md` (R-008 row)
+- `plans/completed/2026-05-17-reliability-hardening.md` (R-008 row)
 
 ## Agreed Decisions (and why)
 
@@ -230,7 +230,7 @@ This plan corrects that gap as well as the test matrix.
 10. Run `pnpm run check --fix`, `pnpm run check-types`,
     `pnpm test:unit rubricOverviewBuilder loadRubricOverview`,
     `pnpm test src/assessments/loadRubricOverview.integration.test.ts`.
-11. Update R-008 in `plans/active/2026-05-17-reliability-hardening.md` to
+11. Update R-008 in `plans/completed/2026-05-17-reliability-hardening.md` to
     Verified with evidence links; add a Change Log entry; move this plan to
     `plans/completed/`.
 

@@ -7,7 +7,7 @@ Follow-up: Preview UI and configurable import policies belong to the import/prod
 
 ## Context
 
-[Finding 11 of the source structure audit](../investigations/2026-05-25-source-structure-and-tech-debt-audit.md#finding-11-import-flows-should-expose-parse-prepare-and-write-seams) flags that imports parse, prepare, and write in one server-action flow, and that unmatched submissions are silently skipped. The [reliability plan](../../plans/active/2026-05-17-reliability-hardening.md) lists extracting a pure preparation phase as a testability refactor candidate. This design records the decisions made when stress-testing that finding (2026-06-10 grilling session).
+[Finding 11 of the source structure audit](../investigations/2026-05-25-source-structure-and-tech-debt-audit.md#finding-11-import-flows-should-expose-parse-prepare-and-write-seams) flags that imports parse, prepare, and write in one server-action flow, and that unmatched submissions are silently skipped. The [reliability plan](../../plans/completed/2026-05-17-reliability-hardening.md) lists extracting a pure preparation phase as a testability refactor candidate. This design records the decisions made when stress-testing that finding (2026-06-10 grilling session).
 
 Domain terms used here — **Import Plan**, **Blocking Diagnostic**, **Ignored Column** — are defined in [CONTEXT.md](../../CONTEXT.md).
 

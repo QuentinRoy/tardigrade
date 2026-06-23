@@ -54,7 +54,7 @@ Current investigation documents considered:
 
 Current active plans considered:
 
-- `plans/active/2026-05-17-reliability-hardening.md`
+- `plans/completed/2026-05-17-reliability-hardening.md`
 
 ## Overlap map
 
@@ -67,7 +67,7 @@ Current active plans considered:
 | Spreadsheet replacement/import/export philosophy | Import preview, export streaming, explicit operations | `2026-05-22-grading-workflows-and-product-positioning.md` | Product doc owns workflow philosophy; source audit owns implementation quality |
 | Offline/local-first storage | Commands, transaction-friendly APIs, local project snapshots | `2026-05-19-offline-support.md` | Offline doc owns offline architecture; source audit/read-write investigation should keep command seams compatible |
 | Loading/caching/revalidation | Project loaders, cache tags, grading page read models | #59 and future caching investigation/design | Caching investigation owns freshness strategy; source audit/read-write investigation own refactor seams that enable it |
-| Reliability risks and test evidence | Export/progress/import/assessment save seams | `plans/active/2026-05-17-reliability-hardening.md` | Reliability plan owns risk priority/status/evidence; source audit owns structural causes and refactor candidates |
+| Reliability risks and test evidence | Export/progress/import/assessment save seams | `plans/completed/2026-05-17-reliability-hardening.md` | Reliability plan owns risk priority/status/evidence; source audit owns structural causes and refactor candidates |
 | Read/write separation | Command/write paths and read projections | `2026-05-26-read-write-separation-and-schema-change-resilience.md` | Read-write investigation owns proposed direction; smaller active plans should own concrete execution later |
 | Documentation lifecycle | Investigation vs ADR vs design vs plan | `2026-05-19-repo-documentation-architecture.md` | Documentation architecture owns lifecycle; individual docs should state their status clearly |
 | Agent guidance | How agents find/use audits and plans | `2026-05-26-agent-instruction-architecture-audit.md` | Agent docs own instruction strategy; investigations/plans should not become implicit agent instructions |
@@ -79,7 +79,7 @@ Current active plans considered:
 
 #### Existing plan scope
 
-`plans/active/2026-05-17-reliability-hardening.md` is a living reliability tracker and delivery dashboard. It tracks risks by tier, score, status, issue number, evidence, and next action.
+`plans/completed/2026-05-17-reliability-hardening.md` is a living reliability tracker and delivery dashboard. It tracks risks by tier, score, status, issue number, evidence, and next action.
 
 It owns:
 

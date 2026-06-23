@@ -7,14 +7,14 @@ Resolution: Resolved — all three PRs merged: PR 2
 ([#220](https://github.com/QuentinRoy/grading/pull/220)), PR 1
 ([#221](https://github.com/QuentinRoy/grading/pull/221)). All four Tier 2 risks
 (R-012, R-013, R-014, R-015) are Verified in the reliability tracker
-(`plans/active/2026-05-17-reliability-hardening.md`); milestones M6/M7 flipped
+(`plans/completed/2026-05-17-reliability-hardening.md`); milestones M6/M7 flipped
 in the same change that landed PR 1.
 Follow-up: None beyond the three PRs below.
 
 ## 1. Scope and traceability
 
 Three pieces of work, tracked as risks in the reliability tracker
-(`plans/active/2026-05-17-reliability-hardening.md`, Section 4 risk register).
+(`plans/completed/2026-05-17-reliability-hardening.md`, Section 4 risk register).
 The `R-0XX` codes are that tracker's identifiers; they are meaningless without
 it, so this plan spells out what each is and prose prefers the descriptive name.
 
@@ -172,7 +172,7 @@ guidance and avoid internal detail. Each lives in a per-feature named constant.
   reliability tracker, name the relevant code paths, and state where the `R-0XX`
   codes come from (the tracker's Section 4 risk register). Example body line:
   "Closes risk R-012 from the reliability tracker
-  (`plans/active/2026-05-17-reliability-hardening.md`); see this plan for the
+  (`plans/completed/2026-05-17-reliability-hardening.md`); see this plan for the
   design."
 - Include `Fixes #<issue>` auto-close keywords in the PR body for each addressed
   issue.
@@ -313,7 +313,7 @@ valid/invalid/error conditions; no unhandled rejection path remains.
 
 ## 10. Tracker bookkeeping (when each PR lands)
 
-Update `plans/active/2026-05-17-reliability-hardening.md` in the same PR:
+Update `plans/completed/2026-05-17-reliability-hardening.md` in the same PR:
 - Flip the addressed risk(s) to `Verified` with linked test file(s) in Test
   Evidence; set Next Action to "None — keep evidence current if these modules
   move."

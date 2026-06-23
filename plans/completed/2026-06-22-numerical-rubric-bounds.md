@@ -2,7 +2,7 @@
 
 Status: Done
 Created: 2026-06-22
-Parent: `plans/active/2026-05-17-reliability-hardening.md` (risk R-010, Tier 1, issue [#23](https://github.com/QuentinRoy/grading/issues/23))
+Parent: `plans/completed/2026-05-17-reliability-hardening.md` (risk R-010, Tier 1, issue [#23](https://github.com/QuentinRoy/grading/issues/23))
 Branch: `numerical-rubric-bounds`
 
 ## Purpose
@@ -279,7 +279,7 @@ behavior; no broad refactors.
 - [x] `pnpm run check --fix`, `pnpm run check-types`, `pnpm test:unit rubric schemas`,
       `pnpm test src/db/` all green.
 - [x] R-010 promoted to Verified in
-      `plans/active/2026-05-17-reliability-hardening.md`: rewrite Risk/Next Action
+      `plans/completed/2026-05-17-reliability-hardening.md`: rewrite Risk/Next Action
       (now: marking function made a pure computer guarding only zero-width ranges;
       both numerical bounds enforced at editor + DB — the prior "no behavior
       change expected" is false), link test files, refresh Section 3 dashboard

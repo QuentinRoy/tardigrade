@@ -1,9 +1,16 @@
 # Project Reliability Audit and Test Tracker
 
-Status: Active
+Status: Completed
+Date: 2026-06-23
+Resolution: This audit cycle is complete — all 17 registered risks (R-001..R-017)
+are Verified, and milestones M0-M7 are all met. Archived as a point-in-time
+record rather than left active under its original weekly cadence; a future
+reliability audit should start a new tracker document rather than reopen this
+one, since a fresh audit would re-baseline scope rather than resume this one's
+in-progress state.
 Last Updated: 2026-06-23 (R-012 and R-015 promoted to Verified — consistent server-action error shaping; all 17 risks now Verified)
 Primary Goal: Prevent data loss/corruption (especially assessments) while progressively hardening correctness and UX safety.
-Cadence: Update at least once per week and after every reliability-related merge.
+Cadence: Update at least once per week and after every reliability-related merge. (Superseded by this archival — see Resolution above.)
 
 ## 1. How to Use This Document
 
@@ -230,7 +237,7 @@ These are behavior-preserving refactors intended only to make tests deterministi
 - ~~Extract pure normalization/validation phase from src/import/saveAssessments.ts.~~ Done 2026-06-10: `prepareAssessmentImport` (pure plan) + `loadAssessmentImportContextFromDb` + `saveAssessmentImportPlanInDb`; see `docs/design/2026-06-10-import-parse-prepare-write-seams.md`. Questions (#147) and students (#148) flows followed the same parse → prepare → write pattern.
 - ~~Separate export stream state machine steps in src/export/submissionExport.ts.~~ Done 2026-06-11 (#152): extracted `src/export/submissionExportGrouping.ts`; request-option parsing now lives in the route layer. See `plans/completed/2026-06-11-submission-export-internals.md`.
 - ~~Introduce shared DB fixture builders for project/question/rubric/submission/assessment setup.~~ Done: `src/test/projects.ts`, `src/test/questions.ts`, `src/test/assessments.ts`, plus the `src/test/dbIntegration.ts` harness.
-- Add small domain helpers for repeated aggregate logic to reduce brittle integration-only verification.
+- Add small domain helpers for repeated aggregate logic to reduce brittle integration-only verification. Not done as of archival (2026-06-23) — a non-blocking refactor suggestion, not tied to a specific registered risk; revisit opportunistically or via `docs/investigations/` if it becomes concrete.
 
 ## 8. Definition of Done by Tier
 

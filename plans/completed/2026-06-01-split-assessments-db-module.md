@@ -22,7 +22,7 @@ This plan captures decisions agreed in the grill-with-docs session on 2026-06-01
 - docs/adr/0004-avoid-barrel-files.md
 - docs/investigations/2026-05-25-source-structure-and-tech-debt-audit.md (Finding 6)
 - plans/completed/2026-05-29-split-questions-db-module.md (the precedent this mirrors)
-- plans/active/2026-05-17-reliability-hardening.md
+- plans/completed/2026-05-17-reliability-hardening.md
 
 ## Agreed Decisions (and why)
 
