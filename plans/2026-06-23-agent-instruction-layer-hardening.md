@@ -30,8 +30,14 @@ The repo's documentation architecture already matches or exceeds best practice (
 
 In scope:
 
-- Extract UI **Styling** conventions (and any clearly UI/DB-only blocks) out of `AGENTS.md` into a skill (or guide) and route to it.
-- Convert `docs/guides/typescript-api-design.md` to a skill — same rationale as the styling extraction: an agent-applied coding convention that should auto-activate when touching TS APIs, not a guide someone must remember to open. Record the skills-vs-guides boundary in `docs/guides/documentation-conventions.md` (done in PR #223).
+- Move agent-applied **coding conventions** out of `AGENTS.md`'s always-loaded body into focused skills under `.agents/skills/`, leaving `AGENTS.md` with the pointer (and, for near-universal ones, an explicit "always consult" load line — the caveman pattern):
+  - `ui-styling` ← **Styling** (MUI `mb`/`gap`, theme tokens). Conditional → auto-trigger.
+  - `error-handling-ux` ← **Error handling UX** (no `NEXT_REDIRECT` to users, actionable, recovery path). Conditional → auto-trigger.
+  - `testing` ← the `using`/`await using` disposable-fixture guidance (pairs with `docs/reference/testing-conventions.md`). Conditional → auto-trigger.
+  - `react-patterns` ← `useId` for DOM ids + page composition (`app/` vs reusable `src/`); consider folding into the existing next-best-practices skill. Conditional → auto-trigger.
+  - `typescript-api-design` ← convert the existing guide; **near-universal**, so route it via an explicit `AGENTS.md` "when writing TypeScript, consult …" load line (it won't reliably auto-trigger). Remove the guide and delist from `docs/index.md`.
+- Extract **mechanically-checkable** rules to Biome lint (enforced, removed from prose): `no as` (biome-plugin-no-type-assertion); check whether React-namespace and `#private`-over-`private` can also be lint rules.
+- Keep **genuinely universal** judgment/safety rules in `AGENTS.md` (readable code, naming, dead-code, scope; named-object-params one-liner; `Promise.all`; package.json scripts; don't weaken types; don't rewrite committed migrations; don't silently drop grading data).
 - Add a deterministic verification hook in project `.claude/settings.json`.
 
 Out of scope:
@@ -51,7 +57,7 @@ Out of scope:
 3. [ ] Replace the extracted section in `AGENTS.md` with a single entry in the **Guidance routing** table pointing to the new home.
 4. [ ] Re-check `AGENTS.md` for internal consistency (routing table, precedence list, no dead cross-references); confirm `CLAUDE.md` and `.github/copilot-instructions.md` still resolve (they point at `AGENTS.md`, so no change expected).
 5. [ ] (Optional, minor) Replace drift-prone raw `src/...` references in the routing table with the owning ADR/doc where one exists.
-6. [ ] Convert `docs/guides/typescript-api-design.md` → `.agents/skills/typescript-api-design/SKILL.md` with a description trigger; repoint the `AGENTS.md` routing entry at the skill; remove the guide and delist it from `docs/index.md`. (The skills-vs-guides boundary it relies on already landed in `docs/guides/documentation-conventions.md` via PR #223.)
+6. [ ] Convert `docs/guides/typescript-api-design.md` → `.agents/skills/typescript-api-design/SKILL.md`; because it's near-universal, route it via an explicit `AGENTS.md` "when writing TypeScript, consult …" load line (the caveman pattern) rather than relying on auto-trigger; extract its mechanical rules (`no as`, …) to Biome lint; remove the guide and delist from `docs/index.md`. Repeat steps 2–3 for `error-handling-ux`, `testing`, and `react-patterns`.
 
 ### Workstream B — deterministic verification gate
 
