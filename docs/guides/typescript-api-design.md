@@ -101,8 +101,8 @@ But if the function is a domain command or mutation, prefer putting all domain i
 ```ts
 // Prefer
 updateQuestion({
-  questionId,
-  patch,
+	questionId,
+	patch,
 });
 
 // Avoid
@@ -136,8 +136,8 @@ This also keeps transaction usage straightforward:
 
 ```ts
 await db.transaction().execute(async (tx) => {
-  await saveQuestionsInDb(tx, { questions, projectId });
-  await recomputeGradesInDb(tx, { projectId });
+	await saveQuestionsInDb(tx, { questions, projectId });
+	await recomputeGradesInDb(tx, { projectId });
 });
 ```
 
@@ -148,22 +148,22 @@ Avoid over-nesting. Named-object parameters should make the call site clearer, n
 ```ts
 // Prefer
 recordAssessment({
-  submissionId,
-  criterionId,
-  score,
-  comment,
+	submissionId,
+	criterionId,
+	score,
+	comment,
 });
 
 // Avoid
 recordAssessment({
-  target: {
-    submission: { id: submissionId },
-    criterion: { id: criterionId },
-  },
-  value: {
-    score,
-    comment,
-  },
+	target: {
+		submission: { id: submissionId },
+		criterion: { id: criterionId },
+	},
+	value: {
+		score,
+		comment,
+	},
 });
 ```
 
@@ -171,15 +171,15 @@ Nest only when the nested value is a real domain concept, reusable shape, or bou
 
 ```ts
 createQuestion({
-  projectId,
-  content: {
-    title,
-    prompt,
-  },
-  scoring: {
-    maxPoints,
-    rubric,
-  },
+	projectId,
+	content: {
+		title,
+		prompt,
+	},
+	scoring: {
+		maxPoints,
+		rubric,
+	},
 });
 ```
 
@@ -190,3 +190,79 @@ Do not add wrapper objects such as `data`, `payload`, `params`, or `options` ins
 Before adding positional parameters, check whether the call site would still be clear if arguments were variables rather than literals. Also check nearby functions in the same API family. If related functions use named objects, keep the same style unless there is a strong reason not to.
 
 This is a readability convention, not an absolute rule. Do not contort small local utilities, callbacks required by third-party APIs, or strongly conventional helpers just to satisfy it.
+
+## Type assertions
+
+Avoid `as` type assertions; prefer type guards, generics, `satisfies`, or narrowing. The `lint/plugin/no-type-assertion` Biome rule enforces this.
+
+A `biome-ignore lint/plugin/no-type-assertion` with an explanatory comment is an accepted escape hatch when removing the assertion would mean going noticeably out of the way relative to the value gained. The rule exists to keep `as` deliberate and its rationale explicit, not to force a workaround at any cost; it is not held to the same strict bar as other lint rules.
+
+Most of the time a small change to the types or the control flow removes the need for an assertion.
+
+Narrow instead of asserting away a case the compiler is unsure about. Here `find` returns `User | undefined`, and `as User` papers over the `undefined`, so a missing user becomes a crash on `.name` instead of a handled error:
+
+```ts
+type User = { id: string; name: string };
+
+// Avoid: assert the result is a User, discarding the undefined case
+function getUserName(users: User[], userId: string) {
+	const user = users.find((user) => user.id === userId) as User;
+	return user.name;
+}
+
+// Prefer: handle undefined, after which `user` is a User with no assertion
+function getUserName(users: User[], userId: string) {
+	const user = users.find((user) => user.id === userId);
+	if (user === undefined) {
+		throw new Error(`User not found: ${userId}`);
+	}
+	return user.name;
+}
+```
+
+Or model the data so the mismatch never arises. Keeping `type` and `value` separate forces an `as keyof` lookup and an `as never` call to get past their unrelated types; a discriminated union pairs them, and every branch type-checks on its own:
+
+```ts
+// Avoid: `type` and `value` are independent, so both the lookup and the call
+// need assertions to compile
+const handlers = {
+	text: (value: string) => value.trim(),
+	number: (value: number) => value.toFixed(2),
+	boolean: (value: boolean) => (value ? "yes" : "no"),
+};
+function formatField(type: string, value: unknown) {
+	const handler = handlers[type as keyof typeof handlers];
+	if (handler === undefined) {
+		throw new Error(`Unknown field type: ${type}`);
+	}
+	return handler(value as never);
+}
+
+// Prefer: one union ties each type to its value, so each branch is checked
+type Field =
+	| { type: "text"; value: string }
+	| { type: "number"; value: number }
+	| { type: "boolean"; value: boolean };
+function formatField(field: Field) {
+	switch (field.type) {
+		case "text":
+			return field.value.trim();
+		case "number":
+			return field.value.toFixed(2);
+		case "boolean":
+			return field.value ? "yes" : "no";
+	}
+}
+```
+
+Use a justified `biome-ignore` only when the invariant is real but the type system cannot express it:
+
+```ts
+// Acceptable: `.map()` preserves array length, so the result still matches the
+// fixed-length tuple type, but the generic signature of `.map()` can't prove it.
+// biome-ignore lint/plugin/no-type-assertion: `.map()` preserves array length.
+type InputTuple = readonly [Input, Input];
+type OutputTuple = readonly [Output, Output];
+const inputs: InputTuple = getInputs();
+return inputs.map(process) as OutputTuple;
+```
