@@ -105,6 +105,7 @@ Procedural how-to documentation for humans.
 Temporary work artifacts for agent-assisted implementation, under `plans/`. Plans never move between directories — a plan's `Status` field is the single source of lifecycle truth, so links to a plan's path stay valid for its entire life.
 
 - [plans/index.md](../plans/index.md) lists every plan with `Status: Active`. Remove a plan's entry there (don't move the file) when it completes.
+- Set `Status: Completed` (and remove the `plans/index.md` entry) in the same PR that lands the work — before that PR merges, not after. Updating the plan post-merge means a second PR just to flip one field.
 - Completed and abandoned plans are not indexed; find them via `plans/`, git history, or the issue/PR they cite.
 - If a proposed plan is not actively being executed, prefer `docs/investigations/` until a concrete implementation plan is needed.
 

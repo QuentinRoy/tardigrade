@@ -16,7 +16,7 @@ Templates should guide contributors, but sections should not be completed with i
 
 Draft pull requests may use short TODO lists to track immediate incomplete implementation work, validation steps, or open questions.
 
-Keep TODO lists lightweight. If the remaining work becomes large enough to need substantial planning, create or link a plan document under `plans/`. Plan documents remain the preferred place for non-trivial planning; mark a plan's `Status` field `Completed` (rather than moving the file) once the work lands.
+Keep TODO lists lightweight. If the remaining work becomes large enough to need substantial planning, create or link a plan document under `plans/`. Plan documents remain the preferred place for non-trivial planning. Mark the plan's `Status` field `Completed` as part of the same PR, before it merges — see [docs/index.md](../index.md#plans) — rather than leaving it for a follow-up PR.
 
 TODO lists should not replace issue descriptions, acceptance criteria, follow-up issues, or plan documents when those are the better long-term record.
 
