@@ -35,8 +35,8 @@ In scope:
   - `error-handling-ux` ← **Error handling UX** (no `NEXT_REDIRECT` to users, actionable, recovery path). Conditional → auto-trigger.
   - `testing` ← the `using`/`await using` disposable-fixture guidance (pairs with `docs/reference/testing-conventions.md`). Conditional → auto-trigger.
   - `react-patterns` ← `useId` for DOM ids + page composition (`app/` vs reusable `src/`); consider folding into the existing next-best-practices skill. Conditional → auto-trigger.
-  - `typescript-api-design` ← convert the existing guide; **near-universal**, so route it via an explicit `AGENTS.md` "when writing TypeScript, consult …" load line (it won't reliably auto-trigger). Remove the guide and delist from `docs/index.md`.
-- Extract **mechanically-checkable** rules to Biome lint (enforced, removed from prose): `no as` (biome-plugin-no-type-assertion); check whether React-namespace and `#private`-over-`private` can also be lint rules.
+  - `typescript-api-design` ← convert the existing guide; **near-universal**, so route it via an explicit `AGENTS.md` "when writing TypeScript, consult …" load line (it won't reliably auto-trigger). Carry the guide's **current** content verbatim — including the "Type assertions" section and tab formatting added in PR #224 — then remove the guide and delist from `docs/index.md`.
+- Extract **mechanically-checkable** rules to Biome lint. **`no as` is already done** (PR #224 enforced `biome-plugin-no-type-assertion`, removed the `as` casts, and documented the rationale in the typescript-api-design guide's "Type assertions" section). Still to check: whether React-namespace and `#private`-over-`private` can also be lint rules.
 - Keep **genuinely universal** judgment/safety rules in `AGENTS.md` (readable code, naming, dead-code, scope; named-object-params one-liner; `Promise.all`; package.json scripts; don't weaken types; don't rewrite committed migrations; don't silently drop grading data).
 - Add a deterministic verification hook in project `.claude/settings.json`.
 
@@ -57,7 +57,7 @@ Out of scope:
 3. [ ] Replace the extracted section in `AGENTS.md` with a single entry in the **Guidance routing** table pointing to the new home.
 4. [ ] Re-check `AGENTS.md` for internal consistency (routing table, precedence list, no dead cross-references); confirm `CLAUDE.md` and `.github/copilot-instructions.md` still resolve (they point at `AGENTS.md`, so no change expected).
 5. [ ] (Optional, minor) Replace drift-prone raw `src/...` references in the routing table with the owning ADR/doc where one exists.
-6. [ ] Convert `docs/guides/typescript-api-design.md` → `.agents/skills/typescript-api-design/SKILL.md`; because it's near-universal, route it via an explicit `AGENTS.md` "when writing TypeScript, consult …" load line (the caveman pattern) rather than relying on auto-trigger; extract its mechanical rules (`no as`, …) to Biome lint; remove the guide and delist from `docs/index.md`. Repeat steps 2–3 for `error-handling-ux`, `testing`, and `react-patterns`.
+6. [ ] Convert `docs/guides/typescript-api-design.md` → `.agents/skills/typescript-api-design/SKILL.md` by moving its **current** content verbatim (including PR #224's "Type assertions" section — do not regress it); because it's near-universal, route it via an explicit `AGENTS.md` "when writing TypeScript, consult …" load line (the caveman pattern) rather than relying on auto-trigger; remove the guide and delist from `docs/index.md`. (Its `no as` rule is already lint-enforced, PR #224.) Repeat steps 2–3 for `error-handling-ux`, `testing`, and `react-patterns`.
 
 ### Workstream B — deterministic verification gate
 
