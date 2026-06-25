@@ -85,6 +85,7 @@ export function zodErrorToQuestionsValidationError(error: ZodError): {
 				second,
 				// We trust that the Zod schema paths are correct, so we can safely
 				// cast third to a keyof QuestionRubricFieldErrors without additional checks.
+				// biome-ignore lint/plugin/no-type-assertion: c.f. comment above.
 				third as keyof QuestionRubricFieldErrors,
 				issue.message,
 			);

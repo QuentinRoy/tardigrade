@@ -179,9 +179,7 @@ export async function createStudentFixtures<
 		.execute();
 
 	const rowIdById = new Map(rows.map((row) => [row.id, row.rowId]));
-	// `.map()` preserves array length, so this structurally matches the
-	// `FixtureTuple` of the same length as `fixtures`; TypeScript can't infer
-	// that through `.map()`'s generic signature.
+	// biome-ignore lint/plugin/no-type-assertion: `.map()` preserves array length.
 	return fixtures.map(({ id }) => ({
 		id,
 		rowId: mustGet(rowIdById, id),
@@ -193,7 +191,7 @@ type SubmissionFixtureTuple<
 > = FixtureTuple<{ id: number }, TFixtures, "studentRowId">;
 
 // Inserts one or more individual submissions in a single request, one per
-// given student. See `createStudentFixtures` for the tuple-preserving typing.
+// given student.
 export async function createIndividualSubmissionFixtures<
 	const TFixtures extends readonly {
 		projectRowId: number;
@@ -216,6 +214,7 @@ export async function createIndividualSubmissionFixtures<
 		.execute();
 
 	const idByStudentRowId = new Map(rows.map((row) => [row.studentId, row.id]));
+	// biome-ignore lint/plugin/no-type-assertion: `.map()` preserves array length.
 	return fixtures.map(({ studentRowId }) => ({
 		studentRowId,
 		id: mustGet(idByStudentRowId, studentRowId),

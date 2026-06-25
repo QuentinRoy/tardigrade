@@ -141,6 +141,9 @@ importers:
       '@vitest/browser-playwright':
         specifier: ^4.1.9
         version: 4.1.9(playwright@1.61.0)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(yaml@2.9.0))(vitest@4.1.9)
+      biome-plugin-no-type-assertion:
+        specifier: ^1.1.1
+        version: 1.1.1
       kysely-codegen:
         specifier: ^0.20.0
         version: 0.20.0(kysely@0.29.2)(pg@8.22.0)(typescript@6.0.3)
@@ -1800,6 +1803,9 @@ packages:
 
   bcrypt-pbkdf@1.0.2:
     resolution: {integrity: sha512-qeFIXtP4MSoi6NLqO12WfqARWWuCKi2Rn/9hJLEmtB5yTNr9DqFWkJRCf2qShWzPeAMRnOgCrq0sg/KLv5ES9w==}
+
+  biome-plugin-no-type-assertion@1.1.1:
+    resolution: {integrity: sha512-5ZAygL1/+F5xg+KhXgbPTxWnw1ZGWWdny1fRtu9H0RoLzb9P3YHDpzOwUsAC5RLESkM6wnetuFUNU/FGvPqguw==}
 
   bl@4.1.0:
     resolution: {integrity: sha512-1W07cM9gS6DcLperZfFSj+bWLtaPGSOHWhPiGzXmvVJbRLdG82sH/Kn8EtW1VqWVA54AKf2h5k5BbnIbwF3h6w==}
@@ -4962,6 +4968,8 @@ snapshots:
   bcrypt-pbkdf@1.0.2:
     dependencies:
       tweetnacl: 0.14.5
+
+  biome-plugin-no-type-assertion@1.1.1: {}
 
   bl@4.1.0:
     dependencies:

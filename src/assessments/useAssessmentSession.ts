@@ -161,19 +161,17 @@ function isSameAssessment(
 		return false;
 	}
 
-	if (right.type === "boolean") {
-		const assessment =
-			rubric.assessment as AssessedRubric<"boolean">["assessment"];
-		return assessment?.passed === right.passed;
+	if (rubric.type === "boolean" && right.type === "boolean") {
+		return rubric.assessment.passed === right.passed;
 	}
 
-	if (right.type === "ordinal") {
-		const assessment =
-			rubric.assessment as AssessedRubric<"ordinal">["assessment"];
-		return assessment?.selectedLabel === right.selectedLabel;
+	if (rubric.type === "ordinal" && right.type === "ordinal") {
+		return rubric.assessment.selectedLabel === right.selectedLabel;
 	}
 
-	const assessment =
-		rubric.assessment as AssessedRubric<"numerical">["assessment"];
-	return assessment?.score === right.score;
+	if (rubric.type === "numerical" && right.type === "numerical") {
+		return rubric.assessment.score === right.score;
+	}
+
+	return false;
 }

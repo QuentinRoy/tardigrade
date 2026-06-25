@@ -56,9 +56,9 @@ function assertUniqueIds(label: string, ids: string[]): void {
 		return;
 	}
 
-	const rubrics = Array.from(
+	const rubrics = Array.from<unknown, { id?: string }>(
 		{ length: ids.length },
-		() => ({}) as { id?: string },
+		() => ({}),
 	);
 
 	for (const { indexes } of duplicateGroups) {

@@ -10,18 +10,20 @@ async function* fromArray<T>(items: T[]): AsyncGenerator<T> {
 	}
 }
 
+type GroupedSubmissionRow = Awaited<
+	ReturnType<typeof groupSubmissionRows> extends AsyncGenerator<infer T>
+		? T
+		: never
+>;
+
 async function collectGroups(
 	rows: SubmissionRow[],
-): Promise<
-	ReturnType<typeof groupSubmissionRows> extends AsyncGenerator<infer T>
-		? T[]
-		: never
-> {
-	const result = [];
+): Promise<GroupedSubmissionRow[]> {
+	const result: GroupedSubmissionRow[] = [];
 	for await (const group of groupSubmissionRows(fromArray(rows))) {
 		result.push(group);
 	}
-	return result as never;
+	return result;
 }
 
 const baseRow: SubmissionRow = {

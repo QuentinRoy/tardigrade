@@ -8,7 +8,6 @@ import {
 	MenuItem,
 	Paper,
 	Select,
-	type SelectChangeEvent,
 	Stack,
 	TextField,
 } from "@mui/material";
@@ -111,12 +110,8 @@ export default function RubricEditorPaper({
 						<Select
 							value={rubric.type}
 							label="Type"
-							onChange={(
-								event: SelectChangeEvent<RubricEditorValue["type"]>,
-							) => {
-								const replacement = createRubric(
-									event.target.value as RubricEditorValue["type"],
-								);
+							onChange={(event) => {
+								const replacement = createRubric(event.target.value);
 								onChange({
 									...replacement,
 									id: rubric.id,

@@ -103,12 +103,15 @@ export function attachAssessment<TType extends RubricType>(
 		// matches before each call, making the casts safe.
 		case "boolean":
 			assertRubricType(rubric, "boolean");
+			// biome-ignore lint/plugin/no-type-assertion: c.f. comment above.
 			return attachBooleanAssessment(rubric, source) as AssessedRubric<TType>;
 		case "ordinal":
 			assertRubricType(rubric, "ordinal");
+			// biome-ignore lint/plugin/no-type-assertion: c.f. comment above.
 			return attachOrdinalAssessment(rubric, source) as AssessedRubric<TType>;
 		case "numerical":
 			assertRubricType(rubric, "numerical");
+			// biome-ignore lint/plugin/no-type-assertion: c.f. comment above.
 			return attachNumericalAssessment(rubric, source) as AssessedRubric<TType>;
 		default:
 			return assertNever(rubric.type);

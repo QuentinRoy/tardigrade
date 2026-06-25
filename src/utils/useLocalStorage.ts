@@ -134,7 +134,8 @@ export function useLocalStorage<T>(
 			const current = tryDeserialize(previousRaw, fallback, deserialize);
 			const resolved =
 				typeof nextValue === "function"
-					? (nextValue as (currentValue: T) => T)(current)
+					? // biome-ignore lint/plugin/no-type-assertion: this may fail if T extends functions, but we don't expect that to be the case in practice.
+						(nextValue as (currentValue: T) => T)(current)
 					: nextValue;
 
 			const nextRaw = serialize(resolved);

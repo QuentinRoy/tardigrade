@@ -1,5 +1,8 @@
 {
 	"$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+	"plugins": [
+		"node_modules/biome-plugin-no-type-assertion/no-type-assertion.grit"
+	],
 	"vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
 	"files": { "ignoreUnknown": false, "includes": ["**", "!.claude"] },
 	"formatter": {

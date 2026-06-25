@@ -55,6 +55,7 @@ type AppKyselyClient = ReturnType<typeof createKyselyClient>;
 // that. TypeScript does not allow adding arbitrary properties to globalThis without
 // a cast; there is no safer alternative short of a global.d.ts declaration merge.
 // See: https://nextjs.org/docs/architecture/fast-refresh#how-it-works
+// biome-ignore lint/plugin/no-type-assertion: c.f. comment above.
 const globalForKysely = globalThis as typeof globalThis & {
 	db?: AppKyselyClient;
 };

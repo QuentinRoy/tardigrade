@@ -43,7 +43,9 @@ const DEFAULT_EXPORT_OPTIONS: ExportPersistedOptions = {
 };
 
 function deserializeExportOptions(raw: string): ExportPersistedOptions {
-	const parsed = JSON.parse(raw) as unknown;
+	// JSON.parse is any by default, make sure we validate the shape of the
+	// parsed value before returning it.
+	const parsed: unknown = JSON.parse(raw);
 	if (typeof parsed !== "object" || parsed == null) {
 		return DEFAULT_EXPORT_OPTIONS;
 	}

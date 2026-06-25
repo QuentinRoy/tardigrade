@@ -136,7 +136,7 @@ Investigations and active plans can guide work, but they do not override higher-
 
 - Prefer call-site readability over brevity for TypeScript function parameters. Use named-object parameters for domain actions, mutations, booleans, optional values, multiple same-type values, or exported/reused helpers where positional order is not obvious from variable-based call sites. See `docs/guides/typescript-api-design.md`.
 
-- Avoid using `as` for type assertions. Prefer type guards, generics, `satisfies`, or narrowing to satisfy the compiler. Any use of `as` must be accompanied by a comment explaining why the alternatives would introduce undue complexity.
+- Avoid using `as` for type assertions. Prefer type guards, generics, `satisfies`, or narrowing to satisfy the compiler. The `lint/plugin/no-type-assertion` Biome rule enforces this; unlike the lint suppressions above, a `biome-ignore lint/plugin/no-type-assertion` with an explanatory comment is an accepted escape hatch. See `docs/guides/typescript-api-design.md` for when it is justified.
 
 - Do not use React as a namespace. Import functions and types directly from `"react"`.
 

@@ -135,14 +135,14 @@ export type QuestionDefinitionPayload = z.output<
 export function parseQuestionDefinitionPayload(
 	raw: string,
 ): QuestionDefinitionPayload {
-	const parsed = JSON.parse(raw) as unknown;
+	const parsed: unknown = JSON.parse(raw);
 	return questionDefinitionSchema.parse(parsed);
 }
 
 export function parseDeletePayload(
 	raw: string,
 ): z.output<typeof deleteQuestionSchema> {
-	const parsed = JSON.parse(raw) as unknown;
+	const parsed: unknown = JSON.parse(raw);
 	return deleteQuestionSchema.parse(parsed);
 }
 
