@@ -1,6 +1,6 @@
 ---
 name: error-handling-ux
-description: User-facing error message conventions for this repository - meaningful, actionable messages with a recovery path, and never leaking framework/internal control-flow errors. Use whenever writing or reviewing error messages, error boundaries, or catch blocks that surface to a user.
+description: User-facing error message conventions for this repository - meaningful, actionable, plain-language messages with a recovery path, no technical jargon or blaming tone, field-level errors shown next to their field, and never leaking framework/internal control-flow errors. Use whenever writing or reviewing error messages, error boundaries, form validation feedback, or catch blocks that surface to a user.
 ---
 
 # Error handling UX
@@ -8,7 +8,10 @@ description: User-facing error message conventions for this repository - meaning
 - User-facing error messages must be meaningful and actionable.
 - Never surface framework/internal control-flow errors, for example `NEXT_REDIRECT`, to users.
 - Every user-visible error should include a clear recovery path.
-- A recognized domain/validation error keeps its specific message. Anything else (an unexpected throw — a dropped DB connection, an unhandled exception) gets logged once (`docs/adr/0009-server-side-logging-with-pino.md`) and returns a generic, actionable fallback — never the raw `error.message`.
+- A recognized domain/validation error keeps its specific message. Anything else (an unexpected throw — a dropped DB connection, an unhandled exception) gets logged once (`docs/adr/0009-server-side-logging-with-pino.md`) and returns a generic, actionable fallback — never the raw `error.message`. The generic fallback is for that unrecognized case only, not a default to reach for instead of a scenario-specific message.
+- Use plain, natural language. Never surface technical jargon, internal terminology, or implementation details (status codes, exception class names, constraint names) in a user-facing message.
+- Never blame or talk down to the user. Describe what happened and how to proceed, not whose fault it was.
+- Show a field-level validation error next to the field it's about, not in a toast or banner detached from the input. In this repo, pass the message into the MUI field's `error`/`helperText` props (see `src/ui/NumberField.tsx`) rather than surfacing it elsewhere.
 
 ## Examples
 
@@ -29,6 +32,11 @@ catch (error) {
 ```
 
 ```ts
+// Bad: technical jargon and a blaming tone instead of plain language.
+"Error! Please fill required fields according to validation."
+```
+
+```ts
 // Good: recognized domain error keeps its specific, actionable message
 // (src/assessments/assessmentMutations.ts).
 criterionChanged:
@@ -45,4 +53,10 @@ catch (error) {
 	// "Something went wrong saving this grade. Reload and try again.
 	// If this keeps happening, report this issue."
 }
+```
+
+```tsx
+// Good: validation error shown inline on the field it belongs to
+// (src/ui/NumberField.tsx), not in a detached toast or banner.
+<TextField error={error != null} helperText={error ?? ""} ... />
 ```
