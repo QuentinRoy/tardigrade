@@ -26,22 +26,3 @@ description: Material UI spacing and design-token conventions for this repo. Use
 // Good: bottom spacing, theme token.
 <Box sx={{ mb: 2 }}>...</Box>
 ```
-
-```tsx
-// Bad: the parent (still the one deciding the spacing, via the sx prop on
-// each usage — not the Field component itself) repeats the same margin on
-// every child instead of setting it once.
-<Stack>
-	<Field sx={{ mb: 2 }} />
-	<Field sx={{ mb: 2 }} />
-	<Field />
-</Stack>
-
-// Good: the parent sets the spacing once via gap instead of repeating it
-// per child.
-<Stack gap={2}>
-	<Field />
-	<Field />
-	<Field />
-</Stack>
-```
