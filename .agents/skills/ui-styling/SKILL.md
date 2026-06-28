@@ -16,3 +16,29 @@ description: Material UI spacing and design-token conventions for this repo. Use
   - Prefer theme typography, palette, breakpoints, and sizing tokens when available.
   - Avoid exact pixel dimensions unless they represent a real fixed constraint (for example image dimensions, touch targets, canvas sizes, or third-party integration requirements).
   - Avoid arbitrary values such as `marginTop: "13px"` or `width: "237px"` when a theme-derived value would work.
+
+## Examples
+
+```tsx
+// Bad: top margin, and a hardcoded pixel value.
+<Box sx={{ mt: "16px" }}>...</Box>
+
+// Good: bottom spacing, theme token.
+<Box sx={{ mb: 2 }}>...</Box>
+```
+
+```tsx
+// Bad: each sibling manages its own margin to create spacing between them.
+<Stack>
+	<Field sx={{ mb: 2 }} />
+	<Field sx={{ mb: 2 }} />
+	<Field />
+</Stack>
+
+// Good: the parent container owns the spacing via gap.
+<Stack gap={2}>
+	<Field />
+	<Field />
+	<Field />
+</Stack>
+```
