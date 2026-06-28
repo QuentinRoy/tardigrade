@@ -1,15 +1,15 @@
 ---
 name: react-patterns
-description: React/Next.js DOM-id (`useId`) and page-composition conventions for this repository, plus the "no outer margin" rule for component spacing. Use whenever generating DOM ids for `aria-controls`/label pairs, deciding whether code belongs in an `app/` route file versus a reusable `src/` component, or writing/reviewing a component that applies `margin`/`mb`/`mt`/`my` (including in an `sx` prop) to its own outermost element.
+description: React/Next.js DOM-id (`useId`) and page-composition conventions for this repository, plus the "no outer margin or padding" rule for component spacing. Use whenever generating DOM ids for `aria-controls`/label pairs, deciding whether code belongs in an `app/` route file versus a reusable `src/` component, or writing/reviewing a component that applies `margin`/`mb`/`mt`/`my` or borderless/backgroundless `padding` (including in an `sx` prop) to its own outermost element.
 ---
 
 # React patterns
 
-## No outer margin
+## No outer margin or padding
 
-A component must never apply margin to its own outermost element. External spacing (the gap between a component and its siblings) is the parent's responsibility, not the component's — see [Kyle Shevlin, "No Outer Margin"](https://kyleshevlin.com/no-outer-margin/). A component that sets its own outer margin breaks encapsulation: it assumes a layout context it doesn't control, and every place that reuses it in a different context (a different sibling order, a grid instead of a stack) needs a compensating override to undo it.
+A component must never apply outer spacing to its own outermost element: never `margin`, and never `padding` unless that element has a visible `border` or `background-color`. External spacing (the gap between a component and its siblings) is the parent's responsibility, not the component's. A component that sets its own outer margin — or padding on an otherwise invisible root, which behaves identically to margin from the outside — breaks encapsulation: it assumes a layout context it doesn't control, and every place that reuses it in a different context (a different sibling order, a grid instead of a stack) needs a compensating override to undo it.
 
-- A component's root element should only carry *internal* spacing (`p`, `px`, `py`) — never `m`, `mt`, `mb`, `my`, or a hardcoded `margin`, on its own root.
+- A component's root element should only carry spacing that's contained inside a visible boundary. `padding` is fine on an element with a `border` or `background-color` — it's genuinely internal. Never `m`, `mt`, `mb`, `my`, or a hardcoded `margin` on the root, and never `padding` on a transparent/borderless root.
 - Let the parent control spacing between siblings, normally via `gap` on a flex/grid container (see `.agents/skills/ui-styling/SKILL.md`'s "prefer `gap` over margins on children").
 - If a component is rendered inside something that does not support `gap` (e.g. plain text flow), the *call site* — not the component — adds the spacing, for example by wrapping the usage in a `Box` with `mb`.
 
@@ -51,6 +51,30 @@ function SubmissionCard({ submission }: SubmissionCardProps) {
 <Box sx={{ mb: 2 }}>
 	<SubmissionCard submission={submission} />
 </Box>
+```
+
+```tsx
+// Bad: borderless, backgroundless padding acts just like outer margin —
+// it pushes siblings away even though there's no visible boundary to contain it.
+function SubmissionCard({ submission }: SubmissionCardProps) {
+	return (
+		<Box sx={{ p: 2 }}>
+			<Typography>{submission.title}</Typography>
+		</Box>
+	);
+}
+```
+
+```tsx
+// Good: padding is fine once it's contained inside a visible boundary —
+// it's genuinely internal spacing, not a stand-in for outer margin.
+function SubmissionCard({ submission }: SubmissionCardProps) {
+	return (
+		<Card sx={{ p: 2 }}>
+			<Typography>{submission.title}</Typography>
+		</Card>
+	);
+}
 ```
 
 ## DOM IDs
