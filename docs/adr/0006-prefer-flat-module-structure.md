@@ -1,7 +1,10 @@
 # Prefer flat module structure; split owners before nesting
 
-- **Status:** Accepted
+- **Status:** Superseded
 - **Created:** 2026-06-04
+- **Superseded by:** [ADR 0010](0010-organize-src-as-enforced-vertical-layers.md)
+
+> Superseded on 2026-06-28 by ADR 0010, which keeps flatness as the default *within* a module but replaces "flat is the intended end state" with enforced vertical layers. The flat-inside-a-module conventions and suffix rules below still apply; the "split owners into siblings before nesting; nesting is a last resort" stance does not.
 
 Inside a feature folder (`src/{assessments,export,import,projects,questions,rubrics,submissions}`) and `src/ui`, default to a flat file layout. Use filename suffixes such as `*.action.ts`, `*.repository.ts`, `*.service.ts`, `*.types.ts`, `*.schema.ts`, and `*.test.ts` to show a file's role. Do not create technical category subfolders such as `repository/`, `service/`, `domain/`, `ui/`, `components/`, or `hooks/`.
 

@@ -43,7 +43,7 @@ Use this table to find the canonical guidance instead of copying rules into this
 - Testing conventions, test-command selection, and disposable-fixture patterns → `docs/reference/testing-conventions.md`, `.agents/skills/testing/SKILL.md`.
 - React `useId` usage and `app/` vs `src/` page composition → `.agents/skills/react-patterns/SKILL.md`.
 - Avoiding barrel/re-export facade files; import from the owning module → `docs/adr/0004-avoid-barrel-files.md`.
-- Keeping feature folders and `src/ui` flat; no technical category subfolders → `docs/adr/0006-prefer-flat-module-structure.md`.
+- Organizing `src/` as enforced vertical layers (verticals → shared-domain → design-system → infra); flat within a module, no technical category subfolders → `docs/adr/0010-organize-src-as-enforced-vertical-layers.md` (supersedes `docs/adr/0006-prefer-flat-module-structure.md`).
 - Cache tag helpers, lifetimes, invalidation primitives, and the mutation-to-tag map → `docs/adr/0008-cache-tags-lifetimes-and-invalidation.md`, `src/db/cacheTags.ts`, `src/db/cacheInvalidation.ts`, `docs/reference/cache-invalidation-map.md`.
 - Server-side logging (when to log, what not to log, scoped loggers) → `docs/adr/0009-server-side-logging-with-pino.md`, `src/utils/logger.ts`.
 - Database migration conventions → `docs/reference/database-migrations.md`.

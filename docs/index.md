@@ -49,6 +49,7 @@ Open-ended audits and option analysis. Investigations may contain hypotheses and
 - [Investigation overlap audit](investigations/2026-05-25-investigation-overlap-audit.md) — coordinated #115/#117 sequencing; all related issues are now closed.
 - [Agent instruction architecture audit](investigations/2026-05-26-agent-instruction-architecture-audit.md)
 - [Commit message conventions](investigations/2026-05-20-commit-message-conventions.md)
+- [Source structure around product verticals](investigations/2026-06-28-source-structure-product-verticals.md) — direction accepted in ADR 0010; execution staged via a follow-up plan.
 
 ## ADRs
 
@@ -59,10 +60,11 @@ Short records of durable architecture decisions.
 - [0003 Node subpath imports with mandatory `.ts` extensions](adr/0003-node-subpath-imports-and-ts-extensions.md)
 - [0004 Avoid barrel files](adr/0004-avoid-barrel-files.md)
 - [0005 Correct cosmetic project slugs client-side](adr/0005-client-side-cosmetic-slug-correction.md)
-- [0006 Prefer flat module structure](adr/0006-prefer-flat-module-structure.md)
+- [0006 Prefer flat module structure](adr/0006-prefer-flat-module-structure.md) (superseded by ADR 0010)
 - [0007 DB primitives take a handle; wrappers own transactions and cache](adr/0007-db-primitives-take-a-handle-wrappers-own-transactions-and-cache.md)
 - [0008 Cache tags, lifetimes, and invalidation](adr/0008-cache-tags-lifetimes-and-invalidation.md)
 - [0009 Server-side logging with pino](adr/0009-server-side-logging-with-pino.md)
+- [0010 Organize `src/` as enforced vertical layers](adr/0010-organize-src-as-enforced-vertical-layers.md) (supersedes ADR 0006)
 - Add new ADRs under `docs/adr/`.
 
 ## Designs
