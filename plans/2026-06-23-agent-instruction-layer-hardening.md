@@ -1,6 +1,6 @@
 # Agent instruction layer hardening
 
-- **Status:** Active
+- **Status:** Completed
 - **Created:** 2026-06-23
 - **Origin:** Gap analysis of this repo against current web best practices for agent-facing documentation; tackles the "keep `AGENTS.md` minimal" principle in [`docs/guides/documentation-conventions.md`](../docs/guides/documentation-conventions.md) (the styling/code-style content is the always-loaded surface to trim) plus a verification-enforcement gap.
 - **Tracked by:** none yet
@@ -52,26 +52,26 @@ Out of scope:
 
 ### Workstream A — minimize the always-loaded layer
 
-1. [ ] Audit `AGENTS.md` sections for "conditionally relevant" vs "near-universal." Clear extract: **Styling**. Review **Architecture** / **Performance** / **Database migrations** for UI/DB-only content. Keep universal one-liners in `AGENTS.md` (no `as`, JS `#private` not TS `private`, flat structure, narrow scope, Project ID vs Row ID).
-2. [ ] Create the destination per decision 1 (recommend `.agents/skills/ui-styling/SKILL.md`); move the styling content verbatim (bottom-spacing-only / `mb` not `mt` / `gap`, theme tokens over pixels).
-3. [ ] Replace the extracted section in `AGENTS.md` with a single entry in the **Guidance routing** table pointing to the new home.
-4. [ ] Re-check `AGENTS.md` for internal consistency (routing table, precedence list, no dead cross-references); confirm `CLAUDE.md` and `.github/copilot-instructions.md` still resolve (they point at `AGENTS.md`, so no change expected).
-5. [ ] (Optional, minor) Replace drift-prone raw `src/...` references in the routing table with the owning ADR/doc where one exists.
-6. [ ] Convert `docs/guides/typescript-api-design.md` → `.agents/skills/typescript-api-design/SKILL.md` by moving its **current** content verbatim (including PR #224's "Type assertions" section — do not regress it); because it's near-universal, route it via an explicit `AGENTS.md` "when writing TypeScript, consult …" load line (the caveman pattern) rather than relying on auto-trigger; remove the guide and delist from `docs/index.md`. (Its `no as` rule is already lint-enforced, PR #224.) Repeat steps 2–3 for `error-handling-ux`, `testing`, and `react-patterns`.
+1. [x] Audit `AGENTS.md` sections for "conditionally relevant" vs "near-universal." Clear extract: **Styling**. Review **Architecture** / **Performance** / **Database migrations** for UI/DB-only content. Keep universal one-liners in `AGENTS.md` (no `as`, JS `#private` not TS `private`, flat structure, narrow scope, Project ID vs Row ID).
+2. [x] Create the destination per decision 1 (recommend `.agents/skills/ui-styling/SKILL.md`); move the styling content verbatim (bottom-spacing-only / `mb` not `mt` / `gap`, theme tokens over pixels).
+3. [x] Replace the extracted section in `AGENTS.md` with a single entry in the **Guidance routing** table pointing to the new home.
+4. [x] Re-check `AGENTS.md` for internal consistency (routing table, precedence list, no dead cross-references); confirm `CLAUDE.md` and `.github/copilot-instructions.md` still resolve (they point at `AGENTS.md`, so no change expected).
+5. [ ] (Optional, minor) Replace drift-prone raw `src/...` references in the routing table with the owning ADR/doc where one exists. Skipped: out of scope for this pass, no defects found in the existing references.
+6. [x] Convert `docs/guides/typescript-api-design.md` → `.agents/skills/typescript-api-design/SKILL.md` by moving its **current** content verbatim (including PR #224's "Type assertions" section — do not regress it); because it's near-universal, route it via an explicit `AGENTS.md` "when writing TypeScript, consult …" load line (the caveman pattern) rather than relying on auto-trigger; remove the guide and delist from `docs/index.md`. (Its `no as` rule is already lint-enforced, PR #224.) Repeat steps 2–3 for `error-handling-ux`, `testing`, and `react-patterns`.
 
 ### Workstream B — deterministic verification gate
 
-7. [ ] Implement the hook per decision 2 in project `.claude/settings.json` (committed), composing with existing global hooks.
-8. [ ] Keep the advisory `check` / `check-types` / tests line in `AGENTS.md` as the cross-tool fallback.
-9. [ ] Verify the hook fires: edit a file → confirm `biome` runs; trigger `Stop` → confirm `check-types` runs/gates. Capture evidence.
+7. [x] Implement the hook per decision 2 in project `.claude/settings.json` (committed), composing with existing global hooks.
+8. [x] Keep the advisory `check` / `check-types` / tests line in `AGENTS.md` as the cross-tool fallback.
+9. [x] Verify the hook fires: edit a file → confirm `biome` runs; trigger `Stop` → confirm `check-types` runs/gates. Capture evidence.
 
 ## Validation
 
-- [ ] `AGENTS.md` line count meaningfully reduced; remaining content is near-universal.
-- [ ] New skill/guide discoverable from the `AGENTS.md` routing table (and `docs/index.md` if a guide).
-- [ ] `pnpm run check --fix` clean; `pnpm run check-types` clean.
-- [ ] Hook demonstrably runs (evidence captured in the PR).
-- [ ] Docs decision recorded: no `CONTEXT.md` change; decide whether the "always-loaded layer holds only operate/route/precedence/safety" rule deserves a short ADR or is adequately captured by this plan + the investigation.
+- [x] `AGENTS.md` line count meaningfully reduced; remaining content is near-universal. (183 → 151 lines.)
+- [x] New skill/guide discoverable from the `AGENTS.md` routing table (and `docs/index.md` if a guide).
+- [x] `pnpm run check --fix` clean; `pnpm run check-types` clean.
+- [x] Hook demonstrably runs (evidence captured in the PR): `PostToolUse` reformatted a deliberately malformatted scratch file live in-session; `Stop`'s gating logic was pipe-tested directly against a simulated type error (blocked with the `tsc` output as `reason`) and against the clean repo (silent, exit 0).
+- [x] Docs decision recorded: no `CONTEXT.md` change. The "always-loaded layer holds only operate/route/precedence/safety" rule does not get its own ADR — it's adequately captured by this plan plus the 2026-05-26 architecture-audit investigation; promoting it to an ADR would duplicate, not add, durable guidance.
 
 ## Non-goals
 

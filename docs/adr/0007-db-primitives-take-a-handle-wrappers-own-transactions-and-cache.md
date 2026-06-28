@@ -17,7 +17,7 @@ The shipped assessment code already gestured at this with an optional `options.d
 
 1. A **DB Primitive** takes the executor as its first positional parameter, named `db` and typed `Kysely<DB>`. No custom union is used: `Transaction<DB>` already extends `Kysely<DB>`, so `Kysely<DB>` accepts both. Because the bare name `db` can read as "only the global client", each primitive carries a short comment noting that `db` may be the global client or a caller-supplied transaction.
 
-2. Domain arguments follow the executor. Use a named object for domain arguments, per `docs/guides/typescript-api-design.md`. A single obvious domain argument may stay positional.
+2. Domain arguments follow the executor. Use a named object for domain arguments, per `.agents/skills/typescript-api-design/SKILL.md`. A single obvious domain argument may stay positional.
 
 3. Primitives are named with a suffix: `...FromDb` for reads and `...InDb` for writes. The bare name is reserved for the **App-Level Wrapper**.
 
@@ -25,7 +25,7 @@ The shipped assessment code already gestured at this with an optional `options.d
 
 5. Primitives may compose other primitives, threading the same handle through the call chain. A primitive must never call a wrapper, because doing so would run the sub-operation through the wrapper's handle policy and may escape the caller's transaction. Keep primitives close to leaf operations.
 
-6. An **App-Level Wrapper** takes its domain arguments first, either positional or as a named object per `docs/guides/typescript-api-design.md`. It may then take an optional trailing options object whose `db` handle defaults to the global client:
+6. An **App-Level Wrapper** takes its domain arguments first, either positional or as a named object per `.agents/skills/typescript-api-design/SKILL.md`. It may then take an optional trailing options object whose `db` handle defaults to the global client:
 
    ```ts
    wrapper(params, { db = defaultDb } = {})

@@ -1,0 +1,25 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path' | { read -r f; case \"$f\" in *.ts|*.tsx|*.js|*.jsx|*.mjs|*.cjs|*.json|*.jsonc) pnpm run check --write \"$f\";; esac; } 2>/dev/null || true"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "out=$(pnpm run check-types 2>&1); status=$?; if [ \"$status\" -ne 0 ]; then jq -n --arg reason \"$out\" '{decision:\"block\", reason: $reason}'; fi"
+          }
+        ]
+      }
+    ]
+  }
+}

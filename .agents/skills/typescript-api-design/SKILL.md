@@ -1,3 +1,9 @@
+---
+name: typescript-api-design
+description: TypeScript function signature and parameter design for this repository - positional vs named-object parameters, leading execution context, object shape, and type assertions. Use whenever writing or reviewing a TypeScript function signature, exported helper, or domain action/mutation in this repo, or when deciding whether to use an `as` type assertion.
+user-invocable: false
+---
+
 # TypeScript API design
 
 Favor function signatures that stay readable at the call site and remain consistent as APIs evolve.

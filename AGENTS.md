@@ -37,13 +37,16 @@ Use this table to find the canonical guidance instead of copying rules into this
 - Documentation conventions, per-type templates, metadata, and status vocabulary → `docs/guides/documentation-conventions.md`.
 - GitHub issues, pull requests, labels, templates, and collaboration workflow → `docs/guides/issue-and-pr-conventions.md`.
 - Commit titles and squash merge titles → `docs/guides/commit-message-conventions.md`.
-- TypeScript public/helper APIs and function parameter design → `docs/guides/typescript-api-design.md`.
+- TypeScript public/helper APIs, function parameter design, and `as` type assertions → `.agents/skills/typescript-api-design/SKILL.md` (also explicitly loaded; see Skills below).
+- UI styling, spacing direction, and Material UI design-token conventions → `.agents/skills/ui-styling/SKILL.md`.
+- User-facing error message conventions → `.agents/skills/error-handling-ux/SKILL.md`.
+- Testing conventions, test-command selection, and disposable-fixture patterns → `docs/reference/testing-conventions.md`, `.agents/skills/testing/SKILL.md`.
+- React `useId` usage and `app/` vs `src/` page composition → `.agents/skills/react-patterns/SKILL.md`.
 - Avoiding barrel/re-export facade files; import from the owning module → `docs/adr/0004-avoid-barrel-files.md`.
 - Keeping feature folders and `src/ui` flat; no technical category subfolders → `docs/adr/0006-prefer-flat-module-structure.md`.
 - Cache tag helpers, lifetimes, invalidation primitives, and the mutation-to-tag map → `docs/adr/0008-cache-tags-lifetimes-and-invalidation.md`, `src/db/cacheTags.ts`, `src/db/cacheInvalidation.ts`, `docs/reference/cache-invalidation-map.md`.
 - Server-side logging (when to log, what not to log, scoped loggers) → `docs/adr/0009-server-side-logging-with-pino.md`, `src/utils/logger.ts`.
 - Database migration conventions → `docs/reference/database-migrations.md`.
-- Testing conventions and test-command selection → `docs/reference/testing-conventions.md`.
 - Accepted architecture decisions → `docs/adr/`.
 - Chosen implementation designs → `docs/design/`.
 - Open-ended audits, comparisons, and option analysis → `docs/investigations/`.
@@ -54,6 +57,7 @@ Use this table to find the canonical guidance instead of copying rules into this
 - Load `.agents/skills/caveman/SKILL.md` at session start and use `lite` mode by default for terse, token-efficient communication.
 - Temporarily drop caveman mode when clarity, safety, irreversible actions, or public-facing writing require normal prose.
 - Use `.agents/skills/simplify/SKILL.md` after code edits as a focused cleanup pass over recently modified code. Preserve behavior exactly while improving clarity, consistency, naming, control flow, and maintainability.
+- Load `.agents/skills/typescript-api-design/SKILL.md` whenever writing or reviewing a TypeScript function signature or an `as` type assertion. It is near-universal in this TS-only repo and won't reliably auto-trigger, so consult it explicitly rather than waiting for its description to match.
 - Load other local skills from `.agents/skills/*` only when the task touches that domain. Do not load every skill by default.
 
 ## Instruction precedence
@@ -83,20 +87,6 @@ Investigations and active plans can guide work, but they do not override higher-
 - Use `plans/` for execution plans. Track lifecycle with the plan's `Status` field (`Active` | `Completed` | `Abandoned`); list active plans in `plans/index.md`. See `docs/index.md` for the canonical doc map.
 - Keep agent instructions short and navigational. Prefer linking to focused docs over copying long guidance here.
 
-## Styling
-
-- Use vertical spacing in one direction only: prefer bottom spacing over top spacing.
-  - In Material UI, use `mb` rather than `mt` or `my`, including in `sx` props.
-  - When spacing multiple sibling elements, prefer `gap` on the parent container over margins on children.
-
-- Prefer Material UI theme mechanisms and design-system tokens over custom styling where practical.
-
-- Prefer Material UI spacing and design tokens over hard-coded pixel values.
-  - Prefer `p`, `px`, `py`, `m`, `mb`, `gap`, and `theme.spacing()` instead of arbitrary pixel values.
-  - Prefer theme typography, palette, breakpoints, and sizing tokens when available.
-  - Avoid exact pixel dimensions unless they represent a real fixed constraint (for example image dimensions, touch targets, canvas sizes, or third-party integration requirements).
-  - Avoid arbitrary values such as `marginTop: "13px"` or `width: "237px"` when a theme-derived value would work.
-
 ## Code style
 
 - Keep changes narrowly scoped to the requested task. Avoid opportunistic rewrites, broad renames, file moves, or architectural reshaping unless they are necessary for the task or explicitly requested.
@@ -120,8 +110,6 @@ Investigations and active plans can guide work, but they do not override higher-
 
 - Use repository tooling for formatting, linting, and type checking. After the implementation and simplify pass, always run `pnpm run check --fix` and `pnpm run check-types`; also run the targeted unit, integration, and Storybook tests that match the files changed. Use `docs/reference/testing-conventions.md` for test-command selection.
 
-- In tests, prefer disposable fixtures with `using` or `await using` when setup and teardown should stay together. Consider adding a small disposable fixture when repeated paired setup and teardown would otherwise require hooks. Do not use `using` for resources that must stay alive across multiple `it` cases; use `beforeAll`/`afterAll` instead. See `docs/reference/testing-conventions.md`.
-
 - Treat lint and type errors as issues to resolve rather than obstacles to bypass.
 
 - Do not disable Biome rules, suppress lint errors, or weaken TypeScript checks without first investigating alternatives and consulting the user.
@@ -135,32 +123,13 @@ Investigations and active plans can guide work, but they do not override higher-
 
 - Prefer improving types, restructuring code, extracting helpers, or adjusting interfaces before suppressing tooling feedback.
 
-- Prefer call-site readability over brevity for TypeScript function parameters. Use named-object parameters for domain actions, mutations, booleans, optional values, multiple same-type values, or exported/reused helpers where positional order is not obvious from variable-based call sites. See `docs/guides/typescript-api-design.md`.
-
-- Avoid using `as` for type assertions. Prefer type guards, generics, `satisfies`, or narrowing to satisfy the compiler. The `lint/plugin/no-type-assertion` Biome rule enforces this; unlike the lint suppressions above, a `biome-ignore lint/plugin/no-type-assertion` with an explanatory comment is an accepted escape hatch. See `docs/guides/typescript-api-design.md` for when it is justified.
+- For TypeScript function parameter design and `as` type assertions, see `.agents/skills/typescript-api-design/SKILL.md` (loaded explicitly per Skills above).
 
 - Do not use React as a namespace. Import functions and types directly from `"react"`.
 
 - Use JavaScript private fields and methods (for example `#myPrivateField`, `#myMethod()`) instead of TypeScript `private` modifiers. TypeScript `private` is compile-time only and does not enforce privacy at runtime.
 
-- Keep page-level composition in `app/` route files.
-- Avoid `src/` components that are full pages; `src/` components should stay focused and independently reusable and testable.
-
-## Error handling UX
-
-- User-facing error messages must be meaningful and actionable.
-- Never surface framework/internal control-flow errors, for example `NEXT_REDIRECT`, to users.
-- Every user-visible error should include a clear recovery path.
-
 ## Architecture
-
-- For elements that require DOM IDs, such as `aria-controls` / target `id` pairs or form inputs / labels, prefer React `useId()` over hard-coded global IDs to avoid collisions.
-- Derived IDs are acceptable when multiple related IDs are needed, for example `${id}-name` and `${id}-email`.
-- Do not use `useId()` for:
-  - React list keys
-  - database IDs
-  - persisted identifiers
-  - IDs that must remain stable across sessions
 
 - Use Context7 when library/API documentation, setup, configuration, or code generation assistance is needed.
 

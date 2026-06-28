@@ -90,7 +90,6 @@ Procedural how-to documentation for humans.
 - [Issue and PR conventions](guides/issue-and-pr-conventions.md)
 - [Next.js caching in this repository](guides/nextjs-caching.md)
 - [Running integration tests](guides/running-integration-tests.md)
-- [TypeScript API design](guides/typescript-api-design.md)
 - Add new guides under `docs/guides/`.
 
 ## Plans
