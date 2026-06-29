@@ -1,6 +1,6 @@
 # Source structure vertical-layers migration
 
-- **Status:** Active
+- **Status:** Completed
 - **Created:** 2026-06-28
 - **Origin:** [ADR 0010](../docs/adr/0010-organize-src-as-enforced-vertical-layers.md); [source-structure investigation](../docs/investigations/2026-06-28-source-structure-product-verticals.md)
 - **Tracked by:** #201
@@ -27,7 +27,7 @@ Read ADR 0010 for the decision and its rationale; this plan owns *how* and *in w
 | --- | --- | --- |
 | app | `app/` | verticals, shared-domain, design-system, infra |
 | verticals | `assessment-capture`, `assessment-completion`, `rubric-analytics`, `question-management`, `imports`, `export`, `app-shell` | shared-domain, design-system, infra — **not** another vertical's internals |
-| shared-domain | `rubrics`, `submissions`, `projects` (+ an assessment-persistence module, see PR4) | design-system, infra, and other shared-domain (intra-layer ok) |
+| shared-domain | `rubrics`, `submissions`, `projects`, `assessment-persistence` (PR4), `questions` (PR5 — split from `question-management`) | design-system, infra, and other shared-domain (intra-layer ok) |
 | design-system | `CodeSnippet`, `MuiNextLink`, `NumberField`, `shiki-setup`, `SaveErrors*` | infra only |
 | infrastructure (leaf) | `db`, `utils`, `test` | (leaf) |
 
@@ -49,7 +49,7 @@ The audit behind them is in [the investigation](../docs/investigations/2026-06-2
 
 ## One open design choice (PR4)
 
-The only decision left mid-flight: `imports/saveAssessments.ts` calls `saveAssessmentInDb` (an ADR 0007 write primitive in `assessmentMutations.ts`). Every other `import`/`export` → `assessments` edge is type-only and dissolves in PR1; this write edge survives. **Default resolution (PR4):** extract the `saveAssessmentInDb` primitive into a new shared-domain assessment-persistence module so `assessment-capture`'s wrapper and `imports`' bulk-save both reach it downward. Confirm the exact surface at PR4 (does anything besides the write primitive need to move?) and record the new shared-domain member (a one-line note in ADR 0010, or a new ADR if it reads as a real new boundary). Two non-blocking deferrals: `question-management`/`export` internal structure (flat-default holds), and an optional later `AssessmentRubricValue` rename.
+The only decision left mid-flight: `imports/saveAssessments.ts` calls `saveAssessmentInDb` (an ADR 0007 write primitive in `assessmentMutations.ts`). Every other `import`/`export` → `assessments` edge is type-only and dissolves in PR1; this write edge survives. **Default resolution (PR4):** extract the `saveAssessmentInDb` primitive into a new shared-domain assessment-persistence module so `assessment-capture`'s wrapper and `imports`' bulk-save both reach it downward. Confirm the exact surface at PR4 (does anything besides the write primitive need to move?) and record the new shared-domain member (a one-line note in ADR 0010, or a new ADR if it reads as a real new boundary). `question-management`/`export` internal structure turned out **not** to be a non-blocking deferral — see PR5, which found and fixed 3 real cross-vertical violations there. An optional later `AssessmentRubricValue` rename remains genuinely deferred (cosmetic).
 
 ## Execution: PR sequence
 
@@ -59,7 +59,7 @@ Repo commands (`package.json`): `pnpm check` (Biome), `pnpm run check-types` (`t
 
 ### PR0 — dependency-cruiser + baseline (no file moves)
 
-Add `dependency-cruiser` (dev dep) and `.dependency-cruiser.cjs`. Starting config below (written against dependency-cruiser v16; validate with `pnpm exec depcruise --validate src app` and adjust globs to the installed major version — **this config has not been run, treat it as a reviewed starting point**):
+Add `dependency-cruiser` (dev dep) and `.dependency-cruiser.js`. Starting config below (written against dependency-cruiser v16; validate with `pnpm exec depcruise --validate src app` and adjust globs to the installed major version — **this config has not been run, treat it as a reviewed starting point**):
 
 ```js
 /** @type {import('dependency-cruiser').IConfiguration} */
@@ -108,8 +108,8 @@ module.exports = {
 
 Then:
 
-1. Generate the baseline: `pnpm exec depcruise src app --config .dependency-cruiser.cjs --output-type baseline > .dependency-cruiser-known-violations.json`.
-2. Add script `"lint:boundaries": "depcruise src app --config .dependency-cruiser.cjs --ignore-known"`; call it from `check` (make `check` run `biome check … && depcruise … --ignore-known`) or add it as a separate CI step next to `pnpm check`.
+1. Generate the baseline: `pnpm exec depcruise src app --config .dependency-cruiser.js --output-type baseline > .dependency-cruiser-known-violations.json`.
+2. Add script `"lint:boundaries": "depcruise src app --config .dependency-cruiser.js --ignore-known"`; call it from `check` (make `check` run `biome check … && depcruise … --ignore-known`) or add it as a separate CI step next to `pnpm check`.
 3. **Done-when:** `pnpm lint:boundaries` exits 0 with the baseline present; the baseline lists at least the `rubrics → assessments` cycle (proof resolution works) and the `import → assessments` edges. **Validate:** `pnpm check`, `pnpm lint:boundaries`. Commit the config + baseline (the baseline shrinking is the migration's progress meter).
 
 ### PR1 — fix the rubrics↔assessments cycle (no reorg)
@@ -143,9 +143,13 @@ Then:
 
 ### PR5 — finalize
 
-1. Confirm `question-management` (optionally rename `src/questions`) and `export` need no internal change beyond rule enablement.
-2. When the baseline is empty, delete `.dependency-cruiser-known-violations.json` and drop `--ignore-known`.
-3. Set this plan `Status: Completed`, remove its `plans/index.md` entry, mark [PR #227](https://github.com/QuentinRoy/grading/pull/227) ready for review (all the migration commits land together on this branch). **Done-when:** no baseline file; all rules at `error`; `pnpm check && pnpm run check-types && pnpm test` green.
+`export` needed no internal change. `question-management` did, beyond what was anticipated: confirming it surfaced 3 real pre-existing cross-vertical violations that no earlier PR's file moves touched (`questions`/`rubric-analytics`/`export` reads, plus a backwards `questions -> imports` edge), not just an optional rename. Resolved as part of this PR rather than deferred:
+
+1. Promoted `ImportState`/`initialImportState` (generic action-result shape, misplaced inside `imports`, reused by `questions/state.ts`) to `src/utils/actionState.ts` as `ActionState`/`initialActionState` (infra — domain-agnostic, no `imports` knowledge in its fields).
+2. Split `src/questions`: the read model (`Question`, `Grid`, `questions.ts`'s load functions) stayed at `src/questions/` and became shared-domain (3 consumers — `export`, `rubric-analytics`, and `question-management` itself); everything else (editor types, mutations, management UI, actions, schemas, state) moved to a new vertical, `src/question-management/`. This is the rename Decisions originally flagged optional — doing it was the fix, not a side effect.
+3. Added a `no-cross-vertical` exemption for test files (`*.test.ts(x)`, `*.integration.test.ts(x)`) in `.dependency-cruiser.js` — the one remaining violation was `imports/assessments/prepareAssessmentImport.integration.test.ts` legitimately building its fixture via `export`'s CSV writer to test the export → import round-trip; this is verification, not a production cross-vertical dependency. Recorded as ADR 0010 rule 7.
+4. Verified the baseline reached zero with both fixes (and confirmed each was load-bearing by reverting it in isolation and re-running — 2 and 3 violations resurfaced respectively). Deleted `.dependency-cruiser-known-violations.json` and dropped `--ignore-known` from `lint:boundaries`.
+5. Set this plan `Status: Completed` and removed its `plans/index.md` entry. **Done-when:** no baseline file; all rules at `error`; `pnpm check && pnpm run check-types && pnpm test && pnpm run build` green.
 
 ## State (handoff)
 

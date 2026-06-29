@@ -1,10 +1,12 @@
 /** @type {import('dependency-cruiser').IConfiguration} */
-// All vertical folder names, current AND target, so the rule survives renames.
 const VERTICALS =
-	"questions|export|" + // current
-	"assessment-capture|assessment-completion|rubric-analytics|question-management|imports|app-shell"; // target
-const NON_SHARED = `questions|export|assessment-capture|assessment-completion|rubric-analytics|question-management|imports|app-shell`;
-const SHARED_DOMAIN = "rubrics|submissions|projects|assessment-persistence";
+	"export|assessment-capture|assessment-completion|rubric-analytics|question-management|imports|app-shell";
+const NON_SHARED = VERTICALS;
+const SHARED_DOMAIN =
+	"rubrics|submissions|projects|assessment-persistence|questions";
+// Tests legitimately exercise more than one vertical (e.g. an import/export
+// round-trip integration test); only production code must respect the boundary.
+const TEST_FILE = "\\.(integration\\.)?test\\.tsx?$";
 
 export default {
 	forbidden: [
@@ -17,7 +19,7 @@ export default {
 		{
 			name: "shared-domain-no-up",
 			comment:
-				"rubrics/submissions/projects/assessment-persistence import only design-system + infra (+ intra shared-domain)",
+				"rubrics/submissions/projects/assessment-persistence/questions import only design-system + infra (+ intra shared-domain)",
 			severity: "error",
 			from: { path: `^src/(${SHARED_DOMAIN})/` },
 			to: { path: `^src/(${NON_SHARED})/` },
@@ -37,9 +39,9 @@ export default {
 		{
 			name: "no-cross-vertical",
 			comment:
-				"a vertical must not import another vertical (self-excluded via $1)",
+				"a vertical must not import another vertical (self-excluded via $1); tests are exempt (see TEST_FILE)",
 			severity: "error",
-			from: { path: `^src/(${VERTICALS})/` },
+			from: { path: `^src/(${VERTICALS})/`, pathNot: TEST_FILE },
 			to: { path: `^src/(${VERTICALS})/`, pathNot: "^src/$1/" },
 		},
 	],

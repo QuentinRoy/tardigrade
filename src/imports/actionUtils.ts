@@ -1,7 +1,7 @@
 import { prettifyError, ZodError } from "zod";
+import type { ActionState } from "#utils/actionState.ts";
 import { createLogger } from "#utils/logger.ts";
 import { ImportBlockedError } from "./importErrors.ts";
-import type { ImportState } from "./importState.ts";
 
 const logger = createLogger("import");
 
@@ -10,7 +10,7 @@ export const importMessages = {
 		"Something went wrong during the import. Nothing was imported. Reload and try again. If this keeps happening, report this issue.",
 };
 
-export function toImportErrorState(error: unknown): ImportState {
+export function toImportErrorState(error: unknown): ActionState {
 	if (error instanceof ZodError) {
 		return { status: "error", errors: [prettifyError(error)] };
 	}

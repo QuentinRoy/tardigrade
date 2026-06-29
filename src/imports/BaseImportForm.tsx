@@ -21,13 +21,12 @@ import {
 	useState,
 } from "react";
 import { useFormStatus } from "react-dom";
-import type { ImportState } from "./importState.ts";
-import { initialImportState } from "./importState.ts";
+import { type ActionState, initialActionState } from "#utils/actionState.ts";
 
 type ImportAction = (
-	previousState: ImportState,
+	previousState: ActionState,
 	formData: FormData,
-) => Promise<ImportState>;
+) => Promise<ActionState>;
 
 type BaseImportFormProps = {
 	title: string;
@@ -100,7 +99,7 @@ export default function BaseImportForm({
 	submitLabel,
 	title,
 }: BaseImportFormProps): ReactElement {
-	const [state, formAction] = useActionState(action, initialImportState);
+	const [state, formAction] = useActionState(action, initialActionState);
 	const [value, setValue] = useState(defaultValue ?? "");
 	const [helpOpen, setHelpOpen] = useState(false);
 

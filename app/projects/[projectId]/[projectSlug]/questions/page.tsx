@@ -3,9 +3,9 @@ import {
 	deleteQuestionAction,
 	reorderQuestionsAction,
 	saveQuestionAction,
-} from "#questions/actions.ts";
-import QuestionsManagementClient from "#questions/QuestionsManagementClient.tsx";
-import { loadQuestionDefinitions } from "#questions/questionDefinitions.ts";
+} from "#question-management/actions.ts";
+import QuestionsManagementClient from "#question-management/QuestionsManagementClient.tsx";
+import { loadQuestionDefinitions } from "#question-management/questionDefinitions.ts";
 
 type ProjectQuestionsPageProps = {
 	params: Promise<{ projectId: string; projectSlug: string }>;
