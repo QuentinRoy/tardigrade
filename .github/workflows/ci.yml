@@ -68,6 +68,9 @@ jobs:
       - name: Lint and format check
         run: pnpm run check
 
+      - name: Module boundaries check
+        run: pnpm run lint:boundaries
+
   test-unit:
     name: test-unit
     runs-on: ubuntu-latest

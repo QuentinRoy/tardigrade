@@ -1,0 +1,278 @@
+[
+	{
+		"type": "dependency",
+		"from": "src/ui/SaveErrorsDisplay.tsx",
+		"to": "src/projects/projectPaths.ts",
+		"unresolvedTo": "#projects/projectPaths.ts",
+		"dependencyTypes": ["aliased", "aliased-subpath-import", "local", "import"],
+		"rule": { "severity": "error", "name": "design-system-no-up" }
+	},
+	{
+		"type": "cycle",
+		"from": "src/assessments/types.ts",
+		"to": "src/rubrics/types.ts",
+		"unresolvedTo": "#rubrics/types.ts",
+		"dependencyTypes": [
+			"aliased",
+			"aliased-subpath-import",
+			"local",
+			"type-only",
+			"import"
+		],
+		"rule": { "severity": "error", "name": "no-circular" },
+		"cycle": [
+			{
+				"name": "src/rubrics/types.ts",
+				"dependencyTypes": [
+					"aliased",
+					"aliased-subpath-import",
+					"local",
+					"type-only",
+					"import"
+				]
+			},
+			{
+				"name": "src/assessments/types.ts",
+				"dependencyTypes": [
+					"aliased",
+					"aliased-subpath-import",
+					"local",
+					"type-only",
+					"import"
+				]
+			}
+		]
+	},
+	{
+		"type": "dependency",
+		"from": "src/assessments/loadRubricOverview.ts",
+		"to": "src/questions/questions.ts",
+		"unresolvedTo": "#questions/questions.ts",
+		"dependencyTypes": ["aliased", "aliased-subpath-import", "local", "import"],
+		"rule": { "severity": "error", "name": "no-cross-vertical" }
+	},
+	{
+		"type": "dependency",
+		"from": "src/assessments/rubricOverviewBuilder.test.ts",
+		"to": "src/questions/types.ts",
+		"unresolvedTo": "#questions/types.ts",
+		"dependencyTypes": [
+			"aliased",
+			"aliased-subpath-import",
+			"local",
+			"type-only",
+			"import"
+		],
+		"rule": { "severity": "error", "name": "no-cross-vertical" }
+	},
+	{
+		"type": "dependency",
+		"from": "src/assessments/rubricOverviewBuilder.ts",
+		"to": "src/questions/types.ts",
+		"unresolvedTo": "#questions/types.ts",
+		"dependencyTypes": [
+			"aliased",
+			"aliased-subpath-import",
+			"local",
+			"type-only",
+			"import"
+		],
+		"rule": { "severity": "error", "name": "no-cross-vertical" }
+	},
+	{
+		"type": "dependency",
+		"from": "src/assessments/SubmissionAssessmentClient.tsx",
+		"to": "src/ui/SaveErrorsProvider.tsx",
+		"unresolvedTo": "#ui/SaveErrorsProvider.tsx",
+		"dependencyTypes": ["aliased", "aliased-subpath-import", "local", "import"],
+		"rule": { "severity": "error", "name": "no-cross-vertical" }
+	},
+	{
+		"type": "dependency",
+		"from": "src/assessments/SubmissionOverviewAssessmentClient.tsx",
+		"to": "src/ui/SaveErrorsProvider.tsx",
+		"unresolvedTo": "#ui/SaveErrorsProvider.tsx",
+		"dependencyTypes": ["aliased", "aliased-subpath-import", "local", "import"],
+		"rule": { "severity": "error", "name": "no-cross-vertical" }
+	},
+	{
+		"type": "dependency",
+		"from": "src/export/questionsExport.test.ts",
+		"to": "src/questions/types.ts",
+		"unresolvedTo": "#questions/types.ts",
+		"dependencyTypes": [
+			"aliased",
+			"aliased-subpath-import",
+			"local",
+			"type-only",
+			"import"
+		],
+		"rule": { "severity": "error", "name": "no-cross-vertical" }
+	},
+	{
+		"type": "dependency",
+		"from": "src/export/questionsExport.ts",
+		"to": "src/questions/types.ts",
+		"unresolvedTo": "#questions/types.ts",
+		"dependencyTypes": [
+			"aliased",
+			"aliased-subpath-import",
+			"local",
+			"type-only",
+			"import"
+		],
+		"rule": { "severity": "error", "name": "no-cross-vertical" }
+	},
+	{
+		"type": "dependency",
+		"from": "src/export/submissionExport.ts",
+		"to": "src/assessments/types.ts",
+		"unresolvedTo": "#assessments/types.ts",
+		"dependencyTypes": [
+			"aliased",
+			"aliased-subpath-import",
+			"local",
+			"type-only",
+			"import"
+		],
+		"rule": { "severity": "error", "name": "no-cross-vertical" }
+	},
+	{
+		"type": "dependency",
+		"from": "src/export/submissionExport.ts",
+		"to": "src/questions/questions.ts",
+		"unresolvedTo": "#questions/questions.ts",
+		"dependencyTypes": ["aliased", "aliased-subpath-import", "local", "import"],
+		"rule": { "severity": "error", "name": "no-cross-vertical" }
+	},
+	{
+		"type": "dependency",
+		"from": "src/export/submissionExportGrouping.ts",
+		"to": "src/assessments/types.ts",
+		"unresolvedTo": "#assessments/types.ts",
+		"dependencyTypes": [
+			"aliased",
+			"aliased-subpath-import",
+			"local",
+			"type-only",
+			"import"
+		],
+		"rule": { "severity": "error", "name": "no-cross-vertical" }
+	},
+	{
+		"type": "dependency",
+		"from": "src/import/prepareAssessmentImport.integration.test.ts",
+		"to": "src/export/submissionExport.ts",
+		"unresolvedTo": "#export/submissionExport.ts",
+		"dependencyTypes": ["aliased", "aliased-subpath-import", "local", "import"],
+		"rule": { "severity": "error", "name": "no-cross-vertical" }
+	},
+	{
+		"type": "dependency",
+		"from": "src/import/prepareAssessmentImport.integration.test.ts",
+		"to": "src/export/submissionExportCsv.ts",
+		"unresolvedTo": "#export/submissionExportCsv.ts",
+		"dependencyTypes": [
+			"aliased",
+			"aliased-subpath-import",
+			"local",
+			"type-only",
+			"import"
+		],
+		"rule": { "severity": "error", "name": "no-cross-vertical" }
+	},
+	{
+		"type": "dependency",
+		"from": "src/import/prepareAssessmentImport.ts",
+		"to": "src/assessments/types.ts",
+		"unresolvedTo": "#assessments/types.ts",
+		"dependencyTypes": [
+			"aliased",
+			"aliased-subpath-import",
+			"local",
+			"type-only",
+			"import"
+		],
+		"rule": { "severity": "error", "name": "no-cross-vertical" }
+	},
+	{
+		"type": "dependency",
+		"from": "src/import/saveAssessments.ts",
+		"to": "src/assessments/assessmentMutations.ts",
+		"unresolvedTo": "#assessments/assessmentMutations.ts",
+		"dependencyTypes": ["aliased", "aliased-subpath-import", "local", "import"],
+		"rule": { "severity": "error", "name": "no-cross-vertical" }
+	},
+	{
+		"type": "dependency",
+		"from": "src/questions/BooleanRubricEditorPaper.tsx",
+		"to": "src/ui/NumberField.tsx",
+		"unresolvedTo": "#ui/NumberField.tsx",
+		"dependencyTypes": ["aliased", "aliased-subpath-import", "local", "import"],
+		"rule": { "severity": "error", "name": "no-cross-vertical" }
+	},
+	{
+		"type": "dependency",
+		"from": "src/questions/NumericalRubricEditorPaper.tsx",
+		"to": "src/ui/NumberField.tsx",
+		"unresolvedTo": "#ui/NumberField.tsx",
+		"dependencyTypes": ["aliased", "aliased-subpath-import", "local", "import"],
+		"rule": { "severity": "error", "name": "no-cross-vertical" }
+	},
+	{
+		"type": "dependency",
+		"from": "src/questions/state.ts",
+		"to": "src/import/importState.ts",
+		"unresolvedTo": "#import/importState.ts",
+		"dependencyTypes": [
+			"aliased",
+			"aliased-subpath-import",
+			"local",
+			"type-only",
+			"import"
+		],
+		"rule": { "severity": "error", "name": "no-cross-vertical" }
+	},
+	{
+		"type": "dependency",
+		"from": "src/rubrics/rubric.ts",
+		"to": "src/assessments/types.ts",
+		"unresolvedTo": "#assessments/types.ts",
+		"dependencyTypes": [
+			"aliased",
+			"aliased-subpath-import",
+			"local",
+			"type-only",
+			"import"
+		],
+		"rule": { "severity": "error", "name": "shared-domain-no-up" }
+	},
+	{
+		"type": "dependency",
+		"from": "src/rubrics/RubricGradeRow.tsx",
+		"to": "src/assessments/types.ts",
+		"unresolvedTo": "#assessments/types.ts",
+		"dependencyTypes": [
+			"aliased",
+			"aliased-subpath-import",
+			"local",
+			"type-only",
+			"import"
+		],
+		"rule": { "severity": "error", "name": "shared-domain-no-up" }
+	},
+	{
+		"type": "dependency",
+		"from": "src/rubrics/types.ts",
+		"to": "src/assessments/types.ts",
+		"unresolvedTo": "#assessments/types.ts",
+		"dependencyTypes": [
+			"aliased",
+			"aliased-subpath-import",
+			"local",
+			"type-only",
+			"import"
+		],
+		"rule": { "severity": "error", "name": "shared-domain-no-up" }
+	}
+]
