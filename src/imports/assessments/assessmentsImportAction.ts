@@ -1,15 +1,15 @@
 "use server";
 
 import { toImportErrorState } from "#imports/actionUtils.ts";
-import type { ImportState } from "#imports/importState.ts";
+import type { ActionState } from "#utils/actionState.ts";
 import { parseAssessmentsCsv } from "./parseAssessments.ts";
 import { saveAssessments } from "./saveAssessments.ts";
 
 export async function assessmentsImportAction(
 	projectId: string,
-	_previousState: ImportState,
+	_previousState: ActionState,
 	formData: FormData,
-): Promise<ImportState> {
+): Promise<ActionState> {
 	const assessmentsCsv = String(formData.get("assessmentsCsv") ?? "");
 
 	try {

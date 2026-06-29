@@ -14,7 +14,7 @@ import {
 	type QuestionRow,
 	resolveProjectRowId,
 	toRubric,
-} from "./questions.ts";
+} from "#questions/questions.ts";
 import type { QuestionDefinition } from "./types.ts";
 
 export type RubricDefinitionInput =
