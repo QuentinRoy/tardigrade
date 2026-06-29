@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-import StudentMatrix from "./StudentMatrix.tsx";
+import SubmissionMatrix from "./SubmissionMatrix.tsx";
 
 const rubrics = [
 	{
@@ -46,7 +46,7 @@ const rubrics = [
 	},
 ];
 
-const students = [
+const submissionRows = [
 	{
 		submissionId: "1",
 		submissionLabel: "Alice A",
@@ -76,12 +76,12 @@ const students = [
 ];
 
 const meta = {
-	title: "Assessment/StudentMatrix",
-	component: StudentMatrix,
+	title: "Assessment/SubmissionMatrix",
+	component: SubmissionMatrix,
 	tags: ["autodocs"],
 	parameters: { layout: "padded" },
-	args: { rubrics, students },
-} satisfies Meta<typeof StudentMatrix>;
+	args: { rubrics, submissionRows },
+} satisfies Meta<typeof SubmissionMatrix>;
 
 export default meta;
 
@@ -89,19 +89,19 @@ type Story = StoryObj<typeof meta>;
 
 export const Partial: Story = {};
 
-export const Empty: Story = { args: { rubrics: [], students: [] } };
+export const Empty: Story = { args: { rubrics: [], submissionRows: [] } };
 
 export const Complete: Story = {
 	args: {
-		students: students.map((student) => ({
-			...student,
-			completedRubrics: student.totalRubrics,
-			rubrics: student.rubrics.map((cell) => ({
+		submissionRows: submissionRows.map((submissionRow) => ({
+			...submissionRow,
+			completedRubrics: submissionRow.totalRubrics,
+			rubrics: submissionRow.rubrics.map((cell) => ({
 				...cell,
 				assessed: true,
 				marks: cell.marks ?? 2,
 			})),
-			marks: student.maxMarks,
+			marks: submissionRow.maxMarks,
 		})),
 	},
 };

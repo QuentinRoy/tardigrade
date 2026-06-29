@@ -44,14 +44,14 @@ export type RubricOverviewRow = {
 	details: RubricOverviewPopupDetails;
 };
 
-export type RubricOverviewStudentCell = {
+export type RubricOverviewSubmissionCell = {
 	rubricId: string;
 	marks: number | null;
 	maxMarks: number;
 	assessed: boolean;
 };
 
-export type RubricOverviewStudentRow = {
+export type RubricOverviewSubmissionRow = {
 	submissionId: string;
 	submissionLabel: string;
 	marks: number;
@@ -59,7 +59,7 @@ export type RubricOverviewStudentRow = {
 	averagePercent: number | null;
 	completedRubrics: number;
 	totalRubrics: number;
-	rubrics: RubricOverviewStudentCell[];
+	rubrics: RubricOverviewSubmissionCell[];
 };
 
 export type RubricOverviewSummary = {
@@ -73,7 +73,7 @@ export type RubricOverviewSummary = {
 export type RubricOverviewData = {
 	summary: RubricOverviewSummary;
 	rubrics: RubricOverviewRow[];
-	students: RubricOverviewStudentRow[];
+	submissionRows: RubricOverviewSubmissionRow[];
 };
 
 export type RubricOverviewAssessmentRecord = {
@@ -207,9 +207,9 @@ export function buildRubricOverviewData({
 		]),
 	);
 
-	const studentRows = new Map(
+	const submissionRows = new Map(
 		submissions.map((submission) => {
-			const rubricCells: RubricOverviewStudentCell[] = orderedRubrics.map(
+			const rubricCells: RubricOverviewSubmissionCell[] = orderedRubrics.map(
 				(item) => ({
 					rubricId: item.rubricId,
 					marks: null,
@@ -252,33 +252,40 @@ export function buildRubricOverviewData({
 		const assessedRubric = attachAssessment(rubricMeta.rubric, assessmentValue);
 		const marks = markRubric(assessedRubric);
 		const submissionId = String(record.submissionId);
-		const student = studentRows.get(submissionId);
+		const submissionRow = submissionRows.get(submissionId);
 		const rubricStat = rubricStats.get(record.rubricId);
 		const cellIndex = rubricCellIndexByRubricId.get(record.rubricId);
 
-		if (student == null || rubricStat == null || cellIndex == null) {
+		if (submissionRow == null || rubricStat == null || cellIndex == null) {
 			continue;
 		}
 
-		const existingCell = student.rubrics[cellIndex];
+		const existingCell = submissionRow.rubrics[cellIndex];
 		if (existingCell == null || existingCell.assessed) {
 			continue;
 		}
 
-		student.rubrics[cellIndex] = { ...existingCell, marks, assessed: true };
+		submissionRow.rubrics[cellIndex] = {
+			...existingCell,
+			marks,
+			assessed: true,
+		};
 
-		student.marks += marks;
-		student.maxMarks += rubricMeta.maxMarks;
-		student.completedRubrics += 1;
+		submissionRow.marks += marks;
+		submissionRow.maxMarks += rubricMeta.maxMarks;
+		submissionRow.completedRubrics += 1;
 
 		rubricStat.assessedCount += 1;
 		rubricStat.marksSum += marks;
 	}
 
-	const students = [...studentRows.values()].map((row) => ({
-		...row,
-		averagePercent: row.maxMarks > 0 ? (row.marks / row.maxMarks) * 100 : null,
-	}));
+	const submissionRowsWithAverages = [...submissionRows.values()].map(
+		(row) => ({
+			...row,
+			averagePercent:
+				row.maxMarks > 0 ? (row.marks / row.maxMarks) * 100 : null,
+		}),
+	);
 
 	const rubrics = orderedRubrics.map((item) => {
 		const stats = rubricStats.get(item.rubricId);
@@ -315,9 +322,12 @@ export function buildRubricOverviewData({
 		(sum, rubric) => sum + rubric.totalCount,
 		0,
 	);
-	const totalMarks = students.reduce((sum, student) => sum + student.marks, 0);
-	const totalMaxMarks = students.reduce(
-		(sum, student) => sum + student.maxMarks,
+	const totalMarks = submissionRowsWithAverages.reduce(
+		(sum, submissionRow) => sum + submissionRow.marks,
+		0,
+	);
+	const totalMaxMarks = submissionRowsWithAverages.reduce(
+		(sum, submissionRow) => sum + submissionRow.maxMarks,
 		0,
 	);
 
@@ -328,11 +338,15 @@ export function buildRubricOverviewData({
 			completionPercent:
 				totalRubrics > 0 ? (assessedRubrics / totalRubrics) * 100 : 0,
 			classAverageMarks:
-				students.length > 0 ? totalMarks / students.length : null,
+				submissionRowsWithAverages.length > 0
+					? totalMarks / submissionRowsWithAverages.length
+					: null,
 			classAverageMaxMarks:
-				students.length > 0 ? totalMaxMarks / students.length : null,
+				submissionRowsWithAverages.length > 0
+					? totalMaxMarks / submissionRowsWithAverages.length
+					: null,
 		},
 		rubrics,
-		students,
+		submissionRows: submissionRowsWithAverages,
 	};
 }
