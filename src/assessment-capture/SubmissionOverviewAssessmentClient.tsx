@@ -7,16 +7,16 @@ import NextLink from "next/link";
 import { useRouter } from "next/navigation";
 import type { ReactElement } from "react";
 import { useMemo } from "react";
-import AssessmentProgressSummary from "#design-system/AssessmentProgressSummary.tsx";
 import {
 	type SaveError,
 	useSaveErrors,
 } from "#design-system/SaveErrorsProvider.tsx";
 import { projectAssessmentSubmissionPath } from "#projects/projectPaths.ts";
-import { summarizeRubrics } from "#rubrics/assessmentSummary.ts";
 import type { AssessedRubric, AssessmentRubricValue } from "#rubrics/types.ts";
 import { getSubmissionLabel } from "#submissions/getSubmissionLabel.ts";
 import type { Submission } from "#submissions/types.ts";
+import AssessmentProgressSummary from "./AssessmentProgressSummary.tsx";
+import { summarizeRubrics } from "./assessmentSummary.ts";
 import RubricGradeList from "./RubricGradeList.tsx";
 import SubmissionQuickJumpDialog from "./SubmissionQuickJumpDialog.tsx";
 import { saveAssessment } from "./saveAssessment.ts";

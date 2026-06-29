@@ -26,7 +26,7 @@ export default {
 			comment: "design-system imports infra only",
 			severity: "error",
 			from: {
-				path: "^src/design-system/(CodeSnippet|MuiNextLink|NumberField|shiki-setup|SaveErrors|AssessmentProgressSummary|CompletionProgress)",
+				path: "^src/design-system/(CodeSnippet|MuiNextLink|NumberField|shiki-setup|SaveErrors)",
 			},
 			to: {
 				path: `^src/(rubrics|submissions|projects|${NON_SHARED})/`,
