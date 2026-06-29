@@ -7,7 +7,7 @@ import type { ReactElement } from "react";
 import { loadProjectByPublicId } from "#projects/projects.ts";
 import { loadRubricOverviewData } from "#rubric-analytics/loadRubricOverview.ts";
 import RubricAnalyticsTable from "#rubric-analytics/RubricAnalyticsTable.tsx";
-import StudentMatrix from "#rubric-analytics/StudentMatrix.tsx";
+import SubmissionMatrix from "#rubric-analytics/SubmissionMatrix.tsx";
 
 function formatMarks(value: number | null): string {
 	if (value == null || Number.isNaN(value)) {
@@ -89,10 +89,13 @@ async function ProjectAssessmentsOverviewPageContent({
 				</Box>
 
 				<Box>
-					<Typography component="h2" variant="h6" sx={{ mb: 1 }}>
-						Student matrix
+					<Typography component="h2" variant="h5" sx={{ mb: 1 }}>
+						Submission matrix
 					</Typography>
-					<StudentMatrix rubrics={data.rubrics} students={data.students} />
+					<SubmissionMatrix
+						rubrics={data.rubrics}
+						submissionRows={data.submissionRows}
+					/>
 				</Box>
 			</Stack>
 		</Container>

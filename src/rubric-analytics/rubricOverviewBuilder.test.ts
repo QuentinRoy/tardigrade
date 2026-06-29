@@ -195,11 +195,11 @@ describe("buildRubricOverviewData", () => {
 
 		expect(booleanRubric).toMatchObject({ assessedCount: 1, averageMarks: 2 });
 
-		const studentOne = data.students.find(
-			(student) => student.submissionId === "1",
+		const submissionOne = data.submissionRows.find(
+			(submissionRow) => submissionRow.submissionId === "1",
 		);
-		expect(studentOne?.marks).toBe(2);
-		expect(studentOne?.completedRubrics).toBe(1);
+		expect(submissionOne?.marks).toBe(2);
+		expect(submissionOne?.completedRubrics).toBe(1);
 	});
 
 	it("treats a null value field as unassessed for each rubric type", () => {
@@ -284,11 +284,11 @@ describe("buildRubricOverviewData", () => {
 			expect(rubric.assessedCount).toBe(0);
 		}
 
-		const studentOne = data.students.find(
-			(student) => student.submissionId === "1",
+		const submissionOne = data.submissionRows.find(
+			(submissionRow) => submissionRow.submissionId === "1",
 		);
-		expect(studentOne?.completedRubrics).toBe(0);
-		expect(studentOne?.rubrics.every((cell) => !cell.assessed)).toBe(true);
+		expect(submissionOne?.completedRubrics).toBe(0);
+		expect(submissionOne?.rubrics.every((cell) => !cell.assessed)).toBe(true);
 	});
 
 	it("skips records referencing an unknown rubricId or submissionId", () => {
@@ -322,7 +322,9 @@ describe("buildRubricOverviewData", () => {
 		);
 		expect(booleanRubric?.assessedCount).toBe(0);
 		expect(
-			data.students.every((student) => student.completedRubrics === 0),
+			data.submissionRows.every(
+				(submissionRow) => submissionRow.completedRubrics === 0,
+			),
 		).toBe(true);
 	});
 

@@ -118,6 +118,16 @@ _Avoid_: empty ordinal marks as a draft state, per-boundary minimums that disagr
 A numerical **Rubric Definition** must satisfy `minScore < maxScore` (a collapsed or inverted score range is not authorable) and `minMarks <= maxMarks` (marks may be flat but not inverted). Both are enforced identically at every write boundary — editor, import, and a DB CHECK. The marking function is a pure computer: it trusts validated inputs and throws only on a zero-width score range, the one case that would otherwise yield `NaN` rather than a finite mark.
 _Avoid_: zero-width or inverted score ranges, inverted marks ranges, tolerant `NaN` marks, per-boundary rules that disagree, re-validating rubric shape inside the marking function
 
+### Rubric overview
+
+**Submission Matrix**:
+The per-submission rubric-by-rubric overview grid on the assessment overview page, showing each submission's marks per rubric. Distinct from **Rubric Analytics** (the per-rubric aggregate view). Submission, not student, because a submission may be by a team.
+_Avoid_: Student Matrix, student row, per-student grid
+
+**Rubric Analytics**:
+The per-rubric aggregate overview grid on the assessment overview page, showing each rubric's average marks and completion across submissions. Distinct from the **Submission Matrix** (the per-submission view).
+_Avoid_: rubric matrix, rubric summary table
+
 ### Assessment
 
 **Assessment**:

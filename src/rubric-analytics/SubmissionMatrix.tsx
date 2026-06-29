@@ -13,12 +13,12 @@ import CompletionProgress from "./CompletionProgress.tsx";
 import RubricDetailsTooltip from "./RubricDetailsTooltip.tsx";
 import type {
 	RubricOverviewRow,
-	RubricOverviewStudentRow,
+	RubricOverviewSubmissionRow,
 } from "./rubricOverviewBuilder.ts";
 
-type StudentMatrixProps = {
+type SubmissionMatrixProps = {
 	rubrics: RubricOverviewRow[];
-	students: RubricOverviewStudentRow[];
+	submissionRows: RubricOverviewSubmissionRow[];
 };
 
 function formatMarks(value: number | null): string {
@@ -39,13 +39,13 @@ function severityColor(percent: number | null): string {
 	return `hsl(${hue} 70% 42%)`;
 }
 
-export default function StudentMatrix({
+export default function SubmissionMatrix({
 	rubrics,
-	students,
-}: StudentMatrixProps): ReactElement {
+	submissionRows,
+}: SubmissionMatrixProps): ReactElement {
 	return (
 		<TableContainer component={Paper} variant="outlined">
-			<Table size="small" aria-label="Student matrix">
+			<Table size="small" aria-label="Submission matrix">
 				<TableHead>
 					<TableRow>
 						<TableCell>Submission</TableCell>
@@ -62,10 +62,10 @@ export default function StudentMatrix({
 					</TableRow>
 				</TableHead>
 				<TableBody>
-					{students.map((student) => (
-						<TableRow key={student.submissionId}>
-							<TableCell>{student.submissionLabel}</TableCell>
-							{student.rubrics.map((rubricCell) => {
+					{submissionRows.map((submissionRow) => (
+						<TableRow key={submissionRow.submissionId}>
+							<TableCell>{submissionRow.submissionLabel}</TableCell>
+							{submissionRow.rubrics.map((rubricCell) => {
 								const color = rubricCell.assessed
 									? severityColor(
 											rubricCell.maxMarks > 0
@@ -111,28 +111,33 @@ export default function StudentMatrix({
 										borderRadius: 1,
 										px: 1,
 										py: 0.5,
-										bgcolor: alpha(severityColor(student.averagePercent), 0.1),
+										bgcolor: alpha(
+											severityColor(submissionRow.averagePercent),
+											0.1,
+										),
 									}}
 								>
 									<Typography
 										variant="body2"
 										sx={{
-											color: severityColor(student.averagePercent),
+											color: severityColor(submissionRow.averagePercent),
 											whiteSpace: "nowrap",
 										}}
 									>
-										{formatMarks(student.marks)} /{" "}
-										{formatMarks(student.maxMarks)}
+										{formatMarks(submissionRow.marks)} /{" "}
+										{formatMarks(submissionRow.maxMarks)}
 									</Typography>
 								</Box>
 							</TableCell>
 							<TableCell align="right" sx={{ minWidth: 180 }}>
 								<CompletionProgress
-									assessedCount={student.completedRubrics}
-									totalCount={student.totalRubrics}
+									assessedCount={submissionRow.completedRubrics}
+									totalCount={submissionRow.totalRubrics}
 									completionPercent={
-										student.totalRubrics > 0
-											? (student.completedRubrics / student.totalRubrics) * 100
+										submissionRow.totalRubrics > 0
+											? (submissionRow.completedRubrics /
+													submissionRow.totalRubrics) *
+												100
 											: 0
 									}
 									alignItems="flex-end"
