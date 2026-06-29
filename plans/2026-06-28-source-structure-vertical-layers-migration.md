@@ -151,8 +151,9 @@ Then:
 
 - **Merged:** ADR 0010 (+ ADR 0006 marked superseded), the investigation, this plan, and the `docs/index.md` / `AGENTS.md` / `plans/index.md` routing updates — [PR #227](https://github.com/QuentinRoy/grading/pull/227).
 - **PR0 — Done — [PR #228](https://github.com/QuentinRoy/grading/pull/228):** `dependency-cruiser` + `.dependency-cruiser.js` (ESM, not `.cjs` — this repo is `"type": "module"`) with the four rules, generated baseline (22 known violations), `lint:boundaries` script, and a separate CI step. `options.parser: "tsc"` was required beyond the plan's starting config — the default parser silently drops `import type` edges, which would have hidden most of the real violations including the `rubrics <-> assessments` proof-of-resolution cycle.
-- **Not started:** PR1–PR5 above.
-- **Next: PR1** — fix the `rubrics <-> assessments` cycle. PR2–PR5 run in order after, each depending only on the prior. The single mid-flight design choice is PR4 §1 (shared-domain home for `saveAssessmentInDb`), which has a stated default.
+- **PR1 — Done — [PR #229](https://github.com/QuentinRoy/grading/pull/229):** moved `AssessmentRubricValue` into `rubrics/types.ts`, rewrote all importers. Baseline shrank from 22 to 15 known violations; `no-circular` and all `rubrics -> *` edges are gone. Built on a fresh branch off `origin/main` (post-#228 merge) rather than continuing on the old PR0 branch.
+- **Not started:** PR2–PR5 above.
+- **Next: PR2** — carve `src/ui` into `design-system` + `app-shell`. PR3–PR5 run in order after, each depending only on the prior. The single mid-flight design choice is PR4 §1 (shared-domain home for `saveAssessmentInDb`), which has a stated default.
 
 ## Out of scope
 

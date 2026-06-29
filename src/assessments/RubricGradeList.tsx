@@ -3,8 +3,7 @@
 import Grid from "@mui/material/Grid";
 import type { ReactElement } from "react";
 import RubricGradeRow from "#rubrics/RubricGradeRow.tsx";
-import type { AssessedRubric } from "#rubrics/types.ts";
-import type { AssessmentRubricValue } from "./types.ts";
+import type { AssessedRubric, AssessmentRubricValue } from "#rubrics/types.ts";
 
 type RubricAssessmentSectionProps = {
 	savedRubrics: AssessedRubric[];

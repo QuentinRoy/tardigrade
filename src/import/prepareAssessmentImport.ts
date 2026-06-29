@@ -1,5 +1,4 @@
-import type { AssessmentRubricValue } from "#assessments/types.ts";
-import type { RubricType } from "#rubrics/types.ts";
+import type { AssessmentRubricValue, RubricType } from "#rubrics/types.ts";
 import type { SubmissionType } from "#submissions/types.ts";
 import type { ImportedAssessmentRow } from "./types.ts";
 

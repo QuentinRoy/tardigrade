@@ -8,42 +8,6 @@
 		"rule": { "severity": "error", "name": "design-system-no-up" }
 	},
 	{
-		"type": "cycle",
-		"from": "src/assessments/types.ts",
-		"to": "src/rubrics/types.ts",
-		"unresolvedTo": "#rubrics/types.ts",
-		"dependencyTypes": [
-			"aliased",
-			"aliased-subpath-import",
-			"local",
-			"type-only",
-			"import"
-		],
-		"rule": { "severity": "error", "name": "no-circular" },
-		"cycle": [
-			{
-				"name": "src/rubrics/types.ts",
-				"dependencyTypes": [
-					"aliased",
-					"aliased-subpath-import",
-					"local",
-					"type-only",
-					"import"
-				]
-			},
-			{
-				"name": "src/assessments/types.ts",
-				"dependencyTypes": [
-					"aliased",
-					"aliased-subpath-import",
-					"local",
-					"type-only",
-					"import"
-				]
-			}
-		]
-	},
-	{
 		"type": "dependency",
 		"from": "src/assessments/loadRubricOverview.ts",
 		"to": "src/questions/questions.ts",
@@ -126,37 +90,9 @@
 	{
 		"type": "dependency",
 		"from": "src/export/submissionExport.ts",
-		"to": "src/assessments/types.ts",
-		"unresolvedTo": "#assessments/types.ts",
-		"dependencyTypes": [
-			"aliased",
-			"aliased-subpath-import",
-			"local",
-			"type-only",
-			"import"
-		],
-		"rule": { "severity": "error", "name": "no-cross-vertical" }
-	},
-	{
-		"type": "dependency",
-		"from": "src/export/submissionExport.ts",
 		"to": "src/questions/questions.ts",
 		"unresolvedTo": "#questions/questions.ts",
 		"dependencyTypes": ["aliased", "aliased-subpath-import", "local", "import"],
-		"rule": { "severity": "error", "name": "no-cross-vertical" }
-	},
-	{
-		"type": "dependency",
-		"from": "src/export/submissionExportGrouping.ts",
-		"to": "src/assessments/types.ts",
-		"unresolvedTo": "#assessments/types.ts",
-		"dependencyTypes": [
-			"aliased",
-			"aliased-subpath-import",
-			"local",
-			"type-only",
-			"import"
-		],
 		"rule": { "severity": "error", "name": "no-cross-vertical" }
 	},
 	{
@@ -172,20 +108,6 @@
 		"from": "src/import/prepareAssessmentImport.integration.test.ts",
 		"to": "src/export/submissionExportCsv.ts",
 		"unresolvedTo": "#export/submissionExportCsv.ts",
-		"dependencyTypes": [
-			"aliased",
-			"aliased-subpath-import",
-			"local",
-			"type-only",
-			"import"
-		],
-		"rule": { "severity": "error", "name": "no-cross-vertical" }
-	},
-	{
-		"type": "dependency",
-		"from": "src/import/prepareAssessmentImport.ts",
-		"to": "src/assessments/types.ts",
-		"unresolvedTo": "#assessments/types.ts",
 		"dependencyTypes": [
 			"aliased",
 			"aliased-subpath-import",
@@ -232,47 +154,5 @@
 			"import"
 		],
 		"rule": { "severity": "error", "name": "no-cross-vertical" }
-	},
-	{
-		"type": "dependency",
-		"from": "src/rubrics/rubric.ts",
-		"to": "src/assessments/types.ts",
-		"unresolvedTo": "#assessments/types.ts",
-		"dependencyTypes": [
-			"aliased",
-			"aliased-subpath-import",
-			"local",
-			"type-only",
-			"import"
-		],
-		"rule": { "severity": "error", "name": "shared-domain-no-up" }
-	},
-	{
-		"type": "dependency",
-		"from": "src/rubrics/RubricGradeRow.tsx",
-		"to": "src/assessments/types.ts",
-		"unresolvedTo": "#assessments/types.ts",
-		"dependencyTypes": [
-			"aliased",
-			"aliased-subpath-import",
-			"local",
-			"type-only",
-			"import"
-		],
-		"rule": { "severity": "error", "name": "shared-domain-no-up" }
-	},
-	{
-		"type": "dependency",
-		"from": "src/rubrics/types.ts",
-		"to": "src/assessments/types.ts",
-		"unresolvedTo": "#assessments/types.ts",
-		"dependencyTypes": [
-			"aliased",
-			"aliased-subpath-import",
-			"local",
-			"type-only",
-			"import"
-		],
-		"rule": { "severity": "error", "name": "shared-domain-no-up" }
 	}
 ]
