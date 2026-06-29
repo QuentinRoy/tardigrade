@@ -5,6 +5,7 @@ import { startTransition, useOptimistic, useReducer } from "react";
 import { attachAssessment } from "#rubrics/rubric.ts";
 import type { AssessedRubric, AssessmentRubricValue } from "#rubrics/types.ts";
 import type { Submission } from "#submissions/types.ts";
+import { useBeforeUnloadGuard } from "#utils/useBeforeUnloadGuard.ts";
 import { getSubmissionNavigation } from "./submissionNavigation.ts";
 
 export type SaveRubricResult<TError> =
@@ -54,6 +55,12 @@ export function useAssessmentSession<TError>({
 		savedRubrics: initialRubrics,
 		pendingByIndex: {},
 	});
+
+	const pendingCount = Object.values(pendingByIndex).reduce(
+		(total, count) => total + count,
+		0,
+	);
+	useBeforeUnloadGuard(pendingCount > 0);
 
 	const [optimisticRubrics, addOptimisticUpdate] = useOptimistic(
 		savedRubrics,
