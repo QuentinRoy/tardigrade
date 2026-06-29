@@ -1,15 +1,15 @@
 "use server";
 
 import { toImportErrorState } from "#imports/actionUtils.ts";
-import type { ImportState } from "#imports/importState.ts";
+import type { ActionState } from "#utils/actionState.ts";
 import { parseQuestionsYaml } from "./parseQuestions.ts";
 import { saveQuestions } from "./saveQuestions.ts";
 
 export async function questionsImportAction(
 	projectId: string,
-	_previousState: ImportState,
+	_previousState: ActionState,
 	formData: FormData,
-): Promise<ImportState> {
+): Promise<ActionState> {
 	const questionsYaml = String(formData.get("questionsYaml") ?? "");
 
 	try {

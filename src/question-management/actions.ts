@@ -1,11 +1,11 @@
 "use server";
 
+import { toQuestionsValidationError } from "./errors.ts";
 import {
 	deleteQuestionDefinition,
 	reorderQuestions,
 	saveQuestionDefinition,
-} from "#questions/questionDefinitionMutations.ts";
-import { toQuestionsValidationError } from "./errors.ts";
+} from "./questionDefinitionMutations.ts";
 import {
 	matchesDeleteConfirmation,
 	parseDeletePayload,

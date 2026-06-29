@@ -22,7 +22,7 @@
 		"test:e2e": "dotenvx run --convention=flow -- node e2e/runE2e.ts",
 		"check": "biome check --error-on-warnings --max-diagnostics=none",
 		"check-types": "tsc --noEmit",
-		"lint:boundaries": "depcruise src app --config .dependency-cruiser.js --ignore-known",
+		"lint:boundaries": "depcruise src app --config .dependency-cruiser.js",
 		"db:migrate:down": "dotenvx run --convention=flow -- node src/db/migrate.ts down",
 		"db:migrate:status": "dotenvx run --convention=flow -- node src/db/migrate.ts status",
 		"db:migrate:up": "dotenvx run --convention=flow -- node src/db/migrate.ts up",

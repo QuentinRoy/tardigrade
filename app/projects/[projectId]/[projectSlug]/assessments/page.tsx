@@ -19,7 +19,7 @@ import {
 	projectQuestionsPath,
 } from "#projects/projectPaths.ts";
 import { loadProjectByPublicId } from "#projects/projects.ts";
-import QuestionList from "#questions/QuestionList.tsx";
+import QuestionList from "#question-management/QuestionList.tsx";
 import { loadQuestionGrid } from "#questions/questions.ts";
 import { getSubmissionLabel } from "#submissions/getSubmissionLabel.ts";
 import { loadSubmissions } from "#submissions/submissions.ts";

@@ -5,14 +5,14 @@ import Typography from "@mui/material/Typography";
 import type { ReactElement } from "react";
 import BaseImportForm from "#imports/BaseImportForm.tsx";
 import { QUESTIONS_YAML_PLACEHOLDER } from "#imports/constants.ts";
-import type { ImportState } from "#imports/importState.ts";
+import type { ActionState } from "#utils/actionState.ts";
 
 type QuestionsImportFormProps = {
 	defaultQuestionsYaml?: string;
 	action: (
-		previousState: ImportState,
+		previousState: ActionState,
 		formData: FormData,
-	) => Promise<ImportState>;
+	) => Promise<ActionState>;
 };
 
 export default function QuestionsImportForm({
