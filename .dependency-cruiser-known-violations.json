@@ -1,42 +1,6 @@
 [
 	{
 		"type": "dependency",
-		"from": "src/assessments/loadRubricOverview.ts",
-		"to": "src/questions/questions.ts",
-		"unresolvedTo": "#questions/questions.ts",
-		"dependencyTypes": ["aliased", "aliased-subpath-import", "local", "import"],
-		"rule": { "severity": "error", "name": "no-cross-vertical" }
-	},
-	{
-		"type": "dependency",
-		"from": "src/assessments/rubricOverviewBuilder.test.ts",
-		"to": "src/questions/types.ts",
-		"unresolvedTo": "#questions/types.ts",
-		"dependencyTypes": [
-			"aliased",
-			"aliased-subpath-import",
-			"local",
-			"type-only",
-			"import"
-		],
-		"rule": { "severity": "error", "name": "no-cross-vertical" }
-	},
-	{
-		"type": "dependency",
-		"from": "src/assessments/rubricOverviewBuilder.ts",
-		"to": "src/questions/types.ts",
-		"unresolvedTo": "#questions/types.ts",
-		"dependencyTypes": [
-			"aliased",
-			"aliased-subpath-import",
-			"local",
-			"type-only",
-			"import"
-		],
-		"rule": { "severity": "error", "name": "no-cross-vertical" }
-	},
-	{
-		"type": "dependency",
 		"from": "src/export/questionsExport.test.ts",
 		"to": "src/questions/types.ts",
 		"unresolvedTo": "#questions/types.ts",
@@ -96,8 +60,8 @@
 	{
 		"type": "dependency",
 		"from": "src/import/saveAssessments.ts",
-		"to": "src/assessments/assessmentMutations.ts",
-		"unresolvedTo": "#assessments/assessmentMutations.ts",
+		"to": "src/assessment-capture/assessmentMutations.ts",
+		"unresolvedTo": "#assessment-capture/assessmentMutations.ts",
 		"dependencyTypes": ["aliased", "aliased-subpath-import", "local", "import"],
 		"rule": { "severity": "error", "name": "no-cross-vertical" }
 	},
@@ -106,6 +70,42 @@
 		"from": "src/questions/state.ts",
 		"to": "src/import/importState.ts",
 		"unresolvedTo": "#import/importState.ts",
+		"dependencyTypes": [
+			"aliased",
+			"aliased-subpath-import",
+			"local",
+			"type-only",
+			"import"
+		],
+		"rule": { "severity": "error", "name": "no-cross-vertical" }
+	},
+	{
+		"type": "dependency",
+		"from": "src/rubric-analytics/loadRubricOverview.ts",
+		"to": "src/questions/questions.ts",
+		"unresolvedTo": "#questions/questions.ts",
+		"dependencyTypes": ["aliased", "aliased-subpath-import", "local", "import"],
+		"rule": { "severity": "error", "name": "no-cross-vertical" }
+	},
+	{
+		"type": "dependency",
+		"from": "src/rubric-analytics/rubricOverviewBuilder.test.ts",
+		"to": "src/questions/types.ts",
+		"unresolvedTo": "#questions/types.ts",
+		"dependencyTypes": [
+			"aliased",
+			"aliased-subpath-import",
+			"local",
+			"type-only",
+			"import"
+		],
+		"rule": { "severity": "error", "name": "no-cross-vertical" }
+	},
+	{
+		"type": "dependency",
+		"from": "src/rubric-analytics/rubricOverviewBuilder.ts",
+		"to": "src/questions/types.ts",
+		"unresolvedTo": "#questions/types.ts",
 		"dependencyTypes": [
 			"aliased",
 			"aliased-subpath-import",

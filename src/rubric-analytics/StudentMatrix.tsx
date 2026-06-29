@@ -9,12 +9,12 @@ import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import Typography from "@mui/material/Typography";
 import type { ReactElement } from "react";
+import CompletionProgress from "./CompletionProgress.tsx";
+import RubricDetailsTooltip from "./RubricDetailsTooltip.tsx";
 import type {
 	RubricOverviewRow,
 	RubricOverviewStudentRow,
-} from "#assessments/rubricOverviewBuilder.ts";
-import CompletionProgress from "./CompletionProgress.tsx";
-import RubricDetailsTooltip from "./RubricDetailsTooltip.tsx";
+} from "./rubricOverviewBuilder.ts";
 
 type StudentMatrixProps = {
 	rubrics: RubricOverviewRow[];

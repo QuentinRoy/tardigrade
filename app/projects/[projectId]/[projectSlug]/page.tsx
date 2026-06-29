@@ -1,6 +1,6 @@
 import { Button, Container, Stack, Typography } from "@mui/material";
-import GlobalAssessmentSummary from "#assessments/GlobalAssessmentSummary.tsx";
-import { loadAssessmentCompletionSummary } from "#assessments/loadAssessmentCompletion.ts";
+import GlobalAssessmentSummary from "#assessment-completion/GlobalAssessmentSummary.tsx";
+import { loadAssessmentCompletionSummary } from "#assessment-completion/loadAssessmentCompletion.ts";
 import {
 	projectAssessmentsPath,
 	projectImportStudentsPath,

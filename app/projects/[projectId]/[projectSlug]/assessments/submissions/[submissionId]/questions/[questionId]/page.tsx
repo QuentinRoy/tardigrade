@@ -6,12 +6,12 @@ import Typography from "@mui/material/Typography";
 import { notFound } from "next/navigation";
 import type { ReactElement } from "react";
 import { Suspense } from "react";
-import { loadQuestionAssessment } from "#assessments/assessments.ts";
+import { loadQuestionAssessment } from "#assessment-capture/assessments.ts";
+import SubmissionAssessmentClient from "#assessment-capture/SubmissionAssessmentClient.tsx";
 import {
 	buildAssessedRubricCountsBySubmission,
 	loadAssessedRubricCounts,
-} from "#assessments/loadAssessmentCompletion.ts";
-import SubmissionAssessmentClient from "#assessments/SubmissionAssessmentClient.tsx";
+} from "#assessment-completion/loadAssessmentCompletion.ts";
 import {
 	cacheTags,
 	projectCacheTag,
