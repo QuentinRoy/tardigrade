@@ -40,7 +40,12 @@ export default async function ProjectsPage({
 
 		try {
 			const project = await createProject({ name });
-			redirect(projectDashboardPath(project.id, project.slug));
+			redirect(
+				projectDashboardPath({
+					projectId: project.id,
+					projectSlug: project.slug,
+				}),
+			);
 		} catch (error) {
 			if (isNextRedirectError(error)) {
 				throw error;
@@ -77,7 +82,10 @@ export default async function ProjectsPage({
 								<ListItemButton
 									key={project.id}
 									component="a"
-									href={projectDashboardPath(project.id, project.slug)}
+									href={projectDashboardPath({
+										projectId: project.id,
+										projectSlug: project.slug,
+									})}
 									sx={{ borderRadius: 1, mb: 1 }}
 								>
 									<ListItemText primary={project.name} />

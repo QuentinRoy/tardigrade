@@ -178,7 +178,7 @@ export default function SubmissionOverviewAssessmentClient({
 
 	const navigateToSubmission = (submissionId: string) => {
 		router.push(
-			projectAssessmentSubmissionPath(projectId, projectSlug, submissionId),
+			projectAssessmentSubmissionPath({ projectId, projectSlug, submissionId }),
 		);
 	};
 
@@ -304,11 +304,11 @@ function SubmissionNavigation({
 		<Box sx={{ mb: 4, display: "flex", gap: 1, flexWrap: "wrap" }}>
 			<Button
 				component={NextLink}
-				href={projectAssessmentSubmissionPath(
+				href={projectAssessmentSubmissionPath({
 					projectId,
 					projectSlug,
-					previousSubmissionId ?? currentSubmissionId,
-				)}
+					submissionId: previousSubmissionId ?? currentSubmissionId,
+				})}
 				prefetch={previousSubmissionId != null}
 				variant="outlined"
 				disabled={previousSubmissionId == null}
@@ -317,11 +317,11 @@ function SubmissionNavigation({
 			</Button>
 			<Button
 				component={NextLink}
-				href={projectAssessmentSubmissionPath(
+				href={projectAssessmentSubmissionPath({
 					projectId,
 					projectSlug,
-					nextSubmissionId ?? currentSubmissionId,
-				)}
+					submissionId: nextSubmissionId ?? currentSubmissionId,
+				})}
 				prefetch={nextSubmissionId != null}
 				variant="outlined"
 				disabled={nextSubmissionId == null}

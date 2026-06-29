@@ -9,14 +9,7 @@ import { projectAssessmentSubmissionQuestionPath } from "#projects/projectPaths.
 export default function SaveErrorsDisplayContainer() {
 	return (
 		<SaveErrorsDisplay
-			buildErrorHref={(error) =>
-				projectAssessmentSubmissionQuestionPath(
-					error.projectId,
-					error.projectSlug,
-					error.submissionId,
-					error.questionId,
-				)
-			}
+			buildErrorHref={(error) => projectAssessmentSubmissionQuestionPath(error)}
 		/>
 	);
 }

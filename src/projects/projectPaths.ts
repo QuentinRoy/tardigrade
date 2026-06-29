@@ -1,90 +1,68 @@
-export function projectBasePath(
-	projectId: string,
-	projectSlug: string,
-): string {
+type ProjectRef = { projectId: string; projectSlug: string };
+
+type ProjectSubmissionRef = ProjectRef & { submissionId: string };
+
+type ProjectSubmissionQuestionRef = ProjectSubmissionRef & {
+	questionId: string;
+};
+
+export function projectBasePath({
+	projectId,
+	projectSlug,
+}: ProjectRef): string {
 	return `/projects/${projectId}/${projectSlug}`;
 }
 
-export function projectDashboardPath(
-	projectId: string,
-	projectSlug: string,
-): string {
-	return projectBasePath(projectId, projectSlug);
+export function projectDashboardPath(project: ProjectRef): string {
+	return projectBasePath(project);
 }
 
 export function changeProjectPath(): string {
 	return "/projects";
 }
 
-export function projectAssessmentsPath(
-	projectId: string,
-	projectSlug: string,
-): string {
-	return `${projectBasePath(projectId, projectSlug)}/assessments`;
+export function projectAssessmentsPath(project: ProjectRef): string {
+	return `${projectBasePath(project)}/assessments`;
 }
 
-export function projectOverviewPath(
-	projectId: string,
-	projectSlug: string,
-): string {
-	return `${projectAssessmentsPath(projectId, projectSlug)}/overview`;
+export function projectOverviewPath(project: ProjectRef): string {
+	return `${projectAssessmentsPath(project)}/overview`;
 }
 
-export function projectAssessmentSubmissionPath(
-	projectId: string,
-	projectSlug: string,
-	submissionId: string,
-): string {
-	return `${projectAssessmentsPath(projectId, projectSlug)}/submissions/${submissionId}`;
+export function projectAssessmentSubmissionPath({
+	submissionId,
+	...project
+}: ProjectSubmissionRef): string {
+	return `${projectAssessmentsPath(project)}/submissions/${submissionId}`;
 }
 
-export function projectAssessmentSubmissionQuestionPath(
-	projectId: string,
-	projectSlug: string,
-	submissionId: string,
-	questionId: string,
-): string {
-	return `${projectAssessmentSubmissionPath(projectId, projectSlug, submissionId)}/questions/${questionId}`;
+export function projectAssessmentSubmissionQuestionPath({
+	questionId,
+	...submission
+}: ProjectSubmissionQuestionRef): string {
+	return `${projectAssessmentSubmissionPath(submission)}/questions/${questionId}`;
 }
 
-export function projectQuestionsPath(
-	projectId: string,
-	projectSlug: string,
-): string {
-	return `${projectBasePath(projectId, projectSlug)}/questions`;
+export function projectQuestionsPath(project: ProjectRef): string {
+	return `${projectBasePath(project)}/questions`;
 }
 
-export function projectImportQuestionsPath(
-	projectId: string,
-	projectSlug: string,
-): string {
-	return `${projectBasePath(projectId, projectSlug)}/import/questions`;
+export function projectImportQuestionsPath(project: ProjectRef): string {
+	return `${projectBasePath(project)}/import/questions`;
 }
 
-export function projectImportStudentsPath(
-	projectId: string,
-	projectSlug: string,
-): string {
-	return `${projectBasePath(projectId, projectSlug)}/import/students`;
+export function projectImportStudentsPath(project: ProjectRef): string {
+	return `${projectBasePath(project)}/import/students`;
 }
 
-export function projectImportAssessmentsPath(
-	projectId: string,
-	projectSlug: string,
-): string {
-	return `${projectBasePath(projectId, projectSlug)}/import/assessments`;
+export function projectImportAssessmentsPath(project: ProjectRef): string {
+	return `${projectBasePath(project)}/import/assessments`;
 }
 
-export function projectExportSubmissionsPath(
-	projectId: string,
-	projectSlug: string,
-): string {
-	return `${projectBasePath(projectId, projectSlug)}/export/submissions`;
+export function projectExportSubmissionsPath(project: ProjectRef): string {
+	return `${projectBasePath(project)}/export/submissions`;
 }
 
-export function projectExportQuestionsPath(
-	projectId: string,
-	projectSlug: string,
-): string {
-	return `${projectBasePath(projectId, projectSlug)}/export/questions`;
+export function projectExportQuestionsPath(project: ProjectRef): string {
+	return `${projectBasePath(project)}/export/questions`;
 }
