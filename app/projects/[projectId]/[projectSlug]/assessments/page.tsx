@@ -11,7 +11,7 @@ import {
 	Typography,
 } from "@mui/material";
 import { Suspense } from "react";
-import { loadAssessmentCompletionBySubmission } from "#assessments/loadAssessmentCompletion.ts";
+import { loadAssessmentCompletionBySubmission } from "#assessment-completion/loadAssessmentCompletion.ts";
 import {
 	projectAssessmentSubmissionPath,
 	projectAssessmentSubmissionQuestionPath,

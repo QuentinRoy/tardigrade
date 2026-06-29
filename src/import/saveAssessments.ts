@@ -1,6 +1,6 @@
 import "server-only";
 import type { Kysely } from "kysely";
-import { saveAssessmentInDb } from "#assessments/assessmentMutations.ts";
+import { saveAssessmentInDb } from "#assessment-capture/assessmentMutations.ts";
 import { invalidateAssessmentImport } from "#db/cacheInvalidation.ts";
 import type { DB } from "#db/generated/db.ts";
 import { db as defaultDb } from "#db/kysely.ts";

@@ -6,7 +6,7 @@ import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import type { ReactElement, ReactNode } from "react";
-import type { RubricOverviewPopupDetails } from "#assessments/rubricOverviewBuilder.ts";
+import type { RubricOverviewPopupDetails } from "./rubricOverviewBuilder.ts";
 
 type RubricDetailsTooltipProps = {
 	rubricId: string;

@@ -23,11 +23,11 @@ import {
 	useRef,
 	useState,
 } from "react";
+import type { Submission } from "#submissions/types.ts";
 import {
 	buildSubmissionSearchTargets,
 	createSubmissionSearch,
-} from "#submissions/quickJumpSearch.ts";
-import type { Submission } from "#submissions/types.ts";
+} from "./quickJumpSearch.ts";
 
 type SubmissionProgressBySubmissionId = Record<
 	string,
