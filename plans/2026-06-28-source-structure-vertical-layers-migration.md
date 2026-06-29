@@ -59,7 +59,7 @@ Repo commands (`package.json`): `pnpm check` (Biome), `pnpm run check-types` (`t
 
 ### PR0 — dependency-cruiser + baseline (no file moves)
 
-Add `dependency-cruiser` (dev dep) and `.dependency-cruiser.cjs`. Starting config below (written against dependency-cruiser v16; validate with `pnpm exec depcruise --validate src app` and adjust globs to the installed major version — **this config has not been run, treat it as a reviewed starting point**):
+Add `dependency-cruiser` (dev dep) and `.dependency-cruiser.js`. Starting config below (written against dependency-cruiser v16; validate with `pnpm exec depcruise --validate src app` and adjust globs to the installed major version — **this config has not been run, treat it as a reviewed starting point**):
 
 ```js
 /** @type {import('dependency-cruiser').IConfiguration} */
@@ -108,8 +108,8 @@ module.exports = {
 
 Then:
 
-1. Generate the baseline: `pnpm exec depcruise src app --config .dependency-cruiser.cjs --output-type baseline > .dependency-cruiser-known-violations.json`.
-2. Add script `"lint:boundaries": "depcruise src app --config .dependency-cruiser.cjs --ignore-known"`; call it from `check` (make `check` run `biome check … && depcruise … --ignore-known`) or add it as a separate CI step next to `pnpm check`.
+1. Generate the baseline: `pnpm exec depcruise src app --config .dependency-cruiser.js --output-type baseline > .dependency-cruiser-known-violations.json`.
+2. Add script `"lint:boundaries": "depcruise src app --config .dependency-cruiser.js --ignore-known"`; call it from `check` (make `check` run `biome check … && depcruise … --ignore-known`) or add it as a separate CI step next to `pnpm check`.
 3. **Done-when:** `pnpm lint:boundaries` exits 0 with the baseline present; the baseline lists at least the `rubrics → assessments` cycle (proof resolution works) and the `import → assessments` edges. **Validate:** `pnpm check`, `pnpm lint:boundaries`. Commit the config + baseline (the baseline shrinking is the migration's progress meter).
 
 ### PR1 — fix the rubrics↔assessments cycle (no reorg)
