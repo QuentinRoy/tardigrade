@@ -13,9 +13,7 @@ export function SaveErrorsDisplay() {
 	if (errors.length === 0) return null;
 
 	return (
-		<Box
-			sx={{ display: "flex", flexDirection: "column", gap: 1, maxWidth: 480 }}
-		>
+		<Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
 			{errors.map((error) => (
 				<MuiAlert
 					key={error.id}

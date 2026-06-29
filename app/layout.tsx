@@ -20,7 +20,15 @@ export default function RootLayout({ children }: RootLayoutProps) {
 				<AppRouterCacheProvider>
 					<SaveErrorsProvider>
 						{children}
-						<Box sx={{ position: "fixed", bottom: 16, left: 16, zIndex: 2000 }}>
+						<Box
+							sx={{
+								position: "fixed",
+								bottom: 16,
+								left: 16,
+								zIndex: 2000,
+								maxWidth: 480,
+							}}
+						>
 							<SaveErrorsDisplay />
 						</Box>
 					</SaveErrorsProvider>
