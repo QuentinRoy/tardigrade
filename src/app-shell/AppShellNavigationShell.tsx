@@ -42,10 +42,7 @@ export default function AppShellNavigationShell(
 				title={title}
 				titleHref={
 					showNavigation && projectRouteContext != null
-						? projectDashboardPath(
-								projectRouteContext.projectId,
-								projectRouteContext.projectSlug,
-							)
+						? projectDashboardPath(projectRouteContext)
 						: undefined
 				}
 				drawerOpen={showNavigation && drawerOpen}

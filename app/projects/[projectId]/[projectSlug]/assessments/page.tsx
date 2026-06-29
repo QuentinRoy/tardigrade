@@ -58,12 +58,12 @@ async function ProjectAssessmentPageContent({
 		? Object.entries(grid).map(([id, { label }]) => ({
 				id,
 				label: label == null ? id : label,
-				href: projectAssessmentSubmissionQuestionPath(
-					project.id,
-					project.slug,
-					firstSubmissionId,
-					id,
-				),
+				href: projectAssessmentSubmissionQuestionPath({
+					projectId: project.id,
+					projectSlug: project.slug,
+					submissionId: firstSubmissionId,
+					questionId: id,
+				}),
 			}))
 		: [];
 
@@ -74,7 +74,10 @@ async function ProjectAssessmentPageContent({
 			</Typography>
 			<Box sx={{ mb: 3 }}>
 				<Button
-					href={projectOverviewPath(project.id, project.slug)}
+					href={projectOverviewPath({
+						projectId: project.id,
+						projectSlug: project.slug,
+					})}
 					variant="outlined"
 				>
 					Open rubric overview
@@ -86,7 +89,10 @@ async function ProjectAssessmentPageContent({
 						No questions yet — add questions to start assessing.
 					</Typography>
 					<Button
-						href={projectQuestionsPath(project.id, project.slug)}
+						href={projectQuestionsPath({
+							projectId: project.id,
+							projectSlug: project.slug,
+						})}
 						variant="contained"
 					>
 						Add questions
@@ -151,11 +157,11 @@ async function SubmissionProgressList({
 				return (
 					<ListItemButton
 						key={submission.id}
-						href={projectAssessmentSubmissionPath(
+						href={projectAssessmentSubmissionPath({
 							projectId,
 							projectSlug,
-							submission.id,
-						)}
+							submissionId: submission.id,
+						})}
 						sx={{ mb: 1, display: "flex", alignItems: "center" }}
 					>
 						<ListItemText primary={getSubmissionLabel(submission)} />
@@ -216,11 +222,11 @@ function SubmissionListSkeleton({
 			{submissions.map((submission) => (
 				<ListItemButton
 					key={submission.id}
-					href={projectAssessmentSubmissionPath(
+					href={projectAssessmentSubmissionPath({
 						projectId,
 						projectSlug,
-						submission.id,
-					)}
+						submissionId: submission.id,
+					})}
 					sx={{ mb: 1, display: "flex", alignItems: "center" }}
 				>
 					<ListItemText primary={getSubmissionLabel(submission)} />

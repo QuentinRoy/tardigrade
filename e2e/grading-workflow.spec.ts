@@ -189,7 +189,7 @@ test("grading workflow: import, assess, persist, and export a computed total", a
 	// browser download flakiness) and assert the computed grand totals. The
 	// dashboard shows completion only, so the numeric total is asserted here.
 	const exportResponse = await page.request.get(
-		projectExportSubmissionsPath(projectId, projectSlug),
+		projectExportSubmissionsPath({ projectId, projectSlug }),
 	);
 	expect(exportResponse.ok()).toBe(true);
 

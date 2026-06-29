@@ -35,7 +35,10 @@ export default async function ProjectDashboardPage({
 							No questions yet — add questions to start assessing.
 						</Typography>
 						<Button
-							href={projectQuestionsPath(project.id, project.slug)}
+							href={projectQuestionsPath({
+								projectId: project.id,
+								projectSlug: project.slug,
+							})}
 							variant="contained"
 						>
 							Add questions
@@ -47,7 +50,10 @@ export default async function ProjectDashboardPage({
 							No submissions yet — import submissions to start assessing.
 						</Typography>
 						<Button
-							href={projectImportStudentsPath(project.id, project.slug)}
+							href={projectImportStudentsPath({
+								projectId: project.id,
+								projectSlug: project.slug,
+							})}
 							variant="contained"
 						>
 							Import submissions
@@ -58,7 +64,10 @@ export default async function ProjectDashboardPage({
 				)}
 				<div>
 					<Button
-						href={projectAssessmentsPath(project.id, project.slug)}
+						href={projectAssessmentsPath({
+							projectId: project.id,
+							projectSlug: project.slug,
+						})}
 						variant="contained"
 					>
 						Open assessments

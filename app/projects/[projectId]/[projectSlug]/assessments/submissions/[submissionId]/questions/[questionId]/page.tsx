@@ -82,7 +82,10 @@ async function QuestionHeaderSection({
 				<Breadcrumbs aria-label="breadcrumb">
 					<MuiNextLink
 						color="inherit"
-						href={projectAssessmentsPath(project.id, project.slug)}
+						href={projectAssessmentsPath({
+							projectId: project.id,
+							projectSlug: project.slug,
+						})}
 					>
 						Assessments
 					</MuiNextLink>

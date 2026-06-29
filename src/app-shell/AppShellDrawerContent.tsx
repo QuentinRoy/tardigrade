@@ -128,10 +128,7 @@ export default function AppShellDrawerContent({
 		}
 
 		const query = searchParams.toString();
-		const basePath = projectExportSubmissionsPath(
-			projectRouteContext.projectId,
-			projectRouteContext.projectSlug,
-		);
+		const basePath = projectExportSubmissionsPath(projectRouteContext);
 
 		return query.length > 0 ? `${basePath}?${query}` : basePath;
 	}, [exportOptions, projectRouteContext]);
@@ -157,53 +154,32 @@ export default function AppShellDrawerContent({
 	}
 
 	const assessmentItems: NavigationItem[] = [
-		{
-			label: "Assessments",
-			href: projectAssessmentsPath(
-				projectRouteContext.projectId,
-				projectRouteContext.projectSlug,
-			),
-		},
+		{ label: "Assessments", href: projectAssessmentsPath(projectRouteContext) },
 		{
 			label: "Rubric overview",
-			href: projectOverviewPath(
-				projectRouteContext.projectId,
-				projectRouteContext.projectSlug,
-			),
+			href: projectOverviewPath(projectRouteContext),
 		},
 	];
 
 	const managementItems: NavigationItem[] = [
 		{
 			label: "Manage Questions",
-			href: projectQuestionsPath(
-				projectRouteContext.projectId,
-				projectRouteContext.projectSlug,
-			),
+			href: projectQuestionsPath(projectRouteContext),
 		},
 	];
 
 	const importItems: NavigationItem[] = [
 		{
 			label: "Import Questions",
-			href: projectImportQuestionsPath(
-				projectRouteContext.projectId,
-				projectRouteContext.projectSlug,
-			),
+			href: projectImportQuestionsPath(projectRouteContext),
 		},
 		{
 			label: "Import Students",
-			href: projectImportStudentsPath(
-				projectRouteContext.projectId,
-				projectRouteContext.projectSlug,
-			),
+			href: projectImportStudentsPath(projectRouteContext),
 		},
 		{
 			label: "Import Assessments",
-			href: projectImportAssessmentsPath(
-				projectRouteContext.projectId,
-				projectRouteContext.projectSlug,
-			),
+			href: projectImportAssessmentsPath(projectRouteContext),
 		},
 	];
 
@@ -292,10 +268,7 @@ export default function AppShellDrawerContent({
 				</Typography>
 				<Button
 					component={NextLink}
-					href={projectExportQuestionsPath(
-						projectRouteContext.projectId,
-						projectRouteContext.projectSlug,
-					)}
+					href={projectExportQuestionsPath(projectRouteContext)}
 					variant="outlined"
 					fullWidth
 					{...(onDismiss && { onClick: onDismiss })}
