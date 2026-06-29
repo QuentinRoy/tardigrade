@@ -33,19 +33,27 @@ Read ADR 0010 for the decision and its rationale; this plan does not restate the
 
 Current→target folder mapping for tagging (phase 0): `src/assessments` → vertical; `src/questions` → vertical (`question-management`); `src/import` → vertical (`imports`); `src/export` → vertical; `src/ui` → **split per file** (`AppShell*`, `CosmeticSlugReplacement` → app-shell vertical; the rest → design-system); `src/{rubrics,submissions,projects}` → shared-domain; `src/{db,utils,test}` → infra.
 
-## Open decisions (resolve before the relevant phase-2 PR)
+## Decisions (settled this session)
 
-These are **not** decided by ADR 0010. Flag to the owner; do not guess.
+Folded into the phases below; the audit behind them is in [the investigation](../docs/investigations/2026-06-28-source-structure-product-verticals.md). Confirmed from the code: the three assessment sub-areas have **no** cross-imports today, so they are independent peer verticals.
 
-1. **`assessment-capture` file-by-file split** — which of `src/assessments`' 40 files go to `assessment-capture` vs `assessment-completion` vs `rubric-analytics` (esp. `RubricGradeList`, `assessmentSummary`, `submissionNavigation`).
-2. **Quick-jump placement** — own vertical vs sub-area of `assessment-capture`; and moving `src/submissions/quickJumpSearch.ts` up to wherever quick-jump lands.
-3. **`imports` shape** — per-flow subverticals (`imports/{assessments,questions,students}`) vs flat with shared infra at root; and the `src/import` → `src/imports` rename.
-4. **Within-vertical nesting** — does `assessment-capture` need `submission-question`/`submission-overview` sub-areas, or stay flat?
-5. **`question-management` / `export` internal structure** — left to review, not pre-decided.
-6. **Cross-cutting `ui`** — `SaveErrors*` (tentative: design-system) and `CosmeticSlugReplacement` (tentative: app-shell) final homes.
-7. **Vertical name `assessment-capture`** — tentative; `grading-session` or another assessment-rooted name is acceptable.
-8. **Carve order** — likely `assessments` first (riding #197's grading-client work); confirm sequencing.
-9. **`AssessmentRubricValue` rename** (e.g. `RubricAssessmentValue`) — deferred; keep out of behavior-preserving moves.
+1. **`assessments` → three peer verticals**, file assignment:
+   - `assessment-capture`: `SubmissionAssessmentClient`, `SubmissionOverviewAssessmentClient`, `RubricGradeList`, `useAssessmentSession`, `saveAssessment`, `assessmentMutations`, `assessments.ts` (reads), `submissionNavigation`, `SubmissionQuickJumpDialog`, `useSubmissionQuickJump`, plus `quickJumpSearch` moved up from `submissions`.
+   - `assessment-completion`: `assessmentCompletion`, `loadAssessmentCompletion`, `assessmentSummary`, `AssessmentProgressSummary`, `CompletionProgress`, `GlobalAssessmentSummary`, and the `AssessmentCompletionSummary` type (the remainder of `assessments/types.ts` once `AssessmentRubricValue` leaves in Phase 1).
+   - `rubric-analytics`: `RubricAnalyticsTable`, `StudentMatrix`, `loadRubricOverview`, `rubricOverviewBuilder`, `QuestionDetailsTooltip`, `RubricDetailsTooltip`.
+2. **Quick-jump** is flat inside `assessment-capture` (not its own vertical); `src/submissions/quickJumpSearch.ts` moves up with it, leaving `submissions` a pure entity leaf.
+3. **`assessment-capture` stays flat** — no `submission-question`/`submission-overview` sub-areas.
+4. **`imports` nests** into `imports/{assessments,questions,students}/` for per-flow files, with shared infra (`BaseImportForm`, `saveUtils`, `actionUtils`, `schemas`, `importErrors`, `importState`, `constants`, `types`) flat at `imports/` root; `src/import` → `src/imports` rename.
+5. **`SaveErrors*` → design-system**, inverting `SaveErrorsDisplay`'s `projectPaths` import to a prop (one-file change; keeps design-system importing infra only). **`CosmeticSlugReplacement` → app-shell**.
+6. **Vertical names** are assessment-rooted (`assessment-capture`, `assessment-completion`); settled, changeable.
+7. **Carve order**: `ui` → (`design-system` + `app-shell`); then `assessments` → the three verticals; then `import` → `imports`; then confirm `question-management`/`export`.
+8. **Intra-layer imports are allowed** except between verticals: `shared-domain → shared-domain` and `design-system → design-system` are fine; `vertical → vertical` is forbidden.
+
+## Still open (resolve at the relevant PR)
+
+- **`imports` → `assessment-capture` write edge.** `saveAssessments.ts` calls `saveAssessmentInDb` (an ADR 0007 primitive in `assessmentMutations.ts`). Every other `import`/`export` → `assessments` edge is type-only and dissolves in Phase 1; this write edge survives. Likely resolution: relocate the `saveAssessmentInDb` primitive to shared-domain so capture's wrapper and imports' bulk-save both reach it downward. Confirm at the assessments/imports carve.
+- **`question-management` / `export` internal structure** — flat-default holds; review when slicing.
+- **Optional `AssessmentRubricValue` rename** (e.g. `RubricAssessmentValue`) — after Phase 1, cosmetic.
 
 ## Implementation phases
 
@@ -55,7 +63,8 @@ These are **not** decided by ADR 0010. Flag to the owner; do not guess.
 2. Add a config (`.dependency-cruiser.cjs`) encoding the target layers via path globs against **current** folders (mapping above), with rules:
    - `no-circular` (cycles) — `severity: error`;
    - layer-direction (no upward imports) for shared-domain and design-system — `severity: error`;
-   - vertical→vertical isolation — included now but expected to have current violations (e.g. `src/import` imports `#assessments`), so captured by the baseline.
+   - vertical→vertical isolation — included now but expected to have current violations (e.g. `src/import` imports `#assessments`), so captured by the baseline;
+   - intra-layer imports are allowed: `shared-domain → shared-domain` and `design-system → design-system` are fine — only `vertical → vertical` is forbidden (Decision 8).
 3. Generate the known-violations baseline (`depcruise … --output-type baseline > .dependency-cruiser-known-violations.json`) and run with `--ignore-known`, so existing violations don't fail CI but new ones do. Confirm exact baseline flags against the installed version.
 4. Wire `depcruise` into `pnpm check` (or a `lint:boundaries` script called by `check`) and CI.
 5. **Validation:** `pnpm check` green (baseline absorbs current violations). Commit the baseline file; its shrinking is the migration's progress meter.
@@ -65,18 +74,18 @@ These are **not** decided by ADR 0010. Flag to the owner; do not guess.
 The single known upward edge is the `rubrics → assessments` cycle (`AssessmentRubricValue` imported by `src/rubrics/{rubric.ts,types.ts,RubricGradeRow.tsx}`).
 
 1. Move `AssessmentRubricValue` from `src/assessments/types.ts` **down** into `src/rubrics/types.ts` (ADR 0010 rule 4). Keep the marking/glue (`markRubric`, `attachAssessment`, `AssessedRubric`) in `src/rubrics/rubric.ts` — it now imports the value type locally.
-2. Update importers: `src/assessments/*`, `src/export/*`, `src/import/*` import `AssessmentRubricValue` from `#rubrics/types.ts` instead of `#assessments/types.ts`.
+2. Update importers: `src/assessments/*`, `src/export/*`, `src/import/*` import `AssessmentRubricValue` from `#rubrics/types.ts` instead of `#assessments/types.ts`. This removes `export → assessments` entirely and reduces `import → assessments` to the single `saveAssessmentInDb` write edge (see Still open).
 3. Re-baseline (it should shrink — the cycle and the three shared-domain→vertical edges disappear). Flip `no-circular` and the shared-domain/design-system layer-direction rules to hard `error` with no remaining known violations for them.
 4. **Validation:** `pnpm check`, `pnpm run check-types`, `pnpm test:unit rubric`, plus any assessments/export/import suites touching the moved type. Behavior-preserving (type relocation only).
 
 ### Phase 2 — Vertical slicing, one vertical per PR
 
-For each vertical, in the agreed carve order (open decision 8): resolve that vertical's open decisions with the owner, then in one behavior-preserving PR — move files, rewrite imports, add/flip that vertical's isolation rule to `error`, shrink the baseline.
+Carve order from Decision 7. Each PR is one behavior-preserving move: relocate files, rewrite imports, flip that boundary's rule to `error`, shrink the baseline.
 
-- **`src/ui` split** → `design-system` + `app-shell` (resolves open decision 6).
-- **`src/assessments` split** → `assessment-capture` / `assessment-completion` / `rubric-analytics` (open decisions 1, 2, 4, 7); fold `src/submissions/quickJumpSearch.ts` up with quick-jump.
-- **`src/import` → `imports`** (rename; open decision 3) — and resolve the current `imports → assessments` coupling (route through shared-domain or an explicit downward dependency, not vertical→vertical).
-- **`question-management`, `export`** — confirm names/structure (open decision 5); likely just isolation-rule enablement if already coherent.
+- **`src/ui` → `design-system` + `app-shell`**: `AppShell*` + `CosmeticSlugReplacement` → `app-shell`; the primitives (`CodeSnippet`, `MuiNextLink`, `NumberField`, `shiki-setup`) + `SaveErrors*` → `design-system`, inverting `SaveErrorsDisplay`'s `projectPaths` import to a prop (the one non-move change here). Verified: nothing in `ui` imports a vertical.
+- **`src/assessments` → three verticals** per the Decision 1 assignment; fold `src/submissions/quickJumpSearch.ts` up into `assessment-capture`. The three have no cross-imports, so they can land in one PR or three.
+- **`src/import` → `imports`**: rename + nest into `{assessments,questions,students}` subfolders, shared infra at root; resolve the `saveAssessmentInDb` write edge (Still open) at this PR.
+- **`question-management`, `export`** — confirm internal structure (flat-default likely); mostly isolation-rule enablement.
 
 Each PR: simplify pass over moved code (`.agents/skills/simplify/SKILL.md`), then `pnpm run check`, `pnpm run check-types`, and the targeted suites for the touched files (`docs/reference/testing-conventions.md`). When the baseline reaches empty, delete the known-violations file and `--ignore-known` flag.
 
@@ -86,7 +95,7 @@ Each PR: simplify pass over moved code (`.agents/skills/simplify/SKILL.md`), the
 
 **Undone:** everything in Phases 0–2. Nothing is committed — the doc changes above are staged in the working tree only.
 
-**Next action:** open Phase 0 (add dependency-cruiser + config + baseline). It has no open decisions blocking it and is fully behavior-preserving, so it can start immediately. Phase 1 is also unblocked. Phase 2 PRs each need their open decision(s) resolved with the owner first.
+**Next action:** open Phase 0 (add dependency-cruiser + config + baseline) — no decisions block it, fully behavior-preserving. Phases 1 and 2 are now fully specified by [Decisions](#decisions-settled-this-session); the only residual is the `saveAssessmentInDb` write edge in [Still open](#still-open-resolve-at-the-relevant-pr), confirmed at the imports carve. No further owner input is required to begin.
 
 ## Out of scope
 

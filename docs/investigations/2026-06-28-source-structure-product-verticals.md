@@ -53,15 +53,11 @@ Captured in [ADR 0010](../adr/0010-organize-src-as-enforced-vertical-layers.md).
 
 ## Remaining decisions
 
-Open items deferred to the migration plan; the accepted direction does not yet fix these:
+Most planning decisions were settled and are recorded in the [migration plan](../../plans/2026-06-28-source-structure-vertical-layers-migration.md#decisions-settled-this-session): the `assessments` three-way split and file assignment (confirmed clean — no cross-imports between the sub-areas), quick-jump placement, `imports` nesting, `SaveErrors`/`CosmeticSlugReplacement` placement, carve order, vertical names, and the intra-layer import rule.
 
-- **File-by-file split of `src/assessments` (40 files)** into `assessment-capture`, `assessment-completion`, `rubric-analytics` — including where `RubricGradeList`, `assessmentSummary`, `submissionNavigation`, and the quick-jump pieces land.
-- **Quick-jump placement** — its own vertical, or a sub-area of `assessment-capture`; and moving `submissions/quickJumpSearch.ts` up to wherever quick-jump lands.
-- **`imports` internal shape** — per-flow subverticals (`imports/{assessments,questions,students}`) vs a flat `imports` with shared infra at the root.
-- **Within-vertical nesting** — whether `assessment-capture` needs `submission-question` / `submission-overview` sub-areas, or stays flat.
-- **`question-management` and `export` internal structure** — both are large; whether either warrants sub-areas (e.g. rubric editors) is left to review, not pre-decided.
-- **Cross-cutting `ui` placement** — `SaveErrors*` (tentatively design-system) and `CosmeticSlugReplacement` (tentatively app-shell) homes are soft.
-- **Vertical name `assessment-capture`** — tentative; `grading-session` or another assessment-rooted name is acceptable if preferred.
-- **dependency-cruiser config + measured baseline** — exact layer path globs (including per-file `ui` tagging) and the *real* violation count (only `rubrics → assessments` is known by hand) are step-1 deliverables.
-- **Carve order** — which vertical to extract first (likely `assessments`, riding #197's grading-client work) and the PR sequencing.
-- **Optional `AssessmentRubricValue` rename** — e.g. `RubricAssessmentValue`; deferred, kept out of behavior-preserving moves.
+What genuinely remains for execution time:
+
+- **`imports` → `assessment-capture` write edge** — `saveAssessments.ts` uses the `saveAssessmentInDb` primitive (every other `import`/`export` → `assessments` edge is type-only and dissolves in Phase 1); likely relocated to shared-domain at the carve PR.
+- **`question-management` / `export` internal structure** — flat-default holds; review when slicing.
+- **dependency-cruiser config + measured baseline** — exact path globs and the real violation count are Phase 0 deliverables.
+- **Optional `AssessmentRubricValue` rename** — cosmetic, after Phase 1.
