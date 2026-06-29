@@ -1,4 +1,4 @@
-import type { AssessmentRubricValue } from "#assessments/types.ts";
+import type { AssessmentRubricValue } from "#rubrics/types.ts";
 import { buildAssessmentKey } from "./submissionExportCsv.ts";
 
 export type SubmissionRow = {

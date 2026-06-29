@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import type { ReactElement } from "react";
 import { useMemo } from "react";
 import { projectAssessmentSubmissionPath } from "#projects/projectPaths.ts";
-import type { AssessedRubric } from "#rubrics/types.ts";
+import type { AssessedRubric, AssessmentRubricValue } from "#rubrics/types.ts";
 import { getSubmissionLabel } from "#submissions/getSubmissionLabel.ts";
 import type { Submission } from "#submissions/types.ts";
 import { type SaveError, useSaveErrors } from "#ui/SaveErrorsProvider.tsx";
@@ -18,7 +18,6 @@ import RubricGradeList from "./RubricGradeList.tsx";
 import SubmissionQuickJumpDialog from "./SubmissionQuickJumpDialog.tsx";
 import { saveAssessment } from "./saveAssessment.ts";
 import { getSubmissionNavigation } from "./submissionNavigation.ts";
-import type { AssessmentRubricValue } from "./types.ts";
 import { useAssessmentSession } from "./useAssessmentSession.ts";
 import { useSubmissionQuickJump } from "./useSubmissionQuickJump.ts";
 

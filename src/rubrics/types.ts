@@ -1,7 +1,14 @@
-import type { AssessmentRubricValue } from "#assessments/types.ts";
 import type { Simplify } from "#utils/utils.ts";
 
 export type RubricType = "boolean" | "numerical" | "ordinal";
+
+type AssessmentRubricValueBase = { rubricId: string; type: RubricType };
+export type AssessmentRubricValue =
+	| Simplify<AssessmentRubricValueBase & { type: "boolean"; passed: boolean }>
+	| Simplify<
+			AssessmentRubricValueBase & { type: "ordinal"; selectedLabel: string }
+	  >
+	| Simplify<AssessmentRubricValueBase & { type: "numerical"; score: number }>;
 
 type RubricBase = {
 	id: string;

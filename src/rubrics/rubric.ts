@@ -1,7 +1,7 @@
-import type { AssessmentRubricValue } from "#assessments/types.ts";
 import { assertNever } from "#utils/utils.ts";
 import type {
 	AssessedRubric,
+	AssessmentRubricValue,
 	Rubric,
 	RubricForType,
 	RubricType,

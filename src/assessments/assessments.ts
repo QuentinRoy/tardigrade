@@ -9,8 +9,8 @@ import {
 } from "#db/cacheTags.ts";
 import type { DB } from "#db/generated/db.ts";
 import { db as defaultDb } from "#db/kysely.ts";
+import type { AssessmentRubricValue } from "#rubrics/types.ts";
 import { assertNever, nonNull } from "#utils/utils.ts";
-import type { AssessmentRubricValue } from "./types.ts";
 
 export function loadAssessmentCacheTags({
 	submissionId,

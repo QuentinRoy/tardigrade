@@ -3,8 +3,8 @@ import type { Kysely } from "kysely";
 import { invalidateAssessmentSave } from "#db/cacheInvalidation.ts";
 import type { DB } from "#db/generated/db.ts";
 import { db as defaultDb } from "#db/kysely.ts";
+import type { AssessmentRubricValue } from "#rubrics/types.ts";
 import { assertNever } from "#utils/utils.ts";
-import type { AssessmentRubricValue } from "./types.ts";
 
 export type SaveAssessmentResult =
 	| { success: true }
