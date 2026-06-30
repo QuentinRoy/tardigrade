@@ -149,3 +149,16 @@ Investigations and active plans can guide work, but they do not override higher-
 
 - The project uses dotenvx to manage environment variables.
 - Prefer `package.json` scripts over standalone commands because they usually include required environment setup.
+
+## Mantine
+
+This project uses Mantine v9.
+
+When implementing or changing Mantine UI:
+
+- Consult Mantine documentation before guessing component APIs, styling behavior, or accessibility details.
+- Prefer Mantine components, theme tokens, responsive props, and the Styles API over ad-hoc CSS.
+- Do not invent component props or rely on undocumented behavior.
+- For complex controls, especially forms and searchable selects, use the relevant installed Mantine skills.
+- Use Mantine’s documentation index as the default documentation entry point: https://mantine.dev/llms.txt
+- Retrieve only the documentation pages relevant to the task. Do not load `llms-full.txt` by default.
