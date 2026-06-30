@@ -1,7 +1,8 @@
 import "@fontsource/monaspace-neon";
 
-import Box from "@mui/material/Box";
+import { Box } from "@mantine/core";
 import type React from "react";
+import classes from "./CodeSnippet.module.css";
 import { getHighlighter } from "./shiki-setup.ts";
 
 type CodeSnippetProps = { children: string; language?: string };
@@ -19,21 +20,12 @@ export default async function CodeSnippet({
 	});
 
 	return (
-		<Box
-			sx={{
-				borderRadius: 1,
-				overflow: "hidden",
-				"& pre": {
-					margin: 0,
-					padding: 2,
-					fontFamily: "'Monaspace Neon', monospace",
-				},
-				"& code": { fontFamily: "'Monaspace Neon', monospace" },
-			}}
-		>
-			{/** biome-ignore lint/security/noDangerouslySetInnerHtml: This is fine here,
-			  we generate the HTML safely from shiki highlighter. */}
-			<Box className="code" dangerouslySetInnerHTML={{ __html: html }} />
+		<Box className={classes.root}>
+			<Box
+				className={classes.inner}
+				// biome-ignore lint/security/noDangerouslySetInnerHtml: HTML is generated safely from the shiki highlighter.
+				dangerouslySetInnerHTML={{ __html: html }}
+			/>
 		</Box>
 	);
 }

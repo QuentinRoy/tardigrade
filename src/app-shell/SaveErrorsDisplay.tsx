@@ -1,9 +1,7 @@
 "use client";
 
-import MuiAlert from "@mui/material/Alert";
-import Box from "@mui/material/Box";
-import Link from "@mui/material/Link";
-import NextLink from "next/link";
+import { Alert, Stack } from "@mantine/core";
+import AppLink from "#design-system/AppLink.tsx";
 import { useSaveErrors } from "#design-system/SaveErrorsProvider.tsx";
 import { projectAssessmentSubmissionQuestionPath } from "#projects/projectPaths.ts";
 
@@ -13,28 +11,28 @@ export function SaveErrorsDisplay() {
 	if (errors.length === 0) return null;
 
 	return (
-		<Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+		<Stack gap="xs">
 			{errors.map((error) => (
-				<MuiAlert
+				<Alert
 					key={error.id}
-					severity="error"
-					elevation={6}
+					color="red"
 					variant="filled"
+					withCloseButton
+					closeButtonLabel="Dismiss"
 					onClose={() => dismissError(error.id)}
 				>
 					Failed to save assessment for{" "}
-					<Link
-						component={NextLink}
+					<AppLink
 						href={projectAssessmentSubmissionQuestionPath(error)}
-						color="inherit"
-						sx={{ fontWeight: "bold" }}
+						c="inherit"
+						fw="bold"
 					>
 						{error.questionLabel ?? error.questionId} /{" "}
 						{error.submissionLabel ?? error.submissionId}
-					</Link>
+					</AppLink>
 					. {error.message}
-				</MuiAlert>
+				</Alert>
 			))}
-		</Box>
+		</Stack>
 	);
 }

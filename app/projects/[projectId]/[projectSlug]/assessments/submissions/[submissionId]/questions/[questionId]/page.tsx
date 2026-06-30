@@ -18,7 +18,7 @@ import {
 	projectCacheTag,
 	questionListCacheTag,
 } from "#db/cacheTags.ts";
-import MuiNextLink from "#design-system/MuiNextLink.tsx";
+import AppLink from "#design-system/AppLink.tsx";
 import { projectAssessmentsPath } from "#projects/projectPaths.ts";
 import { loadProjectByPublicId } from "#projects/projects.ts";
 import { loadQuestion } from "#questions/questions.ts";
@@ -81,15 +81,14 @@ async function QuestionHeaderSection({
 		<>
 			<Box component="header" sx={{ pb: 2 }}>
 				<Breadcrumbs aria-label="breadcrumb">
-					<MuiNextLink
-						color="inherit"
+					<AppLink
 						href={projectAssessmentsPath({
 							projectId: project.id,
 							projectSlug: project.slug,
 						})}
 					>
 						Assessments
-					</MuiNextLink>
+					</AppLink>
 					<Typography color="textPrimary">
 						{question.label ?? questionId}
 					</Typography>

@@ -1,9 +1,9 @@
 "use client";
 
-import TextField from "@mui/material/TextField";
+import { NumberInput } from "@mantine/core";
 import type { ReactElement } from "react";
 
-type NumberFieldProps = {
+type ScoreInputProps = {
 	label: string;
 	defaultValue: number;
 	onChange: (value: number) => void;
@@ -23,27 +23,27 @@ type NumberFieldProps = {
  * the question schema rejects with a field-level error; pass that error back
  * in via `error` to display it.
  */
-export default function NumberField({
+export default function ScoreInput({
 	label,
 	defaultValue,
 	onChange,
 	error,
-}: NumberFieldProps): ReactElement {
+}: ScoreInputProps): ReactElement {
 	return (
-		<TextField
+		<NumberInput
 			label={label}
-			type="number"
 			defaultValue={Number.isFinite(defaultValue) ? defaultValue : ""}
-			onChange={(event) => {
-				const text = event.target.value.trim();
-				const parsed = Number(text);
-				const isValidNumber = text.length > 0 && Number.isFinite(parsed);
-				onChange(isValidNumber ? parsed : Number.NaN);
+			onChange={(value) => {
+				if (typeof value === "number") {
+					onChange(value);
+					return;
+				}
+				const text = value.trim();
+				const parsed = text.length > 0 ? Number(text) : Number.NaN;
+				onChange(Number.isFinite(parsed) ? parsed : Number.NaN);
 			}}
-			error={error != null}
-			helperText={error ?? ""}
-			size="small"
-			slotProps={{ htmlInput: { step: "any" } }}
+			error={error}
+			allowDecimal
 		/>
 	);
 }
