@@ -1,13 +1,4 @@
-import Box from "@mui/material/Box";
-import Paper from "@mui/material/Paper";
-import { alpha } from "@mui/material/styles";
-import Table from "@mui/material/Table";
-import TableBody from "@mui/material/TableBody";
-import TableCell from "@mui/material/TableCell";
-import TableContainer from "@mui/material/TableContainer";
-import TableHead from "@mui/material/TableHead";
-import TableRow from "@mui/material/TableRow";
-import Typography from "@mui/material/Typography";
+import { alpha, Box, Table, Text } from "@mantine/core";
 import type { ReactElement } from "react";
 import CompletionProgress from "./CompletionProgress.tsx";
 import RubricDetailsTooltip from "./RubricDetailsTooltip.tsx";
@@ -44,27 +35,27 @@ export default function SubmissionMatrix({
 	submissionRows,
 }: SubmissionMatrixProps): ReactElement {
 	return (
-		<TableContainer component={Paper} variant="outlined">
-			<Table size="small" aria-label="Submission matrix">
-				<TableHead>
-					<TableRow>
-						<TableCell>Submission</TableCell>
+		<Table.ScrollContainer minWidth={500}>
+			<Table withTableBorder fz="sm" aria-label="Submission matrix">
+				<Table.Thead>
+					<Table.Tr>
+						<Table.Th>Submission</Table.Th>
 						{rubrics.map((rubric) => (
-							<TableCell key={rubric.rubricId} align="center">
+							<Table.Th key={rubric.rubricId} ta="center">
 								<RubricDetailsTooltip
 									rubricId={rubric.rubricId}
 									details={rubric.details}
 								/>
-							</TableCell>
+							</Table.Th>
 						))}
-						<TableCell align="center">Average</TableCell>
-						<TableCell align="right">Completion</TableCell>
-					</TableRow>
-				</TableHead>
-				<TableBody>
+						<Table.Th ta="center">Average</Table.Th>
+						<Table.Th ta="right">Completion</Table.Th>
+					</Table.Tr>
+				</Table.Thead>
+				<Table.Tbody>
 					{submissionRows.map((submissionRow) => (
-						<TableRow key={submissionRow.submissionId}>
-							<TableCell>{submissionRow.submissionLabel}</TableCell>
+						<Table.Tr key={submissionRow.submissionId}>
+							<Table.Td>{submissionRow.submissionLabel}</Table.Td>
 							{submissionRow.rubrics.map((rubricCell) => {
 								const color = rubricCell.assessed
 									? severityColor(
@@ -75,61 +66,54 @@ export default function SubmissionMatrix({
 									: "hsl(220 8% 60%)";
 
 								return (
-									<TableCell key={rubricCell.rubricId} align="center">
+									<Table.Td key={rubricCell.rubricId} ta="center">
 										<Box
-											sx={{
-												display: "inline-flex",
-												borderRadius: 1,
-												px: 0.75,
-												py: 0.25,
-												bgcolor: alpha(
+											display="inline-flex"
+											px={6}
+											py={2}
+											bdrs="sm"
+											miw={64}
+											style={{
+												justifyContent: "center",
+												color,
+												backgroundColor: alpha(
 													color,
 													rubricCell.assessed ? 0.12 : 0.08,
 												),
-												color,
-												minWidth: 64,
-												justifyContent: "center",
 											}}
 										>
-											<Typography
-												variant="caption"
-												sx={{ whiteSpace: "nowrap" }}
-											>
+											<Text size="xs" style={{ whiteSpace: "nowrap" }}>
 												{rubricCell.assessed
 													? `${formatMarks(rubricCell.marks)} / ${formatMarks(rubricCell.maxMarks)}`
 													: "-"}
-											</Typography>
+											</Text>
 										</Box>
-									</TableCell>
+									</Table.Td>
 								);
 							})}
-							<TableCell align="center" sx={{ whiteSpace: "nowrap" }}>
-								<Box
-									sx={{
-										display: "inline-flex",
-										alignItems: "center",
-										borderRadius: 1,
-										px: 1,
-										py: 0.5,
-										bgcolor: alpha(
-											severityColor(submissionRow.averagePercent),
-											0.1,
-										),
-									}}
-								>
-									<Typography
-										variant="body2"
-										sx={{
-											color: severityColor(submissionRow.averagePercent),
-											whiteSpace: "nowrap",
-										}}
-									>
-										{formatMarks(submissionRow.marks)} /{" "}
-										{formatMarks(submissionRow.maxMarks)}
-									</Typography>
-								</Box>
-							</TableCell>
-							<TableCell align="right" sx={{ minWidth: 180 }}>
+							<Table.Td ta="center" style={{ whiteSpace: "nowrap" }}>
+								{(() => {
+									const color = severityColor(submissionRow.averagePercent);
+									return (
+										<Box
+											display="inline-flex"
+											px={8}
+											py={4}
+											bdrs="sm"
+											style={{
+												alignItems: "center",
+												backgroundColor: alpha(color, 0.1),
+											}}
+										>
+											<Text size="sm" style={{ color, whiteSpace: "nowrap" }}>
+												{formatMarks(submissionRow.marks)} /{" "}
+												{formatMarks(submissionRow.maxMarks)}
+											</Text>
+										</Box>
+									);
+								})()}
+							</Table.Td>
+							<Table.Td ta="right" miw={180}>
 								<CompletionProgress
 									assessedCount={submissionRow.completedRubrics}
 									totalCount={submissionRow.totalRubrics}
@@ -142,11 +126,11 @@ export default function SubmissionMatrix({
 									}
 									alignItems="flex-end"
 								/>
-							</TableCell>
-						</TableRow>
+							</Table.Td>
+						</Table.Tr>
 					))}
-				</TableBody>
+				</Table.Tbody>
 			</Table>
-		</TableContainer>
+		</Table.ScrollContainer>
 	);
 }

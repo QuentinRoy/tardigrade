@@ -1,13 +1,4 @@
-import Box from "@mui/material/Box";
-import Paper from "@mui/material/Paper";
-import { alpha } from "@mui/material/styles";
-import Table from "@mui/material/Table";
-import TableBody from "@mui/material/TableBody";
-import TableCell from "@mui/material/TableCell";
-import TableContainer from "@mui/material/TableContainer";
-import TableHead from "@mui/material/TableHead";
-import TableRow from "@mui/material/TableRow";
-import Typography from "@mui/material/Typography";
+import { alpha, Box, Table, Text } from "@mantine/core";
 import type { ReactElement } from "react";
 import CompletionProgress from "./CompletionProgress.tsx";
 import QuestionDetailsTooltip from "./QuestionDetailsTooltip.tsx";
@@ -38,67 +29,64 @@ export default function RubricAnalyticsTable({
 	rubrics,
 }: RubricAnalyticsTableProps): ReactElement {
 	return (
-		<TableContainer component={Paper} variant="outlined">
-			<Table size="small" aria-label="Rubric analytics">
-				<TableHead>
-					<TableRow>
-						<TableCell>Question</TableCell>
-						<TableCell>Rubric</TableCell>
-						<TableCell align="center">Average</TableCell>
-						<TableCell align="right">Completion</TableCell>
-					</TableRow>
-				</TableHead>
-				<TableBody>
+		<Table.ScrollContainer minWidth={400}>
+			<Table withTableBorder fz="sm" aria-label="Rubric analytics">
+				<Table.Thead>
+					<Table.Tr>
+						<Table.Th>Question</Table.Th>
+						<Table.Th>Rubric</Table.Th>
+						<Table.Th ta="center">Average</Table.Th>
+						<Table.Th ta="right">Completion</Table.Th>
+					</Table.Tr>
+				</Table.Thead>
+				<Table.Tbody>
 					{rubrics.map((rubric) => {
 						const color = severityColor(rubric.averagePercent);
 
 						return (
-							<TableRow key={rubric.rubricId}>
-								<TableCell>
+							<Table.Tr key={rubric.rubricId}>
+								<Table.Td>
 									<QuestionDetailsTooltip
 										questionId={rubric.questionId}
 										questionLabel={rubric.questionLabel}
 									/>
-								</TableCell>
-								<TableCell>
+								</Table.Td>
+								<Table.Td>
 									<RubricDetailsTooltip
 										rubricId={rubric.rubricId}
 										details={rubric.details}
 									/>
-								</TableCell>
-								<TableCell align="center">
+								</Table.Td>
+								<Table.Td ta="center">
 									<Box
-										sx={{
-											display: "inline-flex",
+										display="inline-flex"
+										px={8}
+										py={4}
+										bdrs="sm"
+										style={{
 											alignItems: "start",
-											borderRadius: 1,
-											px: 1,
-											py: 0.5,
-											bgcolor: alpha(color, 0.1),
+											backgroundColor: alpha(color, 0.1),
 										}}
 									>
-										<Typography
-											variant="body2"
-											sx={{ color, whiteSpace: "nowrap" }}
-										>
+										<Text size="sm" style={{ color, whiteSpace: "nowrap" }}>
 											{formatMarks(rubric.averageMarks)} /{" "}
 											{formatMarks(rubric.maxMarks)}
-										</Typography>
+										</Text>
 									</Box>
-								</TableCell>
-								<TableCell sx={{ minWidth: 180 }}>
+								</Table.Td>
+								<Table.Td miw={180}>
 									<CompletionProgress
 										assessedCount={rubric.assessedCount}
 										totalCount={rubric.totalCount}
 										completionPercent={rubric.completionPercent}
 										alignItems="flex-end"
 									/>
-								</TableCell>
-							</TableRow>
+								</Table.Td>
+							</Table.Tr>
 						);
 					})}
-				</TableBody>
+				</Table.Tbody>
 			</Table>
-		</TableContainer>
+		</Table.ScrollContainer>
 	);
 }
