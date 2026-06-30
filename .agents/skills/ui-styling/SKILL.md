@@ -1,19 +1,20 @@
 ---
 name: ui-styling
-description: Material UI spacing and design-token conventions for this repo. Use whenever the user asks to add, fix, or adjust spacing, margin, padding, or gap between elements in a React/MUI component (cramped fields, elements touching, too much whitespace, misaligned margins) -- even if they say "spacing" or "margin" without mentioning MUI by name. Also use when writing or reviewing any `sx` prop, a hardcoded pixel value (e.g. `marginTop: "13px"`, `width: "237px"`), or a PR/diff that touches component spacing or styling. Also use when writing or reviewing a component that applies `margin`/`mb`/`mt`/`my`, borderless/backgroundless `padding`, or page placement (`position: fixed`/`absolute`, `top`/`right`/`bottom`/`left`, overlay `zIndex`) to its own outermost element.
+description: Mantine spacing and design-token conventions for this repo. Use whenever the user asks to add, fix, or adjust spacing, margin, padding, or gap between elements in a React/Mantine component (cramped fields, elements touching, too much whitespace, misaligned margins) -- even if they say "spacing" or "margin" without mentioning Mantine by name. Also use when writing or reviewing Mantine style props (`mb`, `p`, `gap`, ...) or a `style`/`styles`/`classNames` prop, a hardcoded pixel value (e.g. `marginTop: "13px"`, `width: "237px"`), or a PR/diff that touches component spacing or styling. Also use when writing or reviewing a component that applies `margin`/`mb`/`mt`/`my`, borderless/backgroundless `padding`, or page placement (`position: fixed`/`absolute`, `top`/`right`/`bottom`/`left`, overlay `zIndex`) to its own outermost element.
 ---
 
 # UI styling
 
 - Use vertical spacing in one direction only: prefer bottom spacing over top spacing.
-  - In Material UI, use `mb` rather than `mt` or `my`, including in `sx` props.
-  - When spacing multiple sibling elements, prefer `gap` on the parent container over margins on children.
+  - In Mantine, use the `mb` style prop rather than `mt` or `my`.
+  - When spacing multiple sibling elements, prefer `gap` on the parent container (`Stack`, `Group`, `Flex`) over margins on children.
 
-- Prefer Material UI theme mechanisms and design-system tokens over custom styling where practical.
+- Prefer Mantine theme mechanisms and design-system tokens over custom styling where practical.
+  - Reach for Mantine components, style props, theme tokens, responsive props, and the Styles API (`classNames`/`styles` with CSS modules) before ad-hoc inline `style`.
 
-- Prefer Material UI spacing and design tokens over hard-coded pixel values.
-  - Prefer `p`, `px`, `py`, `mb`, `gap`, and `theme.spacing()` instead of arbitrary pixel values.
-  - Prefer theme typography, palette, breakpoints, and sizing tokens when available.
+- Prefer Mantine spacing and design tokens over hard-coded pixel values.
+  - Prefer style props (`p`, `px`, `py`, `mb`, `gap`) with spacing tokens (`"xs"`, `"sm"`, `"md"`, `"lg"`, `"xl"`) instead of arbitrary pixel values.
+  - Prefer theme typography (`Text`, `Title`), colors, breakpoints, and sizing tokens when available.
   - Avoid exact pixel dimensions unless they represent a real fixed constraint (for example image dimensions, touch targets, canvas sizes, or third-party integration requirements).
   - Avoid arbitrary values such as `marginTop: "13px"` or `width: "237px"` when a theme-derived value would work.
 
@@ -21,10 +22,10 @@ description: Material UI spacing and design-token conventions for this repo. Use
 
 ```tsx
 // Bad: top margin, and a hardcoded pixel value.
-<Box sx={{ mt: "16px" }}>...</Box>
+<Box style={{ marginTop: "16px" }}>...</Box>
 
 // Good: bottom spacing, theme token.
-<Box sx={{ mb: 2 }}>...</Box>
+<Box mb="md">...</Box>
 ```
 
 ## Outer placement is the parent's responsibility
@@ -37,21 +38,21 @@ This covers two things on a component's outermost element:
   - Let the parent control spacing between siblings, normally via `gap` on a flex/grid container (see "prefer `gap` over margins on children" above).
   - If a component is rendered inside something that does not support `gap` (e.g. plain text flow), the *call site* — not the component — adds the spacing, for example by wrapping the usage in a `Box` with `mb`.
 
-- **Page placement.** Never put the component *itself* in a fixed/overlay position. No `position: "fixed"` / `"absolute"`, no `top`/`right`/`bottom`/`left` offsets, and no page-level overlay `zIndex` on the root. Where a toast, banner, or floating panel anchors on screen is the call site's decision; the component only renders its own content. Internal arrangement of the component's *own* children — `display: flex`, `flexDirection`, `gap`, `maxWidth` — stays inside the component, because that describes what's within its boundary, not where the boundary lands.
-  - The call site that knows the layout context wraps the component to place it, e.g. `<Box sx={{ position: "fixed", bottom: 16, left: 16, zIndex: 2000 }}><SaveErrorsDisplay /></Box>`.
+- **Page placement.** Never put the component *itself* in a fixed/overlay position. No `position: "fixed"` / `"absolute"`, no `top`/`right`/`bottom`/`left` offsets, and no page-level overlay `zIndex` on the root. Where a toast, banner, or floating panel anchors on screen is the call site's decision; the component only renders its own content. Internal arrangement of the component's *own* children — `Flex`/`Stack`/`Group`, `gap`, `maxWidth` — stays inside the component, because that describes what's within its boundary, not where the boundary lands.
+  - The call site that knows the layout context wraps the component to place it, e.g. `<Box pos="fixed" style={{ bottom: 16, left: 16, zIndex: 2000 }}><SaveErrorsDisplay /></Box>`.
 
 ```tsx
 // Bad: SubmissionCard owns its own outer margin.
 function SubmissionCard({ submission }: SubmissionCardProps) {
 	return (
-		<Card sx={{ mb: 2 }}>
-			<CardContent>{submission.title}</CardContent>
+		<Card mb="md">
+			<Text>{submission.title}</Text>
 		</Card>
 	);
 }
 
 // Every caller that doesn't want that margin has to compensate:
-<SubmissionCard submission={first} sx={{ mb: 0 }} /> // a compensating prop just to undo it
+<SubmissionCard submission={first} mb={0} /> // a compensating prop just to undo it
 ```
 
 ```tsx
@@ -59,13 +60,13 @@ function SubmissionCard({ submission }: SubmissionCardProps) {
 function SubmissionCard({ submission }: SubmissionCardProps) {
 	return (
 		<Card>
-			<CardContent>{submission.title}</CardContent>
+			<Text>{submission.title}</Text>
 		</Card>
 	);
 }
 
 // The parent that lays out multiple cards owns the spacing between them:
-<Stack gap={2}>
+<Stack gap="md">
 	{submissions.map((submission) => (
 		<SubmissionCard key={submission.id} submission={submission} />
 	))}
@@ -75,7 +76,7 @@ function SubmissionCard({ submission }: SubmissionCardProps) {
 ```tsx
 // Good: a one-off usage in prose, where the parent isn't a gap container,
 // adds spacing at the call site instead of inside the component.
-<Box sx={{ mb: 2 }}>
+<Box mb="md">
 	<SubmissionCard submission={submission} />
 </Box>
 ```
@@ -85,8 +86,8 @@ function SubmissionCard({ submission }: SubmissionCardProps) {
 // it pushes siblings away even though there's no visible boundary to contain it.
 function SubmissionCard({ submission }: SubmissionCardProps) {
 	return (
-		<Box sx={{ p: 2 }}>
-			<Typography>{submission.title}</Typography>
+		<Box p="md">
+			<Text>{submission.title}</Text>
 		</Box>
 	);
 }
@@ -97,8 +98,8 @@ function SubmissionCard({ submission }: SubmissionCardProps) {
 // it's genuinely internal spacing, not a stand-in for outer margin.
 function SubmissionCard({ submission }: SubmissionCardProps) {
 	return (
-		<Card sx={{ p: 2 }}>
-			<Typography>{submission.title}</Typography>
+		<Card p="md">
+			<Text>{submission.title}</Text>
 		</Card>
 	);
 }
