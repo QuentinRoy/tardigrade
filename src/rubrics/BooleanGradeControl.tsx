@@ -1,6 +1,6 @@
 "use client";
 
-import { Center, SegmentedControl, VisuallyHidden } from "@mantine/core";
+import { SegmentedControl, VisuallyHidden } from "@mantine/core";
 import { IconCheck, IconX } from "@tabler/icons-react";
 import type { ReactElement } from "react";
 
