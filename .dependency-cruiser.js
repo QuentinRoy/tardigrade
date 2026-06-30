@@ -5,6 +5,11 @@ const VERTICALS =
 	"assessment-capture|assessment-completion|rubric-analytics|question-management|imports|app-shell"; // target
 const NON_SHARED = `questions|export|assessment-capture|assessment-completion|rubric-analytics|question-management|imports|app-shell`;
 const SHARED_DOMAIN = "rubrics|submissions|projects|assessment-persistence";
+// Test and story files are dev-only surface: they never ship, so an import
+// across a layer boundary there isn't a real runtime dependency (e.g. a
+// story rendering a component plus a sibling vertical's test-only display
+// stub). Excluded from every boundary rule below via `from.pathNot`.
+const TEST_FILE = "\\.(test|stories)\\.[jt]sx?$";
 
 export default {
 	forbidden: [
@@ -19,7 +24,7 @@ export default {
 			comment:
 				"rubrics/submissions/projects/assessment-persistence import only design-system + infra (+ intra shared-domain)",
 			severity: "error",
-			from: { path: `^src/(${SHARED_DOMAIN})/` },
+			from: { path: `^src/(${SHARED_DOMAIN})/`, pathNot: TEST_FILE },
 			to: { path: `^src/(${NON_SHARED})/` },
 		},
 		{
@@ -28,6 +33,7 @@ export default {
 			severity: "error",
 			from: {
 				path: "^src/design-system/(CodeSnippet|MuiNextLink|NumberField|shiki-setup|SaveErrors)",
+				pathNot: TEST_FILE,
 			},
 			to: {
 				path: `^src/(${SHARED_DOMAIN}|${NON_SHARED})/`,
@@ -39,7 +45,7 @@ export default {
 			comment:
 				"a vertical must not import another vertical (self-excluded via $1)",
 			severity: "error",
-			from: { path: `^src/(${VERTICALS})/` },
+			from: { path: `^src/(${VERTICALS})/`, pathNot: TEST_FILE },
 			to: { path: `^src/(${VERTICALS})/`, pathNot: "^src/$1/" },
 		},
 	],

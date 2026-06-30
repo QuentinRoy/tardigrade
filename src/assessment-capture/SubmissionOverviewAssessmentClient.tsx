@@ -107,7 +107,7 @@ export default function SubmissionOverviewAssessmentClient({
 		initialRubrics,
 		submissions,
 		currentSubmissionId,
-		saveRubric: (rubric, assessment) => {
+		saveRubric: async (rubric, assessment) => {
 			const info = rubricInfoByRubricId.get(rubric.id);
 			const baseErrorContext = {
 				projectId,
@@ -117,7 +117,7 @@ export default function SubmissionOverviewAssessmentClient({
 			};
 
 			if (info == null) {
-				return Promise.resolve({
+				return {
 					success: false,
 					error: {
 						...baseErrorContext,
@@ -125,7 +125,7 @@ export default function SubmissionOverviewAssessmentClient({
 						questionLabel: "Unknown question",
 						message: `Unknown rubric mapping for ${rubric.id}`,
 					},
-				});
+				};
 			}
 
 			return saveRubricAssessment({

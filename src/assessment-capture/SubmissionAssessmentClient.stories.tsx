@@ -1,10 +1,10 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import type { ComponentProps, ReactElement } from "react";
 import { expect, fn, mocked, screen, userEvent, waitFor } from "storybook/test";
+import { SaveErrorsDisplay } from "#app-shell/SaveErrorsDisplay.tsx";
 import { SaveErrorsProvider } from "#design-system/SaveErrorsProvider.tsx";
 import type { AssessedRubric } from "#rubrics/types.ts";
 import type { Submission } from "#submissions/types.ts";
-import { SaveErrorsDisplay } from "../app-shell/SaveErrorsDisplay.tsx";
 import SubmissionAssessmentClient from "./SubmissionAssessmentClient.tsx";
 import { assessmentUnreachableMessage } from "./saveAssessmentMessages.ts";
 
