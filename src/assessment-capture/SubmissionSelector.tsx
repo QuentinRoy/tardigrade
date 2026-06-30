@@ -147,6 +147,7 @@ function SubmissionSelectorContent({
 						onChange={(event) => setQuery(event.currentTarget.value)}
 						placeholder="Search by team or student name"
 						autoFocus
+						style={{ width: "100%" }}
 					/>
 				</Combobox.EventsTarget>
 
@@ -174,7 +175,7 @@ function SubmissionSelectorContent({
 											<div>
 												<Text size="sm">{result.displayLabel}</Text>
 												{secondaryText.length > 0 ? (
-													<Text size="xs" c="dimmed">
+													<Text size="xs" style={{ opacity: 0.7 }}>
 														{secondaryText}
 													</Text>
 												) : null}
