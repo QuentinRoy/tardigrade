@@ -1,20 +1,8 @@
 "use client";
 
-import CloseIcon from "@mui/icons-material/Close";
-import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
-import Checkbox from "@mui/material/Checkbox";
-import Divider from "@mui/material/Divider";
-import FormControlLabel from "@mui/material/FormControlLabel";
-import FormGroup from "@mui/material/FormGroup";
-import IconButton from "@mui/material/IconButton";
-import List from "@mui/material/List";
-import ListItemButton from "@mui/material/ListItemButton";
-import ListItemText from "@mui/material/ListItemText";
-import Stack from "@mui/material/Stack";
-import Toolbar from "@mui/material/Toolbar";
-import Typography from "@mui/material/Typography";
+import { Button, Checkbox, Divider, NavLink, Stack, Text } from "@mantine/core";
 import NextLink from "next/link";
+import { usePathname } from "next/navigation";
 import { type ReactNode, useMemo } from "react";
 import {
 	changeProjectPath,
@@ -28,7 +16,7 @@ import {
 	projectQuestionsPath,
 } from "#projects/projectPaths.ts";
 import { useLocalStorage } from "#utils/useLocalStorage.ts";
-import type { ProjectRouteContext } from "./AppShell.shared.ts";
+import { getProjectRouteContext } from "./AppShell.shared.ts";
 
 const EXPORT_STORAGE_KEY = "export-csv-options-v1";
 
@@ -73,38 +61,37 @@ function NavigationZone({
 	onNavigate,
 }: NavigationZoneProps): ReactNode {
 	return (
-		<Box sx={{ px: 2, py: 1.5 }}>
-			<Typography component="p" variant="overline" color="text.secondary">
+		<Stack gap={4} px="md" py="sm">
+			<Text size="xs" tt="uppercase" c="dimmed" fw={600}>
 				{title}
-			</Typography>
-			<List disablePadding>
+			</Text>
+			<Stack gap={2}>
 				{items.map((item) => (
-					<ListItemButton
+					<NavLink
 						key={item.href}
 						component={NextLink}
 						href={item.href}
+						label={item.label}
 						{...(onNavigate && { onClick: onNavigate })}
-						sx={{ borderRadius: 1 }}
-					>
-						<ListItemText primary={item.label} />
-					</ListItemButton>
+					/>
 				))}
-			</List>
-		</Box>
+			</Stack>
+		</Stack>
 	);
 }
 
 type AppShellDrawerContentProps = {
-	projectRouteContext: ProjectRouteContext | null;
 	projectName: string;
 	onDismiss?: () => void;
 };
 
 export default function AppShellDrawerContent({
-	projectRouteContext,
 	projectName,
 	onDismiss,
 }: AppShellDrawerContentProps): ReactNode {
+	const pathname = usePathname();
+	const projectRouteContext = getProjectRouteContext(pathname);
+
 	const [exportOptions, setExportOptions] =
 		useLocalStorage<ExportPersistedOptions>(
 			EXPORT_STORAGE_KEY,
@@ -135,21 +122,12 @@ export default function AppShellDrawerContent({
 
 	if (projectRouteContext == null) {
 		return (
-			<>
-				<Toolbar>
-					<Typography component="p" variant="subtitle1" sx={{ flexGrow: 1 }}>
-						Select a project
-					</Typography>
-					<IconButton
-						edge="end"
-						onClick={onDismiss}
-						aria-label="Close navigation drawer"
-					>
-						<CloseIcon />
-					</IconButton>
-				</Toolbar>
+			<Stack gap={0}>
+				<Text px="md" py="sm">
+					Select a project
+				</Text>
 				<Divider />
-			</>
+			</Stack>
 		);
 	}
 
@@ -184,98 +162,94 @@ export default function AppShellDrawerContent({
 	];
 
 	return (
-		<Stack divider={<Divider flexItem />}>
-			<Box sx={{ px: 2, py: 1.5 }}>
-				<Typography component="p" variant="overline" color="text.secondary">
+		<Stack gap={0}>
+			<Stack gap={4} px="md" py="sm">
+				<Text size="xs" tt="uppercase" c="dimmed" fw={600}>
 					Project
-				</Typography>
-				<List disablePadding>
-					<ListItemButton
-						component={NextLink}
-						href={changeProjectPath()}
-						{...(onDismiss && { onClick: onDismiss })}
-						sx={{ borderRadius: 1 }}
-					>
-						<ListItemText primary={projectName} secondary="Change project" />
-					</ListItemButton>
-				</List>
-			</Box>
+				</Text>
+				<NavLink
+					component={NextLink}
+					href={changeProjectPath()}
+					label={projectName}
+					description="Change project"
+					{...(onDismiss && { onClick: onDismiss })}
+				/>
+			</Stack>
+			<Divider />
+
 			<NavigationZone
 				title="Assess"
 				items={assessmentItems}
 				onNavigate={onDismiss}
 			/>
+			<Divider />
 			<NavigationZone
 				title="Manage"
 				items={managementItems}
 				onNavigate={onDismiss}
 			/>
+			<Divider />
 			<NavigationZone
 				title="Import"
 				items={importItems}
 				onNavigate={onDismiss}
 			/>
-			<Box sx={{ px: 2, py: 1.5 }}>
-				<Typography component="p" variant="overline" color="text.secondary">
+			<Divider />
+
+			<Stack gap="xs" px="md" py="sm">
+				<Text size="xs" tt="uppercase" c="dimmed" fw={600}>
 					Export Submissions
-				</Typography>
-				<Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+				</Text>
+				<Text size="sm" c="dimmed">
 					Configure columns before download.
-				</Typography>
-				<FormGroup sx={{ mb: 2 }}>
-					<FormControlLabel
-						control={
-							<Checkbox
-								checked={exportOptions.includeRubricAssessment}
-								onChange={(event) => {
-									setExportOptions((current) => ({
-										...current,
-										includeRubricAssessment: event.target.checked,
-									}));
-								}}
-							/>
-						}
+				</Text>
+				<Stack gap="xs">
+					<Checkbox
 						label="Rubric assessment"
+						checked={exportOptions.includeRubricAssessment}
+						onChange={(event) => {
+							setExportOptions((current) => ({
+								...current,
+								includeRubricAssessment: event.currentTarget.checked,
+							}));
+						}}
 					/>
-					<FormControlLabel
-						control={
-							<Checkbox
-								checked={exportOptions.includeRubricMarks}
-								onChange={(event) => {
-									setExportOptions((current) => ({
-										...current,
-										includeRubricMarks: event.target.checked,
-									}));
-								}}
-							/>
-						}
+					<Checkbox
 						label="Rubric marks"
+						checked={exportOptions.includeRubricMarks}
+						onChange={(event) => {
+							setExportOptions((current) => ({
+								...current,
+								includeRubricMarks: event.currentTarget.checked,
+							}));
+						}}
 					/>
-				</FormGroup>
+				</Stack>
 				<Button
 					component={NextLink}
 					href={exportHref}
-					variant="contained"
 					fullWidth
 					{...(onDismiss && { onClick: onDismiss })}
 				>
 					Download Submissions
 				</Button>
-			</Box>
-			<Box sx={{ px: 2, py: 1.5 }}>
-				<Typography component="p" variant="overline" color="text.secondary">
+			</Stack>
+			<Divider />
+
+			<Stack gap="xs" px="md" py="sm">
+				<Text size="xs" tt="uppercase" c="dimmed" fw={600}>
 					Export Questions
-				</Typography>
+				</Text>
 				<Button
 					component={NextLink}
 					href={projectExportQuestionsPath(projectRouteContext)}
-					variant="outlined"
+					variant="outline"
 					fullWidth
 					{...(onDismiss && { onClick: onDismiss })}
 				>
 					Download Questions
 				</Button>
-			</Box>
+			</Stack>
 		</Stack>
 	);
 }
