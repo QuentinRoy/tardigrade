@@ -24,7 +24,9 @@ Before marking a PR as ready for review, resolve or remove temporary TODO items 
 
 ## Branch freshness
 
-This repository requires a pull request's branch to be up to date with its base branch before merging. Before requesting review or merging, check whether the base branch has moved since the PR branch was created and, if so, update the PR branch (merge or rebase) to bring it current.
+Before creating a pull request and before pushing further commits to one, check whether its base branch has moved. If so, update the branch first.
+
+Pull requests must be up to date with their base branch before the user merges them.
 
 ## Pull request titles
 
