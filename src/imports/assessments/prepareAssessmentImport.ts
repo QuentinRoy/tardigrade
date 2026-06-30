@@ -31,7 +31,7 @@ export type AssessmentImportContext = {
 export type AssessmentImportWrite = {
 	submissionId: string;
 	questionId: string;
-	rubric: AssessmentRubricValue;
+	assessment: AssessmentRubricValue;
 };
 
 // `row` is the 1-based CSV line number; the header is line 1, data starts at 2.
@@ -205,9 +205,9 @@ export function prepareAssessmentImport(params: {
 				continue;
 			}
 
-			let rubricValue: AssessmentRubricValue;
+			let assessment: AssessmentRubricValue;
 			try {
-				rubricValue = parseAssessmentValue({ value, rubric });
+				assessment = parseAssessmentValue({ value, rubric });
 			} catch (error) {
 				blockingDiagnostics.push({
 					type: "invalid-value",
@@ -219,11 +219,7 @@ export function prepareAssessmentImport(params: {
 				continue;
 			}
 
-			writes.push({
-				submissionId,
-				questionId: rubric.questionId,
-				rubric: rubricValue,
-			});
+			writes.push({ submissionId, questionId: rubric.questionId, assessment });
 
 			if (
 				context.assessedRubricKeys.has(

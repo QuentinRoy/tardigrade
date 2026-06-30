@@ -77,12 +77,12 @@ export default function SubmissionAssessmentClient({
 		initialRubrics,
 		submissions,
 		currentSubmissionId,
-		saveRubric: (_rubric, rubric) =>
+		saveAssessment: (_rubric, assessment) =>
 			saveRubricAssessment({
 				saveAssessment,
 				submissionId: currentSubmissionId,
 				questionId,
-				rubric,
+				assessment,
 				errorContext: {
 					projectId,
 					projectSlug,

@@ -8,7 +8,7 @@ import type { Submission } from "#submissions/types.ts";
 import { useBeforeUnloadGuard } from "#utils/useBeforeUnloadGuard.ts";
 import { getSubmissionNavigation } from "./submissionNavigation.ts";
 
-export type SaveRubricResult<TError> =
+export type SaveResult<TError> =
 	| { success: true }
 	| { success: false; error: TError };
 
@@ -16,10 +16,10 @@ export type UseAssessmentSessionConfig<TError> = {
 	initialRubrics: AssessedRubric[];
 	submissions: Submission[];
 	currentSubmissionId: string;
-	saveRubric: (
+	saveAssessment: (
 		rubric: AssessedRubric,
 		assessment: AssessmentRubricValue,
-	) => Promise<SaveRubricResult<TError>>;
+	) => Promise<SaveResult<TError>>;
 	onError: (error: TError) => void;
 };
 
@@ -48,7 +48,7 @@ export function useAssessmentSession<TError>({
 	initialRubrics,
 	submissions,
 	currentSubmissionId,
-	saveRubric,
+	saveAssessment,
 	onError,
 }: UseAssessmentSessionConfig<TError>): UseAssessmentSessionResult {
 	const [{ savedRubrics, pendingByIndex }, dispatch] = useReducer(reducer, {
@@ -95,7 +95,7 @@ export function useAssessmentSession<TError>({
 		startTransition(async () => {
 			addOptimisticUpdate({ index, assessment });
 
-			const result = await saveRubric(rubric, assessment);
+			const result = await saveAssessment(rubric, assessment);
 
 			if (result.success) {
 				dispatch({ type: "save-success", index, assessment });
@@ -157,26 +157,26 @@ function reducer(state: State, action: Action): State {
 
 function isSameAssessment(
 	rubric: AssessedRubric,
-	right: AssessmentRubricValue,
+	assessment: AssessmentRubricValue,
 ): boolean {
 	if (
 		rubric.assessment == null ||
-		right.rubricId !== rubric.id ||
-		right.type !== rubric.type
+		assessment.rubricId !== rubric.id ||
+		assessment.type !== rubric.type
 	) {
 		return false;
 	}
 
-	if (rubric.type === "boolean" && right.type === "boolean") {
-		return rubric.assessment.passed === right.passed;
+	if (rubric.type === "boolean" && assessment.type === "boolean") {
+		return rubric.assessment.passed === assessment.passed;
 	}
 
-	if (rubric.type === "ordinal" && right.type === "ordinal") {
-		return rubric.assessment.selectedLabel === right.selectedLabel;
+	if (rubric.type === "ordinal" && assessment.type === "ordinal") {
+		return rubric.assessment.selectedLabel === assessment.selectedLabel;
 	}
 
-	if (rubric.type === "numerical" && right.type === "numerical") {
-		return rubric.assessment.score === right.score;
+	if (rubric.type === "numerical" && assessment.type === "numerical") {
+		return rubric.assessment.score === assessment.score;
 	}
 
 	return false;

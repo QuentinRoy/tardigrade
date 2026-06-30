@@ -6,7 +6,7 @@ import type {
 } from "#assessment-persistence/assessmentMutations.ts";
 import type { SaveError } from "#design-system/SaveErrorsProvider.tsx";
 import { assessmentUnreachableMessage } from "./saveAssessmentMessages.ts";
-import type { SaveRubricResult } from "./useAssessmentSession.ts";
+import type { SaveResult } from "./useAssessmentSession.ts";
 
 // The saveAssessment server action is injected rather than imported here, so
 // this module never statically imports a "use server" file. Components pass
@@ -20,17 +20,21 @@ export async function saveRubricAssessment({
 	saveAssessment,
 	submissionId,
 	questionId,
-	rubric,
+	assessment,
 	errorContext,
 }: {
 	saveAssessment: SaveAssessment;
 	submissionId: string;
 	questionId: string;
-	rubric: SaveAssessmentParams["rubric"];
+	assessment: SaveAssessmentParams["assessment"];
 	errorContext: Omit<SaveError, "id" | "message">;
-}): Promise<SaveRubricResult<Omit<SaveError, "id">>> {
+}): Promise<SaveResult<Omit<SaveError, "id">>> {
 	try {
-		const result = await saveAssessment({ submissionId, questionId, rubric });
+		const result = await saveAssessment({
+			submissionId,
+			questionId,
+			assessment,
+		});
 
 		if (result.success) {
 			return { success: true };

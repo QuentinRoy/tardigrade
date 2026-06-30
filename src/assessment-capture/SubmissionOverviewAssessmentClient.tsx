@@ -107,7 +107,7 @@ export default function SubmissionOverviewAssessmentClient({
 		initialRubrics,
 		submissions,
 		currentSubmissionId,
-		saveRubric: async (rubric, assessment) => {
+		saveAssessment: async (rubric, assessment) => {
 			const info = rubricInfoByRubricId.get(rubric.id);
 			const baseErrorContext = {
 				projectId,
@@ -132,7 +132,7 @@ export default function SubmissionOverviewAssessmentClient({
 				saveAssessment,
 				submissionId: currentSubmissionId,
 				questionId: info.questionId,
-				rubric: assessment,
+				assessment,
 				errorContext: {
 					...baseErrorContext,
 					questionId: info.questionId,

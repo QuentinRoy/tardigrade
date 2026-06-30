@@ -43,7 +43,7 @@ test("loadQuestionAssessmentFromDb returns the stored rubric values for a submis
 	await saveAssessmentInDb(db, {
 		submissionId: fixture.submissionId,
 		questionId: fixture.questionId,
-		rubric: {
+		assessment: {
 			rubricId: fixture.rubricIds.boolean,
 			type: "boolean",
 			passed: true,
@@ -52,7 +52,7 @@ test("loadQuestionAssessmentFromDb returns the stored rubric values for a submis
 	await saveAssessmentInDb(db, {
 		submissionId: fixture.submissionId,
 		questionId: fixture.questionId,
-		rubric: {
+		assessment: {
 			rubricId: fixture.rubricIds.ordinal,
 			type: "ordinal",
 			selectedLabel: "B",
@@ -61,7 +61,7 @@ test("loadQuestionAssessmentFromDb returns the stored rubric values for a submis
 	await saveAssessmentInDb(db, {
 		submissionId: fixture.submissionId,
 		questionId: fixture.questionId,
-		rubric: {
+		assessment: {
 			rubricId: fixture.rubricIds.numerical,
 			type: "numerical",
 			score: 7.5,
@@ -106,7 +106,7 @@ test("loadQuestionAssessment wrapper delegates to its primitive and declares its
 	await saveAssessmentInDb(db, {
 		submissionId: fixture.submissionId,
 		questionId: fixture.questionId,
-		rubric: {
+		assessment: {
 			rubricId: fixture.rubricIds.boolean,
 			type: "boolean",
 			passed: true,
@@ -151,7 +151,7 @@ test("loadSubmissionAssessmentsFromDb groups a submission's rubric values by que
 	await saveAssessmentInDb(db, {
 		submissionId: fixture.submissionId,
 		questionId: fixture.questionId,
-		rubric: {
+		assessment: {
 			rubricId: fixture.rubricIds.boolean,
 			type: "boolean",
 			passed: true,
@@ -160,7 +160,7 @@ test("loadSubmissionAssessmentsFromDb groups a submission's rubric values by que
 	await saveAssessmentInDb(db, {
 		submissionId: fixture.submissionId,
 		questionId: fixture.questionId,
-		rubric: {
+		assessment: {
 			rubricId: fixture.rubricIds.numerical,
 			type: "numerical",
 			score: 7.5,
@@ -169,7 +169,7 @@ test("loadSubmissionAssessmentsFromDb groups a submission's rubric values by que
 	await saveAssessmentInDb(db, {
 		submissionId: fixture.submissionId,
 		questionId: secondQuestion.questionId,
-		rubric: {
+		assessment: {
 			rubricId: secondQuestion.rubricId,
 			type: "boolean",
 			passed: false,
@@ -209,7 +209,7 @@ test("loadSubmissionAssessments wrapper delegates to its primitive and declares 
 	await saveAssessmentInDb(db, {
 		submissionId: fixture.submissionId,
 		questionId: fixture.questionId,
-		rubric: {
+		assessment: {
 			rubricId: fixture.rubricIds.boolean,
 			type: "boolean",
 			passed: true,
@@ -243,7 +243,7 @@ test("assessment reads return nothing when the Project ID does not match the sub
 	await saveAssessmentInDb(db, {
 		submissionId: fixture.submissionId,
 		questionId: fixture.questionId,
-		rubric: {
+		assessment: {
 			rubricId: fixture.rubricIds.boolean,
 			type: "boolean",
 			passed: true,

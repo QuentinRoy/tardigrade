@@ -11,7 +11,7 @@ export type SaveAssessmentResult =
 export type SaveAssessmentParams = {
 	submissionId: string;
 	questionId: string;
-	rubric: AssessmentRubricValue;
+	assessment: AssessmentRubricValue;
 };
 
 export const assessmentErrors = {
@@ -34,9 +34,9 @@ export const assessmentErrors = {
 // The db is either the global client or a caller-supplied transaction.
 export async function saveAssessmentInDb(
 	db: Kysely<DB>,
-	{ submissionId, questionId, rubric: rubricValue }: SaveAssessmentParams,
+	{ submissionId, questionId, assessment }: SaveAssessmentParams,
 ): Promise<SaveAssessmentResult> {
-	const rubricId = rubricValue.rubricId;
+	const rubricId = assessment.rubricId;
 
 	const submission = await db
 		.selectFrom("submission")
@@ -87,7 +87,7 @@ export async function saveAssessmentInDb(
 
 	const rubricRowId = rubric.rowId;
 
-	if (rubric.type !== rubricValue.type) {
+	if (rubric.type !== assessment.type) {
 		return { success: false, error: assessmentErrors.criterionChanged };
 	}
 
@@ -114,11 +114,11 @@ export async function saveAssessmentInDb(
 
 	await db
 		.insertInto("rubricAssessment")
-		.values({ assessmentId, rubricId: rubricRowId, type: rubricValue.type })
+		.values({ assessmentId, rubricId: rubricRowId, type: assessment.type })
 		.onConflict((conflict) =>
 			conflict
 				.columns(["assessmentId", "rubricId"])
-				.doUpdateSet({ type: rubricValue.type }),
+				.doUpdateSet({ type: assessment.type }),
 		)
 		.execute();
 
@@ -131,17 +131,20 @@ export async function saveAssessmentInDb(
 
 	const rubricAssessmentId = existingRubricAssessment.id;
 
+	// Each writer persists one rubric type's value and clears the other two
+	// types, so a rubric never carries stale values from a previous type. A
+	// non-undefined return is a validation failure that aborts the save.
 	async function saveBooleanAssessment(
-		value: Extract<AssessmentRubricValue, { type: "boolean" }>,
+		booleanAssessment: Extract<AssessmentRubricValue, { type: "boolean" }>,
 	): Promise<SaveAssessmentResult | undefined> {
 		await Promise.all([
 			db
 				.insertInto("booleanRubricAssessment")
-				.values({ rubricAssessmentId, passed: value.passed })
+				.values({ rubricAssessmentId, passed: booleanAssessment.passed })
 				.onConflict((conflict) =>
 					conflict
 						.column("rubricAssessmentId")
-						.doUpdateSet({ passed: value.passed }),
+						.doUpdateSet({ passed: booleanAssessment.passed }),
 				)
 				.execute(),
 			db
@@ -158,7 +161,7 @@ export async function saveAssessmentInDb(
 	}
 
 	async function saveOrdinalAssessment(
-		value: Extract<AssessmentRubricValue, { type: "ordinal" }>,
+		ordinalAssessment: Extract<AssessmentRubricValue, { type: "ordinal" }>,
 	): Promise<SaveAssessmentResult | undefined> {
 		const ordinalLabels = await db
 			.selectFrom("ordinalRubricValue")
@@ -172,18 +175,21 @@ export async function saveAssessmentInDb(
 			.execute();
 
 		const allowedValues = ordinalLabels.map((item) => item.label);
-		if (!allowedValues.includes(value.selectedLabel)) {
+		if (!allowedValues.includes(ordinalAssessment.selectedLabel)) {
 			return { success: false, error: assessmentErrors.invalidOption };
 		}
 
 		await Promise.all([
 			db
 				.insertInto("ordinalRubricAssessment")
-				.values({ rubricAssessmentId, selectedLabel: value.selectedLabel })
+				.values({
+					rubricAssessmentId,
+					selectedLabel: ordinalAssessment.selectedLabel,
+				})
 				.onConflict((conflict) =>
 					conflict
 						.column("rubricAssessmentId")
-						.doUpdateSet({ selectedLabel: value.selectedLabel }),
+						.doUpdateSet({ selectedLabel: ordinalAssessment.selectedLabel }),
 				)
 				.execute(),
 			db
@@ -200,9 +206,9 @@ export async function saveAssessmentInDb(
 	}
 
 	async function saveNumericalAssessment(
-		value: Extract<AssessmentRubricValue, { type: "numerical" }>,
+		numericalAssessment: Extract<AssessmentRubricValue, { type: "numerical" }>,
 	): Promise<SaveAssessmentResult | undefined> {
-		const parsed = value.score;
+		const parsed = numericalAssessment.score;
 		if (!Number.isFinite(parsed)) {
 			return { success: false, error: assessmentErrors.invalidScore };
 		}
@@ -257,20 +263,16 @@ export async function saveAssessmentInDb(
 		return undefined;
 	}
 
-	const result = await (async (): Promise<SaveAssessmentResult | undefined> => {
-		switch (rubricValue.type) {
-			case "boolean": {
-				return await saveBooleanAssessment(rubricValue);
-			}
-			case "ordinal": {
-				return await saveOrdinalAssessment(rubricValue);
-			}
-			case "numerical": {
-				return await saveNumericalAssessment(rubricValue);
-			}
-			default: {
-				return assertNever(rubricValue);
-			}
+	const result = await ((): Promise<SaveAssessmentResult | undefined> => {
+		switch (assessment.type) {
+			case "boolean":
+				return saveBooleanAssessment(assessment);
+			case "ordinal":
+				return saveOrdinalAssessment(assessment);
+			case "numerical":
+				return saveNumericalAssessment(assessment);
+			default:
+				return assertNever(assessment);
 		}
 	})();
 
