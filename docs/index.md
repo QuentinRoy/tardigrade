@@ -65,6 +65,7 @@ Short records of durable architecture decisions.
 - [0008 Cache tags, lifetimes, and invalidation](adr/0008-cache-tags-lifetimes-and-invalidation.md)
 - [0009 Server-side logging with pino](adr/0009-server-side-logging-with-pino.md)
 - [0010 Organize `src/` as enforced vertical layers](adr/0010-organize-src-as-enforced-vertical-layers.md) (supersedes ADR 0006)
+- [0011 Adopt Mantine with a constrained, app-owned design system](adr/0011-adopt-mantine-constrained-design-system.md)
 - Add new ADRs under `docs/adr/`.
 
 ## Designs
