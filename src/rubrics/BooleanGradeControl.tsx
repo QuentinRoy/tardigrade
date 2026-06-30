@@ -1,6 +1,6 @@
 "use client";
 
-import { SegmentedControl, VisuallyHidden } from "@mantine/core";
+import { Center, SegmentedControl, VisuallyHidden } from "@mantine/core";
 import { IconCheck, IconX } from "@tabler/icons-react";
 import type { ReactElement } from "react";
 
@@ -11,6 +11,8 @@ type BooleanGradeControlProps = {
 };
 
 const UNSET = "";
+
+const iconProps = { style: { display: "block" }, size: 20 };
 
 export default function BooleanGradeControl({
 	value,
@@ -29,7 +31,7 @@ export default function BooleanGradeControl({
 					value: "true",
 					label: (
 						<>
-							<IconCheck size={16} aria-hidden />
+							<IconCheck {...iconProps} aria-hidden />
 							<VisuallyHidden>True</VisuallyHidden>
 						</>
 					),
@@ -38,7 +40,7 @@ export default function BooleanGradeControl({
 					value: "false",
 					label: (
 						<>
-							<IconX size={16} aria-hidden />
+							<IconX {...iconProps} aria-hidden />
 							<VisuallyHidden>False</VisuallyHidden>
 						</>
 					),

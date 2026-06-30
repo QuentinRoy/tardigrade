@@ -6,21 +6,4 @@ import { createTheme } from "@mantine/core";
  * density; per-component defaults are refined against the marking view in
  * the assessment-capture migration step.
  */
-export const theme = createTheme({
-	primaryColor: "indigo",
-	defaultRadius: "sm",
-	spacing: {
-		xs: "0.5rem",
-		sm: "0.625rem",
-		md: "0.875rem",
-		lg: "1.25rem",
-		xl: "1.75rem",
-	},
-	fontSizes: {
-		xs: "0.6875rem",
-		sm: "0.8125rem",
-		md: "0.875rem",
-		lg: "1rem",
-		xl: "1.125rem",
-	},
-});
+export const theme = createTheme({});
