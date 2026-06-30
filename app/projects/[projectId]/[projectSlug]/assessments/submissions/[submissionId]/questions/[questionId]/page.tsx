@@ -8,6 +8,7 @@ import type { ReactElement } from "react";
 import { Suspense } from "react";
 import { loadQuestionAssessment } from "#assessment-capture/assessments.ts";
 import SubmissionAssessmentClient from "#assessment-capture/SubmissionAssessmentClient.tsx";
+import { saveAssessment } from "#assessment-capture/saveAssessment.ts";
 import {
 	buildAssessedRubricCountsBySubmission,
 	loadAssessedRubricCounts,
@@ -165,6 +166,7 @@ async function SubmissionRubricSection({
 			submissions={submissions}
 			progressPromise={progressPromise}
 			currentSubmissionId={submissionId}
+			saveAssessment={saveAssessment}
 		/>
 	);
 }

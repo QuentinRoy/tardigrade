@@ -11,14 +11,15 @@ import {
 	useSaveErrors,
 } from "#design-system/SaveErrorsProvider.tsx";
 import { projectAssessmentSubmissionQuestionPath } from "#projects/projectPaths.ts";
-import type { AssessedRubric, AssessmentRubricValue } from "#rubrics/types.ts";
+import type { AssessedRubric } from "#rubrics/types.ts";
 import { getSubmissionLabel } from "#submissions/getSubmissionLabel.ts";
 import type { Submission } from "#submissions/types.ts";
 import AssessmentProgressSummary from "./AssessmentProgressSummary.tsx";
 import { summarizeRubrics } from "./assessmentSummary.ts";
 import RubricGradeList from "./RubricGradeList.tsx";
 import SubmissionQuickJumpDialog from "./SubmissionQuickJumpDialog.tsx";
-import { saveAssessment } from "./saveAssessment.ts";
+import type { SaveAssessment } from "./saveRubricAssessment.ts";
+import { saveRubricAssessment } from "./saveRubricAssessment.ts";
 import { getSubmissionNavigation } from "./submissionNavigation.ts";
 import { useAssessmentSession } from "./useAssessmentSession.ts";
 import { useSubmissionQuickJump } from "./useSubmissionQuickJump.ts";
@@ -34,6 +35,10 @@ type SubmissionAssessmentClientProps = {
 		Record<string, { completed: number; total: number }>
 	>;
 	currentSubmissionId: string;
+	// Injected rather than imported, so this component never statically
+	// imports the "use server" saveAssessment module. The page passes the
+	// real server action; stories pass a plain stub.
+	saveAssessment: SaveAssessment;
 };
 
 export default function SubmissionAssessmentClient({
@@ -45,6 +50,7 @@ export default function SubmissionAssessmentClient({
 	submissions,
 	progressPromise,
 	currentSubmissionId,
+	saveAssessment,
 }: SubmissionAssessmentClientProps): ReactElement {
 	const router = useRouter();
 	const { addError } = useSaveErrors();
@@ -71,31 +77,21 @@ export default function SubmissionAssessmentClient({
 		initialRubrics,
 		submissions,
 		currentSubmissionId,
-		saveRubric: async (
-			_rubric: AssessedRubric,
-			rubric: AssessmentRubricValue,
-		) => {
-			const result = await saveAssessment({
+		saveRubric: (_rubric, rubric) =>
+			saveRubricAssessment({
+				saveAssessment,
 				submissionId: currentSubmissionId,
 				questionId,
 				rubric,
-			});
-			if (result.success) {
-				return { success: true };
-			}
-			return {
-				success: false,
-				error: {
+				errorContext: {
 					projectId,
 					projectSlug,
 					submissionId: currentSubmissionId,
 					submissionLabel: currentSubmissionLabel,
 					questionId,
 					questionLabel,
-					message: result.error,
 				},
-			};
-		},
+			}),
 		onError: addError,
 	});
 

@@ -4,9 +4,11 @@ const VERTICALS =
 const NON_SHARED = VERTICALS;
 const SHARED_DOMAIN =
 	"rubrics|submissions|projects|assessment-persistence|questions";
-// Tests legitimately exercise more than one vertical (e.g. an import/export
-// round-trip integration test); only production code must respect the boundary.
-const TEST_FILE = "\\.(integration\\.)?test\\.tsx?$";
+// Tests and stories legitimately exercise more than one vertical (e.g. an
+// import/export round-trip integration test, or a story rendering a
+// component plus a sibling vertical's display surface); only production
+// code must respect the boundary.
+const TEST_FILE = "\\.(integration\\.)?(test|stories)\\.tsx?$";
 
 export default {
 	forbidden: [
@@ -21,7 +23,7 @@ export default {
 			comment:
 				"rubrics/submissions/projects/assessment-persistence/questions import only design-system + infra (+ intra shared-domain)",
 			severity: "error",
-			from: { path: `^src/(${SHARED_DOMAIN})/` },
+			from: { path: `^src/(${SHARED_DOMAIN})/`, pathNot: TEST_FILE },
 			to: { path: `^src/(${NON_SHARED})/` },
 		},
 		{
@@ -30,6 +32,7 @@ export default {
 			severity: "error",
 			from: {
 				path: "^src/design-system/(CodeSnippet|MuiNextLink|NumberField|shiki-setup|SaveErrors)",
+				pathNot: TEST_FILE,
 			},
 			to: {
 				path: `^src/(${SHARED_DOMAIN}|${NON_SHARED})/`,

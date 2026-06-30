@@ -12,14 +12,15 @@ import {
 	useSaveErrors,
 } from "#design-system/SaveErrorsProvider.tsx";
 import { projectAssessmentSubmissionPath } from "#projects/projectPaths.ts";
-import type { AssessedRubric, AssessmentRubricValue } from "#rubrics/types.ts";
+import type { AssessedRubric } from "#rubrics/types.ts";
 import { getSubmissionLabel } from "#submissions/getSubmissionLabel.ts";
 import type { Submission } from "#submissions/types.ts";
 import AssessmentProgressSummary from "./AssessmentProgressSummary.tsx";
 import { summarizeRubrics } from "./assessmentSummary.ts";
 import RubricGradeList from "./RubricGradeList.tsx";
 import SubmissionQuickJumpDialog from "./SubmissionQuickJumpDialog.tsx";
-import { saveAssessment } from "./saveAssessment.ts";
+import type { SaveAssessment } from "./saveRubricAssessment.ts";
+import { saveRubricAssessment } from "./saveRubricAssessment.ts";
 import { getSubmissionNavigation } from "./submissionNavigation.ts";
 import { useAssessmentSession } from "./useAssessmentSession.ts";
 import { useSubmissionQuickJump } from "./useSubmissionQuickJump.ts";
@@ -46,6 +47,10 @@ type SubmissionOverviewAssessmentClientProps = {
 		Record<string, { completed: number; total: number }>
 	>;
 	currentSubmissionId: string;
+	// Injected rather than imported, so this component never statically
+	// imports the "use server" saveAssessment module. The page passes the
+	// real server action; stories pass a plain stub.
+	saveAssessment: SaveAssessment;
 };
 
 export default function SubmissionOverviewAssessmentClient({
@@ -55,6 +60,7 @@ export default function SubmissionOverviewAssessmentClient({
 	submissions,
 	progressPromise,
 	currentSubmissionId,
+	saveAssessment,
 }: SubmissionOverviewAssessmentClientProps): ReactElement {
 	const router = useRouter();
 	const { addError } = useSaveErrors();
@@ -101,20 +107,20 @@ export default function SubmissionOverviewAssessmentClient({
 		initialRubrics,
 		submissions,
 		currentSubmissionId,
-		saveRubric: async (
-			rubric: AssessedRubric,
-			assessment: AssessmentRubricValue,
-		) => {
+		saveRubric: async (rubric, assessment) => {
 			const info = rubricInfoByRubricId.get(rubric.id);
+			const baseErrorContext = {
+				projectId,
+				projectSlug,
+				submissionId: currentSubmissionId,
+				submissionLabel: currentSubmissionLabel,
+			};
 
 			if (info == null) {
 				return {
 					success: false,
 					error: {
-						projectId,
-						projectSlug,
-						submissionId: currentSubmissionId,
-						submissionLabel: currentSubmissionLabel,
+						...baseErrorContext,
 						questionId: "unknown-question",
 						questionLabel: "Unknown question",
 						message: `Unknown rubric mapping for ${rubric.id}`,
@@ -122,28 +128,17 @@ export default function SubmissionOverviewAssessmentClient({
 				};
 			}
 
-			const result = await saveAssessment({
-				rubric: assessment,
+			return saveRubricAssessment({
+				saveAssessment,
 				submissionId: currentSubmissionId,
 				questionId: info.questionId,
-			});
-
-			if (result.success) {
-				return { success: true };
-			}
-
-			return {
-				success: false,
-				error: {
-					projectId,
-					projectSlug,
-					submissionId: currentSubmissionId,
-					submissionLabel: currentSubmissionLabel,
+				rubric: assessment,
+				errorContext: {
+					...baseErrorContext,
 					questionId: info.questionId,
 					questionLabel: info.questionLabel,
-					message: result.error,
 				},
-			};
+			});
 		},
 		onError: addError,
 	});

@@ -60,15 +60,28 @@ export default defineConfig({
 						storybookUrl: "http://localhost:6006",
 					}),
 				],
-				// Pre-bundle immer so the browser doesn't discover it mid-run and
-				// force a Vite reload, which fails whichever test was executing
-				// (see useAssessmentSession.stories.tsx, the first story to exercise
-				// the immer-importing useAssessmentSession hook). This is a known
-				// addon-vitest limitation, not something specific to us — see
+				// Pre-bundle deps the browser would otherwise discover mid-run,
+				// which forces a Vite reload that fails whichever test was
+				// executing. `immer` comes from useAssessmentSession; the rest
+				// come from SubmissionQuickJumpDialog (rendered by
+				// SubmissionAssessmentClient.stories) and are not reached by any
+				// other story. This is a known addon-vitest limitation, not
+				// specific to us — see
 				// https://github.com/storybookjs/storybook/issues/33067 and
-				// https://github.com/vitest-dev/vitest/issues/8447. Remove this once
-				// addon-vitest pre-bundles deps reachable from the story graph itself.
-				optimizeDeps: { include: ["immer"] },
+				// https://github.com/vitest-dev/vitest/issues/8447. Remove these
+				// once addon-vitest pre-bundles deps reachable from the story
+				// graph itself.
+				optimizeDeps: {
+					include: [
+						"immer",
+						"fuse.js",
+						"@mui/material/Chip",
+						"@mui/material/CircularProgress",
+						"@mui/material/Dialog",
+						"@mui/material/DialogContent",
+						"@mui/material/DialogTitle",
+					],
+				},
 				test: {
 					name: "storybook",
 					browser: {

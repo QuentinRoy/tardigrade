@@ -8,6 +8,7 @@ import type { ReactElement } from "react";
 import { Suspense } from "react";
 import { loadSubmissionAssessments } from "#assessment-capture/assessments.ts";
 import SubmissionOverviewAssessmentClient from "#assessment-capture/SubmissionOverviewAssessmentClient.tsx";
+import { saveAssessment } from "#assessment-capture/saveAssessment.ts";
 import { loadAssessmentCompletionBySubmission } from "#assessment-completion/loadAssessmentCompletion.ts";
 import MuiNextLink from "#design-system/MuiNextLink.tsx";
 import { projectAssessmentsPath } from "#projects/projectPaths.ts";
@@ -122,6 +123,7 @@ async function SubmissionGradingSection({
 			submissions={submissions}
 			progressPromise={progressPromise}
 			questions={gradedQuestions}
+			saveAssessment={saveAssessment}
 		/>
 	);
 }
