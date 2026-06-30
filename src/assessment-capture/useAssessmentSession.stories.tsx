@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { expect, fn, screen, userEvent, waitFor } from "storybook/test";
 import type { AssessedRubric } from "#rubrics/types.ts";
 import type { Submission } from "#submissions/types.ts";
-import type { SaveRubricResult } from "./useAssessmentSession.ts";
+import type { SaveResult } from "./useAssessmentSession.ts";
 import { useAssessmentSession } from "./useAssessmentSession.ts";
 
 // A deferred promise whose resolve the play function calls explicitly, so
@@ -43,14 +43,14 @@ const submissions: Submission[] = [
 	{ id: "submission-1", type: "individual", studentName: "Ada Lovelace" },
 ];
 
-// Calls to the saveRubric stub are recorded in order, so the play function
+// Calls to the saveAssessment stub are recorded in order, so the play function
 // can resolve a specific call by its index regardless of which rubric index
 // it targeted.
 function Harness({
 	calls,
 	onError,
 }: {
-	calls: Deferred<SaveRubricResult<string>>[];
+	calls: Deferred<SaveResult<string>>[];
 	onError: (error: string) => void;
 }) {
 	const { savedRubrics, optimisticRubrics, pendingByIndex, assess } =
@@ -58,8 +58,8 @@ function Harness({
 			initialRubrics,
 			submissions,
 			currentSubmissionId: "submission-1",
-			saveRubric: async () => {
-				const deferred = Promise.withResolvers<SaveRubricResult<string>>();
+			saveAssessment: async () => {
+				const deferred = Promise.withResolvers<SaveResult<string>>();
 				calls.push(deferred);
 				return deferred.promise;
 			},

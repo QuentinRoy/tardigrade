@@ -31,7 +31,7 @@ test("saveAssessmentInDb round-trips boolean, ordinal and numerical assessments"
 		saveAssessmentInDb(db, {
 			submissionId: fixture.submissionId,
 			questionId: fixture.questionId,
-			rubric: {
+			assessment: {
 				rubricId: fixture.rubricIds.boolean,
 				type: "boolean",
 				passed: true,
@@ -40,7 +40,7 @@ test("saveAssessmentInDb round-trips boolean, ordinal and numerical assessments"
 		saveAssessmentInDb(db, {
 			submissionId: fixture.submissionId,
 			questionId: fixture.questionId,
-			rubric: {
+			assessment: {
 				rubricId: fixture.rubricIds.ordinal,
 				type: "ordinal",
 				selectedLabel: "B",
@@ -49,7 +49,7 @@ test("saveAssessmentInDb round-trips boolean, ordinal and numerical assessments"
 		saveAssessmentInDb(db, {
 			submissionId: fixture.submissionId,
 			questionId: fixture.questionId,
-			rubric: {
+			assessment: {
 				rubricId: fixture.rubricIds.numerical,
 				type: "numerical",
 				score: 7.5,
@@ -98,7 +98,7 @@ test("saveAssessmentInDb returns a validation error for an invalid ordinal label
 	const result = await saveAssessmentInDb(db, {
 		submissionId: fixture.submissionId,
 		questionId: fixture.questionId,
-		rubric: {
+		assessment: {
 			rubricId: fixture.rubricIds.ordinal,
 			type: "ordinal",
 			selectedLabel: "Z",
@@ -123,7 +123,7 @@ test("saveAssessmentInDb returns a validation error for an out-of-range numerica
 	const result = await saveAssessmentInDb(db, {
 		submissionId: fixture.submissionId,
 		questionId: fixture.questionId,
-		rubric: {
+		assessment: {
 			rubricId: fixture.rubricIds.numerical,
 			type: "numerical",
 			score: 11,
@@ -166,7 +166,7 @@ test("saveAssessmentInDb saves in the correct project when question and rubric i
 	const result = await saveAssessmentInDb(db, {
 		submissionId: fixtureB.submissionId,
 		questionId: fixtureB.questionId,
-		rubric: {
+		assessment: {
 			rubricId: fixtureB.rubricIds.boolean,
 			type: "boolean",
 			passed: true,
@@ -209,7 +209,7 @@ test("saveAssessmentInDb rejects cross-project submission and question combinati
 	const result = await saveAssessmentInDb(db, {
 		submissionId: fixtureA.submissionId,
 		questionId: fixtureB.questionId,
-		rubric: {
+		assessment: {
 			rubricId: fixtureB.rubricIds.boolean,
 			type: "boolean",
 			passed: true,
@@ -235,7 +235,7 @@ test("saveAssessment wrapper updates the edited tags read-your-writes and revali
 		{
 			submissionId: fixture.submissionId,
 			questionId: fixture.questionId,
-			rubric: {
+			assessment: {
 				rubricId: fixture.rubricIds.boolean,
 				type: "boolean",
 				passed: true,
@@ -273,7 +273,7 @@ test("saveAssessment wrapper does not invalidate when the save fails validation"
 		{
 			submissionId: fixture.submissionId,
 			questionId: fixture.questionId,
-			rubric: {
+			assessment: {
 				rubricId: fixture.rubricIds.ordinal,
 				type: "ordinal",
 				selectedLabel: "Z",
@@ -305,7 +305,7 @@ test("saveAssessmentInDb keeps a single untorn value when two writers race the s
 			saveAssessmentInDb(tx, {
 				submissionId: fixture.submissionId,
 				questionId: fixture.questionId,
-				rubric: {
+				assessment: {
 					rubricId: fixture.rubricIds.boolean,
 					type: "boolean",
 					passed: true,
@@ -315,7 +315,7 @@ test("saveAssessmentInDb keeps a single untorn value when two writers race the s
 			saveAssessmentInDb(tx, {
 				submissionId: fixture.submissionId,
 				questionId: fixture.questionId,
-				rubric: {
+				assessment: {
 					rubricId: fixture.rubricIds.boolean,
 					type: "boolean",
 					passed: false,
@@ -388,7 +388,7 @@ test("saveAssessmentInDb keeps both rubric assessments when two writers race dif
 			saveAssessmentInDb(tx, {
 				submissionId: fixture.submissionId,
 				questionId: fixture.questionId,
-				rubric: {
+				assessment: {
 					rubricId: fixture.rubricIds.boolean,
 					type: "boolean",
 					passed: true,
@@ -398,7 +398,7 @@ test("saveAssessmentInDb keeps both rubric assessments when two writers race dif
 			saveAssessmentInDb(tx, {
 				submissionId: fixture.submissionId,
 				questionId: fixture.questionId,
-				rubric: {
+				assessment: {
 					rubricId: fixture.rubricIds.ordinal,
 					type: "ordinal",
 					selectedLabel: "A",
@@ -449,7 +449,7 @@ test("saveAssessment wrapper does not error under naive parallel saves", async (
 			{
 				submissionId: fixture.submissionId,
 				questionId: fixture.questionId,
-				rubric: {
+				assessment: {
 					rubricId: fixture.rubricIds.boolean,
 					type: "boolean",
 					passed: true,
@@ -461,7 +461,7 @@ test("saveAssessment wrapper does not error under naive parallel saves", async (
 			{
 				submissionId: fixture.submissionId,
 				questionId: fixture.questionId,
-				rubric: {
+				assessment: {
 					rubricId: fixture.rubricIds.ordinal,
 					type: "ordinal",
 					selectedLabel: "A",
@@ -473,7 +473,7 @@ test("saveAssessment wrapper does not error under naive parallel saves", async (
 			{
 				submissionId: fixture.submissionId,
 				questionId: fixture.questionId,
-				rubric: {
+				assessment: {
 					rubricId: fixture.rubricIds.numerical,
 					type: "numerical",
 					score: 5,

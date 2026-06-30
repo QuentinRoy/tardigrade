@@ -16,7 +16,7 @@ describe("saveRubricAssessment", () => {
 			saveAssessment,
 			submissionId: "submission-1",
 			questionId: "question-1",
-			rubric: { rubricId: "rubric-1", type: "boolean", passed: true },
+			assessment: { rubricId: "rubric-1", type: "boolean", passed: true },
 			errorContext,
 		});
 
@@ -32,7 +32,7 @@ describe("saveRubricAssessment", () => {
 			saveAssessment,
 			submissionId: "submission-1",
 			questionId: "question-1",
-			rubric: { rubricId: "rubric-1", type: "boolean", passed: true },
+			assessment: { rubricId: "rubric-1", type: "boolean", passed: true },
 			errorContext,
 		});
 
@@ -51,7 +51,7 @@ describe("saveRubricAssessment", () => {
 			saveAssessment,
 			submissionId: "submission-1",
 			questionId: "question-1",
-			rubric: { rubricId: "rubric-1", type: "boolean", passed: true },
+			assessment: { rubricId: "rubric-1", type: "boolean", passed: true },
 			errorContext,
 		});
 

@@ -141,6 +141,7 @@ _Avoid_: question completion, submission progress, "a submission has progress", 
 ## Flagged Ambiguities
 
 - project id: previously overloaded in discussion and code. Resolution: Project ID means public identifier by default. Project Row ID must be named explicitly and is DB-internal only.
+- rubric vs assessment value: `rubric` was used for both the gradeable shape (`AssessedRubric`/`Rubric`) and the graded value (`AssessmentRubricValue`), and the value also appeared as `rubricValue`, `right`, and `value`. Resolution: `rubric` names only the gradeable shape; an `AssessmentRubricValue` is always named `assessment`. The session save callback and the DB-facing param that carry the value are `saveAssessment`/`assessment`, never `saveRubric`/`rubric`.
 
 ## Example Dialogue
 

@@ -67,12 +67,12 @@ test("prepareAssessmentImport plans one write per non-empty rubric cell of a mat
 		{
 			submissionId: "42",
 			questionId: "q1",
-			rubric: { rubricId: "r-bool", type: "boolean", passed: true },
+			assessment: { rubricId: "r-bool", type: "boolean", passed: true },
 		},
 		{
 			submissionId: "42",
 			questionId: "q1",
-			rubric: { rubricId: "r-num", type: "numerical", score: 7.5 },
+			assessment: { rubricId: "r-num", type: "numerical", score: 7.5 },
 		},
 	]);
 });

@@ -39,7 +39,7 @@ test("saveAssessment returns a generic shaped error and logs once when the mutat
 			{
 				submissionId: fixture.submissionId,
 				questionId: fixture.questionId,
-				rubric: {
+				assessment: {
 					rubricId: fixture.rubricIds.boolean,
 					type: "boolean",
 					passed: true,

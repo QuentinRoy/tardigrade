@@ -119,7 +119,7 @@ describe.each<{ name: string; options: ExportOptions }>([
 				{
 					submissionId: fixture.submissionId,
 					questionId: fixture.questionId,
-					rubric: {
+					assessment: {
 						rubricId: fixture.rubricIds.booleanId,
 						type: "boolean",
 						passed: true,
@@ -128,7 +128,7 @@ describe.each<{ name: string; options: ExportOptions }>([
 				{
 					submissionId: fixture.submissionId,
 					questionId: fixture.questionId,
-					rubric: {
+					assessment: {
 						rubricId: fixture.rubricIds.ordinalId,
 						type: "ordinal",
 						selectedLabel: "A",
@@ -137,7 +137,7 @@ describe.each<{ name: string; options: ExportOptions }>([
 				{
 					submissionId: fixture.submissionId,
 					questionId: fixture.questionId,
-					rubric: {
+					assessment: {
 						rubricId: fixture.rubricIds.numericalId,
 						type: "numerical",
 						score: 7.5,
