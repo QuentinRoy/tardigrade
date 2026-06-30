@@ -25,7 +25,7 @@ export default function BooleanGradeControl({
 			value={value == null ? UNSET : value ? "true" : "false"}
 			onChange={(next) => onAssess(next === "true")}
 			disabled={disabled}
-			color={value === false ? "red" : "green"}
+			color={disabled ? "gray" : value === false ? "red" : "green"}
 			data={[
 				{
 					value: "true",
