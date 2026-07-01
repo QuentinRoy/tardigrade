@@ -16,7 +16,7 @@ MUI's component model and visual language are not a good fit for the project's d
 ## What this commits to
 
 - **Mantine for base components, theme, overlays, form controls, layout primitives.** Feature code freely composes low-level primitives (`Stack`, `Group`, `Text`, `Divider`, `Tooltip`, `Menu`, `Modal`).
-- **A centralized theme** owns typography, color roles, spacing, radius, and a single compact-leaning **density** (component `size` defaults + tuned `spacing`/`fontSizes`). Light scheme only for now; Mantine keeps dark mode possible later.
+- **Mantine defaults first.** Use Mantine's light theme and component defaults without app-level density or visual-token tuning for now. Introduce app-owned theme tokens only when a concrete, cross-cutting need emerges; Mantine keeps dark mode possible later.
 - **A curated, glossary-aligned semantic layer**, not a speculative full set. Generic page scaffolding (`AppPage`, `PageHeader`, `Panel`) lives in `design-system`; domain components keep `CONTEXT.md` language (`SubmissionSelector`, not "StudentSelector"; `AssessmentSummary`, not "GradeSummary") and stay in their current ADR 0010 layer until the rule-5 promotion bar (stable identity + multiple real consumers) is met.
 - **CSS Modules for exceptional styling**, via Mantine's Styles API (`classNames`/`styles`). No Tailwind-first / shadcn-style per-call-site styling as the primary approach. The styling precedence (style props + tokens → Styles API with CSS Modules → ad-hoc inline last) is the `ui-styling` skill's house rule.
 - **No enterprise data grid.** The existing tables are presentational; Mantine `Table` covers them. TanStack Table is introduced later only if a real data-grid need (sorting/virtualization/pagination at scale) appears.
