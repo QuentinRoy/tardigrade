@@ -2,15 +2,14 @@ import {
 	Alert,
 	Box,
 	Button,
-	NavLink,
 	Stack,
 	Text,
 	TextInput,
 	Title,
 } from "@mantine/core";
-import NextLink from "next/link";
 import { redirect } from "next/navigation";
 import AppShell from "#app-shell/AppShell.tsx";
+import AppNavLink from "#design-system/AppNavLink.tsx";
 import AppPage from "#design-system/AppPage.tsx";
 import { toCreateProjectErrorMessage } from "#projects/createProjectErrorMessage.ts";
 import { projectDashboardPath } from "#projects/projectPaths.ts";
@@ -77,9 +76,8 @@ export default async function ProjectsPage({
 						<Title order={2}>Existing projects</Title>
 						<Stack component="nav" aria-label="Project list" gap="xs">
 							{projects.map((project) => (
-								<NavLink
+								<AppNavLink
 									key={project.id}
-									component={NextLink}
 									href={projectDashboardPath({
 										projectId: project.id,
 										projectSlug: project.slug,

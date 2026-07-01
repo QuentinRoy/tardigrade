@@ -1,7 +1,7 @@
-import { Button, Stack, Text, Title } from "@mantine/core";
-import NextLink from "next/link";
+import { Stack, Text, Title } from "@mantine/core";
 import GlobalAssessmentSummary from "#assessment-completion/GlobalAssessmentSummary.tsx";
 import { loadAssessmentCompletionSummary } from "#assessment-completion/loadAssessmentCompletion.ts";
+import AppButtonLink from "#design-system/AppButtonLink.tsx";
 import AppPage from "#design-system/AppPage.tsx";
 import {
 	projectAssessmentsPath,
@@ -34,43 +34,40 @@ export default async function ProjectDashboardPage({
 						<Text c="dimmed">
 							No questions yet — add questions to start assessing.
 						</Text>
-						<Button
-							component={NextLink}
+						<AppButtonLink
 							href={projectQuestionsPath({
 								projectId: project.id,
 								projectSlug: project.slug,
 							})}
 						>
 							Add questions
-						</Button>
+						</AppButtonLink>
 					</Stack>
 				) : progress.submissions.total === 0 ? (
 					<Stack gap="sm" align="flex-start">
 						<Text c="dimmed">
 							No submissions yet — import submissions to start assessing.
 						</Text>
-						<Button
-							component={NextLink}
+						<AppButtonLink
 							href={projectImportStudentsPath({
 								projectId: project.id,
 								projectSlug: project.slug,
 							})}
 						>
 							Import submissions
-						</Button>
+						</AppButtonLink>
 					</Stack>
 				) : (
 					<GlobalAssessmentSummary progress={progress} />
 				)}
-				<Button
-					component={NextLink}
+				<AppButtonLink
 					href={projectAssessmentsPath({
 						projectId: project.id,
 						projectSlug: project.slug,
 					})}
 				>
 					Open assessments
-				</Button>
+				</AppButtonLink>
 			</Stack>
 		</AppPage>
 	);

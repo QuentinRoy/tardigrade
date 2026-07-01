@@ -1,15 +1,8 @@
-import {
-	Button,
-	NavLink,
-	Progress,
-	Skeleton,
-	Stack,
-	Text,
-	Title,
-} from "@mantine/core";
-import NextLink from "next/link";
+import { Progress, Skeleton, Stack, Text, Title } from "@mantine/core";
 import { Suspense } from "react";
 import { loadAssessmentCompletionBySubmission } from "#assessment-completion/loadAssessmentCompletion.ts";
+import AppButtonLink from "#design-system/AppButtonLink.tsx";
+import AppNavLink from "#design-system/AppNavLink.tsx";
 import AppPage from "#design-system/AppPage.tsx";
 import {
 	projectAssessmentSubmissionPath,
@@ -70,8 +63,7 @@ async function ProjectAssessmentPageContent({
 		<AppPage>
 			<Stack gap="lg">
 				<Title order={1}>Assessments</Title>
-				<Button
-					component={NextLink}
+				<AppButtonLink
 					href={projectOverviewPath({
 						projectId: project.id,
 						projectSlug: project.slug,
@@ -79,21 +71,20 @@ async function ProjectAssessmentPageContent({
 					variant="outline"
 				>
 					Open rubric overview
-				</Button>
+				</AppButtonLink>
 				{!hasQuestions ? (
 					<Stack gap="sm" align="flex-start">
 						<Text c="dimmed">
 							No questions yet — add questions to start assessing.
 						</Text>
-						<Button
-							component={NextLink}
+						<AppButtonLink
 							href={projectQuestionsPath({
 								projectId: project.id,
 								projectSlug: project.slug,
 							})}
 						>
 							Add questions
-						</Button>
+						</AppButtonLink>
 					</Stack>
 				) : (
 					<>
@@ -154,9 +145,8 @@ async function SubmissionProgressList({
 				const percent = total > 0 ? (completed / total) * 100 : 0;
 				const isComplete = completed === total && total > 0;
 				return (
-					<NavLink
+					<AppNavLink
 						key={submission.id}
-						component={NextLink}
 						href={projectAssessmentSubmissionPath({
 							projectId,
 							projectSlug,
@@ -199,9 +189,8 @@ function SubmissionListSkeleton({
 	return (
 		<Stack component="nav" aria-label="Submission list" gap="xs">
 			{submissions.map((submission) => (
-				<NavLink
+				<AppNavLink
 					key={submission.id}
-					component={NextLink}
 					href={projectAssessmentSubmissionPath({
 						projectId,
 						projectSlug,
