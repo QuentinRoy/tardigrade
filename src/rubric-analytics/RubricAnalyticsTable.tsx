@@ -1,4 +1,4 @@
-import { alpha, Flex, Table, Text } from "@mantine/core";
+import { Badge, Table } from "@mantine/core";
 import type { ReactElement } from "react";
 import CompletionProgress from "./CompletionProgress.tsx";
 import QuestionDetailsTooltip from "./QuestionDetailsTooltip.tsx";
@@ -15,14 +15,11 @@ function formatMarks(value: number | null): string {
 	return value.toFixed(1).replace(/\.0$/, "");
 }
 
-function severityColor(percent: number | null): string {
-	if (percent == null || Number.isNaN(percent)) {
-		return "hsl(220 8% 60%)";
-	}
-
-	const clamped = Math.max(0, Math.min(percent, 100));
-	const hue = Math.max(0, Math.min(120, clamped * 1.2));
-	return `hsl(${hue} 70% 42%)`;
+function badgeColor(percent: number | null): string {
+	if (percent == null || Number.isNaN(percent)) return "gray";
+	if (percent >= 70) return "green";
+	if (percent >= 40) return "yellow";
+	return "red";
 }
 
 export default function RubricAnalyticsTable({
@@ -40,49 +37,39 @@ export default function RubricAnalyticsTable({
 					</Table.Tr>
 				</Table.Thead>
 				<Table.Tbody>
-					{rubrics.map((rubric) => {
-						const color = severityColor(rubric.averagePercent);
-
-						return (
-							<Table.Tr key={rubric.rubricId}>
-								<Table.Td>
-									<QuestionDetailsTooltip
-										questionId={rubric.questionId}
-										questionLabel={rubric.questionLabel}
-									/>
-								</Table.Td>
-								<Table.Td>
-									<RubricDetailsTooltip
-										rubricId={rubric.rubricId}
-										details={rubric.details}
-									/>
-								</Table.Td>
-								<Table.Td ta="center">
-									<Flex
-										display="inline-flex"
-										align="start"
-										px="xs"
-										py={4}
-										bdrs="sm"
-										style={{ backgroundColor: alpha(color, 0.1) }}
-									>
-										<Text size="sm" style={{ color, whiteSpace: "nowrap" }}>
-											{formatMarks(rubric.averageMarks)} /{" "}
-											{formatMarks(rubric.maxMarks)}
-										</Text>
-									</Flex>
-								</Table.Td>
-								<Table.Td>
-									<CompletionProgress
-										assessedCount={rubric.assessedCount}
-										totalCount={rubric.totalCount}
-										completionPercent={rubric.completionPercent}
-										alignItems="flex-end"
-									/>
-								</Table.Td>
-							</Table.Tr>
-						);
-					})}
+					{rubrics.map((rubric) => (
+						<Table.Tr key={rubric.rubricId}>
+							<Table.Td>
+								<QuestionDetailsTooltip
+									questionId={rubric.questionId}
+									questionLabel={rubric.questionLabel}
+								/>
+							</Table.Td>
+							<Table.Td>
+								<RubricDetailsTooltip
+									rubricId={rubric.rubricId}
+									details={rubric.details}
+								/>
+							</Table.Td>
+							<Table.Td ta="center">
+								<Badge
+									variant="light"
+									color={badgeColor(rubric.averagePercent)}
+								>
+									{formatMarks(rubric.averageMarks)} /{" "}
+									{formatMarks(rubric.maxMarks)}
+								</Badge>
+							</Table.Td>
+							<Table.Td>
+								<CompletionProgress
+									assessedCount={rubric.assessedCount}
+									totalCount={rubric.totalCount}
+									completionPercent={rubric.completionPercent}
+									alignItems="flex-end"
+								/>
+							</Table.Td>
+						</Table.Tr>
+					))}
 				</Table.Tbody>
 			</Table>
 		</Table.ScrollContainer>

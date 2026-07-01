@@ -1,4 +1,4 @@
-import { alpha, Flex, Table, Text } from "@mantine/core";
+import { Badge, Table } from "@mantine/core";
 import type { ReactElement } from "react";
 import CompletionProgress from "./CompletionProgress.tsx";
 import RubricDetailsTooltip from "./RubricDetailsTooltip.tsx";
@@ -20,14 +20,11 @@ function formatMarks(value: number | null): string {
 	return value.toFixed(1).replace(/\.0$/, "");
 }
 
-function severityColor(percent: number | null): string {
-	if (percent == null || Number.isNaN(percent)) {
-		return "hsl(220 8% 60%)";
-	}
-
-	const clamped = Math.max(0, Math.min(percent, 100));
-	const hue = Math.max(0, Math.min(120, clamped * 1.2));
-	return `hsl(${hue} 70% 42%)`;
+function badgeColor(percent: number | null): string {
+	if (percent == null || Number.isNaN(percent)) return "gray";
+	if (percent >= 70) return "green";
+	if (percent >= 40) return "yellow";
+	return "red";
 }
 
 export default function SubmissionMatrix({
@@ -54,62 +51,40 @@ export default function SubmissionMatrix({
 				</Table.Thead>
 				<Table.Tbody>
 					{submissionRows.map((submissionRow) => {
-						const avgColor = severityColor(submissionRow.averagePercent);
+						const avgPercent =
+							submissionRow.maxMarks > 0
+								? (submissionRow.marks / submissionRow.maxMarks) * 100
+								: null;
 
 						return (
 							<Table.Tr key={submissionRow.submissionId}>
 								<Table.Td>{submissionRow.submissionLabel}</Table.Td>
 								{submissionRow.rubrics.map((rubricCell) => {
-									const color = rubricCell.assessed
-										? severityColor(
-												rubricCell.maxMarks > 0
-													? ((rubricCell.marks ?? 0) / rubricCell.maxMarks) *
-															100
-													: 0,
-											)
-										: "hsl(220 8% 60%)";
+									const cellPercent =
+										rubricCell.assessed && rubricCell.maxMarks > 0
+											? ((rubricCell.marks ?? 0) / rubricCell.maxMarks) * 100
+											: null;
 
 									return (
 										<Table.Td key={rubricCell.rubricId} ta="center">
-											<Flex
-												justify="center"
-												px={6}
-												py={2}
-												bdrs="sm"
-												miw={64}
-												style={{
-													color,
-													backgroundColor: alpha(
-														color,
-														rubricCell.assessed ? 0.12 : 0.08,
-													),
-												}}
+											<Badge
+												variant="light"
+												color={
+													rubricCell.assessed ? badgeColor(cellPercent) : "gray"
+												}
 											>
-												<Text size="xs" style={{ whiteSpace: "nowrap" }}>
-													{rubricCell.assessed
-														? `${formatMarks(rubricCell.marks)} / ${formatMarks(rubricCell.maxMarks)}`
-														: "-"}
-												</Text>
-											</Flex>
+												{rubricCell.assessed
+													? `${formatMarks(rubricCell.marks)} / ${formatMarks(rubricCell.maxMarks)}`
+													: "-"}
+											</Badge>
 										</Table.Td>
 									);
 								})}
-								<Table.Td ta="center" style={{ whiteSpace: "nowrap" }}>
-									<Flex
-										align="center"
-										px="xs"
-										py={4}
-										bdrs="sm"
-										style={{ backgroundColor: alpha(avgColor, 0.1) }}
-									>
-										<Text
-											size="sm"
-											style={{ color: avgColor, whiteSpace: "nowrap" }}
-										>
-											{formatMarks(submissionRow.marks)} /{" "}
-											{formatMarks(submissionRow.maxMarks)}
-										</Text>
-									</Flex>
+								<Table.Td ta="center">
+									<Badge variant="light" color={badgeColor(avgPercent)}>
+										{formatMarks(submissionRow.marks)} /{" "}
+										{formatMarks(submissionRow.maxMarks)}
+									</Badge>
 								</Table.Td>
 								<Table.Td ta="right">
 									<CompletionProgress
