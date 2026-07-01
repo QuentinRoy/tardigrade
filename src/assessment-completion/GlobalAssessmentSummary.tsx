@@ -51,7 +51,7 @@ export default function GlobalAssessmentSummary({
 	progress,
 }: GlobalAssessmentSummaryProps): ReactElement {
 	return (
-		<Group gap="sm" wrap="wrap">
+		<Group gap="sm" wrap="wrap" align="stretch">
 			<MetricCard
 				title="Rubrics assessed"
 				helper="Saved rubric assessments across all submissions"
