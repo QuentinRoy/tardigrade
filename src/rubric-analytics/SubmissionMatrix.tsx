@@ -3,6 +3,7 @@
 import { Badge, Table } from "@mantine/core";
 import type { ReactElement } from "react";
 import CompletionProgress from "./CompletionProgress.tsx";
+import marksBadgeClasses from "./MarksBadge.module.css";
 import RubricDetailsTooltip from "./RubricDetailsTooltip.tsx";
 import type {
 	RubricOverviewRow,
@@ -62,8 +63,14 @@ export default function SubmissionMatrix({
 							<Table.Tr key={submissionRow.submissionId}>
 								<Table.Td>{submissionRow.submissionLabel}</Table.Td>
 								{submissionRow.rubrics.map((rubricCell) => {
+									// Leave unassessed criteria blank rather than showing a
+									// placeholder badge — an empty cell reads as "no mark yet".
+									if (!rubricCell.assessed) {
+										return <Table.Td key={rubricCell.rubricId} />;
+									}
+
 									const cellPercent =
-										rubricCell.assessed && rubricCell.maxMarks > 0
+										rubricCell.maxMarks > 0
 											? ((rubricCell.marks ?? 0) / rubricCell.maxMarks) * 100
 											: null;
 
@@ -71,19 +78,20 @@ export default function SubmissionMatrix({
 										<Table.Td key={rubricCell.rubricId} ta="center">
 											<Badge
 												variant="light"
-												color={
-													rubricCell.assessed ? badgeColor(cellPercent) : "gray"
-												}
+												color={badgeColor(cellPercent)}
+												classNames={marksBadgeClasses}
 											>
-												{rubricCell.assessed
-													? `${formatMarks(rubricCell.marks)} / ${formatMarks(rubricCell.maxMarks)}`
-													: "-"}
+												{`${formatMarks(rubricCell.marks)} / ${formatMarks(rubricCell.maxMarks)}`}
 											</Badge>
 										</Table.Td>
 									);
 								})}
 								<Table.Td ta="center">
-									<Badge variant="light" color={badgeColor(avgPercent)}>
+									<Badge
+										variant="light"
+										color={badgeColor(avgPercent)}
+										classNames={marksBadgeClasses}
+									>
 										{formatMarks(submissionRow.marks)} /{" "}
 										{formatMarks(submissionRow.maxMarks)}
 									</Badge>

@@ -70,10 +70,10 @@ export const EXPECTED_RUBRIC_ANALYTICS = [
 ] as const;
 
 // SubmissionMatrix shows one row per submission with one cell per rubric
-// ("<marks> / <maxMarks>", or "-" if unassessed), then a per-submission
-// average and rubric-completion count. Submission labels come from
-// `getSubmissionLabel`: individuals as "<last_name> <first_name>", teams as
-// the team name.
+// ("<marks> / <maxMarks>", or empty if the criterion is unassessed), then a
+// per-submission average and rubric-completion count. Submission labels come
+// from `getSubmissionLabel`: individuals as "<last_name> <first_name>", teams
+// as the team name.
 export const EXPECTED_SUBMISSION_MATRIX = [
 	{
 		submissionLabel: "Doe John",
@@ -83,7 +83,7 @@ export const EXPECTED_SUBMISSION_MATRIX = [
 	},
 	{
 		submissionLabel: "Smith Jane",
-		cells: { r1: "-", r2: "-" },
+		cells: { r1: "", r2: "" },
 		average: "0 / 0",
 		completion: { completed: 0, total: 2 },
 	},

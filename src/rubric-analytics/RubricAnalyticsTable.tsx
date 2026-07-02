@@ -3,6 +3,7 @@
 import { Badge, Table } from "@mantine/core";
 import type { ReactElement } from "react";
 import CompletionProgress from "./CompletionProgress.tsx";
+import marksBadgeClasses from "./MarksBadge.module.css";
 import QuestionDetailsTooltip from "./QuestionDetailsTooltip.tsx";
 import RubricDetailsTooltip from "./RubricDetailsTooltip.tsx";
 import type { RubricOverviewRow } from "./rubricOverviewBuilder.ts";
@@ -57,6 +58,7 @@ export default function RubricAnalyticsTable({
 								<Badge
 									variant="light"
 									color={badgeColor(rubric.averagePercent)}
+									classNames={marksBadgeClasses}
 								>
 									{formatMarks(rubric.averageMarks)} /{" "}
 									{formatMarks(rubric.maxMarks)}
