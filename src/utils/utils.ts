@@ -105,7 +105,7 @@ export function nonNull<T>(value: T): NonNullable<T> {
  * @param max - The maximum value of the range (inclusive).
  * @returns The clamped number.
  */
-export function clamped({
+export function clamp({
 	value,
 	min,
 	max,

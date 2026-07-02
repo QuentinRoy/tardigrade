@@ -2,7 +2,7 @@
 
 import { NumberInput } from "@mantine/core";
 import { type ReactElement, useRef } from "react";
-import { clamped } from "#utils/utils.ts";
+import { clamp } from "#utils/utils.ts";
 
 type NumericalGradeControlProps = {
 	value?: number | undefined;
@@ -20,16 +20,21 @@ export default function NumericalGradeControl({
 	onAssess,
 }: NumericalGradeControlProps): ReactElement {
 	const ref = useRef<HTMLInputElement>(null);
+	const lastValueRef = useRef(value);
+
 	function submit(text: string) {
 		const trimmed = text.trim();
-		if (trimmed.length === 0) {
+		const parsedValue = trimmed.length === 0 ? Number.NaN : Number(trimmed);
+		if (!Number.isFinite(parsedValue)) {
+			if (ref.current != null) {
+				ref.current.value = lastValueRef.current?.toString() ?? "";
+			}
 			return;
 		}
-		const parsedValue = Number(trimmed);
-		if (!Number.isFinite(parsedValue) || parsedValue === value) {
+		if (parsedValue === lastValueRef.current) {
 			return;
 		}
-		const clampedValue = clamped({
+		const clampedValue = clamp({
 			value: parsedValue,
 			min: minScore,
 			max: maxScore,
@@ -37,6 +42,7 @@ export default function NumericalGradeControl({
 		if (clampedValue !== parsedValue && ref.current != null) {
 			ref.current.value = clampedValue.toString();
 		}
+		lastValueRef.current = clampedValue;
 		onAssess(clampedValue);
 	}
 
@@ -44,14 +50,14 @@ export default function NumericalGradeControl({
 		<NumberInput
 			ref={ref}
 			defaultValue={value ?? ""}
-			onBlur={(v) => submit(v.target.value)}
+			onBlur={(event) => submit(event.currentTarget.value)}
 			placeholder="Score"
 			clampBehavior="none"
 			disabled={disabled}
 			min={minScore}
 			max={maxScore}
 			allowDecimal
-			w="80"
+			w="90"
 		/>
 	);
 }
