@@ -81,6 +81,7 @@ Durable facts about current system behavior, formats, and contracts.
 - [Cache invalidation map](reference/cache-invalidation-map.md)
 - [Database migrations](reference/database-migrations.md)
 - [Testing conventions](reference/testing-conventions.md)
+- [Lexicon: user-facing vocabulary](reference/lexicon.md)
 - Add new reference docs under `docs/reference/`.
 
 ## Guides

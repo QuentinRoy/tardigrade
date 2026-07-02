@@ -40,6 +40,7 @@ Use this table to find the canonical guidance instead of copying rules into this
 - TypeScript public/helper APIs, function parameter design, and `as` type assertions → `.agents/skills/typescript-api-design/SKILL.md` (also explicitly loaded; see Skills below).
 - UI styling, spacing direction, and Material UI design-token conventions → `.agents/skills/ui-styling/SKILL.md`.
 - User-facing error message conventions → `.agents/skills/error-handling-ux/SKILL.md`.
+- User-facing vocabulary (UI labels, headings, button text, export column headers) — the word to use, not the message structure → `docs/reference/lexicon.md`, `.agents/skills/lexicon/SKILL.md` (also explicitly loaded; see Skills below).
 - Testing conventions, test-command selection, and disposable-fixture patterns → `docs/reference/testing-conventions.md`, `.agents/skills/testing/SKILL.md`.
 - React `useId` usage and `app/` vs `src/` page composition → `.agents/skills/react-patterns/SKILL.md`.
 - Avoiding barrel/re-export facade files; import from the owning module → `docs/adr/0004-avoid-barrel-files.md`.
@@ -58,6 +59,7 @@ Use this table to find the canonical guidance instead of copying rules into this
 - Temporarily drop caveman mode when clarity, safety, irreversible actions, or public-facing writing require normal prose.
 - Use `.agents/skills/simplify/SKILL.md` after code edits as a focused cleanup pass over recently modified code. Preserve behavior exactly while improving clarity, consistency, naming, control flow, and maintainability.
 - Load `.agents/skills/typescript-api-design/SKILL.md` whenever writing or reviewing a TypeScript function signature or an `as` type assertion. It is near-universal in this TS-only repo and won't reliably auto-trigger, so consult it explicitly rather than waiting for its description to match.
+- Load `.agents/skills/lexicon/SKILL.md` whenever writing or reviewing any user-facing string (labels, headings, buttons, empty states, error messages, export column headers) or naming a new UI concept. User-facing copy appears in nearly every UI change in this repo, so consult it explicitly rather than waiting for its description to match.
 - Load other local skills from `.agents/skills/*` only when the task touches that domain. Do not load every skill by default.
 
 ## Instruction precedence
