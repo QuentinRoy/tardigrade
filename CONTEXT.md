@@ -142,12 +142,12 @@ _Avoid_: zero-width or inverted score ranges, inverted marks ranges, tolerant `N
 
 ### Criterion overview
 
-**Submission Matrix**:
-The per-submission criterion-by-criterion overview grid on the assessment overview page, showing each submission's marks per criterion. Distinct from **Criterion Analytics** (the per-criterion aggregate view). Submission, not student, because a submission may be by a team.
-_Avoid_: Student Matrix, student row, per-student grid, rubric-by-rubric (superseded: a rubric is now a whole grid, not a single column)
+**Grade Matrix**:
+The per-target criterion-by-criterion overview table on the grading overview page, showing each **Grade Target**'s marks per criterion. Distinct from **Criterion Analytics** (the per-criterion aggregate view). Previously "Submission Matrix" (renamed with the submission-to-Grade-Target move). Internal name only: "matrix" is not user-facing vocabulary — the UI calls this table "Grades" and its first column "Name" (see the Lexicon).
+_Avoid_: submission matrix, student matrix, per-student grid, "Matrix" in UI copy
 
 **Criterion Analytics**:
-The per-criterion aggregate overview grid on the assessment overview page, showing each criterion's average marks and completion across submissions. Distinct from the **Submission Matrix** (the per-submission view). Previously "Rubric Analytics"; renamed because "Rubric" now names the whole grid, not a single graded item.
+The per-criterion aggregate overview table on the grading overview page, showing each criterion's average marks and completion across **Grade Targets**. Distinct from the **Grade Matrix** (the per-target view). Previously "Rubric Analytics"; renamed because "Rubric" now names the whole grid, not a single graded item.
 _Avoid_: rubric analytics, rubric matrix, rubric summary table
 
 ### Grade

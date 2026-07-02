@@ -38,13 +38,15 @@ _Avoid_: project, test, exam, assignment
 
 ## Criterion overview
 
-**Submission Matrix**:
-The per-submission overview table on a grid's overview page, showing each submission's mark for every criterion.
-_Maps to_: Submission Matrix (`CONTEXT.md`)
+**Grades** (table):
+The overview table showing every student's or group's marks for every criterion, with totals and completion. Its first column is headed **Name** (the student's or group's display label) — never "Student", "Group", or "Submission", so the header stays correct whether a grid contains individuals, groups, or both.
+_Maps to_: Grade Matrix (`CONTEXT.md`) — a deliberate divergence: "matrix" is precise internally but is jargon in UI copy
+_Avoid_: matrix, submission matrix, gradebook
 
 **Criterion Analytics**:
-The per-criterion overview table on a grid's overview page, showing average marks and completion across submissions.
+The per-criterion overview table on a grid's overview page, showing average marks and completion across students and groups.
 _Maps to_: Criterion Analytics (`CONTEXT.md`)
+_Avoid_: rubric analytics
 
 ## Grade
 
