@@ -82,6 +82,12 @@ _Avoid_: repository, dao, data-access object
 The bare-named app-facing function that owns the global database handle, transaction boundaries, and cache invalidation, delegating database work to one or more **DB Primitives**. The owner of a transaction invalidates cache after it commits.
 _Avoid_: service, manager, orchestrator (as a type name)
 
+### Roster
+
+**Group**:
+One or more students treated as a single unit for assessment. Previously called "Team"; renamed because "Team" implies persistent collaboration, while a Group naturally covers pairs, ad hoc lab groups, and imported Moodle groups without that connotation. A Group of size one can represent an individual assessment target without a separate persistence branch — this is a candidate future direction (see the assessment target model investigation), not yet a decided structural change; only the word is settled here.
+_Avoid_: team, participant (a participant is a single person; a Group may contain several)
+
 ### Import
 
 **Import Plan**:
