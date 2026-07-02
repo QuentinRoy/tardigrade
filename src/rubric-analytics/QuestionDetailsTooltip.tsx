@@ -16,7 +16,9 @@ export default function QuestionDetailsTooltip({
 	return (
 		<Tooltip
 			label={<Text size="xs">{questionLabel}</Text>}
-			position="right-start"
+			position="top"
+			multiline
+			maw="min(40ch, 90vw)"
 			withArrow
 			openDelay={120}
 		>

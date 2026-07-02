@@ -61,7 +61,9 @@ export default function RubricDetailsTooltip({
 					{propertyRows(details)}
 				</Stack>
 			}
-			position="right-start"
+			position="top"
+			multiline
+			maw="min(40ch, 90vw)"
 			withArrow
 			openDelay={120}
 		>
