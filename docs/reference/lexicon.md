@@ -68,6 +68,12 @@ The summed value across a rubric's criteria (a rubric total) or across a whole g
 _Maps to_: Total (`CONTEXT.md`)
 _Avoid_: grade (when meaning the aggregate — grade names the individual record, not the sum), sum
 
+## Deliberately not user-facing
+
+Some `CONTEXT.md` concepts exist for code and persistence reasons only and should never surface as their own word in UI copy. Recorded here so a future contributor doesn't "fix" the missing entry.
+
+- **Grade Target** (`CONTEXT.md`): the row of a Grid, currently backed by a Student or a Group. UI copy names the Student or Group directly — a table column, a page heading, or an error message says "this student" or "this group," never "this target" or "this grade target."
+
 ## Growing this file
 
 Not every `CONTEXT.md` concept has a user-facing surface yet, and this file grows alongside it as terminology decisions are made and as existing UI copy is audited against them.
