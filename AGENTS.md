@@ -13,7 +13,7 @@
 ## Repository context
 
 - Read `CONTEXT.md` before changing domain terminology, public/API contracts, database boundaries, import/export formats, or code involving project identifiers.
-- Treat `CONTEXT.md` as the canonical glossary for repository-wide domain language. Prefer its terms exactly, especially `Project ID` for public identifiers and `Project Row ID` for internal database keys.
+- Treat `CONTEXT.md` as the canonical glossary for repository-wide domain language. Prefer its terms exactly, especially `Grid ID` for public identifiers and `Grid Row ID` for internal database keys.
 
 ## Agent operating protocol
 

@@ -4,24 +4,28 @@ This context defines the core domain language used in the grading product so con
 
 ## Language
 
-**Project ID**:
-Stable public project identifier used in URLs and external-facing import/export references.
-_Avoid_: public_id, internal project id, numeric project key
+**Grid**:
+The top-level gradeable container: a fixed set of **Rubric** columns and submission rows whose intersecting cells hold assessments. Named for its structure, not for a specific pedagogical shape — it may represent a whole exam, a report, or only one part of a larger real-world assessment. Previously called "Project"; that word implied a 1:1 mapping to one real-world gradable event, which breaks down when one event (e.g. a paper test) must be split across multiple containers because different parts need different submission groupings. One real-world event may therefore be represented by multiple Grids; the app does not aggregate across Grids today.
+_Avoid_: project, test, exam, assignment (none of these are guaranteed 1:1 with a single real-world event)
 
-**Project Row ID**:
-Internal surrogate database key for a project row, used for joins and foreign keys.
-_Avoid_: project id (when meaning internal), public project id
+**Grid ID**:
+Stable public grid identifier used in URLs and external-facing import/export references.
+_Avoid_: public_id, internal grid id, numeric grid key, project id
 
-**Project Slug**:
-Human-readable URL segment derived from a project's name; cosmetic and may be stale. Not an identifier — the **Project ID** resolves the project.
-_Avoid_: project identifier, lookup key, permalink
+**Grid Row ID**:
+Internal surrogate database key for a grid row, used for joins and foreign keys.
+_Avoid_: grid id (when meaning internal), public grid id, project row id
 
-**Canonical Project URL**:
-A project URL whose **Project Slug** segment matches the project's current slug. Identity always resolves from the **Project ID**, so a stale slug is corrected cosmetically in place rather than forcing a redirect.
+**Grid Slug**:
+Human-readable URL segment derived from a grid's name; cosmetic and may be stale. Not an identifier — the **Grid ID** resolves the grid.
+_Avoid_: grid identifier, lookup key, permalink
+
+**Canonical Grid URL**:
+A grid URL whose **Grid Slug** segment matches the grid's current slug. Identity always resolves from the **Grid ID**, so a stale slug is corrected cosmetically in place rather than forcing a redirect.
 _Avoid_: correct URL, real URL
 
 **DB Boundary**:
-Project Row ID stays inside database read/write functions and must not leave that layer.
+Grid Row ID stays inside database read/write functions and must not leave that layer.
 _Avoid_: leaking row_id into routes, UI models, import/export contracts
 
 **System-wide Row ID Boundary**:
@@ -44,24 +48,24 @@ _Avoid_: bare "schema", parser, DTO
 The `z.output` of a **Validation Schema** — the single source of truth for what a write command accepts. The command is co-located with the schema it consumes.
 _Avoid_: a hand-written input type that parallels a schema; `z.infer` of the input shape, which diverges under `.transform()`/`.default()`
 
-**Project Read Model**:
-Project read outputs expose only Project ID for identity.
-_Avoid_: exposing Project Row ID in read models
+**Grid Read Model**:
+Grid read outputs expose only Grid ID for identity.
+_Avoid_: exposing Grid Row ID in read models
 
-**Project Resolution Strategy**:
-Database operations are built from Project ID directly, with in-query resolution to internal relational keys as needed.
+**Grid Resolution Strategy**:
+Database operations are built from Grid ID directly, with in-query resolution to internal relational keys as needed.
 _Avoid_: dedicated pre-resolution helper requests that add extra round trips
 
-**Project ID Migration Default**:
-DB-facing APIs should migrate to Project ID inputs by default.
-_Avoid_: retaining Project Row ID API boundaries unless complexity or performance impact is clearly demonstrated and accepted
+**Grid ID Migration Default**:
+DB-facing APIs should migrate to Grid ID inputs by default.
+_Avoid_: retaining Grid Row ID API boundaries unless complexity or performance impact is clearly demonstrated and accepted
 
-**Project Row ID Exception Bar**:
-Keeping Project Row ID at a DB API boundary is allowed only when a measured regression exists, no reasonable query or index rewrite fixes it, and the exception remains DB-internal, documented, and tested.
+**Grid Row ID Exception Bar**:
+Keeping Grid Row ID at a DB API boundary is allowed only when a measured regression exists, no reasonable query or index rewrite fixes it, and the exception remains DB-internal, documented, and tested.
 _Avoid_: convenience-based exceptions without evidence
 
 **Test Helper Boundary**:
-Test helpers should expose Project ID by default; Project Row ID may remain internal only inside DB-facing cleanup or fixture plumbing that never leaves the helper.
+Test helpers should expose Grid ID by default; Grid Row ID may remain internal only inside DB-facing cleanup or fixture plumbing that never leaves the helper.
 _Avoid_: forcing fixture consumers to handle row IDs when the public identifier is sufficient
 
 **Cutover Strategy**:
@@ -139,20 +143,21 @@ The recorded evaluation of a **Criterion** for a submission — criteria are wha
 _Avoid_: treating "assessment" and "criterion assessment" as distinct domain concepts
 
 **Assessment Completion**:
-Assessments are what get completed; submissions, rubrics, and projects are grouping dimensions, never owners of completion. The assessment of a **Rubric** for a submission is complete when every **Criterion** of that rubric has a recorded assessment value. A rubric with no criteria has a complete assessment — nothing remains to assess. Completion is vacuously true without exception: aggregates over an empty grouping (no submissions, no rubrics) are complete, not zero. Whether to show completion for an empty project is a presentation concern, not a completion exception. One rule, applied identically across every grouping and on every surface (server projections and client summaries).
+Assessments are what get completed; submissions, rubrics, and grids are grouping dimensions, never owners of completion. The assessment of a **Rubric** for a submission is complete when every **Criterion** of that rubric has a recorded assessment value. A rubric with no criteria has a complete assessment — nothing remains to assess. Completion is vacuously true without exception: aggregates over an empty grouping (no submissions, no rubrics) are complete, not zero. Whether to show completion for an empty grid is a presentation concern, not a completion exception. One rule, applied identically across every grouping and on every surface (server projections and client summaries).
 _Avoid_: rubric completion, submission progress, "a submission has progress", per-view completion rules, treating zero-criterion rubrics as incomplete, empty-grouping special cases
 
 ## Flagged Ambiguities
 
-- project id: previously overloaded in discussion and code. Resolution: Project ID means public identifier by default. Project Row ID must be named explicitly and is DB-internal only.
+- grid id: previously overloaded in discussion and code (when this concept was named `Project`). Resolution: Grid ID means public identifier by default. Grid Row ID must be named explicitly and is DB-internal only.
+- project vs grid: `Project` implied a 1:1 mapping to one real-world gradable event (a test, a report). That broke down in practice: some real-world events must be split across multiple containers because different parts need different submission groupings, and the app has no way to aggregate across that split. Resolution: the top-level container is named **Grid**, describing its actual fixed row/column structure rather than claiming to be a single pedagogical event. The code identifiers (`project`, `projectId`, `ProjectRowId`, route segments such as `/projects/[projectId]`) predate this rename and are tracked for a follow-up code/route refactor, not renamed by this glossary update alone.
 - rubric vs assessment value: `rubric` was used for both the gradeable shape (`AssessedRubric`/`Rubric`) and the graded value (`AssessmentRubricValue`), and the value also appeared as `rubricValue`, `right`, and `value`. Resolution: the gradeable-shape word never doubles as the value word; an `AssessmentRubricValue` is always named `assessment`. The session save callback and the DB-facing param that carry the value are `saveAssessment`/`assessment`, never a shape-named equivalent. Terminology note: at the time of this resolution the gradeable shape in question was named `Rubric`; it is now **Criterion** (see Rubric authoring) — the code identifiers (`AssessedRubric`, `RubricAssessment`, `rubricId`) predate that rename and are tracked for a follow-up code refactor, not renamed by this glossary update alone.
 
 ## Example Dialogue
 
-Developer: Should this endpoint accept Project Row ID?
+Developer: Should this endpoint accept Grid Row ID?
 
-Domain expert: No. The API takes Project ID, because callers use the public project reference.
+Domain expert: No. The API takes Grid ID, because callers use the public grid reference.
 
-Developer: Then we resolve Project ID to Project Row ID before joining related tables?
+Developer: Then we resolve Grid ID to Grid Row ID before joining related tables?
 
-Domain expert: Exactly. Project Row ID stays internal to persistence and joins.
+Domain expert: Exactly. Grid Row ID stays internal to persistence and joins.
