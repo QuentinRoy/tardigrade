@@ -92,56 +92,60 @@ _Avoid_: warning (when the import must not proceed), silent skip
 A recognized import column that is intentionally not imported because it is derived export output (for example marks columns). Reported in the **Import Plan**; never a **Blocking Diagnostic**. Unknown columns are not Ignored Columns — they block.
 _Avoid_: unknown column, unrecognized column (those block)
 
-### Question authoring
+### Rubric authoring
 
-**Question**:
-The gradeable shape — a label plus its **Rubrics** (and optional solution) — consumed when assessing, exporting, or scoring a submission. What a question _is_ at grading time.
-_Avoid_: question definition (when meaning the gradeable shape)
-
-**Question Definition**:
-The authored/configured representation of a **Question** surfaced in the management UI: the Question plus definition-level metadata such as position, linked-assessment count, and delete impact. What an author _edits_.
-_Avoid_: managed question, ManagedQuestion
+**Rubric**:
+The gradeable shape — a label plus its **Criteria** (and optional solution) — consumed when assessing, exporting, or scoring a submission. What a rubric _is_ at grading time. Previously called "Question"; renamed because the container is not always question-shaped (e.g. a report section) and one rubric always grids exactly one gradable section, so the section and its grid are one concept.
+_Avoid_: question, rubric grid (the rubric _is_ the grid, not a separate thing that has one)
 
 **Rubric Definition**:
-The authored/configured representation of a **Rubric** within a **Question Definition** — its full marks configuration and metadata as edited by an author.
-_Avoid_: managed rubric, ManagedRubric
+The authored/configured representation of a **Rubric** surfaced in the management UI: the Rubric plus definition-level metadata such as position, linked-assessment count, and delete impact. What an author _edits_.
+_Avoid_: managed question, ManagedQuestion, question definition
 
-**Rubric Subtype Invariant**:
-Every persisted **Rubric** carries its type-specific configuration: boolean and numerical configuration rows always exist, and an ordinal rubric satisfies the **Ordinal Marks Minimum**. Readers fail loudly on a violation instead of substituting defaults; write boundaries make the invalid state unrepresentable.
-_Avoid_: silent zero-marks fallback, tolerant read-side defaults
+**Criterion**:
+One boolean, ordinal, or numerical graded item within a **Rubric**. Previously called "Rubric"; renamed because "Rubric" now names the whole grid, matching standard usage (Moodle/Gradescope/Canvas), not a single graded item.
+_Avoid_: rubric (when meaning a single graded item)
+
+**Criterion Definition**:
+The authored/configured representation of a **Criterion** within a **Rubric Definition** — its full marks configuration and metadata as edited by an author.
+_Avoid_: managed rubric, ManagedRubric, rubric definition (when meaning a single item's configuration)
+
+**Criterion Subtype Invariant**:
+Every persisted **Criterion** carries its type-specific configuration: boolean and numerical configuration rows always exist, and an ordinal criterion satisfies the **Ordinal Marks Minimum**. Readers fail loudly on a violation instead of substituting defaults; write boundaries make the invalid state unrepresentable.
+_Avoid_: silent zero-marks fallback, tolerant read-side defaults, rubric subtype invariant
 
 **Ordinal Marks Minimum**:
-An ordinal **Rubric Definition** must define at least two mark entries, enforced identically at every write boundary (editor and import). An ordinal rubric is a choice between labels; fewer than two is not an authorable state.
+An ordinal **Criterion Definition** must define at least two mark entries, enforced identically at every write boundary (editor and import). An ordinal criterion is a choice between labels; fewer than two is not an authorable state.
 _Avoid_: empty ordinal marks as a draft state, per-boundary minimums that disagree
 
-**Numerical Rubric Bounds**:
-A numerical **Rubric Definition** must satisfy `minScore < maxScore` (a collapsed or inverted score range is not authorable) and `minMarks <= maxMarks` (marks may be flat but not inverted). Both are enforced identically at every write boundary — editor, import, and a DB CHECK. The marking function is a pure computer: it trusts validated inputs and throws only on a zero-width score range, the one case that would otherwise yield `NaN` rather than a finite mark.
-_Avoid_: zero-width or inverted score ranges, inverted marks ranges, tolerant `NaN` marks, per-boundary rules that disagree, re-validating rubric shape inside the marking function
+**Numerical Criterion Bounds**:
+A numerical **Criterion Definition** must satisfy `minScore < maxScore` (a collapsed or inverted score range is not authorable) and `minMarks <= maxMarks` (marks may be flat but not inverted). Both are enforced identically at every write boundary — editor, import, and a DB CHECK. The marking function is a pure computer: it trusts validated inputs and throws only on a zero-width score range, the one case that would otherwise yield `NaN` rather than a finite mark.
+_Avoid_: zero-width or inverted score ranges, inverted marks ranges, tolerant `NaN` marks, per-boundary rules that disagree, re-validating criterion shape inside the marking function
 
-### Rubric overview
+### Criterion overview
 
 **Submission Matrix**:
-The per-submission rubric-by-rubric overview grid on the assessment overview page, showing each submission's marks per rubric. Distinct from **Rubric Analytics** (the per-rubric aggregate view). Submission, not student, because a submission may be by a team.
-_Avoid_: Student Matrix, student row, per-student grid
+The per-submission criterion-by-criterion overview grid on the assessment overview page, showing each submission's marks per criterion. Distinct from **Criterion Analytics** (the per-criterion aggregate view). Submission, not student, because a submission may be by a team.
+_Avoid_: Student Matrix, student row, per-student grid, rubric-by-rubric (superseded: a rubric is now a whole grid, not a single column)
 
-**Rubric Analytics**:
-The per-rubric aggregate overview grid on the assessment overview page, showing each rubric's average marks and completion across submissions. Distinct from the **Submission Matrix** (the per-submission view).
-_Avoid_: rubric matrix, rubric summary table
+**Criterion Analytics**:
+The per-criterion aggregate overview grid on the assessment overview page, showing each criterion's average marks and completion across submissions. Distinct from the **Submission Matrix** (the per-submission view). Previously "Rubric Analytics"; renamed because "Rubric" now names the whole grid, not a single graded item.
+_Avoid_: rubric analytics, rubric matrix, rubric summary table
 
 ### Assessment
 
 **Assessment**:
-The recorded evaluation of a **Rubric** for a submission — rubrics are what get assessed. A question or submission is _fully assessed_ when **Assessment Completion** holds for it. The question-level grouping record in persistence is a container, not a second kind of assessment.
-_Avoid_: treating "assessment" and "rubric assessment" as distinct domain concepts
+The recorded evaluation of a **Criterion** for a submission — criteria are what get assessed. A rubric or submission is _fully assessed_ when **Assessment Completion** holds for it. The rubric-level grouping record in persistence is a container, not a second kind of assessment.
+_Avoid_: treating "assessment" and "criterion assessment" as distinct domain concepts
 
 **Assessment Completion**:
-Assessments are what get completed; submissions, questions, and projects are grouping dimensions, never owners of completion. The assessment of a **Question** for a submission is complete when every **Rubric** of that question has a recorded assessment value. A question with no rubrics has a complete assessment — nothing remains to assess. Completion is vacuously true without exception: aggregates over an empty grouping (no submissions, no questions) are complete, not zero. Whether to show completion for an empty project is a presentation concern, not a completion exception. One rule, applied identically across every grouping and on every surface (server projections and client summaries).
-_Avoid_: question completion, submission progress, "a submission has progress", per-view completion rules, treating zero-rubric questions as incomplete, empty-grouping special cases
+Assessments are what get completed; submissions, rubrics, and projects are grouping dimensions, never owners of completion. The assessment of a **Rubric** for a submission is complete when every **Criterion** of that rubric has a recorded assessment value. A rubric with no criteria has a complete assessment — nothing remains to assess. Completion is vacuously true without exception: aggregates over an empty grouping (no submissions, no rubrics) are complete, not zero. Whether to show completion for an empty project is a presentation concern, not a completion exception. One rule, applied identically across every grouping and on every surface (server projections and client summaries).
+_Avoid_: rubric completion, submission progress, "a submission has progress", per-view completion rules, treating zero-criterion rubrics as incomplete, empty-grouping special cases
 
 ## Flagged Ambiguities
 
 - project id: previously overloaded in discussion and code. Resolution: Project ID means public identifier by default. Project Row ID must be named explicitly and is DB-internal only.
-- rubric vs assessment value: `rubric` was used for both the gradeable shape (`AssessedRubric`/`Rubric`) and the graded value (`AssessmentRubricValue`), and the value also appeared as `rubricValue`, `right`, and `value`. Resolution: `rubric` names only the gradeable shape; an `AssessmentRubricValue` is always named `assessment`. The session save callback and the DB-facing param that carry the value are `saveAssessment`/`assessment`, never `saveRubric`/`rubric`.
+- rubric vs assessment value: `rubric` was used for both the gradeable shape (`AssessedRubric`/`Rubric`) and the graded value (`AssessmentRubricValue`), and the value also appeared as `rubricValue`, `right`, and `value`. Resolution: the gradeable-shape word never doubles as the value word; an `AssessmentRubricValue` is always named `assessment`. The session save callback and the DB-facing param that carry the value are `saveAssessment`/`assessment`, never a shape-named equivalent. Terminology note: at the time of this resolution the gradeable shape in question was named `Rubric`; it is now **Criterion** (see Rubric authoring) — the code identifiers (`AssessedRubric`, `RubricAssessment`, `rubricId`) predate that rename and are tracked for a follow-up code refactor, not renamed by this glossary update alone.
 
 ## Example Dialogue
 
