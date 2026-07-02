@@ -99,12 +99,12 @@ _Avoid_: unknown column, unrecognized column (those block)
 ### Rubric authoring
 
 **Rubric**:
-The gradeable shape — a label plus its **Criteria** (and optional solution) — consumed when assessing, exporting, or scoring a submission. What a rubric _is_ at grading time. Previously called "Question"; renamed because the container is not always question-shaped (e.g. a report section) and one rubric always grids exactly one gradable section, so the section and its grid are one concept.
+The gradeable shape — a label plus its **Criteria** (and optional solution) — consumed when grading, exporting, or scoring a submission. What a rubric _is_ at grading time. Previously called "Question"; renamed because the container is not always question-shaped (e.g. a report section) and one rubric always grids exactly one gradable section, so the section and its grid are one concept.
 _Avoid_: question, rubric grid (the rubric _is_ the grid, not a separate thing that has one)
 
 **Rubric Definition**:
-The authored/configured representation of a **Rubric** surfaced in the management UI: the Rubric plus definition-level metadata such as position, linked-assessment count, and delete impact. What an author _edits_.
-_Avoid_: managed question, ManagedQuestion, question definition
+The authored/configured representation of a **Rubric** surfaced in the management UI: the Rubric plus definition-level metadata such as position, linked-grade count, and delete impact. What an author _edits_.
+_Avoid_: managed question, ManagedQuestion, question definition, linked-assessment count
 
 **Criterion**:
 One boolean, ordinal, or numerical graded item within a **Rubric**. Previously called "Rubric"; renamed because "Rubric" now names the whole grid, matching standard usage (Moodle/Gradescope/Canvas), not a single graded item.
@@ -136,21 +136,22 @@ _Avoid_: Student Matrix, student row, per-student grid, rubric-by-rubric (supers
 The per-criterion aggregate overview grid on the assessment overview page, showing each criterion's average marks and completion across submissions. Distinct from the **Submission Matrix** (the per-submission view). Previously "Rubric Analytics"; renamed because "Rubric" now names the whole grid, not a single graded item.
 _Avoid_: rubric analytics, rubric matrix, rubric summary table
 
-### Assessment
+### Grade
 
-**Assessment**:
-The recorded evaluation of a **Criterion** for a submission — criteria are what get assessed. A rubric or submission is _fully assessed_ when **Assessment Completion** holds for it. The rubric-level grouping record in persistence is a container, not a second kind of assessment.
-_Avoid_: treating "assessment" and "criterion assessment" as distinct domain concepts
+**Grade**:
+The recorded evaluation of a **Criterion** for a submission — criteria are what get graded. A rubric or submission is _fully graded_ when **Grade Completion** holds for it. The rubric-level grouping record in persistence is a container, not a second kind of grade. Previously two separate word families, "assess/assessment" and "grade"; consolidated to one (grade / to grade / grading) because keeping both alive was semantically too close and invited drift. The aggregate result across criteria or rubrics is **Total**, never "grade" — grade always names the atomic per-criterion record or the act of producing it.
+_Avoid_: assessment, assess, treating "grade" and "criterion grade" as distinct domain concepts, using "grade" for the aggregate (see **Total**)
 
-**Assessment Completion**:
-Assessments are what get completed; submissions, rubrics, and grids are grouping dimensions, never owners of completion. The assessment of a **Rubric** for a submission is complete when every **Criterion** of that rubric has a recorded assessment value. A rubric with no criteria has a complete assessment — nothing remains to assess. Completion is vacuously true without exception: aggregates over an empty grouping (no submissions, no rubrics) are complete, not zero. Whether to show completion for an empty grid is a presentation concern, not a completion exception. One rule, applied identically across every grouping and on every surface (server projections and client summaries).
-_Avoid_: rubric completion, submission progress, "a submission has progress", per-view completion rules, treating zero-criterion rubrics as incomplete, empty-grouping special cases
+**Grade Completion**:
+Grades are what get completed; submissions, rubrics, and grids are grouping dimensions, never owners of completion. The grading of a **Rubric** for a submission is complete when every **Criterion** of that rubric has a recorded grade. A rubric with no criteria is fully graded — nothing remains to grade. Completion is vacuously true without exception: aggregates over an empty grouping (no submissions, no rubrics) are complete, not zero. Whether to show completion for an empty grid is a presentation concern, not a completion exception. One rule, applied identically across every grouping and on every surface (server projections and client summaries).
+_Avoid_: assessment completion, rubric completion, submission progress, "a submission has progress", per-view completion rules, treating zero-criterion rubrics as incomplete, empty-grouping special cases
 
 ## Flagged Ambiguities
 
 - grid id: previously overloaded in discussion and code (when this concept was named `Project`). Resolution: Grid ID means public identifier by default. Grid Row ID must be named explicitly and is DB-internal only.
 - project vs grid: `Project` implied a 1:1 mapping to one real-world gradable event (a test, a report). That broke down in practice: some real-world events must be split across multiple containers because different parts need different submission groupings, and the app has no way to aggregate across that split. Resolution: the top-level container is named **Grid**, describing its actual fixed row/column structure rather than claiming to be a single pedagogical event. The code identifiers (`project`, `projectId`, `ProjectRowId`, route segments such as `/projects/[projectId]`) predate this rename and are tracked for a follow-up code/route refactor, not renamed by this glossary update alone.
-- rubric vs assessment value: `rubric` was used for both the gradeable shape (`AssessedRubric`/`Rubric`) and the graded value (`AssessmentRubricValue`), and the value also appeared as `rubricValue`, `right`, and `value`. Resolution: the gradeable-shape word never doubles as the value word; an `AssessmentRubricValue` is always named `assessment`. The session save callback and the DB-facing param that carry the value are `saveAssessment`/`assessment`, never a shape-named equivalent. Terminology note: at the time of this resolution the gradeable shape in question was named `Rubric`; it is now **Criterion** (see Rubric authoring) — the code identifiers (`AssessedRubric`, `RubricAssessment`, `rubricId`) predate that rename and are tracked for a follow-up code refactor, not renamed by this glossary update alone.
+- rubric vs assessment/grade value: `rubric` was used for both the gradeable shape (`AssessedRubric`/`Rubric`) and the graded value (`AssessmentRubricValue`), and the value also appeared as `rubricValue`, `right`, and `value`. Resolution: the gradeable-shape word never doubles as the value word; the recorded value is always named `grade` (formerly `assessment`) going forward. Terminology note: the gradeable shape in question was named `Rubric` at the time, then **Criterion** (see Rubric authoring); the code identifiers (`AssessedRubric`, `RubricAssessment`, `rubricId`, `saveAssessment`) predate both this rename and the assessment-to-grade rename below, and are tracked for a follow-up code refactor, not renamed by this glossary update alone.
+- grade granularity: `grade` now names the atomic per-criterion record, the act of producing it ("to grade"), and — colloquially, outside this glossary — what most people mean by "my grade" (the overall result). Resolution: only the aggregate has a distinct word, **Total**; every other use of `grade` refers to the atomic record, disambiguated by a qualifying phrase ("criterion grade", "final total") rather than a different root word. This mirrors how **Assessment** was already used across multiple grains before this rename, so it is a continuation of existing practice, not a new risk.
 
 ## Example Dialogue
 
