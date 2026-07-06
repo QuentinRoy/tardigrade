@@ -2,7 +2,7 @@
 
 A dictionary of the words this product shows users: UI labels, headings, button text, empty states, error messages, export column headers, and URL path segments. One concept gets exactly one preferred term — never introduce a second word for a concept that already has an entry, and never reuse an entry's word for a different concept. Prefer plain, jargon-free language; plain and consistent language is also the foundation for future translation.
 
-This is not [CONTEXT.md](../../CONTEXT.md), the internal domain glossary — the two are related but may deliberately diverge when a friendlier word serves users better; when they do, the internal glossary's entry records the mapping (its audience is the one that needs it). Some internal terms must **never** appear in UI copy: say "this student" or "this group", never "target" or "grade target"; say "Grades", never "matrix". Before writing copy that names a concept, check for its entry here; if the concept has no entry yet, add one (alphabetically) in the same change rather than inventing copy ad hoc. Shipped copy may lag a recent decision here — that's a follow-up task, not a reason to keep this file describing stale vocabulary. Larger word-built contracts (the URL tree, import/export column sets) are specified in `plans/2026-07-06-terminology-sweep.md` until implemented, then documented in the README and reference docs.
+This is not [CONTEXT.md](../../CONTEXT.md), the internal domain glossary — the two are related but may deliberately diverge when a friendlier word serves users better; when they do, the internal glossary's entry records the mapping (its audience is the one that needs it). Some internal terms must **never** appear in UI copy: say "this student" or "this group", never "target" or "grade target"; say "Grades", never "matrix". Before writing copy that names a concept, check for its entry here; if the concept has no entry yet, add one (alphabetically) in the same change rather than inventing copy ad hoc. Shipped copy may lag a recent decision here — that's a follow-up task, not a reason to keep this file describing stale vocabulary. Larger word-built contracts (the URL tree, import/export column sets) are documented with the features that own them, not here — this file only owns the words they're built from.
 
 ---
 
@@ -57,3 +57,17 @@ _Avoid_: participant, user
 **Total**:
 The summed value across a rubric's criteria (a rubric total) or across a whole grid (a final total).
 _Avoid_: grade (when meaning the aggregate — grade names the individual record, not the sum), sum
+
+---
+
+## References
+
+The word-list shape and rules this file follows:
+
+- [GOV.UK style guide A to Z](https://www.gov.uk/guidance/style-guide/a-to-z) — the canonical public-sector word list; alphabetical entries with usage guidance.
+- [Writing for GOV.UK](https://www.gov.uk/guidance/content-design/writing-for-gov-uk) — "choose one way to describe each idea and use it consistently"; the one-concept-one-term rule.
+- [Mailchimp Content Style Guide: Word List](https://styleguide.mailchimp.com/word-list/) — a product word list with terse entries and explicit words-to-avoid.
+- [Microsoft Writing Style Guide](https://learn.microsoft.com/en-us/style-guide/welcome/) — its A–Z word list pairs each term with a directive and an alternative; also the source of "easy to read is easy to localize".
+- [Atlassian content design glossary template](https://www.atlassian.com/software/confluence/templates/content-design-glossary) — a team-glossary template for product terminology.
+- [ISO/IEC Directives, Part 2](https://www.iso.org/sites/directives/current/part2/index.xhtml) — formal terminology rules: one term per concept, one definition per entry, no circular definitions.
+- [Nielsen Norman Group: UX Writing study guide](https://www.nngroup.com/articles/ux-writing-study-guide/) — why consistency matters: users scan, and every synonym taxes re-parsing.
