@@ -5,7 +5,16 @@
 - **Origin:** #99 terminology convergence; `CONTEXT.md`, `docs/reference/lexicon.md`
 - **Tracked by:** #99 (and #136 for the submission → Grade Target portion)
 
-The vocabulary is settled in `CONTEXT.md` (internal domain glossary) and `docs/reference/lexicon.md` (user-facing). This plan applies those decisions to the implementation, which still uses the old terms throughout. No terminology decisions remain — this is mechanical application, staged so each step is independently reviewable and shippable.
+The vocabulary is settled in `CONTEXT.md` (internal domain glossary) and `docs/reference/lexicon.md` (user-facing). This plan applies those decisions to the implementation. No terminology decisions remain — this is mechanical application, staged so each step is independently reviewable and shippable.
+
+## State of the code (2026-07-06, after the MUI → Mantine merge #242)
+
+The Mantine migration independently and **partially** adopted some of the new vocabulary, leaving the tree in a mixed state the sweep must reconcile — not a clean single-direction rename from the old terms:
+
+- Already renamed toward the target: `src/rubrics/{Boolean,Numerical,Ordinal}GradeControl.tsx` (Grade), `src/rubrics/RubricCriterion.tsx` (was `RubricGradeRow`), `src/assessment-capture/RubricGradeList.tsx`.
+- Still old, sometimes beside the renamed files: `src/rubrics/AssessmentStatus.tsx` (sits next to the `*GradeControl` files), and all of `SubmissionMatrix`, `RubricAnalyticsTable`, `QuestionDetailsTooltip`, the `assessment-*` / `submission*` / `Question*` names, plus the entire schema.
+
+So a few "old term" starting points below have already moved, and the sweep additionally has to make the half-migrated component names internally consistent (e.g. `AssessmentStatus` → a Grade-named equivalent; confirm `RubricCriterion` reads correctly once the leaf is `Criterion`).
 
 ## Decided renames
 
