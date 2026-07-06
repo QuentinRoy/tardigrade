@@ -31,7 +31,7 @@ So a few "old term" starting points below have already moved, and the sweep addi
 | Rubric Analytics | Criterion Analytics / "Analytics" (nav) | component, UI |
 | Marks (aggregate) | Total | export columns (`grand_total_marks` → `final_total`), code |
 
-Value pipeline stays **Score → Mark → Total**; `grade` is the atomic record and the act, never a number. `Points` remains avoided.
+Value pipeline is **Grade → Mark → Total** for every criterion type; a grade's recorded content varies by subtype (a pass, a label, or — for numerical criteria only — a score). `grade` is the record and the act, never a number; `score` names a numerical grade's payload and the input axis of its configuration (`minScore..maxScore`), not a pipeline stage. `Points` remains avoided.
 
 ## Routes (final shape)
 
