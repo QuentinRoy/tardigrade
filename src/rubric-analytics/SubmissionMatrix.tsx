@@ -1,15 +1,9 @@
-import Box from "@mui/material/Box";
-import Paper from "@mui/material/Paper";
-import { alpha } from "@mui/material/styles";
-import Table from "@mui/material/Table";
-import TableBody from "@mui/material/TableBody";
-import TableCell from "@mui/material/TableCell";
-import TableContainer from "@mui/material/TableContainer";
-import TableHead from "@mui/material/TableHead";
-import TableRow from "@mui/material/TableRow";
-import Typography from "@mui/material/Typography";
+"use client";
+
+import { Badge, Table } from "@mantine/core";
 import type { ReactElement } from "react";
 import CompletionProgress from "./CompletionProgress.tsx";
+import marksBadgeClasses from "./MarksBadge.module.css";
 import RubricDetailsTooltip from "./RubricDetailsTooltip.tsx";
 import type {
 	RubricOverviewRow,
@@ -29,14 +23,11 @@ function formatMarks(value: number | null): string {
 	return value.toFixed(1).replace(/\.0$/, "");
 }
 
-function severityColor(percent: number | null): string {
-	if (percent == null || Number.isNaN(percent)) {
-		return "hsl(220 8% 60%)";
-	}
-
-	const clamped = Math.max(0, Math.min(percent, 100));
-	const hue = Math.max(0, Math.min(120, clamped * 1.2));
-	return `hsl(${hue} 70% 42%)`;
+function badgeColor(percent: number | null): string {
+	if (percent == null || Number.isNaN(percent)) return "gray";
+	if (percent >= 70) return "green";
+	if (percent >= 40) return "yellow";
+	return "red";
 }
 
 export default function SubmissionMatrix({
@@ -44,109 +35,86 @@ export default function SubmissionMatrix({
 	submissionRows,
 }: SubmissionMatrixProps): ReactElement {
 	return (
-		<TableContainer component={Paper} variant="outlined">
-			<Table size="small" aria-label="Submission matrix">
-				<TableHead>
-					<TableRow>
-						<TableCell>Submission</TableCell>
+		<Table.ScrollContainer minWidth={500}>
+			<Table withTableBorder fz="sm" aria-label="Submission matrix">
+				<Table.Thead>
+					<Table.Tr>
+						<Table.Th>Submission</Table.Th>
 						{rubrics.map((rubric) => (
-							<TableCell key={rubric.rubricId} align="center">
+							<Table.Th key={rubric.rubricId} ta="center">
 								<RubricDetailsTooltip
 									rubricId={rubric.rubricId}
 									details={rubric.details}
 								/>
-							</TableCell>
+							</Table.Th>
 						))}
-						<TableCell align="center">Average</TableCell>
-						<TableCell align="right">Completion</TableCell>
-					</TableRow>
-				</TableHead>
-				<TableBody>
-					{submissionRows.map((submissionRow) => (
-						<TableRow key={submissionRow.submissionId}>
-							<TableCell>{submissionRow.submissionLabel}</TableCell>
-							{submissionRow.rubrics.map((rubricCell) => {
-								const color = rubricCell.assessed
-									? severityColor(
-											rubricCell.maxMarks > 0
-												? ((rubricCell.marks ?? 0) / rubricCell.maxMarks) * 100
-												: 0,
-										)
-									: "hsl(220 8% 60%)";
+						<Table.Th ta="center">Average</Table.Th>
+						<Table.Th ta="right">Completion</Table.Th>
+					</Table.Tr>
+				</Table.Thead>
+				<Table.Tbody>
+					{submissionRows.map((submissionRow) => {
+						const avgPercent =
+							submissionRow.maxMarks > 0
+								? (submissionRow.marks / submissionRow.maxMarks) * 100
+								: null;
 
-								return (
-									<TableCell key={rubricCell.rubricId} align="center">
-										<Box
-											sx={{
-												display: "inline-flex",
-												borderRadius: 1,
-												px: 0.75,
-												py: 0.25,
-												bgcolor: alpha(
-													color,
-													rubricCell.assessed ? 0.12 : 0.08,
-												),
-												color,
-												minWidth: 64,
-												justifyContent: "center",
-											}}
-										>
-											<Typography
-												variant="caption"
-												sx={{ whiteSpace: "nowrap" }}
+						return (
+							<Table.Tr key={submissionRow.submissionId}>
+								<Table.Td>{submissionRow.submissionLabel}</Table.Td>
+								{submissionRow.rubrics.map((rubricCell) => {
+									// Leave unassessed criteria blank rather than showing a
+									// placeholder badge — an empty cell reads as "no mark yet".
+									if (!rubricCell.assessed) {
+										return <Table.Td key={rubricCell.rubricId} />;
+									}
+
+									const cellPercent =
+										rubricCell.maxMarks > 0
+											? ((rubricCell.marks ?? 0) / rubricCell.maxMarks) * 100
+											: null;
+
+									return (
+										<Table.Td key={rubricCell.rubricId} ta="center">
+											<Badge
+												variant="light"
+												color={badgeColor(cellPercent)}
+												classNames={marksBadgeClasses}
 											>
-												{rubricCell.assessed
-													? `${formatMarks(rubricCell.marks)} / ${formatMarks(rubricCell.maxMarks)}`
-													: "-"}
-											</Typography>
-										</Box>
-									</TableCell>
-								);
-							})}
-							<TableCell align="center" sx={{ whiteSpace: "nowrap" }}>
-								<Box
-									sx={{
-										display: "inline-flex",
-										alignItems: "center",
-										borderRadius: 1,
-										px: 1,
-										py: 0.5,
-										bgcolor: alpha(
-											severityColor(submissionRow.averagePercent),
-											0.1,
-										),
-									}}
-								>
-									<Typography
-										variant="body2"
-										sx={{
-											color: severityColor(submissionRow.averagePercent),
-											whiteSpace: "nowrap",
-										}}
+												{`${formatMarks(rubricCell.marks)} / ${formatMarks(rubricCell.maxMarks)}`}
+											</Badge>
+										</Table.Td>
+									);
+								})}
+								<Table.Td ta="center">
+									<Badge
+										variant="light"
+										color={badgeColor(avgPercent)}
+										classNames={marksBadgeClasses}
 									>
 										{formatMarks(submissionRow.marks)} /{" "}
 										{formatMarks(submissionRow.maxMarks)}
-									</Typography>
-								</Box>
-							</TableCell>
-							<TableCell align="right" sx={{ minWidth: 180 }}>
-								<CompletionProgress
-									assessedCount={submissionRow.completedRubrics}
-									totalCount={submissionRow.totalRubrics}
-									completionPercent={
-										submissionRow.totalRubrics > 0
-											? (submissionRow.completedRubrics /
-													submissionRow.totalRubrics) *
-												100
-											: 0
-									}
-									alignItems="flex-end"
-								/>
-							</TableCell>
-						</TableRow>
-					))}
-				</TableBody>
+									</Badge>
+								</Table.Td>
+								<Table.Td ta="right">
+									<CompletionProgress
+										assessedCount={submissionRow.completedRubrics}
+										totalCount={submissionRow.totalRubrics}
+										completionPercent={
+											submissionRow.totalRubrics > 0
+												? (submissionRow.completedRubrics /
+														submissionRow.totalRubrics) *
+													100
+												: 0
+										}
+										alignItems="flex-end"
+									/>
+								</Table.Td>
+							</Table.Tr>
+						);
+					})}
+				</Table.Tbody>
 			</Table>
-		</TableContainer>
+		</Table.ScrollContainer>
 	);
 }

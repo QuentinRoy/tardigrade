@@ -1,7 +1,8 @@
 "use client";
 
-import TextField from "@mui/material/TextField";
-import { type ReactElement, useEffect, useState } from "react";
+import { NumberInput } from "@mantine/core";
+import { type ReactElement, useRef } from "react";
+import { clamp } from "#utils/utils.ts";
 
 type NumericalGradeControlProps = {
 	value?: number | undefined;
@@ -18,43 +19,45 @@ export default function NumericalGradeControl({
 	disabled,
 	onAssess,
 }: NumericalGradeControlProps): ReactElement {
-	const [draft, setDraft] = useState(value != null ? String(value) : "");
+	const ref = useRef<HTMLInputElement>(null);
+	const lastValueRef = useRef(value);
 
-	useEffect(() => {
-		setDraft(value != null ? String(value) : "");
-	}, [value]);
-
-	function submit() {
-		const trimmed = draft.trim();
-		if (trimmed.length === 0) {
+	function submit(text: string) {
+		const trimmed = text.trim();
+		const parsedValue = trimmed.length === 0 ? Number.NaN : Number(trimmed);
+		if (!Number.isFinite(parsedValue)) {
+			if (ref.current != null) {
+				ref.current.value = lastValueRef.current?.toString() ?? "";
+			}
 			return;
 		}
-		let parsed = Number(trimmed);
-		if (!Number.isFinite(parsed) || parsed === value) {
+		if (parsedValue === lastValueRef.current) {
 			return;
 		}
-		if (parsed < minScore) parsed = minScore;
-		else if (parsed > maxScore) parsed = maxScore;
-		onAssess(parsed);
+		const clampedValue = clamp({
+			value: parsedValue,
+			min: minScore,
+			max: maxScore,
+		});
+		if (clampedValue !== parsedValue && ref.current != null) {
+			ref.current.value = clampedValue.toString();
+		}
+		lastValueRef.current = clampedValue;
+		onAssess(clampedValue);
 	}
 
 	return (
-		<TextField
-			size="small"
-			type="number"
-			value={draft}
-			onChange={(event) => setDraft(event.target.value)}
-			onBlur={submit}
-			onKeyDown={(event) => {
-				if (event.key === "Enter") {
-					event.preventDefault();
-					submit();
-				}
-			}}
+		<NumberInput
+			ref={ref}
+			defaultValue={value ?? ""}
+			onBlur={(event) => submit(event.currentTarget.value)}
 			placeholder="Score"
+			clampBehavior="none"
 			disabled={disabled}
-			slotProps={{ htmlInput: { min: minScore, max: maxScore, step: "any" } }}
-			sx={{ width: 96 }}
+			min={minScore}
+			max={maxScore}
+			allowDecimal
+			w="90"
 		/>
 	);
 }

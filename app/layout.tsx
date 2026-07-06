@@ -1,10 +1,16 @@
 import type { ReactNode } from "react";
 
 import "../styles/globals.css";
-import Box from "@mui/material/Box";
-import { AppRouterCacheProvider } from "@mui/material-nextjs/v16-appRouter";
+import "@mantine/core/styles.css";
+import {
+	Box,
+	ColorSchemeScript,
+	MantineProvider,
+	mantineHtmlProps,
+} from "@mantine/core";
 import { SaveErrorsDisplay } from "#app-shell/SaveErrorsDisplay.tsx";
 import { SaveErrorsProvider } from "#design-system/SaveErrorsProvider.tsx";
+import { theme } from "#design-system/theme.ts";
 
 export const metadata = {
 	title: "Assessment",
@@ -15,24 +21,23 @@ type RootLayoutProps = { children: ReactNode };
 
 export default function RootLayout({ children }: RootLayoutProps) {
 	return (
-		<html lang="en">
+		<html lang="en" {...mantineHtmlProps}>
+			<head>
+				<ColorSchemeScript defaultColorScheme="light" />
+			</head>
 			<body>
-				<AppRouterCacheProvider>
+				<MantineProvider theme={theme} defaultColorScheme="light">
 					<SaveErrorsProvider>
 						{children}
 						<Box
-							sx={{
-								position: "fixed",
-								bottom: 16,
-								left: 16,
-								zIndex: 2000,
-								maxWidth: 480,
-							}}
+							pos="fixed"
+							style={{ bottom: 16, left: 16, zIndex: 2000 }}
+							maw={480}
 						>
 							<SaveErrorsDisplay />
 						</Box>
 					</SaveErrorsProvider>
-				</AppRouterCacheProvider>
+				</MantineProvider>
 			</body>
 		</html>
 	);

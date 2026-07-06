@@ -1,10 +1,7 @@
 "use client";
 
-import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
-import Box from "@mui/material/Box";
-import Stack from "@mui/material/Stack";
-import Tooltip from "@mui/material/Tooltip";
-import Typography from "@mui/material/Typography";
+import { Box, Group, Stack, Text, Tooltip } from "@mantine/core";
+import { IconInfoCircle } from "@tabler/icons-react";
 import type { ReactElement, ReactNode } from "react";
 import type { RubricOverviewPopupDetails } from "./rubricOverviewBuilder.ts";
 
@@ -16,33 +13,33 @@ type RubricDetailsTooltipProps = {
 function propertyRows(details: RubricOverviewPopupDetails): ReactNode[] {
 	if (details.properties.type === "boolean") {
 		return [
-			<Typography key="true" variant="caption" sx={{ display: "block" }}>
+			<Text key="true" size="xs">
 				True marks: {details.properties.trueMarks}
-			</Typography>,
-			<Typography key="false" variant="caption" sx={{ display: "block" }}>
+			</Text>,
+			<Text key="false" size="xs">
 				False marks: {details.properties.falseMarks}
-			</Typography>,
+			</Text>,
 		];
 	}
 
 	if (details.properties.type === "ordinal") {
 		return details.properties.marksByLabel.map((entry) => (
-			<Typography key={entry.label} variant="caption" sx={{ display: "block" }}>
+			<Text key={entry.label} size="xs">
 				{entry.label}: {entry.marks}
-			</Typography>
+			</Text>
 		));
 	}
 
 	return [
-		<Typography key="score-range" variant="caption" sx={{ display: "block" }}>
+		<Text key="score-range" size="xs">
 			Score range: {details.properties.minScore} - {details.properties.maxScore}
-		</Typography>,
-		<Typography key="marks-range" variant="caption" sx={{ display: "block" }}>
+		</Text>,
+		<Text key="marks-range" size="xs">
 			Marks range: {details.properties.minMarks} - {details.properties.maxMarks}
-		</Typography>,
-		<Typography key="reversed" variant="caption" sx={{ display: "block" }}>
+		</Text>,
+		<Text key="reversed" size="xs">
 			Reversed: {details.properties.reversed ? "yes" : "no"}
-		</Typography>,
+		</Text>,
 	];
 }
 
@@ -52,48 +49,37 @@ export default function RubricDetailsTooltip({
 }: RubricDetailsTooltipProps): ReactElement {
 	return (
 		<Tooltip
-			placement="right-start"
-			title={
-				<Stack sx={{ gap: 0.5 }}>
-					<Typography variant="subtitle2">
+			label={
+				<Stack gap="xs">
+					<Text size="xs" fw={600}>
 						{details.label ?? rubricId}
-					</Typography>
+					</Text>
 					{details.description != null && details.description.length > 0 && (
-						<Typography
-							variant="caption"
-							color="inherit"
-							sx={{ display: "block" }}
-						>
-							{details.description}
-						</Typography>
+						<Text size="xs">{details.description}</Text>
 					)}
-					<Typography variant="caption" color="inherit">
-						Type: {details.type}
-					</Typography>
-					<Box>{propertyRows(details)}</Box>
+					<Text size="xs">Type: {details.type}</Text>
+					{propertyRows(details)}
 				</Stack>
 			}
-			arrow
-			enterDelay={120}
+			position="top"
+			multiline
+			maw="min(40ch, 90vw)"
+			withArrow
+			openDelay={120}
 		>
-			<Box
+			<Group
 				component="span"
-				sx={{
-					display: "inline-flex",
-					alignItems: "center",
-					gap: 0.5,
-					cursor: "help",
-				}}
+				wrap="nowrap"
+				display="inline-flex"
+				style={{ cursor: "help" }}
 			>
-				<Typography
-					component="span"
-					variant="body2"
-					sx={{ textDecoration: "underline dotted" }}
-				>
+				<Text component="span" size="sm" td="underline dotted">
 					{rubricId}
-				</Typography>
-				<InfoOutlinedIcon sx={{ fontSize: 14, color: "text.secondary" }} />
-			</Box>
+				</Text>
+				<Box component="span" c="dimmed" display="inline-flex">
+					<IconInfoCircle size={14} />
+				</Box>
+			</Group>
 		</Tooltip>
 	);
 }

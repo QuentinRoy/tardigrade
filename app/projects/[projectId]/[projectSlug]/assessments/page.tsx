@@ -1,17 +1,9 @@
-import {
-	Box,
-	Button,
-	Container,
-	LinearProgress,
-	List,
-	ListItemButton,
-	ListItemText,
-	Skeleton,
-	Stack,
-	Typography,
-} from "@mui/material";
+import { Progress, Skeleton, Stack, Text, Title } from "@mantine/core";
 import { Suspense } from "react";
 import { loadAssessmentCompletionBySubmission } from "#assessment-completion/loadAssessmentCompletion.ts";
+import AppButtonLink from "#design-system/AppButtonLink.tsx";
+import AppNavLink from "#design-system/AppNavLink.tsx";
+import AppPage from "#design-system/AppPage.tsx";
 import {
 	projectAssessmentSubmissionPath,
 	projectAssessmentSubmissionQuestionPath,
@@ -68,69 +60,66 @@ async function ProjectAssessmentPageContent({
 		: [];
 
 	return (
-		<Container component="main" maxWidth="md" sx={{ py: 5 }}>
-			<Typography component="h1" variant="h3" sx={{ mb: 3 }}>
-				Assessments
-			</Typography>
-			<Box sx={{ mb: 3 }}>
-				<Button
+		<AppPage>
+			<Stack gap="lg">
+				<Title order={1}>Assessments</Title>
+				<AppButtonLink
 					href={projectOverviewPath({
 						projectId: project.id,
 						projectSlug: project.slug,
 					})}
-					variant="outlined"
+					variant="outline"
 				>
 					Open rubric overview
-				</Button>
-			</Box>
-			{!hasQuestions ? (
-				<Stack sx={{ gap: 2, alignItems: "flex-start" }}>
-					<Typography color="text.secondary">
-						No questions yet — add questions to start assessing.
-					</Typography>
-					<Button
-						href={projectQuestionsPath({
-							projectId: project.id,
-							projectSlug: project.slug,
-						})}
-						variant="contained"
-					>
-						Add questions
-					</Button>
-				</Stack>
-			) : (
-				<>
-					<Typography component="h2" variant="h5" sx={{ mb: 2 }}>
-						Assess by submission
-					</Typography>
-					<Suspense
-						fallback={
-							<SubmissionListSkeleton
-								projectId={project.id}
-								projectSlug={project.slug}
-								submissions={submissions}
-							/>
-						}
-					>
-						<SubmissionProgressList
-							projectId={project.id}
-							projectSlug={project.slug}
-							submissions={submissions}
-						/>
-					</Suspense>
-					<Typography component="h2" variant="h5">
-						Assess by question
-					</Typography>
-					{firstSubmissionId ? (
-						<QuestionList questions={questions} />
-					) : (
-						<Typography color="text.secondary">
-							Add a submission first to start assessments by question.
-						</Typography>
-					)}
-				</>
-			)}
-		</Container>
+				</AppButtonLink>
+				{!hasQuestions ? (
+					<Stack gap="sm" align="flex-start">
+						<Text c="dimmed">
+							No questions yet — add questions to start assessing.
+						</Text>
+						<AppButtonLink
+							href={projectQuestionsPath({
+								projectId: project.id,
+								projectSlug: project.slug,
+							})}
+						>
+							Add questions
+						</AppButtonLink>
+					</Stack>
+				) : (
+					<>
+						<Stack gap="sm">
+							<Title order={2}>Assess by submission</Title>
+							<Suspense
+								fallback={
+									<SubmissionListSkeleton
+										projectId={project.id}
+										projectSlug={project.slug}
+										submissions={submissions}
+									/>
+								}
+							>
+								<SubmissionProgressList
+									projectId={project.id}
+									projectSlug={project.slug}
+									submissions={submissions}
+								/>
+							</Suspense>
+						</Stack>
+						<Stack gap="sm">
+							<Title order={2}>Assess by question</Title>
+							{firstSubmissionId ? (
+								<QuestionList questions={questions} />
+							) : (
+								<Text c="dimmed">
+									Add a submission first to start assessments by question.
+								</Text>
+							)}
+						</Stack>
+					</>
+				)}
+			</Stack>
+		</AppPage>
 	);
 }
 
@@ -148,59 +137,39 @@ async function SubmissionProgressList({
 	});
 
 	return (
-		<List component="nav" aria-label="Submission list" sx={{ mb: 3 }}>
+		<Stack component="nav" aria-label="Submission list" gap="xs">
 			{submissions.map((submission) => {
 				const progress = progressBySubmissionId[submission.id];
 				const completed = progress?.completed ?? 0;
 				const total = progress?.total ?? 0;
 				const percent = total > 0 ? (completed / total) * 100 : 0;
+				const isComplete = completed === total && total > 0;
 				return (
-					<ListItemButton
+					<AppNavLink
 						key={submission.id}
 						href={projectAssessmentSubmissionPath({
 							projectId,
 							projectSlug,
 							submissionId: submission.id,
 						})}
-						sx={{ mb: 1, display: "flex", alignItems: "center" }}
-					>
-						<ListItemText primary={getSubmissionLabel(submission)} />
-						<Box
-							sx={{
-								ml: 2,
-								minWidth: 60,
-								display: "flex",
-								flexDirection: "column",
-								alignItems: "flex-end",
-								gap: 0.5,
-							}}
-						>
-							<Typography
-								variant="caption"
-								color={
-									completed === total && total > 0
-										? "success.main"
-										: "text.secondary"
-								}
-								sx={{ fontWeight: 500 }}
-							>
-								{completed} / {total}
-							</Typography>
-							<Box sx={{ width: 44 }}>
-								<LinearProgress
-									variant="determinate"
+						label={getSubmissionLabel(submission)}
+						rightSection={
+							<Stack gap={4} align="flex-end" miw={60}>
+								<Text size="xs" fw={500} c={isComplete ? "green" : "dimmed"}>
+									{completed} / {total}
+								</Text>
+								<Progress
 									value={percent}
-									sx={{ height: 4, borderRadius: 2 }}
-									color={
-										completed === total && total > 0 ? "success" : "secondary"
-									}
+									size="xs"
+									w={44}
+									color={isComplete ? "green" : "gray"}
 								/>
-							</Box>
-						</Box>
-					</ListItemButton>
+							</Stack>
+						}
+					/>
 				);
 			})}
-		</List>
+		</Stack>
 	);
 }
 
@@ -218,33 +187,24 @@ function SubmissionListSkeleton({
 	submissions: Submission[];
 }) {
 	return (
-		<List component="nav" aria-label="Submission list" sx={{ mb: 3 }}>
+		<Stack component="nav" aria-label="Submission list" gap="xs">
 			{submissions.map((submission) => (
-				<ListItemButton
+				<AppNavLink
 					key={submission.id}
 					href={projectAssessmentSubmissionPath({
 						projectId,
 						projectSlug,
 						submissionId: submission.id,
 					})}
-					sx={{ mb: 1, display: "flex", alignItems: "center" }}
-				>
-					<ListItemText primary={getSubmissionLabel(submission)} />
-					<Box
-						sx={{
-							ml: 2,
-							minWidth: 60,
-							display: "flex",
-							flexDirection: "column",
-							alignItems: "flex-end",
-							gap: 0.5,
-						}}
-					>
-						<Skeleton variant="text" width={36} height={20} />
-						<Skeleton variant="rounded" width={44} height={4} />
-					</Box>
-				</ListItemButton>
+					label={getSubmissionLabel(submission)}
+					rightSection={
+						<Stack gap={4} align="flex-end" miw={60}>
+							<Skeleton width={36} height={20} />
+							<Skeleton width={44} height={4} />
+						</Stack>
+					}
+				/>
 			))}
-		</List>
+		</Stack>
 	);
 }

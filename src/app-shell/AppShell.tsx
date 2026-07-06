@@ -1,10 +1,12 @@
 "use client";
 
-import Box from "@mui/material/Box";
-import Toolbar from "@mui/material/Toolbar";
-import { type ReactNode, Suspense, useState } from "react";
+import { AppShell as MantineAppShell } from "@mantine/core";
+import { useDisclosure } from "@mantine/hooks";
+import { type ReactNode, Suspense, useId } from "react";
+import { APP_SHELL_DRAWER_WIDTH } from "./AppShell.shared.ts";
+import AppShellDrawerContent from "./AppShellDrawerContent.tsx";
 import AppShellLoadingShell from "./AppShellLoadingShell.tsx";
-import AppShellNavigationShell from "./AppShellNavigationShell.tsx";
+import AppShellTopBar from "./AppShellTopBar.tsx";
 
 type AppShellProps =
 	| { showNavigation: true; projectName: string; children: ReactNode }
@@ -13,28 +15,53 @@ type AppShellProps =
 export default function AppShell(props: AppShellProps) {
 	const { children } = props;
 	const showNavigation = props.showNavigation ?? false;
-	const [drawerOpen, setDrawerOpen] = useState<boolean>(false);
+	const [navbarOpened, { toggle: toggleNavbar, close: closeNavbar }] =
+		useDisclosure(false);
+	const navbarId = useId();
 
 	return (
-		<Box sx={{ display: "flex", minHeight: "100vh" }}>
-			<Suspense
-				fallback={<AppShellLoadingShell showNavigation={showNavigation} />}
-			>
-				<AppShellNavigationShell
-					{...(props.showNavigation
-						? { showNavigation: true, projectName: props.projectName }
-						: { showNavigation: false })}
-					drawerOpen={drawerOpen}
-					onOpenDrawer={() => setDrawerOpen(true)}
-					onCloseDrawer={() => setDrawerOpen(false)}
-				/>
-			</Suspense>
+		<MantineAppShell
+			header={{ height: { base: 56, sm: 64 } }}
+			{...(showNavigation
+				? {
+						navbar: {
+							width: APP_SHELL_DRAWER_WIDTH,
+							breakpoint: "sm",
+							collapsed: { mobile: !navbarOpened },
+						},
+					}
+				: {})}
+		>
+			<MantineAppShell.Header>
+				<Suspense
+					fallback={<AppShellLoadingShell showNavigation={showNavigation} />}
+				>
+					{props.showNavigation ? (
+						<AppShellTopBar
+							showNavigation
+							projectName={props.projectName}
+							navbarOpened={navbarOpened}
+							onToggleNavbar={toggleNavbar}
+							navbarId={navbarId}
+						/>
+					) : (
+						<AppShellTopBar showNavigation={false} />
+					)}
+				</Suspense>
+			</MantineAppShell.Header>
 
-			<Box component="main" sx={{ flexGrow: 1, minWidth: 0 }}>
-				{/* This is used as spacer */}
-				<Toolbar />
-				{children}
-			</Box>
-		</Box>
+			{props.showNavigation && (
+				<MantineAppShell.Navbar id={navbarId} aria-label="Project navigation">
+					<Suspense fallback={null}>
+						<AppShellDrawerContent
+							projectName={props.projectName}
+							onDismiss={closeNavbar}
+						/>
+					</Suspense>
+				</MantineAppShell.Navbar>
+			)}
+
+			<MantineAppShell.Main>{children}</MantineAppShell.Main>
+		</MantineAppShell>
 	);
 }

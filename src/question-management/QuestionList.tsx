@@ -1,6 +1,6 @@
 "use client";
 
-import { List, ListItemButton, ListItemText } from "@mui/material";
+import { NavLink } from "@mantine/core";
 import Link from "next/link";
 
 type QuestionListItem = { id: string; label: string; href: string };
@@ -11,12 +11,15 @@ export default function QuestionList({
 	questions: QuestionListItem[];
 }) {
 	return (
-		<List component="nav" aria-label="Question list">
+		<nav aria-label="Question list">
 			{questions.map((question) => (
-				<ListItemButton key={question.id} component={Link} href={question.href}>
-					<ListItemText primary={question.label} />
-				</ListItemButton>
+				<NavLink
+					key={question.id}
+					component={Link}
+					href={question.href}
+					label={question.label}
+				/>
 			))}
-		</List>
+		</nav>
 	);
 }

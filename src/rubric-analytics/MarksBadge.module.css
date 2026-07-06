@@ -1,0 +1,16 @@
+/*
+ * Mantine's Badge truncates its content (`overflow: hidden` +
+ * `text-overflow: ellipsis` on both root and label) because it's built for
+ * short status tags. The analytics badges instead carry marks like
+ * "11.4 / 20" in narrow, auto-sized table columns, where that clipping turns
+ * them into "11.4 …". Badge has no prop to opt out, so undo the clipping on
+ * both slots via the Styles API.
+ */
+.root {
+	overflow: visible;
+}
+
+.label {
+	overflow: visible;
+	text-overflow: clip;
+}

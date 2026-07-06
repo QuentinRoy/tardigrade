@@ -1,6 +1,6 @@
 "use client";
 
-import { TextField } from "@mui/material";
+import { Textarea } from "@mantine/core";
 import type { ReactElement } from "react";
 import type { QuestionRubricFieldErrors } from "./errors.ts";
 import RubricEditorPaper from "./RubricEditorPaper.tsx";
@@ -52,18 +52,23 @@ export default function OrdinalRubricEditorPaper({
 			onRemove={onRemove}
 			fieldErrors={fieldErrors}
 		>
-			<TextField
+			<Textarea
 				label="Ordinal marks"
-				helperText={
-					fieldErrors?.marks ?? "One entry per line using label=marks"
+				description={
+					fieldErrors?.marks == null
+						? "One entry per line using label=marks"
+						: undefined
 				}
-				error={fieldErrors?.marks != null}
+				error={fieldErrors?.marks}
 				value={ordinalMarksToText(rubric.marks)}
 				onChange={(event) =>
-					onChange({ ...rubric, marks: parseOrdinalMarks(event.target.value) })
+					onChange({
+						...rubric,
+						marks: parseOrdinalMarks(event.currentTarget.value),
+					})
 				}
-				multiline
 				minRows={4}
+				autosize
 			/>
 		</RubricEditorPaper>
 	);

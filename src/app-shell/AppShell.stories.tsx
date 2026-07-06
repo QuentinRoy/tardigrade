@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import { expect, screen, userEvent } from "storybook/test";
 import AppShell from "./AppShell.tsx";
 
 const meta = {
@@ -15,6 +16,31 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-export const WithNavigation: Story = {};
+export const WithNavigation: Story = {
+	play: async () => {
+		// At the default (desktop) test viewport, the navbar is permanently
+		// visible and the burger (mobile-only) isn't rendered.
+		await expect(
+			screen.getByRole("navigation", { name: /project navigation/i }),
+		).toBeVisible();
+		expect(
+			screen.queryByRole("button", { name: /open navigation drawer/i }),
+		).toBeNull();
+	},
+};
 
 export const WithoutNavigation: Story = { args: { showNavigation: false } };
+
+export const ExportOptionsPersist: Story = {
+	play: async () => {
+		const rubricMarksCheckbox = screen.getByRole("checkbox", {
+			name: "Rubric marks",
+		});
+
+		await expect(rubricMarksCheckbox).not.toBeChecked();
+
+		await userEvent.click(rubricMarksCheckbox);
+
+		await expect(rubricMarksCheckbox).toBeChecked();
+	},
+};

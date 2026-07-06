@@ -62,9 +62,9 @@ export default defineConfig({
 				],
 				// Pre-bundle deps the browser would otherwise discover mid-run,
 				// which forces a Vite reload that fails whichever test was
-				// executing. `immer` comes from useAssessmentSession; the rest
-				// come from SubmissionQuickJumpDialog (rendered by
-				// SubmissionAssessmentClient.stories) and are not reached by any
+				// executing. `immer` comes from useAssessmentSession; `fuse.js`
+				// comes from SubmissionSelector (rendered by
+				// SubmissionAssessmentClient.stories) and is not reached by any
 				// other story. This is a known addon-vitest limitation, not
 				// specific to us — see
 				// https://github.com/storybookjs/storybook/issues/33067 and
@@ -72,15 +72,7 @@ export default defineConfig({
 				// once addon-vitest pre-bundles deps reachable from the story
 				// graph itself.
 				optimizeDeps: {
-					include: [
-						"immer",
-						"fuse.js",
-						"@mui/material/Chip",
-						"@mui/material/CircularProgress",
-						"@mui/material/Dialog",
-						"@mui/material/DialogContent",
-						"@mui/material/DialogTitle",
-					],
+					include: ["immer", "fuse.js", "@tabler/icons-react", "@mantine/form"],
 				},
 				test: {
 					name: "storybook",

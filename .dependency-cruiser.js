@@ -30,10 +30,7 @@ export default {
 			name: "design-system-no-up",
 			comment: "design-system imports infra only",
 			severity: "error",
-			from: {
-				path: "^src/design-system/(CodeSnippet|MuiNextLink|NumberField|shiki-setup|SaveErrors)",
-				pathNot: TEST_FILE,
-			},
+			from: { path: "^src/design-system/", pathNot: TEST_FILE },
 			to: {
 				path: `^src/(${SHARED_DOMAIN}|${NON_SHARED})/`,
 				pathNot: "^src/design-system/",
