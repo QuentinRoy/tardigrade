@@ -15,7 +15,7 @@ The overview table showing each criterion's average marks and completion across 
 _Avoid_: rubric analytics
 
 **Grade**:
-The recorded evaluation of one criterion — what was judged (passed, a chosen label, a score) — and the general word for the act of producing it ("grading"). A grade is a judgment, not a number: the number it's worth is its **mark**. Grades survive changes to a criterion's marks configuration; the marks recompute.
+The recorded evaluation of one criterion — what was judged (passed, a chosen label, or a number such as a score of 12) — and the general word for the act of producing it ("grading"). A grade is distinct from its worth: even when the grade is itself a number, the **mark** it earns is computed from it. Grades survive changes to a criterion's marks configuration; the marks recompute.
 _Avoid_: assessment, assess, evaluation, mark (when meaning the recorded judgment)
 
 **Grades** (table):
