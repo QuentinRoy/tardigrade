@@ -46,10 +46,6 @@ _Avoid_: student, group, submission (as a header), submitter
 The grading grid for one exercise or section: its criteria, and how each one is scored.
 _Avoid_: question, exercise (a rubric's own label may read "Exercise 3" when quoting source material, but the product's own chrome says "rubric")
 
-**Score**:
-The measured value entered for a numerical criterion (for example "12 subnets identified") — the content of that criterion's **grade**, converted to a **mark** by the criterion's configuration. Only numerical criteria have scores; boolean and ordinal grades record a pass or a label instead. Never an aggregate: "her score on the test" is a **total**.
-_Avoid_: mark, points (score is the measured input only), score (when meaning the aggregate)
-
 **Student**:
 A person being graded, individually or as part of a group.
 _Avoid_: participant, user

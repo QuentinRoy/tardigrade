@@ -85,7 +85,7 @@ _Avoid_: service, manager, orchestrator (as a type name)
 ### Roster
 
 **Student**:
-A person imported or created within a Grid, identified by a stable id independent of display name. May belong to zero or more Groups.
+A person imported or created within a Grid, identified by a stable id independent of display name. May belong to zero or more Groups. "Participant" was considered as a more generic alternative and declined: the product's users are educators and every roster member is graded, so the specific word carries more information — and Moodle needs "Participants" only because its rosters are multi-role. If a non-education audience ever materializes, the rename is shallow because **Grade Target** carries identity, and the right word can be chosen then from what those users call themselves.
 _Avoid_: participant, user (both imply broader platform-level identity; a Student is Grid-scoped)
 
 **Group**:
