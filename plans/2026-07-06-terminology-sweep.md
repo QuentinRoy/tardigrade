@@ -59,7 +59,7 @@ Each stage is one or more PRs, own migration where schema changes, Kysely types 
 4. **Submission → Grade Target** — schema (`submission` → `grade_target`, generated numeric `id` → `row_id`, new public `id` scoped by grid per #136), FKs to `_row_id`, routes (`/assessments/submissions/[submissionId]` → `/grades/[targetId]`), cache tags, exports, `kind`/`name` CSV columns. This is the #136 core.
 5. **Assessment → Grade** — schema (`assessment`/`rubric_assessment`/subtype tables), `saveAssessment` and the whole `assessment-*` module set, cache tags, UI, Grade Completion.
 6. **Project → Grid** — schema (`project` → `grid`, already on `id`/`row_id`), all FKs, routes (`/projects` → `/grids`), cache tags, code, UI. Done last: it touches the most files and is the outermost identifier, so doing it after the inner renames avoids re-touching.
-7. **UI copy audit** — sweep every user-facing string against `docs/reference/lexicon.md`: "Grades"/"Analytics"/"Name" labels, error messages, empty states, headings. Add any missing Lexicon entries surfaced during the audit.
+7. **UI copy audit and contract docs** — sweep every user-facing string against `docs/reference/lexicon.md`: "Grades"/"Analytics"/"Name" labels, error messages, empty states, headings. Add any missing Lexicon entries surfaced during the audit (the Lexicon is a dictionary only — word: definition; contracts don't live there). Document the implemented URL tree and import/export column sets durably: README Import Formats plus a reference doc for URL conventions — this plan's "Routes" and "CSV columns" sections above are the spec until then.
 
 ## Out of scope
 
