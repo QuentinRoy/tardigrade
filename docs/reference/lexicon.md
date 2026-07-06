@@ -19,8 +19,8 @@ The recorded evaluation of one criterion — what was judged (passed, a chosen l
 _Avoid_: assessment, assess, evaluation, mark (when meaning the recorded judgment)
 
 **Grades** (table):
-The overview table showing every student's or group's marks for every criterion, with totals and completion. Its first column is headed **Name**.
-_Avoid_: matrix, submission matrix, gradebook
+The overview of all grading in a grid: one row per student or group, one cell per criterion's grade — rendered as the **mark** it earns, since marks are the one representation comparable across criterion types — plus totals and completion. Named for what the cells are (grades), not the unit they display, like an Orders table showing amounts. Its first column is headed **Name**.
+_Avoid_: matrix, submission matrix, gradebook, marks (as the table name)
 
 **Grid**:
 The container an instructor creates to grade a set of students or groups against a set of rubrics.

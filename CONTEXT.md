@@ -143,7 +143,7 @@ _Avoid_: zero-width or inverted score ranges, inverted marks ranges, tolerant `N
 ### Criterion overview
 
 **Grade Matrix**:
-The per-target criterion-by-criterion overview table on the grading overview page, showing each **Grade Target**'s marks per criterion. Distinct from **Criterion Analytics** (the per-criterion aggregate view). Previously "Submission Matrix" (renamed with the submission-to-Grade-Target move). Internal name only: "matrix" is not user-facing vocabulary — the UI calls this table "Grades" and its first column "Name" (see the Lexicon).
+The per-target criterion-by-criterion overview table: one row per **Grade Target**, one cell per criterion's **Grade**, each cell rendered as the **Mark** it earns (the one representation comparable across criterion types), plus totals and completion. Distinct from **Criterion Analytics** (the per-criterion aggregate view). Previously "Submission Matrix" (renamed with the submission-to-Grade-Target move). Internal name only: "matrix" is not user-facing vocabulary — the UI calls this table "Grades" and its first column "Name" (see the Lexicon).
 _Avoid_: submission matrix, student matrix, per-student grid, "Matrix" in UI copy
 
 **Criterion Analytics**:
