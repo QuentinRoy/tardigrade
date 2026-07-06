@@ -157,8 +157,8 @@ The recorded evaluation of a **Criterion** for a Grade Target — criteria are w
 _Avoid_: assessment, assess, treating "grade" and "criterion grade" as distinct domain concepts, using "grade" for the aggregate (see **Total**)
 
 **Score**:
-A measured input value for a numerical **Criterion** (for example "12 subnets identified"), recorded as part of its **Grade** and converted to a **Mark** by the criterion's configuration. Input only — never the general word for a grading output.
-_Avoid_: mark, points, using "score" for boolean/ordinal criteria
+The measured value a numerical **Criterion**'s **Grade** records (for example "12 subnets identified"), converted to a **Mark** by the criterion's configuration (`minScore..maxScore → minMarks..maxMarks`). Not a sibling of Grade but the content of its numerical subtype — boolean and ordinal grades record a pass or a label and have no score. Never an aggregate (that is a **Total**).
+_Avoid_: mark, points, using "score" for boolean/ordinal criteria, "score" for the aggregate
 
 **Mark**:
 The numeric value a **Grade** is worth, computed from the criterion's marks configuration. Grades are facts, marks are policy: retuning a criterion's marks configuration recomputes marks while every recorded grade survives untouched. Marks sum into **Totals**.
