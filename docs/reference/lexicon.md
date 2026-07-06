@@ -44,7 +44,7 @@ _Maps to_: Grade Matrix (`CONTEXT.md`) — a deliberate divergence: "matrix" is 
 _Avoid_: matrix, submission matrix, gradebook
 
 **Criterion Analytics**:
-The per-criterion overview table on a grid's overview page, showing average marks and completion across students and groups.
+The per-criterion overview table showing average marks and completion across students and groups. The navigation label may shorten to **Analytics** where the context is already a grid.
 _Maps to_: Criterion Analytics (`CONTEXT.md`)
 _Avoid_: rubric analytics
 
@@ -70,11 +70,42 @@ The summed value across a rubric's criteria (a rubric total) or across a whole g
 _Maps to_: Total (`CONTEXT.md`)
 _Avoid_: grade (when meaning the aggregate — grade names the individual record, not the sum), sum
 
+## URL segments
+
+URLs are user-facing: users read, type, and bookmark them, so every segment is a Lexicon word (never a code-only term like "target" or "matrix"). The identifier convention is `[gridId]`/`[targetId]` resolving identity, with an optional cosmetic slug segment for readability (identity resolves from the id, not the slug — see `CONTEXT.md`'s Grid Slug).
+
+```
+/grids/[gridId]/[gridSlug]/rubrics/                               author rubrics and their criteria
+/grids/[gridId]/[gridSlug]/grades/                                the Grades table (see everyone; start grading)
+/grids/[gridId]/[gridSlug]/grades/[targetId]/[targetSlug]/        grade one student or group
+/grids/[gridId]/[gridSlug]/grades/[targetId]/[targetSlug]/rubrics/[rubricId]/   grade one on one rubric
+/grids/[gridId]/[gridSlug]/analytics/                             Criterion Analytics
+/grids/[gridId]/[gridSlug]/import/...                             import students, rubrics, grades
+```
+
+Rule: an id segment (`[gridId]`, `[targetId]`) is only ever followed by static sub-resource segments, never by a static segment sitting beside a bare dynamic sibling — so no route ever depends on Next.js static-vs-dynamic match precedence, and an id can never accidentally collide with a reserved word. The per-target Grades matrix and per-criterion Analytics are separate top-level destinations, not sub-views of a shared "overview" wrapper, so either can grow without collision.
+
+## Import / export columns
+
+CSV column headers are user-facing and follow the Lexicon.
+
+| Column | Meaning | Replaces |
+| --- | --- | --- |
+| `kind` | `individual` or `group` — how a grade row is composed | `submission_type` |
+| `name` | the student's or group's display label | `submitter` |
+| `<rubricId>:<criterionId>` | a recorded grade for one criterion | `<questionId>:<rubricId>` |
+| `<rubricId>:<criterionId>:marks` | the mark a criterion contributed (export-only, ignored on import) | `<questionId>:<rubricId>:marks` |
+| `<rubricId>:total` | a rubric's total (export-only) | per-question total |
+| `final_total` | the grid-wide total (export-only) | `grand_total_marks` |
+
+`kind` keeps `individual`/`group` even though the code unifies both as a Grade Target, because the distinction still matters to a person reading or writing the file.
+
 ## Deliberately not user-facing
 
 Some `CONTEXT.md` concepts exist for code and persistence reasons only and should never surface as their own word in UI copy. Recorded here so a future contributor doesn't "fix" the missing entry.
 
-- **Grade Target** (`CONTEXT.md`): the row of a Grid, currently backed by a Student or a Group. UI copy names the Student or Group directly — a table column, a page heading, or an error message says "this student" or "this group," never "this target" or "this grade target."
+- **Grade Target** (`CONTEXT.md`): the row of a Grid, currently backed by a Student or a Group. UI copy names the Student or Group directly — a table column, a page heading, or an error message says "this student" or "this group," never "this target" or "this grade target." In URLs the identifier is `[targetId]`, but the word "target" never appears as a path segment.
+- **Grade Matrix**, **Matrix** (`CONTEXT.md`): the internal name for the Grades table. UI copy and aria-labels say "Grades", never "matrix".
 
 ## Growing this file
 
