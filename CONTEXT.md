@@ -156,6 +156,18 @@ _Avoid_: rubric analytics, rubric matrix, rubric summary table
 The recorded evaluation of a **Criterion** for a Grade Target — criteria are what get graded. A rubric or Grade Target is _fully graded_ when **Grade Completion** holds for it. The rubric-level grouping record in persistence is a container, not a second kind of grade. Previously two separate word families, "assess/assessment" and "grade"; consolidated to one (grade / to grade / grading) because keeping both alive was semantically too close and invited drift. The aggregate result across criteria or rubrics is **Total**, never "grade" — grade always names the atomic per-criterion record or the act of producing it.
 _Avoid_: assessment, assess, treating "grade" and "criterion grade" as distinct domain concepts, using "grade" for the aggregate (see **Total**)
 
+**Score**:
+A measured input value for a numerical **Criterion** (for example "12 subnets identified"), recorded as part of its **Grade** and converted to a **Mark** by the criterion's configuration. Input only — never the general word for a grading output.
+_Avoid_: mark, points, using "score" for boolean/ordinal criteria
+
+**Mark**:
+The numeric value a **Grade** is worth, computed from the criterion's marks configuration. Grades are facts, marks are policy: retuning a criterion's marks configuration recomputes marks while every recorded grade survives untouched. Marks sum into **Totals**.
+_Avoid_: points, score (when meaning the derived output), storing marks as if they were recorded facts
+
+**Total**:
+The aggregate of **Marks** across a grouping — a rubric total or a grid-wide final total. The only value-family word for aggregates; named but not yet implemented as a domain computation.
+_Avoid_: grade (for the aggregate), sum, grand total
+
 **Grade Completion**:
 Grades are what get completed; Grade Targets, rubrics, and grids are grouping dimensions, never owners of completion. The grading of a **Rubric** for a Grade Target is complete when every **Criterion** of that rubric has a recorded grade. A rubric with no criteria is fully graded — nothing remains to grade. Completion is vacuously true without exception: aggregates over an empty grouping (no Grade Targets, no rubrics) are complete, not zero. Whether to show completion for an empty grid is a presentation concern, not a completion exception. One rule, applied identically across every grouping and on every surface (server projections and client summaries).
 _Avoid_: assessment completion, rubric completion, "grade target progress", "a grade target has progress", per-view completion rules, treating zero-criterion rubrics as incomplete, empty-grouping special cases

@@ -15,8 +15,8 @@ The overview table showing each criterion's average marks and completion across 
 _Avoid_: rubric analytics
 
 **Grade**:
-The recorded evaluation of one criterion; also the general word for the act of producing it ("grading").
-_Avoid_: assessment, assess, evaluation
+The recorded evaluation of one criterion — what was judged (passed, a chosen label, a score) — and the general word for the act of producing it ("grading"). A grade is a judgment, not a number: the number it's worth is its **mark**. Grades survive changes to a criterion's marks configuration; the marks recompute.
+_Avoid_: assessment, assess, evaluation, mark (when meaning the recorded judgment)
 
 **Grades** (table):
 The overview table showing every student's or group's marks for every criterion, with totals and completion. Its first column is headed **Name**.
@@ -35,8 +35,8 @@ In grade CSV files, whether a row is graded as an `individual` or a `group`.
 _Avoid_: submission_type, type
 
 **Mark**:
-The value a single criterion contributes to a grade.
-_Avoid_: points, score (mark is the per-criterion output only)
+The numeric value a **grade** is worth, computed from the criterion's configuration (as on an exam paper: "[4 marks]"). Marks sum into **totals**; the judgment they're computed from is the grade.
+_Avoid_: points, score (mark is the derived per-criterion number only), grade (when meaning the number)
 
 **Name** (`name`):
 The student's or group's display label — as the Grades table's first column header and as the `name` CSV column. A fixed word, so it stays correct whether a grid contains individuals, groups, or both.
