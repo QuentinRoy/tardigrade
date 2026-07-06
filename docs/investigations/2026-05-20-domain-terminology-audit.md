@@ -1,8 +1,9 @@
 # Domain terminology investigation
 
-- **Status:** Active
+- **Status:** Completed
 - **Created:** 2026-05-20
 - **Related:** #99
+- **Resolution:** Vocabulary converged and recorded in `CONTEXT.md` (internal domain glossary) and `docs/reference/lexicon.md` (user-facing). Decided: Project → Grid, Question → Rubric, leaf Rubric → Criterion, Team → Group, Submission → Grade Target (code-only), Assessment → Grade, aggregate value → Total; Score/Mark kept, Points avoided. Application to code/DB/routes/UI is staged in `plans/2026-07-06-terminology-sweep.md`. This document stays as the exploration record.
 
 ## Document role
 
