@@ -30,6 +30,7 @@ So a few "old term" starting points below have already moved, and the sweep addi
 | Submission Matrix | Grade Matrix (internal) / "Grades" (UI) | component, aria-label, UI |
 | Rubric Analytics | Criterion Analytics / "Analytics" (nav) | component, UI |
 | Marks (aggregate) | Total | export columns (`grand_total_marks` → `final_total`), code |
+| progress (as a synonym for completion) | Completion | `progress`/`progressPromise`/`progressLabel` props, `CompletionProgress` component, UI copy — unify on Completion (the concept `CONTEXT.md` settled) |
 
 Value pipeline is **Grade → Mark → Total** for every criterion type; a grade's recorded content varies by subtype (a pass, a label, or — for numerical criteria only — a score). `grade` is the record and the act, distinct from its worth (a numerical grade is itself a number, but never the marks value); `score` names a numerical grade's payload and the input axis of its configuration (`minScore..maxScore`), not a pipeline stage. `Points` remains avoided.
 

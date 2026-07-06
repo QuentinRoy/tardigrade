@@ -6,6 +6,10 @@ This is not [CONTEXT.md](../../CONTEXT.md), the internal domain glossary — the
 
 ---
 
+**Completion**:
+How much grading is done: the share of a grouping's criteria that have a recorded grade, shown as a count and a bar. A rubric, student, group, or grid is "fully graded" when its completion is whole.
+_Avoid_: progress ("75% progress"), assessed
+
 **Criterion**:
 One graded item within a rubric.
 _Avoid_: rubric (when meaning a single graded item)

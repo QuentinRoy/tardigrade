@@ -113,7 +113,7 @@ _Avoid_: unknown column, unrecognized column (those block)
 ### Rubric authoring
 
 **Rubric**:
-The gradeable shape — a label plus its **Criteria** (and optional solution) — consumed when grading, exporting, or scoring a Grade Target. What a rubric _is_ at grading time. Previously called "Question"; renamed because the container is not always question-shaped (e.g. a report section) and one rubric always grids exactly one gradable section, so the section and its grid are one concept.
+The gradeable shape — a label plus its **Criteria** — consumed when grading, exporting, or scoring a Grade Target. What a rubric _is_ at grading time. Previously called "Question"; renamed because the container is not always question-shaped (e.g. a report section) and one rubric always grids exactly one gradable section, so the section and its grid are one concept.
 _Avoid_: question, rubric grid (the rubric _is_ the grid, not a separate thing that has one)
 
 **Rubric Definition**:
