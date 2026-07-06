@@ -1,17 +1,15 @@
 "use client";
 
-import Box from "@mui/material/Box";
-import Grid from "@mui/material/Grid";
-import Typography from "@mui/material/Typography";
+import { Box, Group, Stack, Text } from "@mantine/core";
 import type { ReactElement } from "react";
+import AssessmentStatus from "./AssessmentStatus.tsx";
 import BooleanGradeControl from "./BooleanGradeControl.tsx";
 import NumericalGradeControl from "./NumericalGradeControl.tsx";
 import OrdinalGradeControl from "./OrdinalGradeControl.tsx";
-import RubricStatusMarker from "./RubricStatusMarker.tsx";
 import { getRubricMaxMarks, getRubricMinMarks, markRubric } from "./rubric.ts";
 import type { AssessedRubric, AssessmentRubricValue } from "./types.ts";
 
-type RubricGradeRowProps = {
+type RubricCriterionProps = {
 	rubric: AssessedRubric;
 	savedRubric?: AssessedRubric | undefined;
 	isPending: boolean;
@@ -19,13 +17,13 @@ type RubricGradeRowProps = {
 	onAssess: (assessment: AssessmentRubricValue) => void;
 };
 
-export default function RubricGradeRow({
+export default function RubricCriterion({
 	rubric,
 	savedRubric,
 	isPending,
 	disabled,
 	onAssess,
-}: RubricGradeRowProps): ReactElement {
+}: RubricCriterionProps): ReactElement {
 	const { description, assessment, id, label, type } = rubric;
 	const savedAssessment = savedRubric?.assessment;
 	const displayLabel = label ?? id;
@@ -74,40 +72,24 @@ export default function RubricGradeRow({
 	}
 
 	return (
-		<Grid size={12}>
-			<Box
-				sx={{
-					display: "flex",
-					alignItems: "center",
-					gap: 2,
-					minWidth: 0,
-					py: 0.5,
-				}}
-			>
-				<RubricStatusMarker
-					assessmentStatus={assessmentStatus}
-					isSaving={isPending}
-				/>
-				<Box
-					sx={{ display: "flex", alignItems: "center", gap: 1, flexShrink: 0 }}
-				>
-					{control}
-				</Box>
-				<Box sx={{ minWidth: 0 }}>
-					{displayLabel}
-					{description != null && (
-						<Typography variant="body2" color="textSecondary">
-							{description}
-						</Typography>
-					)}
-				</Box>
-				<Box sx={{ ml: "auto", textAlign: "right", flexShrink: 0 }}>
-					<Typography variant="body2" color="textSecondary">
-						({currentMarks != null ? currentMarks : "_"}&nbsp;/&nbsp;
-						{rubricBound})
-					</Typography>
-				</Box>
-			</Box>
-		</Grid>
+		<Group wrap="nowrap" gap="md" py="0" miw={0}>
+			<AssessmentStatus
+				assessmentStatus={assessmentStatus}
+				isSaving={isPending}
+			/>
+			<Box flex="0 0 auto">{control}</Box>
+			<Stack gap={0} miw={0} flex={1}>
+				<Text>{displayLabel}</Text>
+				{description != null && (
+					<Text size="sm" c="dimmed">
+						{description}
+					</Text>
+				)}
+			</Stack>
+			<Text size="sm" c="dimmed" flex="0 0 auto">
+				({currentMarks != null ? currentMarks : "_"}&nbsp;/&nbsp;
+				{rubricBound})
+			</Text>
+		</Group>
 	);
 }

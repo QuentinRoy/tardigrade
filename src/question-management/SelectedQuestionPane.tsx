@@ -2,14 +2,15 @@
 
 import {
 	Alert,
-	Box,
+	Badge,
 	Button,
-	List,
-	ListItem,
-	ListItemText,
+	Divider,
+	Group,
 	Stack,
-	Typography,
-} from "@mui/material";
+	Table,
+	Text,
+	Title,
+} from "@mantine/core";
 import { type ReactElement, useActionState, useState } from "react";
 import DeleteQuestionDialog from "./DeleteQuestionDialog.tsx";
 import type { QuestionsActionState } from "./state.ts";
@@ -46,57 +47,69 @@ export default function SelectedQuestionPane({
 	);
 
 	return (
-		<Stack spacing={2}>
-			<Stack direction="row" spacing={1} sx={{ flexWrap: "wrap" }}>
-				<Typography component="h2" variant="h5" sx={{ flex: 1 }}>
+		<Stack gap="md">
+			<Group>
+				<Title order={2} flex={1}>
 					Selected Question
-				</Typography>
+				</Title>
 				<Button
-					variant="outlined"
+					variant="outline"
 					disabled={definition == null}
 					onClick={onEdit}
 				>
 					Edit
 				</Button>
 				<Button
-					variant="outlined"
-					color="error"
+					variant="outline"
+					color="red"
 					disabled={definition == null}
 					onClick={() => setDeleteOpen(true)}
 				>
 					Delete
 				</Button>
-			</Stack>
+			</Group>
 
 			{definition == null ? (
-				<Alert severity="info">Select a question to inspect details.</Alert>
+				<Alert color="blue" variant="light">
+					Select a question to inspect details.
+				</Alert>
 			) : (
-				<Box>
-					<Typography sx={{ mb: 1 }}>
-						<strong>{definition.question.label ?? definition.id}</strong>
-					</Typography>
-					<Typography color="text.secondary" sx={{ mb: 1 }}>
+				<Stack gap="xs">
+					<Text fw={600}>{definition.question.label ?? definition.id}</Text>
+					<Text c="dimmed" size="sm">
 						id: {definition.id}
-					</Typography>
-					<Typography color="text.secondary" sx={{ mb: 2 }}>
-						{definition.question.rubrics.length} rubrics,{" "}
-						{definition.assessmentCount} linked assessments
-					</Typography>
-					<List
-						dense
-						disablePadding
-						sx={{ border: 1, borderColor: "divider", borderRadius: 1 }}
-					>
-						{definition.question.rubrics.map((rubric) => (
-							<ListItem key={rubric.id} divider>
-								<ListItemText
-									primary={rubric.label ?? rubric.id}
-									secondary={rubric.type}
-								/>
-							</ListItem>
-						))}
-					</List>
-				</Box>
+					</Text>
+					<Group gap="xs">
+						<Badge variant="default">
+							{definition.question.rubrics.length} rubrics
+						</Badge>
+						<Badge variant="default">
+							{definition.assessmentCount} linked assessments
+						</Badge>
+					</Group>
+
+					{definition.question.rubrics.length > 0 && (
+						<>
+							<Divider />
+							<Table withTableBorder withColumnBorders fz="sm">
+								<Table.Thead>
+									<Table.Tr>
+										<Table.Th>Rubric</Table.Th>
+										<Table.Th>Type</Table.Th>
+									</Table.Tr>
+								</Table.Thead>
+								<Table.Tbody>
+									{definition.question.rubrics.map((rubric) => (
+										<Table.Tr key={rubric.id}>
+											<Table.Td>{rubric.label ?? rubric.id}</Table.Td>
+											<Table.Td>{rubric.type}</Table.Td>
+										</Table.Tr>
+									))}
+								</Table.Tbody>
+							</Table>
+						</>
+					)}
+				</Stack>
 			)}
 
 			<DeleteQuestionDialog

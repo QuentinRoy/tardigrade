@@ -1,6 +1,4 @@
-import Box from "@mui/material/Box";
-import LinearProgress from "@mui/material/LinearProgress";
-import Typography from "@mui/material/Typography";
+import { Progress, Stack, Text } from "@mantine/core";
 import type { ReactElement } from "react";
 
 type AssessmentProgressSummaryProps = {
@@ -26,23 +24,22 @@ export default function AssessmentProgressSummary({
 	const isCompleted = totalRubrics > 0 && rubricsLeft === 0;
 
 	return (
-		<Box sx={{ mb: 2, textAlign: "center" }}>
-			<Typography variant="subtitle1">
+		<Stack align="center" gap="xs">
+			<Text>
 				<span>{marks}</span>&nbsp;/&nbsp;{maxMarks}
-			</Typography>
-			<Box sx={{ mt: 1, maxWidth: 280, mx: "auto" }}>
-				<LinearProgress
-					variant="determinate"
-					value={progressValue}
-					color={isCompleted ? "success" : "secondary"}
-					sx={{ height: 6, borderRadius: 3 }}
-				/>
-			</Box>
-			<Typography variant="caption" color="text.secondary">
+			</Text>
+			<Progress
+				value={progressValue}
+				color={isCompleted ? "green" : "gray"}
+				size="sm"
+				w="100%"
+				maw={280}
+			/>
+			<Text size="xs" c="dimmed">
 				{isCompleted
 					? "(completed)"
 					: `(${rubricsLeft} rubric${rubricsLeft !== 1 ? "s" : ""} left)`}
-			</Typography>
-		</Box>
+			</Text>
+		</Stack>
 	);
 }

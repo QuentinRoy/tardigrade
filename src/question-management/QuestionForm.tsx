@@ -4,16 +4,18 @@ import {
 	Alert,
 	Box,
 	Button,
+	Group,
 	Stack,
-	TextField,
-	Typography,
-} from "@mui/material";
+	TextInput,
+	Title,
+} from "@mantine/core";
+import { useForm } from "@mantine/form";
 import { type ReactElement, useMemo } from "react";
 import { useFormStatus } from "react-dom";
 import RubricEditorList from "./RubricEditorList.tsx";
 import type { QuestionsActionState } from "./state.ts";
 import type { QuestionEditorValue } from "./types.ts";
-import { useQuestionDraft } from "./useQuestionDraft.ts";
+import { createEmptyQuestionEditorValue } from "./types.ts";
 
 type QuestionFormProps = {
 	mode: "create" | "edit";
@@ -34,12 +36,8 @@ function SubmitButton({
 	const { pending } = useFormStatus();
 
 	return (
-		<Button type="submit" variant="contained" disabled={disabled || pending}>
-			{pending
-				? "Saving..."
-				: mode === "create"
-					? "Create question"
-					: "Save changes"}
+		<Button type="submit" loading={pending} disabled={disabled}>
+			{mode === "create" ? "Create question" : "Save changes"}
 		</Button>
 	);
 }
@@ -52,74 +50,74 @@ export default function QuestionForm({
 	actionState,
 	onCancel,
 }: QuestionFormProps): ReactElement {
-	const { draft, setDraft } = useQuestionDraft(initialValue);
+	const form = useForm<QuestionEditorValue>({
+		mode: "controlled",
+		initialValues: initialValue ?? createEmptyQuestionEditorValue(),
+		validateInputOnChange: ["id"],
+		validate: {
+			id: (value) =>
+				value.trim().length === 0 ? "Question id is required" : null,
+		},
+	});
 
 	const payload = useMemo(
 		() => ({
 			originalId: mode === "edit" ? originalQuestionId : undefined,
-			id: draft.id,
-			label: draft.label,
-			rubrics: draft.rubrics,
+			...form.values,
 		}),
-		[draft, mode, originalQuestionId],
+		[form.values, mode, originalQuestionId],
 	);
 
 	const questionIdError =
-		actionState.fieldErrors?.questionId ??
-		(draft.id.trim().length === 0 ? "Question id is required" : undefined);
+		actionState.fieldErrors?.questionId ?? form.errors["id"];
 
 	return (
 		<Box component="form" action={action}>
-			<Stack spacing={2}>
-				<Typography variant="h5" component="h2">
+			<Stack gap="md">
+				<Title order={2}>
 					{mode === "create" ? "Create Question" : "Edit Question"}
-				</Typography>
+				</Title>
 
 				{actionState.status === "success" && actionState.message != null ? (
-					<Alert severity="success">{actionState.message}</Alert>
+					<Alert color="green" variant="light">
+						{actionState.message}
+					</Alert>
 				) : null}
 
 				{actionState.status === "error" &&
 				actionState.formErrors != null &&
 				actionState.formErrors.length > 0 ? (
-					<Alert severity="error">{actionState.formErrors.join(" | ")}</Alert>
+					<Alert color="red" variant="light">
+						{actionState.formErrors.join(" | ")}
+					</Alert>
 				) : null}
 
-				<TextField
+				<TextInput
 					label="Question id"
-					value={draft.id}
-					onChange={(event) =>
-						setDraft((previous) => ({ ...previous, id: event.target.value }))
-					}
-					error={questionIdError != null}
-					helperText={questionIdError ?? ""}
 					required
+					{...form.getInputProps("id")}
+					error={questionIdError}
 				/>
 
-				<TextField
-					label="Question label"
-					value={draft.label ?? ""}
-					onChange={(event) =>
-						setDraft((previous) => ({ ...previous, label: event.target.value }))
-					}
-				/>
+				<TextInput label="Question label" {...form.getInputProps("label")} />
 
 				<RubricEditorList
-					rubrics={draft.rubrics}
-					onChange={(rubrics) =>
-						setDraft((previous) => ({ ...previous, rubrics }))
-					}
+					rubrics={form.values.rubrics}
+					onChange={(rubrics) => form.setFieldValue("rubrics", rubrics)}
 					fieldErrors={actionState.fieldErrors?.rubrics}
 				/>
 
 				<input name="payload" type="hidden" value={JSON.stringify(payload)} />
 
-				<Stack direction="row" spacing={1}>
-					<SubmitButton mode={mode} disabled={draft.id.trim().length === 0} />
-					<Button variant="outlined" onClick={onCancel}>
+				<Group>
+					<SubmitButton
+						mode={mode}
+						disabled={form.values.id.trim().length === 0}
+					/>
+					<Button variant="outline" onClick={onCancel}>
 						Cancel
 					</Button>
-				</Stack>
+				</Group>
 			</Stack>
 		</Box>
 	);

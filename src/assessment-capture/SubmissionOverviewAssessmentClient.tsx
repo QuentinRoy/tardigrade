@@ -1,8 +1,6 @@
 "use client";
 
-import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
-import Typography from "@mui/material/Typography";
+import { Button, Group, Stack, Text, Title } from "@mantine/core";
 import NextLink from "next/link";
 import { useRouter } from "next/navigation";
 import type { ReactElement } from "react";
@@ -18,7 +16,7 @@ import type { Submission } from "#submissions/types.ts";
 import AssessmentProgressSummary from "./AssessmentProgressSummary.tsx";
 import { summarizeRubrics } from "./assessmentSummary.ts";
 import RubricGradeList from "./RubricGradeList.tsx";
-import SubmissionQuickJumpDialog from "./SubmissionQuickJumpDialog.tsx";
+import SubmissionSelector from "./SubmissionSelector.tsx";
 import type { SaveAssessment } from "./saveRubricAssessment.ts";
 import { saveRubricAssessment } from "./saveRubricAssessment.ts";
 import { getSubmissionNavigation } from "./submissionNavigation.ts";
@@ -178,15 +176,11 @@ export default function SubmissionOverviewAssessmentClient({
 	};
 
 	if (currentSubmission == null) {
-		return (
-			<Typography variant="body1" sx={{ mb: 3 }}>
-				No submissions found in database.
-			</Typography>
-		);
+		return <Text>No submissions found in database.</Text>;
 	}
 
 	return (
-		<>
+		<Stack gap="xl">
 			<SubmissionNavigation
 				projectId={projectId}
 				projectSlug={projectSlug}
@@ -198,7 +192,7 @@ export default function SubmissionOverviewAssessmentClient({
 				onOpenLookup={quickJump.open}
 			/>
 
-			<SubmissionQuickJumpDialog
+			<SubmissionSelector
 				open={quickJump.isOpen}
 				onClose={quickJump.close}
 				onSelectSubmission={navigateToSubmission}
@@ -208,62 +202,54 @@ export default function SubmissionOverviewAssessmentClient({
 			/>
 
 			{optimisticQuestions.length === 0 ? (
-				<Typography variant="body1" sx={{ mb: 4 }}>
-					No questions found in database.
-				</Typography>
+				<Text>No questions found in database.</Text>
 			) : (
-				optimisticQuestions.map((question) => {
-					const { marks: questionMarks, maxMarks: questionMaxMarks } =
-						summarizeRubrics(question.rubrics);
+				<Stack gap="xl">
+					{optimisticQuestions.map((question) => {
+						const { marks: questionMarks, maxMarks: questionMaxMarks } =
+							summarizeRubrics(question.rubrics);
 
-					return (
-						<Box key={question.questionId} sx={{ mb: 4 }}>
-							<Box
-								sx={{
-									mb: 2,
-									display: "flex",
-									alignItems: "baseline",
-									justifyContent: "space-between",
-									gap: 1,
-								}}
-							>
-								<Typography component="h2" variant="h5">
-									{question.questionLabel}
-								</Typography>
-								<Typography variant="body2">
-									({questionMarks}&nbsp;/&nbsp;{questionMaxMarks})
-								</Typography>
-							</Box>
+						return (
+							<Stack key={question.questionId} gap="md">
+								<Group justify="space-between" align="baseline" gap="xs">
+									<Title m="0" order={2}>
+										{question.questionLabel}
+									</Title>
+									<Text size="sm">
+										({questionMarks}&nbsp;/&nbsp;{questionMaxMarks})
+									</Text>
+								</Group>
 
-							{question.rubrics.map((rubric, localIndex) => {
-								const flatIndex = question.flatIndices[localIndex];
-								const savedRubric =
-									flatIndex != null
-										? (savedRubrics[flatIndex] ?? rubric)
-										: rubric;
-								return (
-									<RubricGradeList
-										key={rubric.id}
-										savedRubrics={[savedRubric]}
-										rubrics={[rubric]}
-										pendingByIndex={{
-											0:
-												flatIndex != null
-													? (pendingByIndex[flatIndex] ?? 0)
-													: 0,
-										}}
-										disabled={false}
-										onAssess={(_, assessment) => {
-											if (flatIndex != null) {
-												assess(flatIndex, assessment);
-											}
-										}}
-									/>
-								);
-							})}
-						</Box>
-					);
-				})
+								{question.rubrics.map((rubric, localIndex) => {
+									const flatIndex = question.flatIndices[localIndex];
+									const savedRubric =
+										flatIndex != null
+											? (savedRubrics[flatIndex] ?? rubric)
+											: rubric;
+									return (
+										<RubricGradeList
+											key={rubric.id}
+											savedRubrics={[savedRubric]}
+											rubrics={[rubric]}
+											pendingByIndex={{
+												0:
+													flatIndex != null
+														? (pendingByIndex[flatIndex] ?? 0)
+														: 0,
+											}}
+											disabled={false}
+											onAssess={(_, assessment) => {
+												if (flatIndex != null) {
+													assess(flatIndex, assessment);
+												}
+											}}
+										/>
+									);
+								})}
+							</Stack>
+						);
+					})}
+				</Stack>
 			)}
 
 			<AssessmentProgressSummary
@@ -272,7 +258,7 @@ export default function SubmissionOverviewAssessmentClient({
 				completedRubrics={summary.completedRubrics}
 				totalRubrics={summary.totalRubrics}
 			/>
-		</>
+		</Stack>
 	);
 }
 
@@ -296,7 +282,7 @@ function SubmissionNavigation({
 	onOpenLookup: () => void;
 }): ReactElement {
 	return (
-		<Box sx={{ mb: 4, display: "flex", gap: 1, flexWrap: "wrap" }}>
+		<Group gap="xs" wrap="wrap">
 			<Button
 				component={NextLink}
 				href={projectAssessmentSubmissionPath({
@@ -305,7 +291,7 @@ function SubmissionNavigation({
 					submissionId: previousSubmissionId ?? currentSubmissionId,
 				})}
 				prefetch={previousSubmissionId != null}
-				variant="outlined"
+				variant="outline"
 				disabled={previousSubmissionId == null}
 			>
 				Previous submission
@@ -318,17 +304,15 @@ function SubmissionNavigation({
 					submissionId: nextSubmissionId ?? currentSubmissionId,
 				})}
 				prefetch={nextSubmissionId != null}
-				variant="outlined"
+				variant="outline"
 				disabled={nextSubmissionId == null}
 			>
 				Next submission
 			</Button>
-			<Button variant="contained" onClick={onOpenLookup}>
-				Lookup
-			</Button>
-			<Typography variant="body2" sx={{ alignSelf: "center", ml: 1 }}>
+			<Button onClick={onOpenLookup}>Lookup</Button>
+			<Text size="sm">
 				{currentSubmissionIndex + 1} / {totalSubmissions} submissions
-			</Typography>
-		</Box>
+			</Text>
+		</Group>
 	);
 }

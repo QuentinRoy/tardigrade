@@ -1,8 +1,4 @@
-import Box from "@mui/material/Box";
-import Breadcrumbs from "@mui/material/Breadcrumbs";
-import Container from "@mui/material/Container";
-import Skeleton from "@mui/material/Skeleton";
-import Typography from "@mui/material/Typography";
+import { Group, Skeleton, Stack } from "@mantine/core";
 import { notFound } from "next/navigation";
 import type { ReactElement } from "react";
 import { Suspense } from "react";
@@ -10,7 +6,9 @@ import { loadSubmissionAssessments } from "#assessment-capture/assessments.ts";
 import SubmissionOverviewAssessmentClient from "#assessment-capture/SubmissionOverviewAssessmentClient.tsx";
 import { saveAssessment } from "#assessment-capture/saveAssessment.ts";
 import { loadAssessmentCompletionBySubmission } from "#assessment-completion/loadAssessmentCompletion.ts";
-import MuiNextLink from "#design-system/MuiNextLink.tsx";
+import AppLink from "#design-system/AppLink.tsx";
+import AppPage from "#design-system/AppPage.tsx";
+import PageHeader from "#design-system/PageHeader.tsx";
 import { projectAssessmentsPath } from "#projects/projectPaths.ts";
 import { loadProjectByPublicId } from "#projects/projects.ts";
 import { loadQuestionGrid } from "#questions/questions.ts";
@@ -46,26 +44,22 @@ async function ProjectSubmissionPageContent({ params }: SubmissionPageProps) {
 	}
 
 	return (
-		<Container maxWidth="md" sx={{ py: 5 }}>
-			<Box component="header" sx={{ pb: 2 }}>
-				<Breadcrumbs aria-label="breadcrumb">
-					<MuiNextLink
-						color="inherit"
+		<AppPage>
+			<PageHeader
+				breadcrumbs={[
+					<AppLink
+						key="assessments"
 						href={projectAssessmentsPath({
 							projectId: project.id,
 							projectSlug: project.slug,
 						})}
 					>
 						Assessments
-					</MuiNextLink>
-					<Typography color="textPrimary">
-						{getSubmissionLabel(currentSubmission)}
-					</Typography>
-				</Breadcrumbs>
-				<Typography component="h1" variant="h4" gutterBottom sx={{ mt: 1 }}>
-					{getSubmissionLabel(currentSubmission)}
-				</Typography>
-			</Box>
+					</AppLink>,
+					getSubmissionLabel(currentSubmission),
+				]}
+				title={getSubmissionLabel(currentSubmission)}
+			/>
 
 			<Suspense fallback={<SubmissionGradingSectionSkeleton />}>
 				<SubmissionGradingSection
@@ -75,7 +69,7 @@ async function ProjectSubmissionPageContent({ params }: SubmissionPageProps) {
 					submissions={submissions}
 				/>
 			</Suspense>
-		</Container>
+		</AppPage>
 	);
 }
 
@@ -133,15 +127,17 @@ async function SubmissionGradingSection({
 // the page doesn't jump once assessment values and progress load.
 function SubmissionGradingSectionSkeleton(): ReactElement {
 	return (
-		<>
-			<Box sx={{ mb: 4, display: "flex", gap: 1 }}>
-				<Skeleton variant="rounded" width={140} height={36} />
-				<Skeleton variant="rounded" width={120} height={36} />
-				<Skeleton variant="rounded" width={80} height={36} />
-			</Box>
-			{[0, 1, 2].map((index) => (
-				<Skeleton key={index} variant="rounded" height={80} sx={{ mb: 2 }} />
-			))}
-		</>
+		<Stack gap="md">
+			<Group gap="xs">
+				<Skeleton radius="sm" width={140} height={36} />
+				<Skeleton radius="sm" width={120} height={36} />
+				<Skeleton radius="sm" width={80} height={36} />
+			</Group>
+			<Stack gap="sm">
+				{[0, 1, 2].map((index) => (
+					<Skeleton key={index} radius="sm" height={80} />
+				))}
+			</Stack>
+		</Stack>
 	);
 }

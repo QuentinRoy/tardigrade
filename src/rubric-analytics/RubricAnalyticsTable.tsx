@@ -1,15 +1,9 @@
-import Box from "@mui/material/Box";
-import Paper from "@mui/material/Paper";
-import { alpha } from "@mui/material/styles";
-import Table from "@mui/material/Table";
-import TableBody from "@mui/material/TableBody";
-import TableCell from "@mui/material/TableCell";
-import TableContainer from "@mui/material/TableContainer";
-import TableHead from "@mui/material/TableHead";
-import TableRow from "@mui/material/TableRow";
-import Typography from "@mui/material/Typography";
+"use client";
+
+import { Badge, Table } from "@mantine/core";
 import type { ReactElement } from "react";
 import CompletionProgress from "./CompletionProgress.tsx";
+import marksBadgeClasses from "./MarksBadge.module.css";
 import QuestionDetailsTooltip from "./QuestionDetailsTooltip.tsx";
 import RubricDetailsTooltip from "./RubricDetailsTooltip.tsx";
 import type { RubricOverviewRow } from "./rubricOverviewBuilder.ts";
@@ -24,81 +18,64 @@ function formatMarks(value: number | null): string {
 	return value.toFixed(1).replace(/\.0$/, "");
 }
 
-function severityColor(percent: number | null): string {
-	if (percent == null || Number.isNaN(percent)) {
-		return "hsl(220 8% 60%)";
-	}
-
-	const clamped = Math.max(0, Math.min(percent, 100));
-	const hue = Math.max(0, Math.min(120, clamped * 1.2));
-	return `hsl(${hue} 70% 42%)`;
+function badgeColor(percent: number | null): string {
+	if (percent == null || Number.isNaN(percent)) return "gray";
+	if (percent >= 70) return "green";
+	if (percent >= 40) return "yellow";
+	return "red";
 }
 
 export default function RubricAnalyticsTable({
 	rubrics,
 }: RubricAnalyticsTableProps): ReactElement {
 	return (
-		<TableContainer component={Paper} variant="outlined">
-			<Table size="small" aria-label="Rubric analytics">
-				<TableHead>
-					<TableRow>
-						<TableCell>Question</TableCell>
-						<TableCell>Rubric</TableCell>
-						<TableCell align="center">Average</TableCell>
-						<TableCell align="right">Completion</TableCell>
-					</TableRow>
-				</TableHead>
-				<TableBody>
-					{rubrics.map((rubric) => {
-						const color = severityColor(rubric.averagePercent);
-
-						return (
-							<TableRow key={rubric.rubricId}>
-								<TableCell>
-									<QuestionDetailsTooltip
-										questionId={rubric.questionId}
-										questionLabel={rubric.questionLabel}
-									/>
-								</TableCell>
-								<TableCell>
-									<RubricDetailsTooltip
-										rubricId={rubric.rubricId}
-										details={rubric.details}
-									/>
-								</TableCell>
-								<TableCell align="center">
-									<Box
-										sx={{
-											display: "inline-flex",
-											alignItems: "start",
-											borderRadius: 1,
-											px: 1,
-											py: 0.5,
-											bgcolor: alpha(color, 0.1),
-										}}
-									>
-										<Typography
-											variant="body2"
-											sx={{ color, whiteSpace: "nowrap" }}
-										>
-											{formatMarks(rubric.averageMarks)} /{" "}
-											{formatMarks(rubric.maxMarks)}
-										</Typography>
-									</Box>
-								</TableCell>
-								<TableCell sx={{ minWidth: 180 }}>
-									<CompletionProgress
-										assessedCount={rubric.assessedCount}
-										totalCount={rubric.totalCount}
-										completionPercent={rubric.completionPercent}
-										alignItems="flex-end"
-									/>
-								</TableCell>
-							</TableRow>
-						);
-					})}
-				</TableBody>
+		<Table.ScrollContainer minWidth={400}>
+			<Table withTableBorder fz="sm" aria-label="Rubric analytics">
+				<Table.Thead>
+					<Table.Tr>
+						<Table.Th>Question</Table.Th>
+						<Table.Th>Rubric</Table.Th>
+						<Table.Th ta="center">Average</Table.Th>
+						<Table.Th ta="right">Completion</Table.Th>
+					</Table.Tr>
+				</Table.Thead>
+				<Table.Tbody>
+					{rubrics.map((rubric) => (
+						<Table.Tr key={rubric.rubricId}>
+							<Table.Td>
+								<QuestionDetailsTooltip
+									questionId={rubric.questionId}
+									questionLabel={rubric.questionLabel}
+								/>
+							</Table.Td>
+							<Table.Td>
+								<RubricDetailsTooltip
+									rubricId={rubric.rubricId}
+									details={rubric.details}
+								/>
+							</Table.Td>
+							<Table.Td ta="center">
+								<Badge
+									variant="light"
+									color={badgeColor(rubric.averagePercent)}
+									classNames={marksBadgeClasses}
+								>
+									{formatMarks(rubric.averageMarks)} /{" "}
+									{formatMarks(rubric.maxMarks)}
+								</Badge>
+							</Table.Td>
+							<Table.Td>
+								<CompletionProgress
+									assessedCount={rubric.assessedCount}
+									totalCount={rubric.totalCount}
+									completionPercent={rubric.completionPercent}
+									alignItems="flex-end"
+								/>
+							</Table.Td>
+						</Table.Tr>
+					))}
+				</Table.Tbody>
 			</Table>
-		</TableContainer>
+		</Table.ScrollContainer>
 	);
 }

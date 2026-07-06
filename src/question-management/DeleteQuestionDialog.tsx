@@ -3,14 +3,13 @@
 import {
 	Alert,
 	Button,
-	Dialog,
-	DialogActions,
-	DialogContent,
-	DialogTitle,
+	Code,
+	Group,
+	Modal,
 	Stack,
-	TextField,
-	Typography,
-} from "@mui/material";
+	Text,
+	TextInput,
+} from "@mantine/core";
 import { type ReactElement, useMemo, useState } from "react";
 import { useFormStatus } from "react-dom";
 import type { QuestionsActionState } from "./state.ts";
@@ -32,13 +31,8 @@ function DeleteButton({ disabled }: { disabled: boolean }): ReactElement {
 	const { pending } = useFormStatus();
 
 	return (
-		<Button
-			type="submit"
-			color="error"
-			variant="contained"
-			disabled={disabled || pending}
-		>
-			{pending ? "Deleting..." : "Delete question"}
+		<Button type="submit" color="red" loading={pending} disabled={disabled}>
+			Delete question
 		</Button>
 	);
 }
@@ -53,10 +47,7 @@ export default function DeleteQuestionDialog({
 	const [confirmationText, setConfirmationText] = useState("");
 
 	const expectedPhrase = useMemo(() => {
-		if (definition == null) {
-			return "";
-		}
-
+		if (definition == null) return "";
 		return buildDeleteConfirmationPhrase(
 			definition.id,
 			definition.assessmentCount,
@@ -78,56 +69,57 @@ export default function DeleteQuestionDialog({
 	};
 
 	return (
-		<Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm">
-			<DialogTitle>Delete Question</DialogTitle>
-			<DialogContent>
-				<Stack spacing={2} sx={{ pt: 1 }}>
-					{definition == null ? null : (
+		<Modal
+			opened={open}
+			onClose={handleClose}
+			title="Delete Question"
+			size="sm"
+		>
+			<form action={action}>
+				<Stack gap="md">
+					{definition != null ? (
 						<>
-							<Typography>
+							<Text>
 								This will delete question <strong>{definition.id}</strong> and
 								cascade delete <strong>{definition.assessmentCount}</strong>{" "}
 								linked assessments.
-							</Typography>
-							<Typography color="text.secondary">
-								Type this phrase to confirm:
-							</Typography>
-							<Typography sx={{ fontFamily: "monospace" }}>
-								{expectedPhrase}
-							</Typography>
+							</Text>
+							<Text c="dimmed">Type this phrase to confirm:</Text>
+							<Code block>{expectedPhrase}</Code>
 						</>
-					)}
+					) : null}
 
 					{actionState.status === "error" &&
 					actionState.formErrors != null &&
 					actionState.formErrors.length > 0 ? (
-						<Alert severity="error">{actionState.formErrors.join(" | ")}</Alert>
+						<Alert color="red" variant="light">
+							{actionState.formErrors.join(" | ")}
+						</Alert>
 					) : null}
 
 					{actionState.status === "success" && actionState.message != null ? (
-						<Alert severity="success">{actionState.message}</Alert>
+						<Alert color="green" variant="light">
+							{actionState.message}
+						</Alert>
 					) : null}
 
-					<form action={action}>
-						<Stack spacing={2}>
-							<TextField
-								label="Confirmation"
-								value={confirmationText}
-								onChange={(event) => setConfirmationText(event.target.value)}
-								error={confirmationError != null}
-								helperText={confirmationError ?? ""}
-							/>
-							<input name="payload" type="hidden" value={payload} />
-							<DialogActions sx={{ px: 0 }}>
-								<Button variant="outlined" onClick={handleClose}>
-									Cancel
-								</Button>
-								<DeleteButton disabled={definition == null || !isMatch} />
-							</DialogActions>
-						</Stack>
-					</form>
+					<TextInput
+						label="Confirmation"
+						value={confirmationText}
+						onChange={(event) => setConfirmationText(event.currentTarget.value)}
+						error={confirmationError}
+					/>
+
+					<input name="payload" type="hidden" value={payload} />
+
+					<Group justify="flex-end">
+						<Button variant="outline" onClick={handleClose}>
+							Cancel
+						</Button>
+						<DeleteButton disabled={definition == null || !isMatch} />
+					</Group>
 				</Stack>
-			</DialogContent>
-		</Dialog>
+			</form>
+		</Modal>
 	);
 }

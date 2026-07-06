@@ -1,7 +1,6 @@
 "use client";
 
-import Box from "@mui/material/Box";
-import Typography from "@mui/material/Typography";
+import { Code, Stack, Text } from "@mantine/core";
 import type { ReactElement } from "react";
 import BaseImportForm from "#imports/BaseImportForm.tsx";
 import { STUDENTS_CSV_PLACEHOLDER } from "#imports/constants.ts";
@@ -33,29 +32,15 @@ export default function StudentsImportForm({
 			helperText="Drop a .csv file here to fill this field"
 			helpTitle="Students Import Format Reference"
 			helpContent={
-				<>
-					<Typography variant="subtitle1" sx={{ fontWeight: "bold", mb: 1 }}>
-						Students CSV
-					</Typography>
-					<Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+				<Stack gap="sm">
+					<Text fw={600}>Students CSV</Text>
+					<Text size="sm" c="dimmed">
 						Required columns: <code>last_name</code>, <code>first_name</code>,{" "}
 						<code>id</code>. Optional: <code>team</code> (students sharing a
 						team get grouped into the same submission).
-					</Typography>
-					<Box
-						component="pre"
-						sx={{
-							bgcolor: "action.hover",
-							borderRadius: 1,
-							p: 2,
-							fontSize: "0.8rem",
-							overflowX: "auto",
-							fontFamily: "monospace",
-						}}
-					>
-						{STUDENTS_CSV_PLACEHOLDER}
-					</Box>
-				</>
+					</Text>
+					<Code block>{STUDENTS_CSV_PLACEHOLDER}</Code>
+				</Stack>
 			}
 		/>
 	);

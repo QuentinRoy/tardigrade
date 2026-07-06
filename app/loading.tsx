@@ -1,16 +1,15 @@
-import Box from "@mui/material/Box";
-import Container from "@mui/material/Container";
-import Skeleton from "@mui/material/Skeleton";
+import { Skeleton, Stack } from "@mantine/core";
+import AppPage from "#design-system/AppPage.tsx";
 
 export default function Loading() {
 	return (
-		<Container maxWidth="md" sx={{ py: 5 }}>
-			<Skeleton width={260} height={72} />
-			{[0, 1, 2].map((i) => (
-				<Box key={i} sx={{ my: 2 }}>
-					<Skeleton width={180} height={32} />
-				</Box>
-			))}
-		</Container>
+		<AppPage>
+			<Stack gap="md">
+				<Skeleton width={260} height={72} />
+				{[0, 1, 2].map((i) => (
+					<Skeleton key={i} width={180} height={32} />
+				))}
+			</Stack>
+		</AppPage>
 	);
 }

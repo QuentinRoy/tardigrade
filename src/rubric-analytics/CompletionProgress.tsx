@@ -1,7 +1,4 @@
-import Box from "@mui/material/Box";
-import LinearProgress from "@mui/material/LinearProgress";
-import Stack from "@mui/material/Stack";
-import Typography from "@mui/material/Typography";
+import { Box, Progress, Stack, Text } from "@mantine/core";
 import type { ReactElement } from "react";
 
 type CompletionProgressProps = {
@@ -20,17 +17,12 @@ export default function CompletionProgress({
 	alignItems = "center",
 }: CompletionProgressProps): ReactElement {
 	return (
-		<Stack sx={{ gap: 0.75, alignItems }}>
-			<Typography variant="caption" sx={{ whiteSpace: "nowrap" }}>
+		<Stack gap="xs" align={alignItems}>
+			<Text size="xs" style={{ whiteSpace: "nowrap" }}>
 				{assessedCount} / {totalCount}
-			</Typography>
-			<Box sx={{ width }}>
-				<LinearProgress
-					variant="determinate"
-					value={completionPercent}
-					color="secondary"
-					sx={{ height: 6, borderRadius: 3 }}
-				/>
+			</Text>
+			<Box w={width}>
+				<Progress value={completionPercent} size="sm" />
 			</Box>
 		</Stack>
 	);

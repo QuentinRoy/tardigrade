@@ -2,16 +2,15 @@ import {
 	Alert,
 	Box,
 	Button,
-	Container,
-	List,
-	ListItemButton,
-	ListItemText,
 	Stack,
-	TextField,
-	Typography,
-} from "@mui/material";
+	Text,
+	TextInput,
+	Title,
+} from "@mantine/core";
 import { redirect } from "next/navigation";
 import AppShell from "#app-shell/AppShell.tsx";
+import AppNavLink from "#design-system/AppNavLink.tsx";
+import AppPage from "#design-system/AppPage.tsx";
 import { toCreateProjectErrorMessage } from "#projects/createProjectErrorMessage.ts";
 import { projectDashboardPath } from "#projects/projectPaths.ts";
 import { createProject, loadProjects } from "#projects/projects.ts";
@@ -58,62 +57,53 @@ export default async function ProjectsPage({
 
 	return (
 		<AppShell showNavigation={false}>
-			<Container component="main" maxWidth="md" sx={{ py: 5 }}>
-				<Stack sx={{ gap: 3 }}>
-					<Box>
-						<Typography component="h1" variant="h3" sx={{ mb: 1 }}>
-							Change Project
-						</Typography>
-						<Typography color="text.secondary">
+			<AppPage>
+				<Stack gap="lg">
+					<Stack gap="xs">
+						<Title order={1}>Change Project</Title>
+						<Text c="dimmed">
 							Switch to an existing project or create a new one.
-						</Typography>
-					</Box>
+						</Text>
+					</Stack>
 
 					{params.error != null && params.error.length > 0 && (
-						<Alert severity="error">{params.error}</Alert>
+						<Alert color="red" variant="light">
+							{params.error}
+						</Alert>
 					)}
 
-					<Box>
-						<Typography component="h2" variant="h5" sx={{ mb: 1 }}>
-							Existing projects
-						</Typography>
-						<List component="nav" aria-label="Project list">
+					<Stack gap="xs">
+						<Title order={2}>Existing projects</Title>
+						<Stack component="nav" aria-label="Project list" gap="xs">
 							{projects.map((project) => (
-								<ListItemButton
+								<AppNavLink
 									key={project.id}
-									component="a"
 									href={projectDashboardPath({
 										projectId: project.id,
 										projectSlug: project.slug,
 									})}
-									sx={{ borderRadius: 1, mb: 1 }}
-								>
-									<ListItemText primary={project.name} />
-								</ListItemButton>
+									label={project.name}
+								/>
 							))}
-						</List>
-					</Box>
+						</Stack>
+					</Stack>
 
 					<Box component="form" action={createProjectAction}>
-						<Typography component="h2" variant="h5" sx={{ mb: 1 }}>
-							Create new project
-						</Typography>
-						<Stack sx={{ gap: 1.5 }}>
-							<TextField
+						<Stack gap="sm">
+							<Title order={2}>Create new project</Title>
+							<TextInput
 								name="name"
 								label="Project name"
 								required
 								placeholder="e.g. COMP-2026"
 							/>
 							<Box>
-								<Button type="submit" variant="contained">
-									Create and switch
-								</Button>
+								<Button type="submit">Create and switch</Button>
 							</Box>
 						</Stack>
 					</Box>
 				</Stack>
-			</Container>
+			</AppPage>
 		</AppShell>
 	);
 }

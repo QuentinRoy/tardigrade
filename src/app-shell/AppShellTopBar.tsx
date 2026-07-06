@@ -1,81 +1,66 @@
 "use client";
 
-import CloseIcon from "@mui/icons-material/Close";
-import MenuIcon from "@mui/icons-material/Menu";
-import AppBar from "@mui/material/AppBar";
-import Box from "@mui/material/Box";
-import IconButton from "@mui/material/IconButton";
-import Toolbar from "@mui/material/Toolbar";
-import Typography from "@mui/material/Typography";
-import NextLink from "next/link";
+import { Box, Burger, Flex, Title } from "@mantine/core";
+import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
+import AppLink from "#design-system/AppLink.tsx";
+import { projectDashboardPath } from "#projects/projectPaths.ts";
+import { getProjectRouteContext } from "./AppShell.shared.ts";
 
-type AppShellTopBarProps = {
-	title: string;
-	titleHref?: string | undefined;
-	drawerOpen?: boolean | undefined;
-	onToggleDrawer?: (() => void) | undefined;
-	drawerId?: string | undefined;
-};
+const SIDE_ZONE_WIDTH = 48;
 
-export default function AppShellTopBar({
-	title,
-	titleHref,
-	drawerOpen = false,
-	onToggleDrawer,
-	drawerId,
-}: AppShellTopBarProps): ReactNode {
+type AppShellTopBarProps =
+	| {
+			showNavigation: true;
+			projectName: string;
+			navbarOpened: boolean;
+			onToggleNavbar: () => void;
+			navbarId: string;
+	  }
+	| { showNavigation: false };
+
+export default function AppShellTopBar(props: AppShellTopBarProps): ReactNode {
+	const pathname = usePathname();
+	const projectRouteContext = getProjectRouteContext(pathname);
+	const title = props.showNavigation ? props.projectName : "BonPoint";
+	const titleHref =
+		props.showNavigation && projectRouteContext != null
+			? projectDashboardPath(projectRouteContext)
+			: undefined;
+
 	return (
-		<AppBar
-			position="fixed"
-			sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}
-		>
-			<Toolbar>
-				<Box
-					sx={{
-						width: 48,
-						flexShrink: 0,
-						display: "flex",
-						alignItems: "center",
-					}}
-				>
-					{onToggleDrawer != null ? (
-						<IconButton
-							color="inherit"
-							edge="start"
-							onClick={onToggleDrawer}
-							aria-label={
-								drawerOpen
-									? "Close navigation drawer"
-									: "Open navigation drawer"
-							}
-							aria-expanded={drawerOpen}
-							aria-controls={drawerId}
-						>
-							{drawerOpen ? <CloseIcon /> : <MenuIcon />}
-						</IconButton>
-					) : null}
-				</Box>
+		<Flex h="100%" px="md" align="center">
+			<Box w={SIDE_ZONE_WIDTH} flex="0 0 auto">
+				{props.showNavigation ? (
+					<Burger
+						opened={props.navbarOpened}
+						onClick={props.onToggleNavbar}
+						hiddenFrom="sm"
+						size="sm"
+						aria-label={
+							props.navbarOpened
+								? "Close navigation drawer"
+								: "Open navigation drawer"
+						}
+						aria-expanded={props.navbarOpened}
+						aria-controls={props.navbarId}
+					/>
+				) : null}
+			</Box>
 
-				<Box sx={{ flexGrow: 1, display: "flex", justifyContent: "center" }}>
-					{titleHref != null ? (
-						<Typography
-							component={NextLink}
-							href={titleHref}
-							variant="h6"
-							sx={{ color: "inherit", textDecoration: "none" }}
-						>
-							{title}
-						</Typography>
-					) : (
-						<Typography variant="h6" sx={{ color: "inherit" }}>
-							{title}
-						</Typography>
-					)}
-				</Box>
+			<Flex flex={1} justify="center">
+				{titleHref != null ? (
+					<AppLink href={titleHref} fz="md" fw={600} underline="never">
+						{title}
+					</AppLink>
+				) : (
+					<Title order={6} fz="md" fw={600}>
+						{title}
+					</Title>
+				)}
+			</Flex>
 
-				<Box sx={{ width: 48, flexShrink: 0 }} aria-hidden />
-			</Toolbar>
-		</AppBar>
+			<Box w={SIDE_ZONE_WIDTH} flex="0 0 auto" aria-hidden />
+		</Flex>
 	);
 }

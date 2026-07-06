@@ -1,22 +1,22 @@
-import { Grid } from "@mui/material";
+import { Stack } from "@mantine/core";
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import type { ReactElement } from "react";
 import { fn } from "storybook/test";
-import RubricGradeRow from "./RubricGradeRow.tsx";
+import RubricCriterion from "./RubricCriterion.tsx";
 
 const meta = {
-	title: "Rubrics/RubricGradeRow",
-	component: RubricGradeRow,
+	title: "Rubrics/RubricCriterion",
+	component: RubricCriterion,
 	tags: ["autodocs"],
 	args: { onAssess: fn(), disabled: false, isPending: false },
 	decorators: [
 		(Story): ReactElement => (
-			<Grid container spacing={1} sx={{ alignItems: "center" }}>
+			<Stack gap="xs">
 				<Story />
-			</Grid>
+			</Stack>
 		),
 	],
-} satisfies Meta<typeof RubricGradeRow>;
+} satisfies Meta<typeof RubricCriterion>;
 
 export default meta;
 

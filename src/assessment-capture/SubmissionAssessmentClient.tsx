@@ -1,8 +1,6 @@
 "use client";
 
-import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
-import Typography from "@mui/material/Typography";
+import { Button, Card, Group, Stack, Text, Title } from "@mantine/core";
 import NextLink from "next/link";
 import { useRouter } from "next/navigation";
 import type { ReactElement } from "react";
@@ -17,7 +15,7 @@ import type { Submission } from "#submissions/types.ts";
 import AssessmentProgressSummary from "./AssessmentProgressSummary.tsx";
 import { summarizeRubrics } from "./assessmentSummary.ts";
 import RubricGradeList from "./RubricGradeList.tsx";
-import SubmissionQuickJumpDialog from "./SubmissionQuickJumpDialog.tsx";
+import SubmissionSelector from "./SubmissionSelector.tsx";
 import type { SaveAssessment } from "./saveRubricAssessment.ts";
 import { saveRubricAssessment } from "./saveRubricAssessment.ts";
 import { getSubmissionNavigation } from "./submissionNavigation.ts";
@@ -111,36 +109,21 @@ export default function SubmissionAssessmentClient({
 	};
 
 	if (currentSubmission == null) {
-		return (
-			<Typography variant="body1" sx={{ mb: 3 }}>
-				No submissions found in database.
-			</Typography>
-		);
+		return <Text>No submissions found in database.</Text>;
 	}
 
 	return (
-		<>
-			<Box
-				sx={{
-					mb: 2,
-					p: 2,
-					border: "1px solid",
-					borderColor: "divider",
-					borderRadius: 1,
-				}}
-			>
-				<Typography variant="subtitle2" color="text.secondary">
+		<Stack gap="xl">
+			<Card withBorder padding="md">
+				<Text size="sm" c="dimmed">
 					Current submission
-				</Typography>
-				<Typography variant="h6">
-					{getSubmissionLabel(currentSubmission)}
-				</Typography>
-				<Typography variant="body2" color="text.secondary">
+				</Text>
+				<Title order={3}>{getSubmissionLabel(currentSubmission)}</Title>
+				<Text size="sm" c="dimmed">
 					{currentSubmission.id}
-				</Typography>
-			</Box>
-
-			<Box sx={{ mb: 4, display: "flex", gap: 1, flexWrap: "wrap" }}>
+				</Text>
+			</Card>
+			<Group gap="xs" wrap="wrap">
 				<Button
 					component={NextLink}
 					href={projectAssessmentSubmissionQuestionPath({
@@ -150,8 +133,8 @@ export default function SubmissionAssessmentClient({
 						questionId,
 					})}
 					prefetch={previousSubmission != null}
-					variant="outlined"
-					color={isCompleted ? "primary" : "secondary"}
+					variant="outline"
+					{...(!isCompleted && { color: "gray" })}
 					disabled={previousSubmission == null}
 				>
 					Previous submission
@@ -165,21 +148,18 @@ export default function SubmissionAssessmentClient({
 						questionId,
 					})}
 					prefetch={nextSubmission != null}
-					variant="outlined"
-					color={isCompleted ? "primary" : "secondary"}
+					variant="outline"
+					{...(!isCompleted && { color: "gray" })}
 					disabled={nextSubmission == null}
 				>
 					Next submission
 				</Button>
-				<Button variant="contained" onClick={quickJump.open}>
-					Lookup
-				</Button>
-				<Typography variant="body2" sx={{ alignSelf: "center", ml: 1 }}>
+				<Button onClick={quickJump.open}>Lookup</Button>
+				<Text size="sm">
 					{currentSubmissionIndex + 1} / {submissions.length}
-				</Typography>
-			</Box>
-
-			<SubmissionQuickJumpDialog
+				</Text>
+			</Group>
+			<SubmissionSelector
 				open={quickJump.isOpen}
 				onClose={quickJump.close}
 				onSelectSubmission={navigateToSubmission}
@@ -187,7 +167,6 @@ export default function SubmissionAssessmentClient({
 				progressPromise={progressPromise}
 				progressLabel="rubrics"
 			/>
-
 			<RubricGradeList
 				savedRubrics={savedRubrics}
 				rubrics={optimisticRubrics}
@@ -195,13 +174,12 @@ export default function SubmissionAssessmentClient({
 				disabled={false}
 				onAssess={(index, assessment) => assess(index, assessment)}
 			/>
-
 			<AssessmentProgressSummary
 				marks={marks}
 				maxMarks={maxMarks}
 				completedRubrics={completedRubrics}
 				totalRubrics={totalRubrics}
 			/>
-		</>
+		</Stack>
 	);
 }

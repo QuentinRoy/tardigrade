@@ -1,8 +1,4 @@
-import Box from "@mui/material/Box";
-import Breadcrumbs from "@mui/material/Breadcrumbs";
-import Container from "@mui/material/Container";
-import Skeleton from "@mui/material/Skeleton";
-import Typography from "@mui/material/Typography";
+import { Card, Group, Skeleton, Stack } from "@mantine/core";
 import { notFound } from "next/navigation";
 import type { ReactElement } from "react";
 import { Suspense } from "react";
@@ -18,7 +14,9 @@ import {
 	projectCacheTag,
 	questionListCacheTag,
 } from "#db/cacheTags.ts";
-import MuiNextLink from "#design-system/MuiNextLink.tsx";
+import AppLink from "#design-system/AppLink.tsx";
+import AppPage from "#design-system/AppPage.tsx";
+import PageHeader from "#design-system/PageHeader.tsx";
 import { projectAssessmentsPath } from "#projects/projectPaths.ts";
 import { loadProjectByPublicId } from "#projects/projects.ts";
 import { loadQuestion } from "#questions/questions.ts";
@@ -46,7 +44,7 @@ async function ProjectQuestionSubmissionPageContent({
 	const { projectId, submissionId, questionId } = await params;
 
 	return (
-		<Container maxWidth="md" sx={{ py: 5 }}>
+		<AppPage>
 			<QuestionHeaderSection projectId={projectId} questionId={questionId} />
 			<Suspense fallback={<SubmissionRubricSectionSkeleton />}>
 				<SubmissionRubricSection
@@ -55,7 +53,7 @@ async function ProjectQuestionSubmissionPageContent({
 					projectId={projectId}
 				/>
 			</Suspense>
-		</Container>
+		</AppPage>
 	);
 }
 
@@ -78,30 +76,21 @@ async function QuestionHeaderSection({
 	}
 
 	return (
-		<>
-			<Box component="header" sx={{ pb: 2 }}>
-				<Breadcrumbs aria-label="breadcrumb">
-					<MuiNextLink
-						color="inherit"
-						href={projectAssessmentsPath({
-							projectId: project.id,
-							projectSlug: project.slug,
-						})}
-					>
-						Assessments
-					</MuiNextLink>
-					<Typography color="textPrimary">
-						{question.label ?? questionId}
-					</Typography>
-				</Breadcrumbs>
-			</Box>
-
-			<Box component="section">
-				<Typography component="h1" variant="h4" gutterBottom>
-					{question.label ?? questionId}
-				</Typography>
-			</Box>
-		</>
+		<PageHeader
+			breadcrumbs={[
+				<AppLink
+					key="assessments"
+					href={projectAssessmentsPath({
+						projectId: project.id,
+						projectSlug: project.slug,
+					})}
+				>
+					Assessments
+				</AppLink>,
+				question.label ?? questionId,
+			]}
+			title={question.label ?? questionId}
+		/>
 	);
 }
 
@@ -176,28 +165,22 @@ async function SubmissionRubricSection({
 // place and the page doesn't jump once assessment values and progress load.
 function SubmissionRubricSectionSkeleton(): ReactElement {
 	return (
-		<>
-			<Box
-				sx={{
-					mb: 2,
-					p: 2,
-					border: "1px solid",
-					borderColor: "divider",
-					borderRadius: 1,
-				}}
-			>
-				<Skeleton variant="text" width={140} height={20} />
-				<Skeleton variant="text" width={200} height={32} />
-				<Skeleton variant="text" width={120} height={20} />
-			</Box>
-			<Box sx={{ mb: 4, display: "flex", gap: 1 }}>
-				<Skeleton variant="rounded" width={140} height={36} />
-				<Skeleton variant="rounded" width={120} height={36} />
-				<Skeleton variant="rounded" width={80} height={36} />
-			</Box>
-			{[0, 1, 2].map((index) => (
-				<Skeleton key={index} variant="rounded" height={56} sx={{ mb: 1 }} />
-			))}
-		</>
+		<Stack gap="md">
+			<Card withBorder padding="md">
+				<Skeleton height={20} width={140} mb="xs" />
+				<Skeleton height={32} width={200} mb="xs" />
+				<Skeleton height={20} width={120} />
+			</Card>
+			<Group gap="xs">
+				<Skeleton radius="sm" width={140} height={36} />
+				<Skeleton radius="sm" width={120} height={36} />
+				<Skeleton radius="sm" width={80} height={36} />
+			</Group>
+			<Stack gap="xs">
+				{[0, 1, 2].map((index) => (
+					<Skeleton key={index} radius="sm" height={56} />
+				))}
+			</Stack>
+		</Stack>
 	);
 }

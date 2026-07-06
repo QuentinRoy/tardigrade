@@ -1,0 +1,14 @@
+.root {
+	border-radius: var(--mantine-radius-sm);
+	overflow: hidden;
+}
+
+.inner pre {
+	margin: 0;
+	padding: var(--mantine-spacing-md);
+	font-family: "Monaspace Neon", monospace;
+}
+
+.inner code {
+	font-family: "Monaspace Neon", monospace;
+}

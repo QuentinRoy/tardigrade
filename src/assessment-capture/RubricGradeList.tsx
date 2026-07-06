@@ -1,8 +1,8 @@
 "use client";
 
-import Grid from "@mui/material/Grid";
+import { Stack } from "@mantine/core";
 import type { ReactElement } from "react";
-import RubricGradeRow from "#rubrics/RubricGradeRow.tsx";
+import RubricCriterion from "#rubrics/RubricCriterion.tsx";
 import type { AssessedRubric, AssessmentRubricValue } from "#rubrics/types.ts";
 
 type RubricAssessmentSectionProps = {
@@ -24,13 +24,13 @@ export default function RubricGradeList({
 		onAssess(index, assessment);
 
 	return (
-		<Grid container spacing={2} sx={{ mb: 2, alignItems: "center" }}>
+		<Stack gap="xs" mb="md">
 			{rubrics.map((rubric, index) => {
 				const isPending = (pendingByIndex[index] ?? 0) > 0;
 				const savedRubric = savedRubrics[index];
 
 				return (
-					<RubricGradeRow
+					<RubricCriterion
 						key={rubric.id}
 						rubric={rubric}
 						savedRubric={savedRubric}
@@ -40,6 +40,6 @@ export default function RubricGradeList({
 					/>
 				);
 			})}
-		</Grid>
+		</Stack>
 	);
 }

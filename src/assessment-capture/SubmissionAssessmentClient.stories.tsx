@@ -69,7 +69,7 @@ export const SurfacesUnreachableErrorAndClearsPending: Story = {
 			new Error("network down"),
 		);
 
-		await userEvent.click(screen.getByRole("button", { name: "true" }));
+		await userEvent.click(screen.getByRole("radio", { name: "True" }));
 
 		const alert = await screen.findByRole("alert");
 		await waitFor(() =>
@@ -86,7 +86,7 @@ export const GuardsAgainstReloadWhilePending: Story = {
 		const deferred = Promise.withResolvers<{ success: true }>();
 		mocked(args.saveAssessment).mockReturnValueOnce(deferred.promise);
 
-		await userEvent.click(screen.getByRole("button", { name: "true" }));
+		await userEvent.click(screen.getByRole("radio", { name: "True" }));
 
 		await waitFor(() =>
 			expect(dispatchBeforeUnload().defaultPrevented).toBe(true),

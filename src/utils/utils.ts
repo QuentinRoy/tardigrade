@@ -75,9 +75,53 @@ export function findDuplicateGroups<Value, Key>(
 
 export type DuplicateGroup<Key> = { key: Key; indexes: number[] };
 
+/**
+ * Asserts that a value is non-null and non-undefined. If the value is null or
+ * undefined, it throws an error. Otherwise, it returns the value with a narrowed
+ * type.
+ *
+ * @example
+ * const value: string | null = getValue();
+ * const nonNullValue: string = nonNull(value); // Throws if value is null
+ *
+ * @param value - The value to check for null or undefined.
+ * @returns The value with a narrowed type, guaranteed to be non-null and non-undefined.
+ * @throws {Error} If the value is null or undefined.
+ */
 export function nonNull<T>(value: T): NonNullable<T> {
 	if (value == null) {
 		throw new Error("Expected non-null value");
+	}
+	return value;
+}
+
+/**
+ * Clamps a number to a range defined by `min` and `max`. If the number is less than
+ * `min`, it returns `min`. If the number is greater than `max`, it returns `max`.
+ * Otherwise, it returns the number itself.
+ *
+ * @param value - The number to clamp.
+ * @param min - The minimum value of the range (inclusive).
+ * @param max - The maximum value of the range (inclusive).
+ * @returns The clamped number.
+ */
+export function clamp({
+	value,
+	min,
+	max,
+}: {
+	value: number;
+	min?: number | undefined;
+	max?: number | undefined;
+}): number {
+	if (min !== undefined && max !== undefined && min > max) {
+		throw new Error(`Invalid clamp range: min (${min}) > max (${max})`);
+	}
+	if (min !== undefined && value < min) {
+		return min;
+	}
+	if (max !== undefined && value > max) {
+		return max;
 	}
 	return value;
 }

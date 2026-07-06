@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Stack } from "@mui/material";
+import { Button, Group, Stack } from "@mantine/core";
 import type { ReactElement } from "react";
 import BooleanRubricEditorPaper from "./BooleanRubricEditorPaper.tsx";
 import type { QuestionRubricFieldErrors } from "./errors.ts";
@@ -35,8 +35,8 @@ export default function RubricEditorList({
 	};
 
 	return (
-		<Stack spacing={2}>
-			<Stack spacing={2}>
+		<Stack gap="md">
+			<Stack gap="md">
 				{rubrics.map((rubric, index) => {
 					const rubricError = fieldErrors?.[index];
 					const key = `${rubric.previousId ?? "new"}-${index}`;
@@ -76,17 +76,17 @@ export default function RubricEditorList({
 					);
 				})}
 			</Stack>
-			<Stack direction="row" spacing={1} sx={{ flexWrap: "wrap" }}>
-				<Button variant="outlined" onClick={() => addRubric("boolean")}>
+			<Group wrap="wrap">
+				<Button variant="outline" onClick={() => addRubric("boolean")}>
 					Add boolean rubric
 				</Button>
-				<Button variant="outlined" onClick={() => addRubric("ordinal")}>
+				<Button variant="outline" onClick={() => addRubric("ordinal")}>
 					Add ordinal rubric
 				</Button>
-				<Button variant="outlined" onClick={() => addRubric("numerical")}>
+				<Button variant="outline" onClick={() => addRubric("numerical")}>
 					Add numerical rubric
 				</Button>
-			</Stack>
+			</Group>
 		</Stack>
 	);
 }

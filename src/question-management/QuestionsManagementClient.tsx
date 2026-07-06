@@ -1,6 +1,6 @@
 "use client";
 
-import { Box, Container, Stack, Typography } from "@mui/material";
+import { Box, Container, Flex, Stack, Text, Title } from "@mantine/core";
 import { useRouter } from "next/navigation";
 import {
 	type ReactElement,
@@ -67,20 +67,21 @@ export default function QuestionsManagementClient({
 		}
 	}, [questions, selectedQuestionId]);
 
+	const formKey =
+		mode === "edit" ? `edit-${selectedDefinition?.id ?? "unknown"}` : "create";
+
 	return (
-		<Container component="main" maxWidth="xl" sx={{ py: 5 }}>
-			<Stack spacing={3}>
-				<Stack spacing={2}>
-					<Typography component="h1" variant="h3" sx={{ mb: 1 }}>
-						Questions Management
-					</Typography>
-					<Typography color="text.secondary">
+		<Container component="main" size="xl" py="xl">
+			<Stack gap="xl">
+				<Stack gap="xs">
+					<Title order={1}>Questions Management</Title>
+					<Text c="dimmed">
 						Inspect, add, edit, and delete questions with rubric definitions.
-					</Typography>
+					</Text>
 				</Stack>
 
-				<Stack direction={{ xs: "column", lg: "row" }} spacing={3}>
-					<Box sx={{ flex: "1 1 0" }}>
+				<Flex gap="xl" direction={{ base: "column", lg: "row" }}>
+					<Box flex="1 1 0" miw={0}>
 						<QuestionTable
 							onReorder={reorderAction}
 							questions={questions}
@@ -93,9 +94,10 @@ export default function QuestionsManagementClient({
 						/>
 					</Box>
 
-					<Box sx={{ flex: "1 1 0" }}>
+					<Box flex="1 1 0" miw={0}>
 						{mode === "create" || mode === "edit" ? (
 							<QuestionForm
+								key={formKey}
 								mode={mode}
 								originalQuestionId={
 									mode === "edit" ? selectedDefinition?.id : undefined
@@ -122,7 +124,7 @@ export default function QuestionsManagementClient({
 							/>
 						)}
 					</Box>
-				</Stack>
+				</Flex>
 			</Stack>
 		</Container>
 	);

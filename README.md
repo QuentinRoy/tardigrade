@@ -10,7 +10,7 @@ A Next.js app for rubric-based assessment workflows:
 ## Tech Stack
 
 - Next.js 16 (App Router) + React 19
-- Material UI
+- Mantine v9
 - PostgreSQL
 - Kysely (query + migrations)
 - Vitest

@@ -1,9 +1,8 @@
-import Box from "@mui/material/Box";
-import Container from "@mui/material/Container";
-import Paper from "@mui/material/Paper";
-import Stack from "@mui/material/Stack";
-import Typography from "@mui/material/Typography";
+import { Group, Stack, Text, Title } from "@mantine/core";
 import type { ReactElement } from "react";
+import AppPage from "#design-system/AppPage.tsx";
+import PageHeader from "#design-system/PageHeader.tsx";
+import Panel from "#design-system/Panel.tsx";
 import { loadProjectByPublicId } from "#projects/projects.ts";
 import { loadRubricOverviewData } from "#rubric-analytics/loadRubricOverview.ts";
 import RubricAnalyticsTable from "#rubric-analytics/RubricAnalyticsTable.tsx";
@@ -27,15 +26,12 @@ function formatPercent(value: number | null): string {
 
 function summaryMetric(title: string, value: string): ReactElement {
 	return (
-		<Paper
-			variant="outlined"
-			sx={{ p: 2, minWidth: { xs: "100%", sm: 210 }, flex: "1 1 210px" }}
-		>
-			<Typography variant="caption" color="text.secondary">
+		<Panel miw={{ base: "100%", sm: 210 }} flex="1 1 210px">
+			<Text size="xs" c="dimmed">
 				{title}
-			</Typography>
-			<Typography variant="h5">{value}</Typography>
-		</Paper>
+			</Text>
+			<Title order={3}>{value}</Title>
+		</Panel>
 	);
 }
 
@@ -58,15 +54,11 @@ async function ProjectAssessmentsOverviewPageContent({
 	const data = await loadRubricOverviewData({ projectId: project.id });
 
 	return (
-		<Container component="main" maxWidth="lg" sx={{ py: 5 }}>
-			<Box component="header" sx={{ mb: 3 }}>
-				<Typography component="h1" variant="h4">
-					Rubric overview
-				</Typography>
-			</Box>
+		<AppPage size="lg">
+			<PageHeader title="Rubric overview" />
 
-			<Stack sx={{ gap: 3 }}>
-				<Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.5 }}>
+			<Stack gap="lg">
+				<Group gap="sm" wrap="wrap">
 					{summaryMetric(
 						"Rubric assessments",
 						`${data.summary.assessedRubrics} / ${data.summary.totalRubrics}`,
@@ -79,25 +71,21 @@ async function ProjectAssessmentsOverviewPageContent({
 						"Class average",
 						`${formatMarks(data.summary.classAverageMarks)} / ${formatMarks(data.summary.classAverageMaxMarks)}`,
 					)}
-				</Box>
+				</Group>
 
-				<Box>
-					<Typography component="h2" variant="h5" sx={{ mb: 1 }}>
-						Rubric analytics
-					</Typography>
+				<Stack gap="xs">
+					<Title order={2}>Rubric analytics</Title>
 					<RubricAnalyticsTable rubrics={data.rubrics} />
-				</Box>
+				</Stack>
 
-				<Box>
-					<Typography component="h2" variant="h5" sx={{ mb: 1 }}>
-						Submission matrix
-					</Typography>
+				<Stack gap="xs">
+					<Title order={2}>Submission matrix</Title>
 					<SubmissionMatrix
 						rubrics={data.rubrics}
 						submissionRows={data.submissionRows}
 					/>
-				</Box>
+				</Stack>
 			</Stack>
-		</Container>
+		</AppPage>
 	);
 }

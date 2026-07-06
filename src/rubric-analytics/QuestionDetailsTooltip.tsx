@@ -1,9 +1,7 @@
 "use client";
 
-import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
-import Box from "@mui/material/Box";
-import Tooltip from "@mui/material/Tooltip";
-import Typography from "@mui/material/Typography";
+import { Box, Group, Text, Tooltip } from "@mantine/core";
+import { IconInfoCircle } from "@tabler/icons-react";
 import type { ReactElement } from "react";
 
 type QuestionDetailsTooltipProps = {
@@ -17,29 +15,26 @@ export default function QuestionDetailsTooltip({
 }: QuestionDetailsTooltipProps): ReactElement {
 	return (
 		<Tooltip
-			placement="right-start"
-			title={<Typography variant="subtitle2">{questionLabel}</Typography>}
-			arrow
-			enterDelay={120}
+			label={<Text size="xs">{questionLabel}</Text>}
+			position="top"
+			multiline
+			maw="min(40ch, 90vw)"
+			withArrow
+			openDelay={120}
 		>
-			<Box
+			<Group
 				component="span"
-				sx={{
-					display: "inline-flex",
-					alignItems: "center",
-					gap: 0.5,
-					cursor: "help",
-				}}
+				wrap="nowrap"
+				display="inline-flex"
+				style={{ cursor: "help" }}
 			>
-				<Typography
-					component="span"
-					variant="body2"
-					sx={{ textDecoration: "underline dotted" }}
-				>
+				<Text component="span" size="sm" td="underline dotted">
 					{questionId}
-				</Typography>
-				<InfoOutlinedIcon sx={{ fontSize: 14, color: "text.secondary" }} />
-			</Box>
+				</Text>
+				<Box component="span" c="dimmed" display="inline-flex">
+					<IconInfoCircle size={14} />
+				</Box>
+			</Group>
 		</Tooltip>
 	);
 }

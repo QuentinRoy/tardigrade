@@ -38,7 +38,7 @@ Use this table to find the canonical guidance instead of copying rules into this
 - GitHub issues, pull requests, labels, templates, and collaboration workflow → `docs/guides/issue-and-pr-conventions.md`.
 - Commit titles and squash merge titles → `docs/guides/commit-message-conventions.md`.
 - TypeScript public/helper APIs, function parameter design, and `as` type assertions → `.agents/skills/typescript-api-design/SKILL.md` (also explicitly loaded; see Skills below).
-- UI styling, spacing direction, and Material UI design-token conventions → `.agents/skills/ui-styling/SKILL.md`.
+- UI styling, spacing direction, and Mantine design-token/style-prop conventions → `.agents/skills/ui-styling/SKILL.md`.
 - User-facing error message conventions → `.agents/skills/error-handling-ux/SKILL.md`.
 - User-facing vocabulary (UI labels, headings, button text, export column headers) — the word to use, not the message structure → `docs/reference/lexicon.md`, `.agents/skills/lexicon/SKILL.md` (also explicitly loaded; see Skills below).
 - Testing conventions, test-command selection, and disposable-fixture patterns → `docs/reference/testing-conventions.md`, `.agents/skills/testing/SKILL.md`.
@@ -151,3 +151,17 @@ Investigations and active plans can guide work, but they do not override higher-
 
 - The project uses dotenvx to manage environment variables.
 - Prefer `package.json` scripts over standalone commands because they usually include required environment setup.
+
+## Mantine
+
+This project uses Mantine v9.
+
+When implementing or changing Mantine UI:
+
+- Consult Mantine documentation before guessing component APIs, styling behavior, or accessibility details.
+- Prefer Mantine components, theme tokens, responsive props, and the Styles API over ad-hoc CSS.
+- Do not invent component props or rely on undocumented behavior.
+- For complex controls, especially forms and searchable selects, use the relevant installed Mantine skills (`mantine-combobox`, `mantine-form`, `mantine-custom-components`).
+- For spacing/style-prop and design-token conventions, follow `.agents/skills/ui-styling/SKILL.md`; for field-level error display, follow `.agents/skills/error-handling-ux/SKILL.md`. These are the repo's Mantine house rules.
+- Use Mantine’s documentation index as the default documentation entry point: https://mantine.dev/llms.txt
+- Retrieve only the documentation pages relevant to the task. Do not load `llms-full.txt` by default.

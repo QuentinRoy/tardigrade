@@ -1,11 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { useState } from "react";
 import { expect, fn, screen, userEvent } from "storybook/test";
-import NumberField from "./NumberField.tsx";
+import ScoreInput from "./ScoreInput.tsx";
 
 const onCommit = fn();
 
-function ControlledNumberField({
+function ControlledScoreInput({
 	label,
 	initialValue,
 	error,
@@ -16,7 +16,7 @@ function ControlledNumberField({
 }) {
 	const [value, setValue] = useState(initialValue);
 	return (
-		<NumberField
+		<ScoreInput
 			label={label}
 			defaultValue={value}
 			onChange={(next) => {
@@ -29,13 +29,13 @@ function ControlledNumberField({
 }
 
 const meta = {
-	title: "Shared/NumberField",
-	component: ControlledNumberField,
+	title: "Shared/ScoreInput",
+	component: ControlledScoreInput,
 	args: { label: "Marks", initialValue: 1 },
 	beforeEach: () => {
 		onCommit.mockClear();
 	},
-} satisfies Meta<typeof ControlledNumberField>;
+} satisfies Meta<typeof ControlledScoreInput>;
 
 export default meta;
 

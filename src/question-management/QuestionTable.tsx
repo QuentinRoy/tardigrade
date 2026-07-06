@@ -13,19 +13,18 @@ import {
 	verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import {
+	Badge,
 	Box,
 	Button,
-	Chip,
-	List,
-	ListItem,
-	ListItemButton,
-	ListItemText,
+	Group,
+	Paper,
 	Stack,
-	TextField,
-	Typography,
-} from "@mui/material";
+	Text,
+	TextInput,
+	UnstyledButton,
+} from "@mantine/core";
+import { IconGripVertical } from "@tabler/icons-react";
 import {
 	memo,
 	type ReactElement,
@@ -61,7 +60,6 @@ type DraggableQuestionItemProps = {
 const DraggableQuestionItem = memo(function DraggableQuestionItemRow({
 	definition,
 	isSelected,
-	isDragInProgress,
 	onSelectQuestion,
 }: DraggableQuestionItemProps): ReactElement {
 	const {
@@ -73,69 +71,43 @@ const DraggableQuestionItem = memo(function DraggableQuestionItemRow({
 		isDragging,
 	} = useSortable({ id: definition.id });
 
-	const style = {
-		transform: CSS.Transform.toString(transform),
-		transition,
-		opacity: 1,
-	};
-
 	return (
-		<ListItem
+		<Group
 			ref={setNodeRef}
-			style={style}
-			disablePadding
-			sx={{
-				backgroundColor: isSelected ? "action.selected" : "transparent",
-				"&:hover": {
-					backgroundColor: isDragInProgress
-						? "transparent"
-						: isSelected
-							? "action.selected"
-							: "action.hover",
-				},
-			}}
-			secondaryAction={
-				<Stack direction="row" spacing={1}>
-					<Chip
-						size="small"
-						label={`${definition.question.rubrics.length} rubrics`}
-					/>
-					<Chip
-						size="small"
-						label={`${definition.assessmentCount} assessments`}
-					/>
-				</Stack>
-			}
+			wrap="nowrap"
+			gap="xs"
+			p="xs"
+			{...(isSelected && { bg: "blue.0" })}
+			style={{ transform: CSS.Transform.toString(transform), transition }}
 		>
 			<Box
 				{...listeners}
 				{...attributes}
-				sx={{
-					display: "flex",
-					alignItems: "center",
-					cursor: isDragging ? "grabbing" : "grab",
-					px: 0.5,
-					py: 0.5,
-					mr: 0.25,
-				}}
+				display="inline-flex"
+				c="dimmed"
+				style={{ cursor: isDragging ? "grabbing" : "grab" }}
 			>
-				<DragIndicatorIcon sx={{ color: "action.disabled" }} />
+				<IconGripVertical size={16} />
 			</Box>
-			<ListItemButton
-				selected={false}
-				onClick={() => onSelectQuestion(definition.id)}
-				sx={{
-					flex: 1,
-					backgroundColor: "transparent",
-					"&:hover": { backgroundColor: "transparent" },
-				}}
-			>
-				<ListItemText
-					primary={getQuestionLabel(definition)}
-					secondary={`id: ${definition.id}`}
-				/>
-			</ListItemButton>
-		</ListItem>
+
+			<UnstyledButton flex={1} onClick={() => onSelectQuestion(definition.id)}>
+				<Text size="sm" fw={500}>
+					{getQuestionLabel(definition)}
+				</Text>
+				<Text size="xs" c="dimmed">
+					id: {definition.id}
+				</Text>
+			</UnstyledButton>
+
+			<Group gap="xs" wrap="nowrap">
+				<Badge size="sm" variant="default">
+					{definition.question.rubrics.length} rubrics
+				</Badge>
+				<Badge size="sm" variant="default">
+					{definition.assessmentCount} assessments
+				</Badge>
+			</Group>
+		</Group>
 	);
 });
 
@@ -185,7 +157,6 @@ export default function QuestionTable({
 			return;
 		}
 
-		// Reorder within the filtered list
 		const reordered = Array.from(filtered);
 		const moved = reordered[activeIndex];
 		if (!moved) return;
@@ -240,23 +211,25 @@ export default function QuestionTable({
 	};
 
 	return (
-		<Stack spacing={2}>
-			<Stack direction="row" spacing={1} sx={{ flexWrap: "wrap" }}>
-				<Button variant="contained" onClick={onCreate} disabled={isPending}>
+		<Stack gap="md">
+			<Group>
+				<Button onClick={onCreate} disabled={isPending}>
 					Add question
 				</Button>
-			</Stack>
+			</Group>
 
-			<TextField
+			<TextInput
 				label="Filter questions"
 				value={filter}
-				onChange={(event) => setFilter(event.target.value)}
-				size="small"
+				onChange={(event) => setFilter(event.currentTarget.value)}
+				size="sm"
 				disabled={isPending}
 			/>
 
 			{reorderError ? (
-				<Typography color="error">{reorderError}</Typography>
+				<Text c="red" size="sm">
+					{reorderError}
+				</Text>
 			) : null}
 
 			<DndContext
@@ -266,36 +239,30 @@ export default function QuestionTable({
 				onDragCancel={handleDragCancel}
 				onDragEnd={handleDragEndWithStateReset}
 			>
-				<List
-					aria-label="Managed questions"
-					sx={{ border: 1, borderColor: "divider", borderRadius: 1 }}
-				>
+				<Paper withBorder p={0} aria-label="Managed questions">
 					{filtered.length === 0 ? (
-						<Box sx={{ p: 2 }}>
-							<Typography color="text.secondary">
-								No questions match your filter.
-							</Typography>
-						</Box>
+						<Text c="dimmed" p="md">
+							No questions match your filter.
+						</Text>
 					) : (
 						<SortableContext
 							items={filtered.map((q) => q.id)}
 							strategy={verticalListSortingStrategy}
 						>
-							{filtered.map((definition) => {
-								const isSelected = definition.id === selectedQuestionId;
-								return (
+							<Stack gap={0}>
+								{filtered.map((definition) => (
 									<DraggableQuestionItem
 										key={definition.id}
 										definition={definition}
-										isSelected={isSelected}
+										isSelected={definition.id === selectedQuestionId}
 										isDragInProgress={isDragInProgress}
 										onSelectQuestion={onSelectQuestion}
 									/>
-								);
-							})}
+								))}
+							</Stack>
 						</SortableContext>
 					)}
-				</List>
+				</Paper>
 			</DndContext>
 		</Stack>
 	);

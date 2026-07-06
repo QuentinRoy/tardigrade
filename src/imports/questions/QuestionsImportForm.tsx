@@ -1,7 +1,6 @@
 "use client";
 
-import Box from "@mui/material/Box";
-import Typography from "@mui/material/Typography";
+import { Code, Stack, Text } from "@mantine/core";
 import type { ReactElement } from "react";
 import BaseImportForm from "#imports/BaseImportForm.tsx";
 import { QUESTIONS_YAML_PLACEHOLDER } from "#imports/constants.ts";
@@ -33,11 +32,9 @@ export default function QuestionsImportForm({
 			helperText="Drop a .yaml file here to fill this field"
 			helpTitle="Questions Import Format Reference"
 			helpContent={
-				<>
-					<Typography variant="subtitle1" sx={{ fontWeight: "bold", mb: 1 }}>
-						Questions YAML
-					</Typography>
-					<Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+				<Stack gap="sm">
+					<Text fw={600}>Questions YAML</Text>
+					<Text size="sm" c="dimmed">
 						A top-level <code>questions</code> array of question objects. Each
 						question requires a stable <code>id</code>, has an optional{" "}
 						<code>label</code>, and a <code>rubrics</code> array. Each rubric
@@ -49,30 +46,18 @@ export default function QuestionsImportForm({
 						<code>minMarks</code>/<code>maxMarks</code>. Numerical rubrics can
 						also set <code>reversed: true</code> to map the highest score to the
 						lowest mark.
-					</Typography>
-					<Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+					</Text>
+					<Text size="sm" c="dimmed">
 						Numerical defaults and rules: <code>minScore</code> defaults to{" "}
 						<code>0</code>, <code>maxScore</code> defaults to <code>1</code>. If{" "}
 						<code>minScore</code> is provided, <code>maxScore</code> must be
-						provided too. <code>minMarks</code>
-						defaults to <code>0</code> when omitted; <code>maxMarks</code>{" "}
-						defaults to <code>0</code> when omitted. At least one of{" "}
-						<code>minMarks</code>/<code>maxMarks</code> must be provided.
-					</Typography>
-					<Box
-						component="pre"
-						sx={{
-							bgcolor: "action.hover",
-							borderRadius: 1,
-							p: 2,
-							fontSize: "0.8rem",
-							overflowX: "auto",
-							fontFamily: "monospace",
-						}}
-					>
-						{QUESTIONS_YAML_PLACEHOLDER}
-					</Box>
-				</>
+						provided too. <code>minMarks</code> defaults to <code>0</code> when
+						omitted; <code>maxMarks</code> defaults to <code>0</code> when
+						omitted. At least one of <code>minMarks</code>/<code>maxMarks</code>{" "}
+						must be provided.
+					</Text>
+					<Code block>{QUESTIONS_YAML_PLACEHOLDER}</Code>
+				</Stack>
 			}
 		/>
 	);

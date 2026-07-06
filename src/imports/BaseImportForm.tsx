@@ -1,18 +1,20 @@
 "use client";
 
-import HelpOutlineIcon from "@mui/icons-material/HelpOutlined";
-import Alert from "@mui/material/Alert";
-import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
-import Container from "@mui/material/Container";
-import Dialog from "@mui/material/Dialog";
-import DialogContent from "@mui/material/DialogContent";
-import DialogTitle from "@mui/material/DialogTitle";
-import IconButton from "@mui/material/IconButton";
-import Stack from "@mui/material/Stack";
-import TextField from "@mui/material/TextField";
-import Tooltip from "@mui/material/Tooltip";
-import Typography from "@mui/material/Typography";
+import {
+	ActionIcon,
+	Alert,
+	Box,
+	Button,
+	Container,
+	Group,
+	Modal,
+	Stack,
+	Text,
+	Textarea,
+	Title,
+	Tooltip,
+} from "@mantine/core";
+import { IconHelpCircle } from "@tabler/icons-react";
 import {
 	type DragEvent,
 	type ReactElement,
@@ -47,8 +49,8 @@ function SubmitButton({ label }: { label: string }): ReactElement {
 	const { pending } = useFormStatus();
 
 	return (
-		<Button type="submit" variant="contained" disabled={pending}>
-			{pending ? "Importing..." : label}
+		<Button type="submit" loading={pending}>
+			{label}
 		</Button>
 	);
 }
@@ -106,78 +108,70 @@ export default function BaseImportForm({
 	const drop = useDrop(setValue);
 
 	return (
-		<Container component="main" maxWidth="lg" sx={{ py: 5 }}>
-			<Stack spacing={3}>
-				<Box>
-					<Stack
-						direction="row"
-						spacing={1}
-						sx={{ alignItems: "center", mb: 1 }}
-					>
-						<Typography variant="h3" component="h1">
-							{title}
-						</Typography>
-						<Tooltip title="Show format reference">
-							<IconButton
-								size="small"
+		<Container component="main" size="lg" py="xl">
+			<Stack gap="xl">
+				<Stack gap="xs">
+					<Group gap="xs" align="center">
+						<Title order={1}>{title}</Title>
+						<Tooltip label="Show import format help">
+							<ActionIcon
+								size="sm"
+								variant="subtle"
 								onClick={() => setHelpOpen(true)}
 								aria-label="Show import format help"
 							>
-								<HelpOutlineIcon fontSize="small" />
-							</IconButton>
+								<IconHelpCircle size={16} />
+							</ActionIcon>
 						</Tooltip>
-					</Stack>
-					<Typography variant="body1" color="text.secondary" sx={{ mb: 0.5 }}>
-						{description}
-					</Typography>
-				</Box>
+					</Group>
+					<Text c="dimmed">{description}</Text>
+				</Stack>
 
-				<Dialog
-					open={helpOpen}
+				<Modal
+					opened={helpOpen}
 					onClose={() => setHelpOpen(false)}
-					maxWidth="md"
-					fullWidth
+					title={helpTitle}
+					size="lg"
 				>
-					<DialogTitle>{helpTitle}</DialogTitle>
-					<DialogContent>
-						<Stack spacing={3} sx={{ pt: 2 }}>
-							<Box>{helpContent}</Box>
-						</Stack>
-					</DialogContent>
-				</Dialog>
+					{helpContent}
+				</Modal>
 
 				{state.status === "success" && state.message ? (
-					<Alert severity="success">{state.message}</Alert>
+					<Alert color="green" variant="light">
+						{state.message}
+					</Alert>
 				) : null}
 
 				{state.status === "error" && state.errors != null ? (
-					<Alert severity="error">{state.errors.join(" | ")}</Alert>
+					<Alert color="red" variant="light">
+						{state.errors.join(" | ")}
+					</Alert>
 				) : null}
 
 				<Box component="form" action={formAction}>
-					<Stack spacing={3}>
+					<Stack gap="xl">
 						<Box
 							onDragOver={drop.onDragOver}
 							onDragLeave={drop.onDragLeave}
 							onDrop={drop.onDrop}
-							sx={{
-								borderRadius: 1,
-								outline: drop.isDragging ? "2px dashed" : "none",
-								outlineColor: "primary.main",
+							bdrs="sm"
+							style={{
+								outline: drop.isDragging
+									? "2px dashed var(--mantine-primary-color-filled)"
+									: "none",
 							}}
 						>
-							<TextField
+							<Textarea
 								label={fieldLabel}
 								name={fieldName}
 								value={value}
-								onChange={(event) => setValue(event.target.value)}
-								multiline
+								onChange={(event) => setValue(event.currentTarget.value)}
 								minRows={minRows}
-								fullWidth
+								autosize
 								required
 								spellCheck={false}
 								placeholder={placeholder}
-								helperText={helperText}
+								description={helperText}
 							/>
 						</Box>
 
