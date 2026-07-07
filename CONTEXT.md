@@ -121,7 +121,7 @@ The authored/configured representation of a **Rubric** surfaced in the managemen
 _Avoid_: managed question, ManagedQuestion, question definition, linked-assessment count
 
 **Criterion**:
-One graded item within a **Rubric**, of one of three types: **Check** (met or not — was "boolean"), **Options** (one of several labeled options, unordered and allowed to share marks — was "ordinal"), or **Number** (a measured value mapped to marks — was "numerical"). One vocabulary across code, DB enum, YAML, and UI; the old type ids (`boolean`/`ordinal`/`numerical`) are renamed by the sweep, not kept as an internal layer. "Options" is also more accurate than "ordinal": the schema stores no order. Criterion was previously called "Rubric"; renamed because "Rubric" now names the whole grid (Moodle/Gradescope/Canvas), not a single graded item.
+One graded item within a **Rubric**, of one of three types: **Check** (a yes/no question, each answer worth its own marks with no built-in pass/fail — was "boolean"), **Options** (one of several labeled options, unordered and allowed to share marks — was "ordinal"), or **Number** (a measured value mapped to marks — was "numerical"). One vocabulary across code, DB enum, YAML, and UI; the old type ids (`boolean`/`ordinal`/`numerical`) are renamed by the sweep, not kept as an internal layer. "Options" is also more accurate than "ordinal": the schema stores no order. Criterion was previously called "Rubric"; renamed because "Rubric" now names the whole grid (Moodle/Gradescope/Canvas), not a single graded item.
 _Avoid_: rubric (when meaning a single graded item), boolean, ordinal, numerical, scale/rating/levels (imply an order the model does not have)
 
 **Criterion Definition**:
@@ -137,8 +137,8 @@ An Options **Criterion Definition** must define at least two mark entries, enfor
 _Avoid_: empty options marks as a draft state, per-boundary minimums that disagree, ordinal marks minimum
 
 **Number Criterion Bounds**:
-A Number **Criterion Definition** must satisfy `minScore < maxScore` (a collapsed or inverted score range is not authorable) and `minMarks <= maxMarks` (marks may be flat but not inverted). Both are enforced identically at every write boundary — editor, import, and a DB CHECK. The marking function is a pure computer: it trusts validated inputs and throws only on a zero-width score range, the one case that would otherwise yield `NaN` rather than a finite mark.
-_Avoid_: zero-width or inverted score ranges, inverted marks ranges, tolerant `NaN` marks, per-boundary rules that disagree, re-validating criterion shape inside the marking function, numerical criterion bounds
+A Number **Criterion Definition** must satisfy `minValue < maxValue` (a collapsed or inverted value range is not authorable) and `minMarks <= maxMarks` (marks may be flat but not inverted). Both are enforced identically at every write boundary — editor, import, and a DB CHECK. The marking function is a pure computer: it trusts validated inputs and throws only on a zero-width value range, the one case that would otherwise yield `NaN` rather than a finite mark.
+_Avoid_: zero-width or inverted value ranges, inverted marks ranges, tolerant `NaN` marks, per-boundary rules that disagree, re-validating criterion shape inside the marking function, numerical criterion bounds
 
 ### Criterion overview
 
@@ -156,13 +156,13 @@ _Avoid_: rubric analytics, rubric matrix, rubric summary table
 The recorded evaluation of a **Criterion** for a Grade Target — criteria are what get graded. A rubric or Grade Target is _fully graded_ when **Grade Completion** holds for it. The rubric-level grouping record in persistence is a container, not a second kind of grade. Previously two separate word families, "assess/assessment" and "grade"; consolidated to one (grade / to grade / grading) because keeping both alive was semantically too close and invited drift. The aggregate result across criteria or rubrics is **Total**, never "grade" — grade always names the atomic per-criterion record or the act of producing it.
 _Avoid_: assessment, assess, treating "grade" and "criterion grade" as distinct domain concepts, using "grade" for the aggregate (see **Total**)
 
-**Score**:
-The measured value a **Number** **Criterion**'s **Grade** records (for example "12 subnets identified"), converted to a **Mark** by the criterion's configuration (`minScore..maxScore → minMarks..maxMarks`). A payload name, not a pipeline stage: the value pipeline is Grade → Mark → **Total** for every criterion type, and score is simply what a Number grade's content is called — the same rank as a Check grade's pass or an Options grade's label, which have no glossary entries at all. Never an aggregate (that is a **Total**).
-_Avoid_: mark, points, "score → grade → mark" as a pipeline, using "score" for Check/Options criteria, "score" for the aggregate
+**Value**:
+The number a **Number** **Criterion**'s **Grade** records (for example "12 subnets identified"), mapped to a **Mark** by the criterion's configuration (`minValue..maxValue → minMarks..maxMarks`). A payload name, not a pipeline stage: the value pipeline is Grade → Mark → **Total** for every criterion type, and value is simply what a Number grade's content is called — the same rank as a Check grade's Yes/No answer or an Options grade's label. Never an aggregate (that is a **Total**). Replaces "score", which is fully retired (it read as a good-thing tally, wrong for a reversed Number criterion where a higher value earns fewer marks). Use `criterionValue` in code where bare `value` is ambiguous.
+_Avoid_: score (fully retired), mark, points, "value → grade → mark" as a pipeline, using "value" for Check/Options criteria or for the aggregate
 
 **Mark**:
 The numeric value a **Grade** is worth, computed from the criterion's marks configuration. Grades are facts, marks are policy: retuning a criterion's marks configuration recomputes marks while every recorded grade survives untouched. Marks sum into **Totals**.
-_Avoid_: points, score (when meaning the derived output), storing marks as if they were recorded facts
+_Avoid_: points, value (a mark is the worth, not the entered value), storing marks as if they were recorded facts
 
 **Total**:
 The aggregate of **Marks** across a grouping — a rubric total or a grid-wide final total. The only value-family word for aggregates; named but not yet implemented as a domain computation.

@@ -15,8 +15,8 @@ The grid-wide mean of students' and groups' totals — the overview summary stat
 _Avoid_: class average (a grid is not always a class)
 
 **Check**:
-A criterion type: the item was met or not, worth one mark when met and another when not. One of the three criterion types (with **Options** and **Number**); the word shown in the type selector and the YAML `type:` field.
-_Avoid_: boolean, pass/fail, yes/no (as the type name)
+A criterion type: a yes/no question whose two answers each carry their own marks — either answer may be worth more, so there is no built-in "pass" or "fail". One of the three criterion types (with **Options** and **Number**); the word shown in the type selector and the YAML `type:` field. Its two answers are labelled **Yes** and **No**.
+_Avoid_: boolean (as the type name); pass/fail, true/false (as answer labels — use Yes/No)
 
 **Completion**:
 How much grading is done: the share of a grouping's criteria that have a recorded grade, shown as a count and a bar. A rubric, student, group, or grid is "fully graded" when its completion is whole.
@@ -31,7 +31,7 @@ The overview table showing each criterion's average marks and completion across 
 _Avoid_: rubric analytics
 
 **Grade**:
-The recorded evaluation of one criterion — what was judged (passed, a chosen label, or a number such as a score of 12) — and the general word for the act of producing it ("grading"). A grade is distinct from its worth: even when the grade is itself a number, the **mark** it earns is computed from it. Grades survive changes to a criterion's marks configuration; the marks recompute.
+The recorded evaluation of one criterion — what was judged (a Yes/No answer, a chosen label, or a number such as 12) — and the general word for the act of producing it ("grading"). A grade is distinct from its worth: even when the grade is itself a number, the **mark** it earns is computed from it. Grades survive changes to a criterion's marks configuration; the marks recompute.
 _Avoid_: assessment, assess, evaluation, mark (when meaning the recorded judgment)
 
 **Grades** (table):
@@ -52,7 +52,7 @@ _Avoid_: submission_type, type
 
 **Mark**:
 The numeric value a **grade** is worth, computed from the criterion's configuration (as on an exam paper: "[4 marks]"). Marks sum into **totals**; the judgment they're computed from is the grade.
-_Avoid_: points, score (mark is the derived per-criterion number only), grade (when meaning the number)
+_Avoid_: points, value (a mark is the worth, not the entered value), grade (when meaning the number)
 
 **Name** (`name`):
 The student's or group's display label — as the Grades table's first column header and as the `name` CSV column. A fixed word, so it stays correct whether a grid contains individuals, groups, or both.
@@ -67,7 +67,7 @@ A criterion type: the grader picks one of several labels the author defines, eac
 _Avoid_: ordinal, scale, rating, levels (imply an order Options does not have)
 
 **Rubric**:
-The grading grid for one exercise or section: its criteria, and how each one is scored.
+The grading grid for one exercise or section: its criteria, and how each one is graded.
 _Avoid_: question, exercise (a rubric's own label may read "Exercise 3" when quoting source material, but the product's own chrome says "rubric")
 
 **Student**:
@@ -76,11 +76,11 @@ _Avoid_: participant, user
 
 **Total**:
 The summed marks across a rubric's criteria (a rubric total) or across a whole grid (a final total). A single student's or group's aggregate — the Grades table's rightmost column — is a Total, not an "Average" (see **Average**, **Average total**).
-_Avoid_: grade (when meaning the aggregate — grade names the individual record, not the sum), score (when meaning the aggregate), sum, "Average" (for one target's total)
+_Avoid_: grade (when meaning the aggregate — grade names the individual record, not the sum), value (when meaning the aggregate), sum, "Average" (for one target's total)
 
 **Value**:
 The number a grader enters on a **Number** criterion (a count or a measurement), which maps to marks. Its allowed range is set by the criterion's Min value and Max value.
-_Avoid_: score (internal-only, and wrong for reversed criteria where a higher value earns fewer marks)
+_Avoid_: score (fully retired — it read as a good-thing tally, wrong for reversed criteria where a higher value earns fewer marks)
 
 ---
 
