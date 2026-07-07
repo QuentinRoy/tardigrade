@@ -15,8 +15,8 @@ The grid-wide mean of students' and groups' totals — the overview summary stat
 _Avoid_: class average (a grid is not always a class)
 
 **Check**:
-A criterion type: a yes/no question whose two answers each carry their own marks — either answer may be worth more, so there is no built-in "pass" or "fail". One of the three criterion types (with **Options** and **Number**); the word shown in the type selector and the YAML `type:` field. Its two answers are labelled **Yes** and **No**.
-_Avoid_: boolean (as the type name); pass/fail, true/false (as answer labels — use Yes/No)
+A criterion kind: a yes/no question whose two answers each carry their own marks — either answer may be worth more, so there is no built-in "pass" or "fail". One of the three criterion kinds (with **Options** and **Number**); the word shown in the kind selector and the YAML `kind:` field. Its two answers are labelled **Yes** and **No**.
+_Avoid_: boolean (as the kind name); pass/fail, true/false (as answer labels — use Yes/No)
 
 **Completion**:
 How much grading is done: the share of a grouping's criteria that have a recorded grade, shown as a count and a bar. A rubric, student, group, or grid is "fully graded" when its completion is whole.
@@ -35,7 +35,7 @@ The recorded evaluation of one criterion — what was judged (a Yes/No answer, a
 _Avoid_: assessment, assess, evaluation, mark (when meaning the recorded judgment)
 
 **Grades** (table):
-The overview of all grading in a grid: one row per student or group, one cell per criterion's grade — rendered as the **mark** it earns, since marks are the one representation comparable across criterion types — plus totals and completion. Named for what the cells are (grades), not the unit they display, like an Orders table showing amounts. Its first column is headed **Name**.
+The overview of all grading in a grid: one row per student or group, one cell per criterion's grade — rendered as the **mark** it earns, since marks are the one representation comparable across criterion kinds — plus totals and completion. Named for what the cells are (grades), not the unit they display, like an Orders table showing amounts. Its first column is headed **Name**.
 _Avoid_: matrix, submission matrix, gradebook, marks (as the table name)
 
 **Grid**:
@@ -46,9 +46,9 @@ _Avoid_: project, test, exam, assignment
 One or more students graded as a single unit.
 _Avoid_: team
 
-**Kind** (`kind`):
-In grade CSV files, whether a row is graded as an `individual` or a `group`.
-_Avoid_: submission_type, type
+**Kind**:
+The word for every "which of several sorts" choice, so the app never mixes "kind" and "type". A **Criterion**'s kind is **Check**, **Options**, or **Number** (the kind selector and the YAML `kind:` field). A grade row's kind, in the grades CSV `kind` column, is `individual` or `group`.
+_Avoid_: type (use "kind" for every such choice), submission_type
 
 **Mark**:
 The numeric value a **grade** is worth, computed from the criterion's configuration (as on an exam paper: "[4 marks]"). Marks sum into **totals**; the judgment they're computed from is the grade.
@@ -63,11 +63,11 @@ One of the two answers to a **Check** criterion (the other is **Yes**). Each ans
 _Avoid_: false, fail
 
 **Number**:
-A criterion type: the grader enters a value that maps to marks by a configured range. One of the three criterion types (with **Check** and **Options**); the word shown in the type selector and the YAML `type:` field.
+A criterion kind: the grader enters a value that maps to marks by a configured range. One of the three criterion kinds (with **Check** and **Options**); the word shown in the kind selector and the YAML `kind:` field.
 _Avoid_: numerical, numeric
 
 **Options**:
-A criterion type: the grader picks one of several labels the author defines, each worth some marks. The labels are unordered and may share marks. One of the three criterion types (with **Check** and **Number**); the word shown in the type selector and the YAML `type:` field.
+A criterion kind: the grader picks one of several labels the author defines, each worth some marks. The labels are unordered and may share marks. One of the three criterion kinds (with **Check** and **Number**); the word shown in the kind selector and the YAML `kind:` field.
 _Avoid_: ordinal, scale, rating, levels (imply an order Options does not have)
 
 **Rubric**:

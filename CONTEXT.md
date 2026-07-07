@@ -121,7 +121,7 @@ The authored/configured representation of a **Rubric** surfaced in the managemen
 _Avoid_: managed question, ManagedQuestion, question definition, linked-assessment count
 
 **Criterion**:
-One graded item within a **Rubric**, of one of three types: **Check** (a yes/no question, each answer worth its own marks with no built-in pass/fail — was "boolean"), **Options** (one of several labeled options, unordered and allowed to share marks — was "ordinal"), or **Number** (a measured value mapped to marks — was "numerical"). One vocabulary across code, DB enum, YAML, and UI; the old type ids (`boolean`/`ordinal`/`numerical`) are renamed by the sweep, not kept as an internal layer. "Options" is also more accurate than "ordinal": the schema stores no order. Criterion was previously called "Rubric"; renamed because "Rubric" now names the whole grid (Moodle/Gradescope/Canvas), not a single graded item.
+One graded item within a **Rubric**, of one of three kinds: **Check** (a yes/no question, each answer worth its own marks with no built-in pass/fail — was "boolean"), **Options** (one of several labeled options, unordered and allowed to share marks — was "ordinal"), or **Number** (a measured value mapped to marks — was "numerical"). The classifier is **kind**, not "type", matching the grade row's `kind` (see **Grade Target**, and the Lexicon's Kind entry). One vocabulary across code, DB enum, YAML, and UI; the old kind ids (`boolean`/`ordinal`/`numerical`) are renamed by the sweep, not kept as an internal layer. "Options" is also more accurate than "ordinal": the schema stores no order. Criterion was previously called "Rubric"; renamed because "Rubric" now names the whole grid (Moodle/Gradescope/Canvas), not a single graded item.
 _Avoid_: rubric (when meaning a single graded item), boolean, ordinal, numerical, scale/rating/levels (imply an order the model does not have)
 
 **Criterion Definition**:
@@ -129,7 +129,7 @@ The authored/configured representation of a **Criterion** within a **Rubric Defi
 _Avoid_: managed rubric, ManagedRubric, rubric definition (when meaning a single item's configuration)
 
 **Criterion Subtype Invariant**:
-Every persisted **Criterion** carries its type-specific configuration: Check and Number configuration rows always exist, and an Options criterion satisfies the **Options Marks Minimum**. Readers fail loudly on a violation instead of substituting defaults; write boundaries make the invalid state unrepresentable.
+Every persisted **Criterion** carries its kind-specific configuration: Check and Number configuration rows always exist, and an Options criterion satisfies the **Options Marks Minimum**. Readers fail loudly on a violation instead of substituting defaults; write boundaries make the invalid state unrepresentable.
 _Avoid_: silent zero-marks fallback, tolerant read-side defaults, rubric subtype invariant
 
 **Options Marks Minimum**:
@@ -143,7 +143,7 @@ _Avoid_: zero-width or inverted value ranges, inverted marks ranges, tolerant `N
 ### Criterion overview
 
 **Grade Matrix**:
-The per-target criterion-by-criterion overview table: one row per **Grade Target**, one cell per criterion's **Grade**, each cell rendered as the **Mark** it earns (the one representation comparable across criterion types), plus totals and completion. Distinct from **Criterion Analytics** (the per-criterion aggregate view). Previously "Submission Matrix" (renamed with the submission-to-Grade-Target move). Internal name only: "matrix" is not user-facing vocabulary — the UI calls this table "Grades" and its first column "Name" (see the Lexicon).
+The per-target criterion-by-criterion overview table: one row per **Grade Target**, one cell per criterion's **Grade**, each cell rendered as the **Mark** it earns (the one representation comparable across criterion kinds), plus totals and completion. Distinct from **Criterion Analytics** (the per-criterion aggregate view). Previously "Submission Matrix" (renamed with the submission-to-Grade-Target move). Internal name only: "matrix" is not user-facing vocabulary — the UI calls this table "Grades" and its first column "Name" (see the Lexicon).
 _Avoid_: submission matrix, student matrix, per-student grid, "Matrix" in UI copy
 
 **Criterion Analytics**:
@@ -157,7 +157,7 @@ The recorded evaluation of a **Criterion** for a Grade Target — criteria are w
 _Avoid_: assessment, assess, treating "grade" and "criterion grade" as distinct domain concepts, using "grade" for the aggregate (see **Total**)
 
 **Value**:
-The number a **Number** **Criterion**'s **Grade** records (for example "12 subnets identified"), mapped to a **Mark** by the criterion's configuration (`minValue..maxValue → minMarks..maxMarks`). A payload name, not a pipeline stage: the value pipeline is Grade → Mark → **Total** for every criterion type, and value is simply what a Number grade's content is called — the same rank as a Check grade's Yes/No answer or an Options grade's label. Never an aggregate (that is a **Total**). Replaces "score", which is fully retired (it read as a good-thing tally, wrong for a reversed Number criterion where a higher value earns fewer marks). Use `criterionValue` in code where bare `value` is ambiguous.
+The number a **Number** **Criterion**'s **Grade** records (for example "12 subnets identified"), mapped to a **Mark** by the criterion's configuration (`minValue..maxValue → minMarks..maxMarks`). A payload name, not a pipeline stage: the value pipeline is Grade → Mark → **Total** for every criterion kind, and value is simply what a Number grade's content is called — the same rank as a Check grade's Yes/No answer or an Options grade's label. Never an aggregate (that is a **Total**). Replaces "score", which is fully retired (it read as a good-thing tally, wrong for a reversed Number criterion where a higher value earns fewer marks). Use `criterionValue` in code where bare `value` is ambiguous.
 _Avoid_: score (fully retired), mark, points, "value → grade → mark" as a pipeline, using "value" for Check/Options criteria or for the aggregate
 
 **Mark**:
