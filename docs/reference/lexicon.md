@@ -18,6 +18,10 @@ _Avoid_: rubric (when meaning a single graded item)
 The overview table showing each criterion's average marks and completion across students and groups. Navigation may shorten it to **Analytics** where the context is already a grid.
 _Avoid_: rubric analytics
 
+**Criterion type**:
+Which of three kinds a criterion is, chosen when authoring it: **Check** (met or not), **Options** (pick one of several labels the author defines), or **Number** (enter a measured value that maps to marks). These exact words appear in the type selector and in the YAML `type:` field.
+_Avoid_: boolean, ordinal, numerical (internal-only, being retired), scale, rating, levels (imply an order Options does not have)
+
 **Grade**:
 The recorded evaluation of one criterion — what was judged (passed, a chosen label, or a number such as a score of 12) — and the general word for the act of producing it ("grading"). A grade is distinct from its worth: even when the grade is itself a number, the **mark** it earns is computed from it. Grades survive changes to a criterion's marks configuration; the marks recompute.
 _Avoid_: assessment, assess, evaluation, mark (when meaning the recorded judgment)

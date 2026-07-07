@@ -121,24 +121,24 @@ The authored/configured representation of a **Rubric** surfaced in the managemen
 _Avoid_: managed question, ManagedQuestion, question definition, linked-assessment count
 
 **Criterion**:
-One boolean, ordinal, or numerical graded item within a **Rubric**. Previously called "Rubric"; renamed because "Rubric" now names the whole grid, matching standard usage (Moodle/Gradescope/Canvas), not a single graded item.
-_Avoid_: rubric (when meaning a single graded item)
+One graded item within a **Rubric**, of one of three types: **Check** (met or not — was "boolean"), **Options** (one of several labeled options, unordered and allowed to share marks — was "ordinal"), or **Number** (a measured value mapped to marks — was "numerical"). One vocabulary across code, DB enum, YAML, and UI; the old type ids (`boolean`/`ordinal`/`numerical`) are renamed by the sweep, not kept as an internal layer. "Options" is also more accurate than "ordinal": the schema stores no order. Criterion was previously called "Rubric"; renamed because "Rubric" now names the whole grid (Moodle/Gradescope/Canvas), not a single graded item.
+_Avoid_: rubric (when meaning a single graded item), boolean, ordinal, numerical, scale/rating/levels (imply an order the model does not have)
 
 **Criterion Definition**:
 The authored/configured representation of a **Criterion** within a **Rubric Definition** — its full marks configuration and metadata as edited by an author.
 _Avoid_: managed rubric, ManagedRubric, rubric definition (when meaning a single item's configuration)
 
 **Criterion Subtype Invariant**:
-Every persisted **Criterion** carries its type-specific configuration: boolean and numerical configuration rows always exist, and an ordinal criterion satisfies the **Ordinal Marks Minimum**. Readers fail loudly on a violation instead of substituting defaults; write boundaries make the invalid state unrepresentable.
+Every persisted **Criterion** carries its type-specific configuration: Check and Number configuration rows always exist, and an Options criterion satisfies the **Options Marks Minimum**. Readers fail loudly on a violation instead of substituting defaults; write boundaries make the invalid state unrepresentable.
 _Avoid_: silent zero-marks fallback, tolerant read-side defaults, rubric subtype invariant
 
-**Ordinal Marks Minimum**:
-An ordinal **Criterion Definition** must define at least two mark entries, enforced identically at every write boundary (editor and import). An ordinal criterion is a choice between labels; fewer than two is not an authorable state.
-_Avoid_: empty ordinal marks as a draft state, per-boundary minimums that disagree
+**Options Marks Minimum**:
+An Options **Criterion Definition** must define at least two mark entries, enforced identically at every write boundary (editor and import). An Options criterion is a choice between labels; fewer than two is not an authorable state.
+_Avoid_: empty options marks as a draft state, per-boundary minimums that disagree, ordinal marks minimum
 
-**Numerical Criterion Bounds**:
-A numerical **Criterion Definition** must satisfy `minScore < maxScore` (a collapsed or inverted score range is not authorable) and `minMarks <= maxMarks` (marks may be flat but not inverted). Both are enforced identically at every write boundary — editor, import, and a DB CHECK. The marking function is a pure computer: it trusts validated inputs and throws only on a zero-width score range, the one case that would otherwise yield `NaN` rather than a finite mark.
-_Avoid_: zero-width or inverted score ranges, inverted marks ranges, tolerant `NaN` marks, per-boundary rules that disagree, re-validating criterion shape inside the marking function
+**Number Criterion Bounds**:
+A Number **Criterion Definition** must satisfy `minScore < maxScore` (a collapsed or inverted score range is not authorable) and `minMarks <= maxMarks` (marks may be flat but not inverted). Both are enforced identically at every write boundary — editor, import, and a DB CHECK. The marking function is a pure computer: it trusts validated inputs and throws only on a zero-width score range, the one case that would otherwise yield `NaN` rather than a finite mark.
+_Avoid_: zero-width or inverted score ranges, inverted marks ranges, tolerant `NaN` marks, per-boundary rules that disagree, re-validating criterion shape inside the marking function, numerical criterion bounds
 
 ### Criterion overview
 
@@ -157,8 +157,8 @@ The recorded evaluation of a **Criterion** for a Grade Target — criteria are w
 _Avoid_: assessment, assess, treating "grade" and "criterion grade" as distinct domain concepts, using "grade" for the aggregate (see **Total**)
 
 **Score**:
-The measured value a numerical **Criterion**'s **Grade** records (for example "12 subnets identified"), converted to a **Mark** by the criterion's configuration (`minScore..maxScore → minMarks..maxMarks`). A payload name, not a pipeline stage: the value pipeline is Grade → Mark → **Total** for every criterion type, and score is simply what a numerical grade's content is called — the same rank as a boolean grade's pass or an ordinal grade's label, which have no glossary entries at all. Never an aggregate (that is a **Total**).
-_Avoid_: mark, points, "score → grade → mark" as a pipeline, using "score" for boolean/ordinal criteria, "score" for the aggregate
+The measured value a **Number** **Criterion**'s **Grade** records (for example "12 subnets identified"), converted to a **Mark** by the criterion's configuration (`minScore..maxScore → minMarks..maxMarks`). A payload name, not a pipeline stage: the value pipeline is Grade → Mark → **Total** for every criterion type, and score is simply what a Number grade's content is called — the same rank as a Check grade's pass or an Options grade's label, which have no glossary entries at all. Never an aggregate (that is a **Total**).
+_Avoid_: mark, points, "score → grade → mark" as a pipeline, using "score" for Check/Options criteria, "score" for the aggregate
 
 **Mark**:
 The numeric value a **Grade** is worth, computed from the criterion's marks configuration. Grades are facts, marks are policy: retuning a criterion's marks configuration recomputes marks while every recorded grade survives untouched. Marks sum into **Totals**.
