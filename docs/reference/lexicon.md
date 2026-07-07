@@ -59,8 +59,8 @@ A person being graded, individually or as part of a group.
 _Avoid_: participant, user
 
 **Total**:
-The summed value across a rubric's criteria (a rubric total) or across a whole grid (a final total).
-_Avoid_: grade (when meaning the aggregate — grade names the individual record, not the sum), score (when meaning the aggregate), sum
+The summed value across a rubric's criteria (a rubric total) or across a whole grid (a final total). A single student's or group's aggregate — the Grades table's rightmost column — is a **Total**, not an "Average". The grid-wide mean of those totals is an **Average total** (never "Class average": a grid is not always a class). A genuine per-criterion mean across students, as in Criterion Analytics, is correctly an "Average".
+_Avoid_: grade (when meaning the aggregate — grade names the individual record, not the sum), score (when meaning the aggregate), sum, "Average" (for one target's total), "Class average" (for the grid-wide mean)
 
 ---
 
