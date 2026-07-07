@@ -5,14 +5,14 @@
 
 import type { ColumnType } from "kysely";
 
+export type CriterionKind = "check" | "number" | "options";
+
 export type Generated<T> =
 	T extends ColumnType<infer S, infer I, infer U>
 		? ColumnType<S, I | undefined, U>
 		: ColumnType<T, T | undefined, T>;
 
 export type Numeric = ColumnType<number, number | string, number | string>;
-
-export type RubricType = "boolean" | "numerical" | "ordinal";
 
 export type SubmissionType = "individual" | "team";
 
@@ -27,51 +27,73 @@ export interface Assessment {
 	updatedAt: Generated<Timestamp>;
 }
 
-export interface BooleanRubric {
+export interface CheckCriterion {
+	criterionId: number;
 	falseMarks: Generated<Numeric>;
 	id: Generated<number>;
 	marks: Numeric;
-	rubricId: number;
 }
 
-export interface BooleanRubricAssessment {
+export interface CheckCriterionAssessment {
+	criterionAssessmentId: number;
 	id: Generated<number>;
 	passed: boolean;
-	rubricAssessmentId: number;
 }
 
-export interface NumericalRubric {
+export interface Criterion {
+	createdAt: Generated<Timestamp>;
+	description: string | null;
+	id: string;
+	kind: CriterionKind;
+	label: string | null;
+	position: number;
+	projectId: number;
+	questionId: number;
+	rowId: Generated<number>;
+	updatedAt: Generated<Timestamp>;
+}
+
+export interface CriterionAssessment {
+	assessmentId: number;
+	createdAt: Generated<Timestamp>;
+	criterionId: number;
+	id: Generated<number>;
+	kind: CriterionKind;
+	updatedAt: Generated<Timestamp>;
+}
+
+export interface NumberCriterion {
+	criterionId: number;
 	id: Generated<number>;
 	maxMarks: Numeric;
 	maxScore: Numeric;
 	minMarks: Numeric;
 	minScore: Numeric;
 	reversed: Generated<boolean>;
-	rubricId: number;
 }
 
-export interface NumericalRubricAssessment {
+export interface NumberCriterionAssessment {
+	criterionAssessmentId: number;
 	id: Generated<number>;
-	rubricAssessmentId: number;
 	score: Numeric;
 }
 
-export interface OrdinalRubric {
+export interface OptionsCriterion {
+	criterionId: number;
 	id: Generated<number>;
-	rubricId: number;
 }
 
-export interface OrdinalRubricAssessment {
+export interface OptionsCriterionAssessment {
+	criterionAssessmentId: number;
 	id: Generated<number>;
-	rubricAssessmentId: number;
 	selectedLabel: string;
 }
 
-export interface OrdinalRubricValue {
+export interface OptionsCriterionMark {
 	id: Generated<number>;
 	label: string;
 	marks: Numeric;
-	ordinalRubricId: number;
+	optionsCriterionId: number;
 }
 
 export interface Project {
@@ -89,28 +111,6 @@ export interface Question {
 	position: Generated<number>;
 	projectId: number;
 	rowId: Generated<number>;
-	updatedAt: Generated<Timestamp>;
-}
-
-export interface Rubric {
-	createdAt: Generated<Timestamp>;
-	description: string | null;
-	id: string;
-	label: string | null;
-	position: number;
-	projectId: number;
-	questionId: number;
-	rowId: Generated<number>;
-	type: RubricType;
-	updatedAt: Generated<Timestamp>;
-}
-
-export interface RubricAssessment {
-	assessmentId: number;
-	createdAt: Generated<Timestamp>;
-	id: Generated<number>;
-	rubricId: number;
-	type: RubricType;
 	updatedAt: Generated<Timestamp>;
 }
 
@@ -149,17 +149,17 @@ export interface Team {
 
 export interface DB {
 	assessment: Assessment;
-	booleanRubric: BooleanRubric;
-	booleanRubricAssessment: BooleanRubricAssessment;
-	numericalRubric: NumericalRubric;
-	numericalRubricAssessment: NumericalRubricAssessment;
-	ordinalRubric: OrdinalRubric;
-	ordinalRubricAssessment: OrdinalRubricAssessment;
-	ordinalRubricValue: OrdinalRubricValue;
+	checkCriterion: CheckCriterion;
+	checkCriterionAssessment: CheckCriterionAssessment;
+	criterion: Criterion;
+	criterionAssessment: CriterionAssessment;
+	numberCriterion: NumberCriterion;
+	numberCriterionAssessment: NumberCriterionAssessment;
+	optionsCriterion: OptionsCriterion;
+	optionsCriterionAssessment: OptionsCriterionAssessment;
+	optionsCriterionMark: OptionsCriterionMark;
 	project: Project;
 	question: Question;
-	rubric: Rubric;
-	rubricAssessment: RubricAssessment;
 	student: Student;
 	studentToTeam: StudentToTeam;
 	submission: Submission;
