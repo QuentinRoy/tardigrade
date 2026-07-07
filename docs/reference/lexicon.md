@@ -51,7 +51,7 @@ The student's or group's display label — as the Grades table's first column he
 _Avoid_: student, group, submission (as a header), submitter
 
 **Number**:
-A criterion type: the grader enters a measured value (a **score**) that maps to marks by a configured range. One of the three criterion types (with **Check** and **Options**); the word shown in the type selector and the YAML `type:` field.
+A criterion type: the grader enters a value that maps to marks by a configured range. One of the three criterion types (with **Check** and **Options**); the word shown in the type selector and the YAML `type:` field.
 _Avoid_: numerical, numeric
 
 **Options**:
