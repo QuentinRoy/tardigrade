@@ -3,7 +3,7 @@ import {
 	projectAssessmentSubmissionPath,
 	projectAssessmentSubmissionQuestionPath,
 	projectAssessmentsPath,
-	projectOverviewPath,
+	projectResultsPath,
 } from "./projectPaths.ts";
 
 describe("project assessment routes", () => {
@@ -16,9 +16,9 @@ describe("project assessment routes", () => {
 		);
 	});
 
-	it("builds assessments overview path", () => {
-		expect(projectOverviewPath({ projectId, projectSlug })).toBe(
-			"/projects/proj_123/cs101/assessments/overview",
+	it("builds assessments results path", () => {
+		expect(projectResultsPath({ projectId, projectSlug })).toBe(
+			"/projects/proj_123/cs101/assessments/results",
 		);
 	});
 

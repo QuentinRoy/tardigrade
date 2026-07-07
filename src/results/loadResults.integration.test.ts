@@ -3,7 +3,7 @@ import { expect, test } from "vitest";
 import type { DB } from "#db/generated/db.ts";
 import { buildTestId, createTestDb } from "#test/dbIntegration.ts";
 import { createProject } from "#test/projects.ts";
-import { loadRubricAssessmentRecordsFromDb } from "./loadRubricOverview.ts";
+import { loadCriterionAssessmentRecordsFromDb } from "./loadResults.ts";
 
 async function createSubmission(
 	db: Kysely<DB>,
@@ -251,7 +251,7 @@ async function addNumericalAssessment(
 		.execute();
 }
 
-test("loadRubricAssessmentRecordsFromDb maps the per-type value column for boolean, ordinal and numerical assessments", async () => {
+test("loadCriterionAssessmentRecordsFromDb maps the per-type value column for boolean, ordinal and numerical assessments", async () => {
 	await using db = await createTestDb();
 	await using project = await createProject(db, "Rubric Overview Types");
 
@@ -303,35 +303,35 @@ test("loadRubricAssessmentRecordsFromDb maps the per-type value column for boole
 		score: 7,
 	});
 
-	const records = await loadRubricAssessmentRecordsFromDb(db, {
+	const records = await loadCriterionAssessmentRecordsFromDb(db, {
 		projectId: project.id,
 	});
 
 	expect(records).toHaveLength(3);
 
-	const byRubricId = new Map(
-		records.map((record) => [record.rubricId, record]),
+	const byCriterionId = new Map(
+		records.map((record) => [record.criterionId, record]),
 	);
 
-	expect(byRubricId.get(booleanRubricId)).toEqual({
-		submissionId,
-		rubricId: booleanRubricId,
+	expect(byCriterionId.get(booleanRubricId)).toEqual({
+		gradeTargetId: submissionId,
+		criterionId: booleanRubricId,
 		type: "boolean",
 		passed: true,
 		selectedLabel: null,
 		score: null,
 	});
-	expect(byRubricId.get(ordinalRubricId)).toEqual({
-		submissionId,
-		rubricId: ordinalRubricId,
+	expect(byCriterionId.get(ordinalRubricId)).toEqual({
+		gradeTargetId: submissionId,
+		criterionId: ordinalRubricId,
 		type: "ordinal",
 		passed: null,
 		selectedLabel: "high",
 		score: null,
 	});
-	expect(byRubricId.get(numericalRubricId)).toEqual({
-		submissionId,
-		rubricId: numericalRubricId,
+	expect(byCriterionId.get(numericalRubricId)).toEqual({
+		gradeTargetId: submissionId,
+		criterionId: numericalRubricId,
 		type: "numerical",
 		passed: null,
 		selectedLabel: null,
@@ -339,7 +339,7 @@ test("loadRubricAssessmentRecordsFromDb maps the per-type value column for boole
 	});
 });
 
-test("loadRubricAssessmentRecordsFromDb excludes assessment records from other projects", async () => {
+test("loadCriterionAssessmentRecordsFromDb excludes assessment records from other projects", async () => {
 	await using db = await createTestDb();
 	await using projectA = await createProject(db, "Rubric Overview Isolation A");
 	await using projectB = await createProject(db, "Rubric Overview Isolation B");
@@ -393,17 +393,17 @@ test("loadRubricAssessmentRecordsFromDb excludes assessment records from other p
 		passed: false,
 	});
 
-	const recordsA = await loadRubricAssessmentRecordsFromDb(db, {
+	const recordsA = await loadCriterionAssessmentRecordsFromDb(db, {
 		projectId: projectA.id,
 	});
-	const recordsB = await loadRubricAssessmentRecordsFromDb(db, {
+	const recordsB = await loadCriterionAssessmentRecordsFromDb(db, {
 		projectId: projectB.id,
 	});
 
 	expect(recordsA).toEqual([
 		{
-			submissionId: submissionA,
-			rubricId: rubricIdA,
+			gradeTargetId: submissionA,
+			criterionId: rubricIdA,
 			type: "boolean",
 			passed: true,
 			selectedLabel: null,
@@ -412,8 +412,8 @@ test("loadRubricAssessmentRecordsFromDb excludes assessment records from other p
 	]);
 	expect(recordsB).toEqual([
 		{
-			submissionId: submissionB,
-			rubricId: rubricIdB,
+			gradeTargetId: submissionB,
+			criterionId: rubricIdB,
 			type: "boolean",
 			passed: false,
 			selectedLabel: null,

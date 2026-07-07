@@ -3,14 +3,14 @@
 import { Box, Group, Stack, Text, Tooltip } from "@mantine/core";
 import { IconInfoCircle } from "@tabler/icons-react";
 import type { ReactElement, ReactNode } from "react";
-import type { RubricOverviewPopupDetails } from "./rubricOverviewBuilder.ts";
+import type { CriterionDetails } from "./resultsBuilder.ts";
 
-type RubricDetailsTooltipProps = {
-	rubricId: string;
-	details: RubricOverviewPopupDetails;
+type CriterionDetailsTooltipProps = {
+	criterionId: string;
+	details: CriterionDetails;
 };
 
-function propertyRows(details: RubricOverviewPopupDetails): ReactNode[] {
+function propertyRows(details: CriterionDetails): ReactNode[] {
 	if (details.properties.type === "boolean") {
 		return [
 			<Text key="true" size="xs">
@@ -43,16 +43,16 @@ function propertyRows(details: RubricOverviewPopupDetails): ReactNode[] {
 	];
 }
 
-export default function RubricDetailsTooltip({
-	rubricId,
+export default function CriterionDetailsTooltip({
+	criterionId,
 	details,
-}: RubricDetailsTooltipProps): ReactElement {
+}: CriterionDetailsTooltipProps): ReactElement {
 	return (
 		<Tooltip
 			label={
 				<Stack gap="xs">
 					<Text size="xs" fw={600}>
-						{details.label ?? rubricId}
+						{details.label ?? criterionId}
 					</Text>
 					{details.description != null && details.description.length > 0 && (
 						<Text size="xs">{details.description}</Text>
@@ -74,7 +74,7 @@ export default function RubricDetailsTooltip({
 				style={{ cursor: "help" }}
 			>
 				<Text component="span" size="sm" td="underline dotted">
-					{rubricId}
+					{criterionId}
 				</Text>
 				<Box component="span" c="dimmed" display="inline-flex">
 					<IconInfoCircle size={14} />

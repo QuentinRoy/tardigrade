@@ -25,8 +25,8 @@ export function projectAssessmentsPath(project: ProjectRef): string {
 	return `${projectBasePath(project)}/assessments`;
 }
 
-export function projectOverviewPath(project: ProjectRef): string {
-	return `${projectAssessmentsPath(project)}/overview`;
+export function projectResultsPath(project: ProjectRef): string {
+	return `${projectAssessmentsPath(project)}/results`;
 }
 
 export function projectAssessmentSubmissionPath({

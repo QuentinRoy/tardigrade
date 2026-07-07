@@ -2,13 +2,13 @@ import { readFileSync } from "node:fs";
 import { expect, type Page, test } from "@playwright/test";
 import {
 	projectExportSubmissionsPath,
-	projectOverviewPath,
+	projectResultsPath,
 } from "#projects/projectPaths.ts";
 import {
 	EXPECTED_COMPLETION,
+	EXPECTED_CRITERION_ANALYTICS,
+	EXPECTED_GRADE_MATRIX,
 	EXPECTED_GRAND_TOTAL_MARKS,
-	EXPECTED_RUBRIC_ANALYTICS,
-	EXPECTED_SUBMISSION_MATRIX,
 	PROJECT_NAME,
 } from "./fixtures/expectations.ts";
 
@@ -88,31 +88,31 @@ async function rowCellTexts(
 	return cells.map((cell) => cell.trim());
 }
 
-async function expectRubricAnalyticsRow(
+async function expectCriterionAnalyticsRow(
 	page: Page,
-	expected: (typeof EXPECTED_RUBRIC_ANALYTICS)[number],
+	expected: (typeof EXPECTED_CRITERION_ANALYTICS)[number],
 ): Promise<void> {
-	const table = page.getByRole("table", { name: "Rubric analytics" });
-	const row = table.getByRole("row", { name: expected.rubricId });
+	const table = page.getByRole("table", { name: "Analytics" });
+	const row = table.getByRole("row", { name: expected.criterionId });
 	expect(await rowCellTexts(row)).toEqual([
-		expected.questionId,
 		expected.rubricId,
+		expected.criterionId,
 		expected.average,
 		`${expected.completion.completed} / ${expected.completion.total}`,
 	]);
 }
 
-async function expectSubmissionMatrixRow(
+async function expectGradeMatrixRow(
 	page: Page,
-	expected: (typeof EXPECTED_SUBMISSION_MATRIX)[number],
+	expected: (typeof EXPECTED_GRADE_MATRIX)[number],
 ): Promise<void> {
-	const table = page.getByRole("table", { name: "Submission matrix" });
-	const row = table.getByRole("row", { name: expected.submissionLabel });
+	const table = page.getByRole("table", { name: "Grades" });
+	const row = table.getByRole("row", { name: expected.label });
 	expect(await rowCellTexts(row)).toEqual([
-		expected.submissionLabel,
+		expected.label,
 		expected.cells.r1,
 		expected.cells.r2,
-		expected.average,
+		expected.total,
 		`${expected.completion.completed} / ${expected.completion.total}`,
 	]);
 }
@@ -229,29 +229,25 @@ test("grading workflow: import, assess, persist, and export a computed total", a
 		EXPECTED_COMPLETION.submissions,
 	);
 
-	// Visit the assessments-overview page: it renders RubricAnalyticsTable and
-	// SubmissionMatrix, Server Components that use Mantine's Table.* compound
+	// Visit the results page: it renders CriterionAnalyticsTable and
+	// GradeMatrix, Server Components that use Mantine's Table.* compound
 	// subcomponents. Those regressed with an RSC boundary crash ("Element type
 	// is invalid") that no other check caught — tsc has no notion of the
 	// client/server boundary, and this route isn't statically prerendered, so
 	// only an actual render (here, or a real request) exercises it.
-	await page.goto(projectOverviewPath({ projectId, projectSlug }));
-	await expect(
-		page.getByRole("table", { name: "Rubric analytics" }),
-	).toBeVisible();
-	await expect(
-		page.getByRole("table", { name: "Submission matrix" }),
-	).toBeVisible();
+	await page.goto(projectResultsPath({ projectId, projectSlug }));
+	await expect(page.getByRole("table", { name: "Analytics" })).toBeVisible();
+	await expect(page.getByRole("table", { name: "Grades" })).toBeVisible();
 
 	// Capture and compare every matrix cell, not just visibility: each row's
 	// average and completion are computed roll-ups (see
-	// `rubricOverviewBuilder.ts`), so this proves the aggregation itself, not
+	// `resultsBuilder.ts`), so this proves the aggregation itself, not
 	// just that the page rendered something.
-	for (const expected of EXPECTED_RUBRIC_ANALYTICS) {
-		await expectRubricAnalyticsRow(page, expected);
+	for (const expected of EXPECTED_CRITERION_ANALYTICS) {
+		await expectCriterionAnalyticsRow(page, expected);
 	}
-	for (const expected of EXPECTED_SUBMISSION_MATRIX) {
-		await expectSubmissionMatrixRow(page, expected);
+	for (const expected of EXPECTED_GRADE_MATRIX) {
+		await expectGradeMatrixRow(page, expected);
 	}
 
 	// Export the submissions CSV via the GET route (request context avoids

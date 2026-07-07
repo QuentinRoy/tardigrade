@@ -5,7 +5,7 @@
 - **Origin:** #99 terminology convergence; `CONTEXT.md`, `docs/reference/lexicon.md`
 - **Tracked by:** #99 (and #136 for the submission → Grade Target portion)
 
-The vocabulary is settled in `CONTEXT.md` (internal domain glossary) and `docs/reference/lexicon.md` (user-facing). This plan applies those decisions to the implementation. No terminology decisions remain — this is mechanical application, staged so each step is independently reviewable and shippable.
+The vocabulary is settled in `CONTEXT.md` (internal domain glossary) and `docs/reference/lexicon.md` (user-facing). This plan applies those decisions to the implementation, staged so each step is independently reviewable and shippable. Mostly mechanical application — but grilling stage 1 (2026-07-07) surfaced one genuine terminology decision the sweep had to make: the grid's summary surfaces (**Dashboard**, "Rubric overview", "Analytics") were near-synonyms. Resolved to **Overview** (grid home — retires "Dashboard") vs **Results** (the outcomes page holding the **Grades** matrix + **Analytics** breakdown); recorded in the lexicon.
 
 ## State of the code (2026-07-06, after the MUI → Mantine merge #242)
 
@@ -28,7 +28,8 @@ So a few "old term" starting points below have already moved, and the sweep addi
 | Assessment (record + act) | Grade | tables (`assessment`, `rubric_assessment`, `*_rubric_assessment`), `saveAssessment`, code, UI |
 | Assessment Completion | Grade Completion | code, projections |
 | Submission Matrix | Grade Matrix (internal) / "Grades" (UI) | component, aria-label, UI |
-| Rubric Analytics | Criterion Analytics / "Analytics" (nav) | component, UI |
+| Rubric Analytics | Criterion Analytics (internal) / "Analytics" (section on Results) | component, UI |
+| Rubric overview (page) | **Results** page (Grades + Analytics); grid home "Dashboard" → **Overview** | page titles, routes, nav |
 | Marks (aggregate) | Total | export columns (`grand_total_marks` → `final_total`), code |
 | progress (as a synonym for completion) | Completion | `progress`/`progressPromise`/`progressLabel` props, `CompletionProgress` component, UI copy — unify on Completion (the concept `CONTEXT.md` settled) |
 | boolean / ordinal / numerical (criterion kinds) | Check / Options / Number | `criterion_kind` DB enum (was `rubric_type`), subtype tables (`boolean_rubric*` → `check_criterion*` etc.), code, YAML `kind:` field + values, UI kind selector — one vocabulary end to end, no internal/external split. The classifier word is `kind`, matching the grade row's `kind` column (never "type") |
@@ -38,11 +39,12 @@ Value pipeline is **Grade → Mark → Total** for every criterion kind; a grade
 ## Routes (final shape)
 
 ```
+/grids/[gridId]/[gridSlug]/                                 (Overview — grid home, was "Dashboard")
 /grids/[gridId]/[gridSlug]/rubrics/
 /grids/[gridId]/[gridSlug]/grades/
 /grids/[gridId]/[gridSlug]/grades/[targetId]/[targetSlug]/
 /grids/[gridId]/[gridSlug]/grades/[targetId]/[targetSlug]/rubrics/[rubricId]/
-/grids/[gridId]/[gridSlug]/analytics/
+/grids/[gridId]/[gridSlug]/results/                         (Results — Grades + Analytics, was "/analytics/")
 /grids/[gridId]/[gridSlug]/import/...
 ```
 
@@ -55,7 +57,13 @@ Value pipeline is **Grade → Mark → Total** for every criterion kind; a grade
 
 Each stage is one or more PRs, own migration where schema changes, Kysely types regenerated, tests updated. Order minimizes cross-stage churn (rename leaf-inward and identifier-outward). Per `docs/reference/database-migrations.md`, committed migrations are not rewritten — every schema rename is a new migration.
 
-1. **`rubric-analytics/` module** — self-contained, TypeScript-only (no schema/route change): `SubmissionMatrix` → `GradeTargetMatrix` (aria-label/UI "Grades"), `RubricAnalyticsTable` → `CriterionAnalyticsTable`, internal fields (`submissionId`/`submissionLabel` → `gradeTargetId`/`label`, `questionId`/`questionLabel` → `rubricId`/`rubricLabel`, leaf `rubricId` → `criterionId`, `assessedRubrics`/`totalRubrics` → `assessedCriteria`/`totalCriteria`), folder rename. Two confirmed label bugs to fix here: (a) the Grades table's per-row "Average" column renders `marks/maxMarks` — a target's **Total**, not a mean — relabel to **Total**; the Criterion Analytics "Average" column is a real per-criterion mean and stays. (b) the overview's **"Class average"** stat (`app/.../assessments/overview/page.tsx`, from `classAverageMarks`/`classAverageMaxMarks`) is the grid-wide mean of target totals — relabel to **Average total** and rename the `classAverage*` identifiers to `averageTotal*` (a grid is not always a class).
+1. **Results page + analytics module** — self-contained, TypeScript-only (no schema change): rename the readout page to **Results** and reduce it to its two tables. Adopts final Grade-Target/Rubric/Criterion names *inside this module* ahead of the schema stages (it imports the not-yet-renamed `#questions`/`#rubrics`/`#submissions`, which stay old until their stages); the assess→grade axis is untouched here (stage 5) — fields keep "assessed"/"assessment".
+   - **Components:** `SubmissionMatrix` → `GradeMatrix` (renders the **Grades** table; aria-label/heading "Grades" — note "Grade Matrix" per `CONTEXT.md`, *not* "GradeTargetMatrix"), `RubricAnalyticsTable` → `CriterionAnalyticsTable` (heading "Analytics").
+   - **Page** (`app/.../assessments/overview/page.tsx`): title "Rubric overview" → **"Results"**; section headings "Rubric analytics" → **"Analytics"**, "Submission matrix" → **"Grades"**. Nav-drawer item "Rubric overview" → "Results". `projectOverviewPath` → `projectResultsPath` (frees `projectOverviewPath` for the Dashboard→Overview follow-up, stage 8).
+   - **Remove the page-level summary strip entirely** (graded-count, completion, average-total — all duplicated by the grid home). This deletes `RubricOverviewSummary`, the `summary` projection, and the `classAverage*` fields. Consequences: former **bug-fix (b)** (relabel "Class average" → "Average total") is **mooted** (deleted, not relabeled), and the `assessedRubrics`/`totalRubrics` → `assessedCriteria`/`totalCriteria` rename is **mooted** (both were summary-only fields). Trim the corresponding `summary` assertions from the builder tests.
+   - **Bug-fix (a), kept:** the Grades table's per-row "Average" column renders `marks/maxMarks` — a target's **Total**, not a mean — relabel to **Total**. The Criterion Analytics "Average" column is a real per-criterion mean and stays.
+   - **Internal field renames:** `submissionId`/`submissionLabel` → `gradeTargetId`/`label`, `questionId`/`questionLabel` → `rubricId`/`rubricLabel`, leaf `rubricId` → `criterionId` (note this *reuses* `rubricId` for the container that `questionId` named — sequence the rename to avoid a half-state where `rubricId` means both).
+   - **Folder + `*Overview*` symbol-family rename** — folder `src/rubric-analytics/` → `src/results/`. The "overview" prefix named *this page's data*, so it becomes `Results`: `rubricOverviewBuilder.ts`/`loadRubricOverview.ts` → `resultsBuilder.ts`/`loadResults.ts`; `RubricOverviewData`/`buildRubricOverviewData`/`loadRubricOverviewData`/`rubricOverviewCacheTags` → `ResultsData`/`buildResultsData`/`loadResultsData`/`resultsCacheTags`. Row types named for what each row *is*: `RubricOverviewRow` (per-leaf) → `CriterionRow`, `RubricOverviewSubmissionRow` (per-target) → `GradeTargetRow` (`.rubrics` → `.criteria`, `completedRubrics`/`totalRubrics` → `completedCriteria`/`totalCriteria`), `RubricOverviewSubmissionCell` → `GradeTargetCell`. `RubricOverviewAssessmentRecord`/`loadRubricAssessmentRecordsFromDb` → `ResultsAssessmentRecord`/`loadCriterionAssessmentRecordsFromDb` (keep "Assessment" — stage 5); its `select` aliases rename (`… as gradeTargetId`, `… as criterionId`) while the SQL table/column identifiers stay old. Tooltip swap: `RubricDetailsTooltip` (leaf) → `CriterionDetailsTooltip`, then `QuestionDetailsTooltip` (container) → `RubricDetailsTooltip`. `CompletionProgress`/`MarksBadge.module.css` unchanged.
 2. **Question → Rubric / Rubric → Criterion** — schema (tables, FKs, triggers), Kysely types, code, YAML import, UI. Largest leaf rename; do before the submission and grade renames so those build on final names.
 3. **Team → Group** — schema, code, students CSV, UI.
 4. **Submission → Grade Target** — schema (`submission` → `grade_target`, generated numeric `id` → `row_id`, new public `id` scoped by grid per #136), FKs to `_row_id`, routes (`/assessments/submissions/[submissionId]` → `/grades/[targetId]`), cache tags, exports, `kind`/`name` CSV columns. This is the #136 core.
@@ -67,7 +75,13 @@ Each stage is one or more PRs, own migration where schema changes, Kysely types 
 
 7c. **Check answers → Yes/No, polarity-neutral** — the two answers are user-facing **Yes**/**No** (editor `True marks`/`False marks` → `Yes marks`/`No marks`; grade-control segment labels True/False → Yes/No). The internal boolean (`passed`, `marks`/`falseMarks`) may stay, since the underlying type is genuinely boolean. Also de-polarize the grade control: the green-✓/red-✗ coloring asserts true=good, wrong for a reversed Check (more marks on No) — color neutrally or by marks earned, not by the answer.
 
+8. **Dashboard → Overview (grid home)** — retire "Dashboard" as user-facing vocabulary: the grid-home page (`app/projects/[projectId]/[projectSlug]/page.tsx`) title `{name} Dashboard` → Overview, breadcrumb/home nav, and `projectDashboardPath` → `projectOverviewPath`. Split out of stage 1 because it lives in a different surface (grid home / `assessment-completion` / `app-shell`, not the analytics module). **Must run after stage 1**, which frees the `projectOverviewPath` name by renaming the readout page's path to `projectResultsPath`. Cosmetically independent of stage 1 (the home page already shows status via `GlobalAssessmentSummary`); will be re-touched by Project→Grid (stage 6) regardless.
+
 7. **UI copy audit and contract docs** — sweep every user-facing string against `docs/reference/lexicon.md`: "Grades"/"Analytics"/"Name" labels, error messages, empty states, headings. Add any missing Lexicon entries surfaced during the audit (the Lexicon is a dictionary only — word: definition; contracts don't live there). Document the implemented URL tree and import/export column sets durably: README Import Formats plus a reference doc for URL conventions — this plan's "Routes" and "CSV columns" sections above are the spec until then.
+
+## State (handoff)
+
+- **Stage 1 done** — [PR #245](https://github.com/QuentinRoy/tardigrade/pull/245): `src/rubric-analytics/` → `src/results/` with the full `RubricOverview*` → `Results*`/`CriterionRow`/`GradeTargetRow` symbol-family rename, the leaf/container swap (`SubmissionMatrix` → `GradeMatrix`, `RubricAnalyticsTable` → `CriterionAnalyticsTable`, tooltip swap), page retitled Results with Analytics/Grades sections, route `/assessments/overview` → `/assessments/results`, summary strip removed (mooting the original "Class average" → "Average total" bug-fix), Grades table's "Average" column relabeled "Total". Grilling this stage also settled the Overview-vs-Results split now reflected in stages 1/8 above and in the lexicon. Validated: `check --fix`, `check-types`, `lint:boundaries`, full `vitest` suite (361/361), production `build` + `test:e2e`, manual browser check against a real project — all green.
 
 ## Out of scope
 
