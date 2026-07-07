@@ -1,5 +1,7 @@
 # Grading
 
+**Tardigrade** is the app's public-facing name (a play on the near-indestructible micro-animal + "grade"). The repository, package names, and technical identifiers stay `grading` — the brand name lives in user-facing surfaces only. See [#106](https://github.com/QuentinRoy/grading/issues/106) for the decision.
+
 A Next.js app for rubric-based assessment workflows:
 
 - Import questions, students, and assessment values.
