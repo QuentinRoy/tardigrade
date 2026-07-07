@@ -58,6 +58,10 @@ _Avoid_: points, value (a mark is the worth, not the entered value), grade (when
 The student's or group's display label — as the Grades table's first column header and as the `name` CSV column. A fixed word, so it stays correct whether a grid contains individuals, groups, or both.
 _Avoid_: student, group, submission (as a header), submitter
 
+**No**:
+One of the two answers to a **Check** criterion (the other is **Yes**). Each answer carries its own marks; No may be worth more than Yes — a Check has no built-in "fail".
+_Avoid_: false, fail
+
 **Number**:
 A criterion type: the grader enters a value that maps to marks by a configured range. One of the three criterion types (with **Check** and **Options**); the word shown in the type selector and the YAML `type:` field.
 _Avoid_: numerical, numeric
@@ -81,6 +85,10 @@ _Avoid_: grade (when meaning the aggregate — grade names the individual record
 **Value**:
 The number a grader enters on a **Number** criterion (a count or a measurement), which maps to marks. Its allowed range is set by the criterion's Min value and Max value.
 _Avoid_: score (fully retired — it read as a good-thing tally, wrong for reversed criteria where a higher value earns fewer marks)
+
+**Yes**:
+One of the two answers to a **Check** criterion (the other is **No**). Each answer carries its own marks; Yes is not inherently the higher-marked or "pass" answer.
+_Avoid_: true, pass
 
 ---
 
