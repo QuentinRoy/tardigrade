@@ -36,6 +36,11 @@ const meta = {
 		}),
 		progressLabel: "rubrics",
 	},
+	argTypes: {
+		// A Promise is not a serializable control value; leaving it editable makes
+		// Storybook's Controls addon warn about a cycle while inspecting the arg.
+		progressPromise: { control: false },
+	},
 } satisfies Meta<typeof SubmissionSelector>;
 
 export default meta;
