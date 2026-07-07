@@ -1,5 +1,7 @@
 # Grading
 
+**Tardigrade** is the app's public-facing name (a play on the near-indestructible micro-animal + "grade"). The repository, package names, and technical identifiers stay `grading` — the brand name lives in user-facing surfaces only. See [#106](https://github.com/QuentinRoy/grading/issues/106) for the decision.
+
 A Next.js app for rubric-based assessment workflows:
 
 - Import questions, students, and assessment values.
@@ -115,9 +117,12 @@ pnpm db:types:generate              # Regenerate database types.
 3. Open `/assessments` to grade by submission or by question.
 4. Use **Export CSV** from the home page to download assessment data.
 
-## Collaboration Conventions
+## Conventions
 
-Use the canonical workflow guidance in [docs/guides/issue-and-pr-conventions.md](docs/guides/issue-and-pr-conventions.md) for issue, PR, and label conventions. That document owns the detailed templates, label guidance, and planning notes.
+- **Domain terminology** (internal/dev-facing): [CONTEXT.md](CONTEXT.md) is the canonical glossary — read it before changing domain terms, identifiers, or contracts.
+- **User-facing vocabulary** (UI labels, headings, messages): [docs/reference/lexicon.md](docs/reference/lexicon.md) is the canonical word list — check it before writing new UI copy.
+- **Issue, PR, and label conventions**: [docs/guides/issue-and-pr-conventions.md](docs/guides/issue-and-pr-conventions.md) owns the detailed templates, label guidance, and planning notes.
+- **Full documentation map**: [docs/index.md](docs/index.md) indexes every ADR, investigation, design doc, and reference doc in the repo.
 
 ## Import Formats
 

@@ -33,9 +33,8 @@ Open-ended audits and option analysis. Investigations may contain hypotheses and
 ### Product and domain investigations
 
 - [Grading workflows and product positioning](investigations/2026-05-22-grading-workflows-and-product-positioning.md)
-- [Domain terminology audit](investigations/2026-05-20-domain-terminology-audit.md)
-- [Assessment target model](investigations/2026-05-20-assessment-target-model.md)
-- [Mark, grade and weighting model](investigations/2026-05-20-mark-grade-weighting-model.md)
+- [Assessment target model](investigations/2026-05-20-assessment-target-model.md) — terminology resolved (Group, Grade Target); structural model still open.
+- [Mark, grade and weighting model](investigations/2026-05-20-mark-grade-weighting-model.md) — terminology resolved (Score → Mark → Total, Grade); aggregation model still open.
 
 ### Technical architecture investigations
 
@@ -48,6 +47,7 @@ Open-ended audits and option analysis. Investigations may contain hypotheses and
 - [Caching and loading audit](investigations/2026-06-11-caching-loading-audit.md) — resolved; all 13 planned PRs landed, #59 closed.
 - [Investigation overlap audit](investigations/2026-05-25-investigation-overlap-audit.md) — coordinated #115/#117 sequencing; all related issues are now closed.
 - [Agent instruction architecture audit](investigations/2026-05-26-agent-instruction-architecture-audit.md)
+- [Domain terminology audit](investigations/2026-05-20-domain-terminology-audit.md) — vocabulary converged into `CONTEXT.md` + `docs/reference/lexicon.md`; application staged in `plans/2026-07-06-terminology-sweep.md`.
 - [Commit message conventions](investigations/2026-05-20-commit-message-conventions.md)
 - [Source structure around product verticals](investigations/2026-06-28-source-structure-product-verticals.md) — direction accepted in ADR 0010; execution staged via a follow-up plan.
 
@@ -66,6 +66,7 @@ Short records of durable architecture decisions.
 - [0009 Server-side logging with pino](adr/0009-server-side-logging-with-pino.md)
 - [0010 Organize `src/` as enforced vertical layers](adr/0010-organize-src-as-enforced-vertical-layers.md) (supersedes ADR 0006)
 - [0011 Adopt Mantine with a constrained, app-owned design system](adr/0011-adopt-mantine-constrained-design-system.md)
+- [0012 Converge the domain vocabulary; keep separate internal and user-facing glossaries](adr/0012-converged-domain-vocabulary-and-two-glossaries.md)
 - Add new ADRs under `docs/adr/`.
 
 ## Designs
@@ -82,6 +83,7 @@ Durable facts about current system behavior, formats, and contracts.
 - [Cache invalidation map](reference/cache-invalidation-map.md)
 - [Database migrations](reference/database-migrations.md)
 - [Testing conventions](reference/testing-conventions.md)
+- [Lexicon: user-facing vocabulary](reference/lexicon.md)
 - Add new reference docs under `docs/reference/`.
 
 ## Guides

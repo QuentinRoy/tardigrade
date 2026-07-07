@@ -3,6 +3,7 @@
 - **Status:** Active
 - **Created:** 2026-05-20
 - **Related:** #99
+- **Note (2026-07-06):** The *terminology* questions here are resolved (see `CONTEXT.md`): the grouping unit is **Group** (not Team), and the row of a Grid is a **Grade Target** (code-only; UI names the Student or Group). The *structural* questions remain open and keep this investigation Active: whether Student and Group unify under a singleton-Group persistence model, and whether a Group of one replaces the individual branch. Those are not decided by the #99 vocabulary work.
 
 This document captures current thinking about assessment targets, group terminology, and the relation between individual and grouped assessments.
 

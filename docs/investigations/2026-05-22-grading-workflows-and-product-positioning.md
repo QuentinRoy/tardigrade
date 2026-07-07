@@ -4,7 +4,7 @@
 - **Created:** 2026-05-22
 - **Related:** #112
 
-Note: "Dumbgrade" is currently used informally as a working project name and may change.
+Note: the app's public-facing name is **Tardigrade** (decided in #106; earlier working names "Dumbgrade" and "BonPoint" are dropped). The repository and technical identifiers stay `grading`.
 
 ## Question
 
