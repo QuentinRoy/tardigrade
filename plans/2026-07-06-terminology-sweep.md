@@ -79,6 +79,10 @@ Each stage is one or more PRs, own migration where schema changes, Kysely types 
 
 7. **UI copy audit and contract docs** — sweep every user-facing string against `docs/reference/lexicon.md`: "Grades"/"Analytics"/"Name" labels, error messages, empty states, headings. Add any missing Lexicon entries surfaced during the audit (the Lexicon is a dictionary only — word: definition; contracts don't live there). Document the implemented URL tree and import/export column sets durably: README Import Formats plus a reference doc for URL conventions — this plan's "Routes" and "CSV columns" sections above are the spec until then.
 
+## State (handoff)
+
+- **Stage 1 done** — [PR #245](https://github.com/QuentinRoy/tardigrade/pull/245): `src/rubric-analytics/` → `src/results/` with the full `RubricOverview*` → `Results*`/`CriterionRow`/`GradeTargetRow` symbol-family rename, the leaf/container swap (`SubmissionMatrix` → `GradeMatrix`, `RubricAnalyticsTable` → `CriterionAnalyticsTable`, tooltip swap), page retitled Results with Analytics/Grades sections, route `/assessments/overview` → `/assessments/results`, summary strip removed (mooting the original "Class average" → "Average total" bug-fix), Grades table's "Average" column relabeled "Total". Grilling this stage also settled the Overview-vs-Results split now reflected in stages 1/8 above and in the lexicon. Validated: `check --fix`, `check-types`, `lint:boundaries`, full `vitest` suite (361/361), production `build` + `test:e2e`, manual browser check against a real project — all green.
+
 ## Out of scope
 
 - Structural model changes deferred by the investigations: unifying Student/Group under a singleton-Group persistence model (assessment target model investigation), the aggregate-Total computation itself (mark/grade/weighting investigation — Total is named but unbuilt), dynamic target creation (#61), draft/unresolved target state.
