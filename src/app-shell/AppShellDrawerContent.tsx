@@ -12,8 +12,8 @@ import {
 	projectImportAssessmentsPath,
 	projectImportQuestionsPath,
 	projectImportStudentsPath,
-	projectOverviewPath,
 	projectQuestionsPath,
+	projectResultsPath,
 } from "#projects/projectPaths.ts";
 import { useLocalStorage } from "#utils/useLocalStorage.ts";
 import { getProjectRouteContext } from "./AppShell.shared.ts";
@@ -133,10 +133,7 @@ export default function AppShellDrawerContent({
 
 	const assessmentItems: NavigationItem[] = [
 		{ label: "Assessments", href: projectAssessmentsPath(projectRouteContext) },
-		{
-			label: "Rubric overview",
-			href: projectOverviewPath(projectRouteContext),
-		},
+		{ label: "Results", href: projectResultsPath(projectRouteContext) },
 	];
 
 	const managementItems: NavigationItem[] = [

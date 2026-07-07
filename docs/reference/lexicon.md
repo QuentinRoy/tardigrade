@@ -11,7 +11,7 @@ A single criterion's mean mark across all students and groups — the Criterion 
 _Avoid_: using "Average" for one student's total (that is a **Total**)
 
 **Average total**:
-The grid-wide mean of students' and groups' totals — the overview summary stat. Distinct from an **Average** (one criterion's mean) and a **Total** (one student's or group's sum).
+The grid-wide mean of students' and groups' totals. Distinct from an **Average** (one criterion's mean) and a **Total** (one student's or group's sum). Not currently surfaced anywhere — a named concept awaiting a home once **Total** is built.
 _Avoid_: class average (a grid is not always a class)
 
 **Check**:
@@ -27,7 +27,7 @@ One graded item within a rubric.
 _Avoid_: rubric (when meaning a single graded item)
 
 **Criterion Analytics**:
-The overview table showing each criterion's average marks and completion across students and groups. Navigation may shorten it to **Analytics** where the context is already a grid.
+The table showing each criterion's average marks and completion across students and groups. Shown as the **Analytics** section of the **Results** page.
 _Avoid_: rubric analytics
 
 **Grade**:
@@ -69,6 +69,14 @@ _Avoid_: numerical, numeric
 **Options**:
 A criterion kind: the grader picks one of several labels the author defines, each worth some marks. The labels are unordered and may share marks. One of the three criterion kinds (with **Check** and **Number**); the word shown in the kind selector and the YAML `kind:` field.
 _Avoid_: ordinal, scale, rating, levels (imply an order Options does not have)
+
+**Overview**:
+A grid's home page: its grading progress at a glance and the links to start grading, manage rubrics, and import. The status-and-navigation page, distinct from **Results**, which shows the grades themselves.
+_Avoid_: dashboard
+
+**Results**:
+The page showing a grid's outcomes: the **Grades** table (every student or group against every criterion) and the **Analytics** breakdown (each criterion's averages). Distinct from **Overview**, which shows progress and navigation but no result tables.
+_Avoid_: analytics (as the page name — Analytics is a section within Results), rubric overview, submission matrix (as the page name)
 
 **Rubric**:
 The grading grid for one exercise or section: its criteria, and how each one is graded.

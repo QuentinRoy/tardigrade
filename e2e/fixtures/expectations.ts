@@ -45,52 +45,51 @@ export const EXPECTED_COMPLETION = {
 	rubrics: { completed: 4, total: 6 },
 };
 
-// RubricAnalyticsTable aggregates each rubric across submissions (see
-// `src/rubric-analytics/rubricOverviewBuilder.ts`): average = mean marks over
-// *assessed* submissions only (jane_smith's unassessed cells don't count),
-// formatted as `<average> / <maxMarks>`; completion = assessed / total
-// submissions.
+// CriterionAnalyticsTable aggregates each criterion across grade targets (see
+// `src/results/resultsBuilder.ts`): average = mean marks over *assessed*
+// grade targets only (jane_smith's unassessed cells don't count), formatted
+// as `<average> / <maxMarks>`; completion = assessed / total grade targets.
 //   r1 (q1, boolean, max 1): assessed marks = john_doe 1, Team A 0
 //                            -> average = (1 + 0) / 2 = 0.5
 //   r2 (q2, ordinal, max 2): assessed marks = john_doe 1, Team A 2
 //                            -> average = (1 + 2) / 2 = 1.5
-export const EXPECTED_RUBRIC_ANALYTICS = [
+export const EXPECTED_CRITERION_ANALYTICS = [
 	{
-		questionId: "q1",
-		rubricId: "r1",
+		rubricId: "q1",
+		criterionId: "r1",
 		average: "0.5 / 1",
 		completion: { completed: 2, total: 3 },
 	},
 	{
-		questionId: "q2",
-		rubricId: "r2",
+		rubricId: "q2",
+		criterionId: "r2",
 		average: "1.5 / 2",
 		completion: { completed: 2, total: 3 },
 	},
 ] as const;
 
-// SubmissionMatrix shows one row per submission with one cell per rubric
+// GradeMatrix shows one row per grade target with one cell per criterion
 // ("<marks> / <maxMarks>", or empty if the criterion is unassessed), then a
-// per-submission average and rubric-completion count. Submission labels come
+// per-row total and criterion-completion count. Grade target labels come
 // from `getSubmissionLabel`: individuals as "<last_name> <first_name>", teams
 // as the team name.
-export const EXPECTED_SUBMISSION_MATRIX = [
+export const EXPECTED_GRADE_MATRIX = [
 	{
-		submissionLabel: "Doe John",
+		label: "Doe John",
 		cells: { r1: "1 / 1", r2: "1 / 2" },
-		average: "2 / 3",
+		total: "2 / 3",
 		completion: { completed: 2, total: 2 },
 	},
 	{
-		submissionLabel: "Smith Jane",
+		label: "Smith Jane",
 		cells: { r1: "", r2: "" },
-		average: "0 / 0",
+		total: "0 / 0",
 		completion: { completed: 0, total: 2 },
 	},
 	{
-		submissionLabel: "Team A",
+		label: "Team A",
 		cells: { r1: "0 / 1", r2: "2 / 2" },
-		average: "2 / 3",
+		total: "2 / 3",
 		completion: { completed: 2, total: 2 },
 	},
 ] as const;

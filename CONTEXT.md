@@ -147,7 +147,7 @@ The per-target criterion-by-criterion overview table: one row per **Grade Target
 _Avoid_: submission matrix, student matrix, per-student grid, "Matrix" in UI copy
 
 **Criterion Analytics**:
-The per-criterion aggregate overview table on the grading overview page, showing each criterion's average marks and completion across **Grade Targets**. Distinct from the **Grade Matrix** (the per-target view). Previously "Rubric Analytics"; renamed because "Rubric" now names the whole grid, not a single graded item.
+The per-criterion aggregate table on the **Results** page, showing each criterion's average marks and completion across **Grade Targets**. Distinct from the **Grade Matrix** (the per-target view). Previously "Rubric Analytics"; renamed because "Rubric" now names the whole grid, not a single graded item.
 _Avoid_: rubric analytics, rubric matrix, rubric summary table
 
 ### Grade

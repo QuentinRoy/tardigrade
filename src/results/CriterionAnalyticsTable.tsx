@@ -3,12 +3,12 @@
 import { Badge, Table } from "@mantine/core";
 import type { ReactElement } from "react";
 import CompletionProgress from "./CompletionProgress.tsx";
+import CriterionDetailsTooltip from "./CriterionDetailsTooltip.tsx";
 import marksBadgeClasses from "./MarksBadge.module.css";
-import QuestionDetailsTooltip from "./QuestionDetailsTooltip.tsx";
 import RubricDetailsTooltip from "./RubricDetailsTooltip.tsx";
-import type { RubricOverviewRow } from "./rubricOverviewBuilder.ts";
+import type { CriterionRow } from "./resultsBuilder.ts";
 
-type RubricAnalyticsTableProps = { rubrics: RubricOverviewRow[] };
+type CriterionAnalyticsTableProps = { criteria: CriterionRow[] };
 
 function formatMarks(value: number | null): string {
 	if (value == null || Number.isNaN(value)) {
@@ -25,50 +25,50 @@ function badgeColor(percent: number | null): string {
 	return "red";
 }
 
-export default function RubricAnalyticsTable({
-	rubrics,
-}: RubricAnalyticsTableProps): ReactElement {
+export default function CriterionAnalyticsTable({
+	criteria,
+}: CriterionAnalyticsTableProps): ReactElement {
 	return (
 		<Table.ScrollContainer minWidth={400}>
-			<Table withTableBorder fz="sm" aria-label="Rubric analytics">
+			<Table withTableBorder fz="sm" aria-label="Analytics">
 				<Table.Thead>
 					<Table.Tr>
-						<Table.Th>Question</Table.Th>
 						<Table.Th>Rubric</Table.Th>
+						<Table.Th>Criterion</Table.Th>
 						<Table.Th ta="center">Average</Table.Th>
 						<Table.Th ta="right">Completion</Table.Th>
 					</Table.Tr>
 				</Table.Thead>
 				<Table.Tbody>
-					{rubrics.map((rubric) => (
-						<Table.Tr key={rubric.rubricId}>
+					{criteria.map((criterion) => (
+						<Table.Tr key={criterion.criterionId}>
 							<Table.Td>
-								<QuestionDetailsTooltip
-									questionId={rubric.questionId}
-									questionLabel={rubric.questionLabel}
+								<RubricDetailsTooltip
+									rubricId={criterion.rubricId}
+									rubricLabel={criterion.rubricLabel}
 								/>
 							</Table.Td>
 							<Table.Td>
-								<RubricDetailsTooltip
-									rubricId={rubric.rubricId}
-									details={rubric.details}
+								<CriterionDetailsTooltip
+									criterionId={criterion.criterionId}
+									details={criterion.details}
 								/>
 							</Table.Td>
 							<Table.Td ta="center">
 								<Badge
 									variant="light"
-									color={badgeColor(rubric.averagePercent)}
+									color={badgeColor(criterion.averagePercent)}
 									classNames={marksBadgeClasses}
 								>
-									{formatMarks(rubric.averageMarks)} /{" "}
-									{formatMarks(rubric.maxMarks)}
+									{formatMarks(criterion.averageMarks)} /{" "}
+									{formatMarks(criterion.maxMarks)}
 								</Badge>
 							</Table.Td>
 							<Table.Td>
 								<CompletionProgress
-									assessedCount={rubric.assessedCount}
-									totalCount={rubric.totalCount}
-									completionPercent={rubric.completionPercent}
+									assessedCount={criterion.assessedCount}
+									totalCount={criterion.totalCount}
+									completionPercent={criterion.completionPercent}
 									alignItems="flex-end"
 								/>
 							</Table.Td>

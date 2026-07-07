@@ -7,8 +7,8 @@ import AppPage from "#design-system/AppPage.tsx";
 import {
 	projectAssessmentSubmissionPath,
 	projectAssessmentSubmissionQuestionPath,
-	projectOverviewPath,
 	projectQuestionsPath,
+	projectResultsPath,
 } from "#projects/projectPaths.ts";
 import { loadProjectByPublicId } from "#projects/projects.ts";
 import QuestionList from "#question-management/QuestionList.tsx";
@@ -64,13 +64,13 @@ async function ProjectAssessmentPageContent({
 			<Stack gap="lg">
 				<Title order={1}>Assessments</Title>
 				<AppButtonLink
-					href={projectOverviewPath({
+					href={projectResultsPath({
 						projectId: project.id,
 						projectSlug: project.slug,
 					})}
 					variant="outline"
 				>
-					Open rubric overview
+					Open results
 				</AppButtonLink>
 				{!hasQuestions ? (
 					<Stack gap="sm" align="flex-start">

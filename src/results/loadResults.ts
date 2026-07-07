@@ -12,12 +12,12 @@ import { db as defaultDb } from "#db/kysely.ts";
 import { loadQuestionGrid } from "#questions/questions.ts";
 import { loadSubmissions } from "#submissions/submissions.ts";
 import {
-	buildRubricOverviewData,
-	type RubricOverviewAssessmentRecord,
-	type RubricOverviewData,
-} from "./rubricOverviewBuilder.ts";
+	buildResultsData,
+	type ResultsAssessmentRecord,
+	type ResultsData,
+} from "./resultsBuilder.ts";
 
-export function rubricOverviewCacheTags(): string[] {
+export function resultsCacheTags(): string[] {
 	return [
 		questionListCacheTag(),
 		submissionListCacheTag(),
@@ -26,12 +26,12 @@ export function rubricOverviewCacheTags(): string[] {
 }
 
 // `db` may be the global client or a caller-supplied transaction. The only
-// rubric-overview-specific, schema-sensitive query: the three-way leftJoin
-// across the boolean/ordinal/numerical assessment subtype tables.
-export async function loadRubricAssessmentRecordsFromDb(
+// results-specific, schema-sensitive query: the three-way leftJoin across the
+// boolean/ordinal/numerical assessment subtype tables.
+export async function loadCriterionAssessmentRecordsFromDb(
 	db: Kysely<DB>,
 	{ projectId }: { projectId: string },
-): Promise<RubricOverviewAssessmentRecord[]> {
+): Promise<ResultsAssessmentRecord[]> {
 	return db
 		.selectFrom("rubricAssessment")
 		.innerJoin("assessment", "assessment.id", "rubricAssessment.assessmentId")
@@ -57,8 +57,8 @@ export async function loadRubricAssessmentRecordsFromDb(
 			"rubricAssessment.id",
 		)
 		.select([
-			"assessment.submissionId as submissionId",
-			"rubric.id as rubricId",
+			"assessment.submissionId as gradeTargetId",
+			"rubric.id as criterionId",
 			"rubricAssessment.type as type",
 			"booleanRubricAssessment.passed as passed",
 			"ordinalRubricAssessment.selectedLabel as selectedLabel",
@@ -68,27 +68,25 @@ export async function loadRubricAssessmentRecordsFromDb(
 }
 
 // Composes the cached `loadSubmissions`/`loadQuestionGrid` wrappers (Design B:
-// only the rubric-assessment query above is rubric-overview-specific) so their
-// cache entries stay shared rather than duplicated here (ADR 0008 rule 5).
+// only the assessment-record query above is results-specific) so their cache
+// entries stay shared rather than duplicated here (ADR 0008 rule 5).
 // `options` is forwarded unchanged (ADR 0007 rule 14): never resolve a default
 // here before forwarding, so an omitted `db` stays `undefined` for those calls.
-export async function loadRubricOverviewData(
+export async function loadResultsData(
 	{ projectId }: { projectId: string },
 	options?: { db?: Kysely<DB> },
-): Promise<RubricOverviewData> {
+): Promise<ResultsData> {
 	"use cache";
-	cacheTags(...rubricOverviewCacheTags());
+	cacheTags(...resultsCacheTags());
 	cacheLife("projection");
 
 	const [submissions, questionGrid, assessmentRecords] = await Promise.all([
 		loadSubmissions({ projectId }, options),
 		loadQuestionGrid({ projectId }, options),
-		loadRubricAssessmentRecordsFromDb(options?.db ?? defaultDb, { projectId }),
+		loadCriterionAssessmentRecordsFromDb(options?.db ?? defaultDb, {
+			projectId,
+		}),
 	]);
 
-	return buildRubricOverviewData({
-		submissions,
-		questionGrid,
-		assessmentRecords,
-	});
+	return buildResultsData({ submissions, questionGrid, assessmentRecords });
 }
