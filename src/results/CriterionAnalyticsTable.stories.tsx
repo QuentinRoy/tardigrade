@@ -1,11 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-import RubricAnalyticsTable from "./RubricAnalyticsTable.tsx";
+import CriterionAnalyticsTable from "./CriterionAnalyticsTable.tsx";
 
-const rubrics = [
+const criteria = [
 	{
-		rubricId: "r-correctness",
-		questionId: "q1",
-		questionLabel: "Question 1",
+		criterionId: "r-correctness",
+		rubricId: "q1",
+		rubricLabel: "Question 1",
 		maxMarks: 5,
 		averageMarks: 3.5,
 		averagePercent: 70,
@@ -20,9 +20,9 @@ const rubrics = [
 		},
 	},
 	{
-		rubricId: "r-explanation",
-		questionId: "q2",
-		questionLabel: "Question 2",
+		criterionId: "r-explanation",
+		rubricId: "q2",
+		rubricLabel: "Question 2",
 		maxMarks: 4,
 		averageMarks: 1.2,
 		averagePercent: 30,
@@ -47,12 +47,12 @@ const rubrics = [
 ];
 
 const meta = {
-	title: "Assessment/RubricAnalyticsTable",
-	component: RubricAnalyticsTable,
+	title: "Assessment/CriterionAnalyticsTable",
+	component: CriterionAnalyticsTable,
 	tags: ["autodocs"],
 	parameters: { layout: "padded" },
-	args: { rubrics },
-} satisfies Meta<typeof RubricAnalyticsTable>;
+	args: { criteria },
+} satisfies Meta<typeof CriterionAnalyticsTable>;
 
 export default meta;
 
@@ -60,12 +60,12 @@ type Story = StoryObj<typeof meta>;
 
 export const Partial: Story = {};
 
-export const Empty: Story = { args: { rubrics: [] } };
+export const Empty: Story = { args: { criteria: [] } };
 
 export const LowAverage: Story = {
 	args: {
-		rubrics: rubrics.map((row) =>
-			row.rubricId === "r-explanation"
+		criteria: criteria.map((row) =>
+			row.criterionId === "r-explanation"
 				? { ...row, averageMarks: 0.8, averagePercent: 20 }
 				: row,
 		),
@@ -74,7 +74,7 @@ export const LowAverage: Story = {
 
 export const Complete: Story = {
 	args: {
-		rubrics: rubrics.map((row) => ({
+		criteria: criteria.map((row) => ({
 			...row,
 			assessedCount: row.totalCount,
 			completionPercent: 100,

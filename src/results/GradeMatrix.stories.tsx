@@ -1,11 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-import SubmissionMatrix from "./SubmissionMatrix.tsx";
+import GradeMatrix from "./GradeMatrix.tsx";
 
-const rubrics = [
+const criteria = [
 	{
-		rubricId: "r-correctness",
-		questionId: "q1",
-		questionLabel: "Question 1",
+		criterionId: "r-correctness",
+		rubricId: "q1",
+		rubricLabel: "Question 1",
 		maxMarks: 5,
 		averageMarks: 3.5,
 		averagePercent: 70,
@@ -20,9 +20,9 @@ const rubrics = [
 		},
 	},
 	{
-		rubricId: "r-explanation",
-		questionId: "q2",
-		questionLabel: "Question 2",
+		criterionId: "r-explanation",
+		rubricId: "q2",
+		rubricLabel: "Question 2",
 		maxMarks: 4,
 		averageMarks: 1.2,
 		averagePercent: 30,
@@ -46,42 +46,47 @@ const rubrics = [
 	},
 ];
 
-const submissionRows = [
+const gradeTargetRows = [
 	{
-		submissionId: "1",
-		submissionLabel: "Alice A",
+		gradeTargetId: "1",
+		label: "Alice A",
 		marks: 7.5,
 		maxMarks: 9,
 		averagePercent: 83.3,
-		completedRubrics: 2,
-		totalRubrics: 2,
-		rubrics: [
-			{ rubricId: "r-correctness", marks: 5, maxMarks: 5, assessed: true },
-			{ rubricId: "r-explanation", marks: 2.5, maxMarks: 4, assessed: true },
+		completedCriteria: 2,
+		totalCriteria: 2,
+		criteria: [
+			{ criterionId: "r-correctness", marks: 5, maxMarks: 5, assessed: true },
+			{ criterionId: "r-explanation", marks: 2.5, maxMarks: 4, assessed: true },
 		],
 	},
 	{
-		submissionId: "2",
-		submissionLabel: "Bob B",
+		gradeTargetId: "2",
+		label: "Bob B",
 		marks: 2,
 		maxMarks: 5,
 		averagePercent: 40,
-		completedRubrics: 1,
-		totalRubrics: 2,
-		rubrics: [
-			{ rubricId: "r-correctness", marks: 2, maxMarks: 5, assessed: true },
-			{ rubricId: "r-explanation", marks: null, maxMarks: 4, assessed: false },
+		completedCriteria: 1,
+		totalCriteria: 2,
+		criteria: [
+			{ criterionId: "r-correctness", marks: 2, maxMarks: 5, assessed: true },
+			{
+				criterionId: "r-explanation",
+				marks: null,
+				maxMarks: 4,
+				assessed: false,
+			},
 		],
 	},
 ];
 
 const meta = {
-	title: "Assessment/SubmissionMatrix",
-	component: SubmissionMatrix,
+	title: "Assessment/GradeMatrix",
+	component: GradeMatrix,
 	tags: ["autodocs"],
 	parameters: { layout: "padded" },
-	args: { rubrics, submissionRows },
-} satisfies Meta<typeof SubmissionMatrix>;
+	args: { criteria, gradeTargetRows },
+} satisfies Meta<typeof GradeMatrix>;
 
 export default meta;
 
@@ -89,19 +94,19 @@ type Story = StoryObj<typeof meta>;
 
 export const Partial: Story = {};
 
-export const Empty: Story = { args: { rubrics: [], submissionRows: [] } };
+export const Empty: Story = { args: { criteria: [], gradeTargetRows: [] } };
 
 export const Complete: Story = {
 	args: {
-		submissionRows: submissionRows.map((submissionRow) => ({
-			...submissionRow,
-			completedRubrics: submissionRow.totalRubrics,
-			rubrics: submissionRow.rubrics.map((cell) => ({
+		gradeTargetRows: gradeTargetRows.map((gradeTargetRow) => ({
+			...gradeTargetRow,
+			completedCriteria: gradeTargetRow.totalCriteria,
+			criteria: gradeTargetRow.criteria.map((cell) => ({
 				...cell,
 				assessed: true,
 				marks: cell.marks ?? 2,
 			})),
-			marks: submissionRow.maxMarks,
+			marks: gradeTargetRow.maxMarks,
 		})),
 	},
 };
