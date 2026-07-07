@@ -6,6 +6,14 @@ This is not [CONTEXT.md](../../CONTEXT.md), the internal domain glossary — the
 
 ---
 
+**Average**:
+A single criterion's mean mark across all students and groups — the Criterion Analytics column. A per-criterion mean, distinct from a **Total** (one student's or group's summed marks) and an **Average total** (the grid-wide mean of totals).
+_Avoid_: using "Average" for one student's total (that is a **Total**)
+
+**Average total**:
+The grid-wide mean of students' and groups' totals — the overview summary stat. Distinct from an **Average** (one criterion's mean) and a **Total** (one student's or group's sum).
+_Avoid_: class average (a grid is not always a class)
+
 **Check**:
 A criterion type: the item was met or not, worth one mark when met and another when not. One of the three criterion types (with **Options** and **Number**); the word shown in the type selector and the YAML `type:` field.
 _Avoid_: boolean, pass/fail, yes/no (as the type name)
@@ -67,8 +75,12 @@ A person being graded, individually or as part of a group.
 _Avoid_: participant, user
 
 **Total**:
-The summed value across a rubric's criteria (a rubric total) or across a whole grid (a final total). A single student's or group's aggregate — the Grades table's rightmost column — is a **Total**, not an "Average". The grid-wide mean of those totals is an **Average total** (never "Class average": a grid is not always a class). A genuine per-criterion mean across students, as in Criterion Analytics, is correctly an "Average".
-_Avoid_: grade (when meaning the aggregate — grade names the individual record, not the sum), score (when meaning the aggregate), sum, "Average" (for one target's total), "Class average" (for the grid-wide mean)
+The summed marks across a rubric's criteria (a rubric total) or across a whole grid (a final total). A single student's or group's aggregate — the Grades table's rightmost column — is a Total, not an "Average" (see **Average**, **Average total**).
+_Avoid_: grade (when meaning the aggregate — grade names the individual record, not the sum), score (when meaning the aggregate), sum, "Average" (for one target's total)
+
+**Value**:
+The number a grader enters on a **Number** criterion (a count or a measurement), which maps to marks. Its allowed range is set by the criterion's Min value and Max value.
+_Avoid_: score (internal-only, and wrong for reversed criteria where a higher value earns fewer marks)
 
 ---
 
