@@ -3,6 +3,7 @@
 - **Status:** Active
 - **Created:** 2026-05-20
 - **Related:** #99
+- **Note (2026-07-06):** The *terminology* is resolved (see `CONTEXT.md`): the value pipeline is **Grade → Mark → Total** for every criterion type, `Grade` names the atomic per-criterion record and the act of grading (distinct from the mark it's worth, though a numerical grade is itself a number), `Score` names only the numerical grade's recorded payload and configuration axis (not a pipeline stage — boolean and ordinal grades have no score), and `Points` is avoided. The *structural* questions remain open and keep this Active: whether aggregation is a plain sum or `Σ mark × weight`, where weighting lives, and whether normalization is needed. Total is named but unbuilt.
 
 This document extracts investigation around grading outputs and aggregation.
 
