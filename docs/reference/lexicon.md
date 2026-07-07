@@ -6,6 +6,10 @@ This is not [CONTEXT.md](../../CONTEXT.md), the internal domain glossary — the
 
 ---
 
+**Check**:
+A criterion type: the item was met or not, worth one mark when met and another when not. One of the three criterion types (with **Options** and **Number**); the word shown in the type selector and the YAML `type:` field.
+_Avoid_: boolean, pass/fail, yes/no (as the type name)
+
 **Completion**:
 How much grading is done: the share of a grouping's criteria that have a recorded grade, shown as a count and a bar. A rubric, student, group, or grid is "fully graded" when its completion is whole.
 _Avoid_: progress ("75% progress"), assessed
@@ -17,10 +21,6 @@ _Avoid_: rubric (when meaning a single graded item)
 **Criterion Analytics**:
 The overview table showing each criterion's average marks and completion across students and groups. Navigation may shorten it to **Analytics** where the context is already a grid.
 _Avoid_: rubric analytics
-
-**Criterion type**:
-Which of three kinds a criterion is, chosen when authoring it: **Check** (met or not), **Options** (pick one of several labels the author defines), or **Number** (enter a measured value that maps to marks). These exact words appear in the type selector and in the YAML `type:` field.
-_Avoid_: boolean, ordinal, numerical (internal-only, being retired), scale, rating, levels (imply an order Options does not have)
 
 **Grade**:
 The recorded evaluation of one criterion — what was judged (passed, a chosen label, or a number such as a score of 12) — and the general word for the act of producing it ("grading"). A grade is distinct from its worth: even when the grade is itself a number, the **mark** it earns is computed from it. Grades survive changes to a criterion's marks configuration; the marks recompute.
@@ -49,6 +49,14 @@ _Avoid_: points, score (mark is the derived per-criterion number only), grade (w
 **Name** (`name`):
 The student's or group's display label — as the Grades table's first column header and as the `name` CSV column. A fixed word, so it stays correct whether a grid contains individuals, groups, or both.
 _Avoid_: student, group, submission (as a header), submitter
+
+**Number**:
+A criterion type: the grader enters a measured value (a **score**) that maps to marks by a configured range. One of the three criterion types (with **Check** and **Options**); the word shown in the type selector and the YAML `type:` field.
+_Avoid_: numerical, numeric
+
+**Options**:
+A criterion type: the grader picks one of several labels the author defines, each worth some marks. The labels are unordered and may share marks. One of the three criterion types (with **Check** and **Number**); the word shown in the type selector and the YAML `type:` field.
+_Avoid_: ordinal, scale, rating, levels (imply an order Options does not have)
 
 **Rubric**:
 The grading grid for one exercise or section: its criteria, and how each one is scored.
