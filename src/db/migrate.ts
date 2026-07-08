@@ -2,7 +2,7 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
-import { Kysely, PostgresDialect } from "kysely";
+import { CamelCasePlugin, Kysely, PostgresDialect } from "kysely";
 import { FileMigrationProvider, Migrator } from "kysely/migration";
 import { Pool } from "pg";
 import type { DB } from "./generated/db.ts";
@@ -19,6 +19,7 @@ function createDb() {
 
 	return new Kysely<DB>({
 		dialect: new PostgresDialect({ pool: new Pool({ connectionString }) }),
+		plugins: [new CamelCasePlugin()],
 	});
 }
 

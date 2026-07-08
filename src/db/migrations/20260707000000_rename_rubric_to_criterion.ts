@@ -8,14 +8,18 @@ import { type Kysely, sql } from "kysely";
 // are handled by later stages; `question_id` on `criterion`/`assessment` and the
 // score/value columns are intentionally left for stages 2b and 7b.
 //
-// Tables and columns are renamed with the Kysely schema builder. Raw SQL is used
-// only where the builder has no API: the enum type/value rename, trigger and
-// function management, and constraint/index renames. Constraint and index names
-// are additionally not consistent between the two migration runners -- the plain
-// prod runner (src/db/migrate.ts) keeps schema-builder names verbatim while the
-// test runner's CamelCasePlugin snake_cases them -- so those renames look each
-// object up by any of its candidate spellings rather than a single literal. See
-// docs/reference/database-migrations.md ("The CamelCasePlugin identifier trap").
+// The schema builder is used wherever it has an API: the enum rename (alterType),
+// tables (renameTo), and columns (renameColumn). Raw SQL is used for the rest --
+// constraint renames, index renames, and trigger/function management.
+//
+// Constraint renames go through raw SQL rather than `alterTable().renameConstraint`
+// because both runners build Kysely with CamelCasePlugin, which snake_cases the
+// name passed to the builder. Earlier migrations created some constraints via the
+// builder (stored snake_cased) and re-created others via raw SQL (stored verbatim,
+// e.g. "Rubric_projectId_id_key"), so a single plugin-transformed name cannot
+// match them all. The DO block below looks each constraint up by any of its
+// candidate spellings, which sidesteps the transform entirely. See
+// docs/reference/database-migrations.md.
 
 const TABLE_RENAMES: ReadonlyArray<readonly [string, string]> = [
 	["rubric", "criterion"],
@@ -55,10 +59,26 @@ const COLUMN_RENAMES: ReadonlyArray<readonly [string, string, string]> = [
 	],
 ];
 
+async function renameTablesThenColumns(
+	db: Kysely<unknown>,
+	tableRenames: ReadonlyArray<readonly [string, string]>,
+	columnRenames: ReadonlyArray<readonly [string, string, string]>,
+): Promise<void> {
+	// Sequential on purpose. Each ALTER TABLE takes an ACCESS EXCLUSIVE lock, so
+	// running these concurrently (Promise.all) only makes them contend for locks
+	// on the same and FK-related tables; it is a one-time migration, so there is
+	// nothing to gain and deadlocks to risk.
+	for (const [from, to] of tableRenames) {
+		await db.schema.alterTable(from).renameTo(to).execute();
+	}
+	for (const [table, from, to] of columnRenames) {
+		await db.schema.alterTable(table).renameColumn(from, to).execute();
+	}
+}
+
 export async function up(db: Kysely<unknown>): Promise<void> {
-	// Drop triggers and functions (recreated at the end), and rename the enum.
-	// Raw SQL: no schema-builder API. These identifiers were created via raw SQL,
-	// so they are spelled the same under both runners.
+	// Drop triggers and functions (recreated at the end). Raw SQL: the schema
+	// builder has no trigger/function API.
 	await sql`
     DROP TRIGGER IF EXISTS trg_rubric_type_immutable ON "rubric";
     DROP TRIGGER IF EXISTS trg_boolean_rubric_type_match ON "boolean_rubric";
@@ -73,24 +93,31 @@ export async function up(db: Kysely<unknown>): Promise<void> {
     DROP FUNCTION IF EXISTS enforce_numerical_rubric_type_match();
     DROP FUNCTION IF EXISTS enforce_ordinal_label_valid();
     DROP FUNCTION IF EXISTS enforce_numerical_score_bounds();
-
-    ALTER TYPE "rubric_type" RENAME TO "criterion_kind";
-    ALTER TYPE "criterion_kind" RENAME VALUE 'boolean' TO 'check';
-    ALTER TYPE "criterion_kind" RENAME VALUE 'ordinal' TO 'options';
-    ALTER TYPE "criterion_kind" RENAME VALUE 'numerical' TO 'number';
   `.execute(db);
 
-	// Tables and columns via the schema builder.
-	for (const [from, to] of TABLE_RENAMES) {
-		await db.schema.alterTable(from).renameTo(to).execute();
-	}
-	for (const [table, from, to] of COLUMN_RENAMES) {
-		await db.schema.alterTable(table).renameColumn(from, to).execute();
-	}
+	// Enum type and values via the schema builder. renameTo must precede the
+	// value renames (they target the new type name), and the value renames all
+	// lock the same type, so this group stays sequential.
+	await db.schema.alterType("rubric_type").renameTo("criterion_kind").execute();
+	await db.schema
+		.alterType("criterion_kind")
+		.renameValue("boolean", "check")
+		.execute();
+	await db.schema
+		.alterType("criterion_kind")
+		.renameValue("ordinal", "options")
+		.execute();
+	await db.schema
+		.alterType("criterion_kind")
+		.renameValue("numerical", "number")
+		.execute();
 
-	// Constraints and indexes. Raw SQL (no builder API for RENAME CONSTRAINT /
-	// ALTER INDEX). Each object is matched by any of its candidate spellings so
-	// the rename is correct whether or not CamelCasePlugin snake_cased the name.
+	// Tables and columns via the schema builder.
+	await renameTablesThenColumns(db, TABLE_RENAMES, COLUMN_RENAMES);
+
+	// Constraints and indexes. Raw SQL: renameConstraint would be snake_cased by
+	// CamelCasePlugin and miss the verbatim raw-SQL-created constraints, and there
+	// is no index-rename builder API. Match each object by any candidate spelling.
 	await sql`
     DO $$
     DECLARE
@@ -334,9 +361,7 @@ export async function down(db: Kysely<unknown>): Promise<void> {
   `.execute(db);
 
 	// Constraints and indexes back. up() renamed each to a single literal, so the
-	// down candidate is that literal; this restores the prior spelling. (In the
-	// plugin runner a few schema-builder-origin constraints were snake_cased
-	// before; they come back in their PascalCase spelling, which is harmless.)
+	// down candidate is that literal; this restores the prior spelling.
 	await sql`
     DO $$
     DECLARE
@@ -394,8 +419,7 @@ export async function down(db: Kysely<unknown>): Promise<void> {
     ALTER INDEX IF EXISTS "OptionsCriterionMark_optionsCriterionId_label_idx" RENAME TO "OrdinalRubricValue_ordinalRubricId_label_idx";
   `.execute(db);
 
-	// Columns then tables back via the schema builder (columns while tables still
-	// carry their new names, then the tables themselves).
+	// Columns then tables back via the schema builder (sequential; see up()).
 	for (const [table, from, to] of COLUMN_RENAMES) {
 		await db.schema.alterTable(table).renameColumn(to, from).execute();
 	}
@@ -403,13 +427,23 @@ export async function down(db: Kysely<unknown>): Promise<void> {
 		await db.schema.alterTable(to).renameTo(from).execute();
 	}
 
-	// Restore prior enum spelling and enforcement (raw; no builder API).
-	await sql`
-    ALTER TYPE "criterion_kind" RENAME VALUE 'check' TO 'boolean';
-    ALTER TYPE "criterion_kind" RENAME VALUE 'options' TO 'ordinal';
-    ALTER TYPE "criterion_kind" RENAME VALUE 'number' TO 'numerical';
-    ALTER TYPE "criterion_kind" RENAME TO "rubric_type";
+	// Enum back via the schema builder.
+	await db.schema
+		.alterType("criterion_kind")
+		.renameValue("check", "boolean")
+		.execute();
+	await db.schema
+		.alterType("criterion_kind")
+		.renameValue("options", "ordinal")
+		.execute();
+	await db.schema
+		.alterType("criterion_kind")
+		.renameValue("number", "numerical")
+		.execute();
+	await db.schema.alterType("criterion_kind").renameTo("rubric_type").execute();
 
+	// Restore prior enforcement functions and triggers (raw; no builder API).
+	await sql`
     CREATE OR REPLACE FUNCTION enforce_boolean_rubric_type_match()
     RETURNS trigger
     LANGUAGE plpgsql
