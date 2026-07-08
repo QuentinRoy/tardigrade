@@ -8,7 +8,7 @@ export const questionsMessages = {
 		"Something went wrong saving this question. Reload and try again. If this keeps happening, report this issue.",
 };
 
-export type QuestionRubricFieldErrors = {
+export type QuestionCriterionFieldErrors = {
 	id?: string | undefined;
 	label?: string | undefined;
 	description?: string | undefined;
@@ -25,7 +25,7 @@ export type QuestionRubricFieldErrors = {
 export type QuestionsFieldErrors = {
 	questionId?: string | undefined;
 	confirmationText?: string | undefined;
-	rubrics?: QuestionRubricFieldErrors[] | undefined;
+	criteria?: QuestionCriterionFieldErrors[] | undefined;
 };
 
 export class QuestionsValidationError extends Error {
@@ -43,16 +43,16 @@ export class QuestionsValidationError extends Error {
 	}
 }
 
-function setRubricFieldError(
+function setCriterionFieldError(
 	fieldErrors: QuestionsFieldErrors,
 	index: number,
-	field: keyof QuestionRubricFieldErrors,
+	field: keyof QuestionCriterionFieldErrors,
 	message: string,
 ): void {
-	const rubrics = fieldErrors.rubrics ?? [];
-	const current = rubrics[index] ?? {};
-	rubrics[index] = { ...current, [field]: message };
-	fieldErrors.rubrics = rubrics;
+	const criteria = fieldErrors.criteria ?? [];
+	const current = criteria[index] ?? {};
+	criteria[index] = { ...current, [field]: message };
+	fieldErrors.criteria = criteria;
 }
 
 export function zodErrorToQuestionsValidationError(error: ZodError): {
@@ -76,24 +76,24 @@ export function zodErrorToQuestionsValidationError(error: ZodError): {
 		}
 
 		if (
-			first === "rubrics" &&
+			first === "criteria" &&
 			typeof second === "number" &&
 			typeof third === "string"
 		) {
-			setRubricFieldError(
+			setCriterionFieldError(
 				fieldErrors,
 				second,
 				// We trust that the Zod schema paths are correct, so we can safely
-				// cast third to a keyof QuestionRubricFieldErrors without additional checks.
+				// cast third to a keyof QuestionCriterionFieldErrors without additional checks.
 				// biome-ignore lint/plugin/no-type-assertion: c.f. comment above.
-				third as keyof QuestionRubricFieldErrors,
+				third as keyof QuestionCriterionFieldErrors,
 				issue.message,
 			);
 			continue;
 		}
 
-		if (first === "rubrics" && typeof second === "number") {
-			setRubricFieldError(fieldErrors, second, "id", issue.message);
+		if (first === "criteria" && typeof second === "number") {
+			setCriterionFieldError(fieldErrors, second, "id", issue.message);
 			continue;
 		}
 

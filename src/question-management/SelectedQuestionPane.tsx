@@ -81,28 +81,28 @@ export default function SelectedQuestionPane({
 					</Text>
 					<Group gap="xs">
 						<Badge variant="default">
-							{definition.question.rubrics.length} rubrics
+							{definition.question.criteria.length} criteria
 						</Badge>
 						<Badge variant="default">
 							{definition.assessmentCount} linked assessments
 						</Badge>
 					</Group>
 
-					{definition.question.rubrics.length > 0 && (
+					{definition.question.criteria.length > 0 && (
 						<>
 							<Divider />
 							<Table withTableBorder withColumnBorders fz="sm">
 								<Table.Thead>
 									<Table.Tr>
-										<Table.Th>Rubric</Table.Th>
+										<Table.Th>Criterion</Table.Th>
 										<Table.Th>Type</Table.Th>
 									</Table.Tr>
 								</Table.Thead>
 								<Table.Tbody>
-									{definition.question.rubrics.map((rubric) => (
-										<Table.Tr key={rubric.id}>
-											<Table.Td>{rubric.label ?? rubric.id}</Table.Td>
-											<Table.Td>{rubric.type}</Table.Td>
+									{definition.question.criteria.map((criterion) => (
+										<Table.Tr key={criterion.id}>
+											<Table.Td>{criterion.label ?? criterion.id}</Table.Td>
+											<Table.Td>{criterion.kind}</Table.Td>
 										</Table.Tr>
 									))}
 								</Table.Tbody>

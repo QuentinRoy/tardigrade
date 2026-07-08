@@ -17,39 +17,43 @@ export async function loadQuestionImportContextFromDb(
 		.executeTakeFirstOrThrow();
 	const projectRowId = project.rowId;
 
-	const rubricIds = questions.flatMap((question) =>
-		question.rubrics.map((rubric) => rubric.id),
+	const criterionIds = questions.flatMap((question) =>
+		question.criteria.map((criterion) => criterion.id),
 	);
 
-	if (rubricIds.length === 0) {
-		return { existingRubricsById: new Map() };
+	if (criterionIds.length === 0) {
+		return { existingCriteriaById: new Map() };
 	}
 
-	const rubricRows = await db
-		.selectFrom("rubric")
-		.innerJoin("question", "question.rowId", "rubric.questionId")
-		.leftJoin("rubricAssessment", "rubricAssessment.rubricId", "rubric.rowId")
-		.where("rubric.projectId", "=", projectRowId)
-		.where("rubric.id", "in", rubricIds)
+	const criterionRows = await db
+		.selectFrom("criterion")
+		.innerJoin("question", "question.rowId", "criterion.questionId")
+		.leftJoin(
+			"criterionAssessment",
+			"criterionAssessment.criterionId",
+			"criterion.rowId",
+		)
+		.where("criterion.projectId", "=", projectRowId)
+		.where("criterion.id", "in", criterionIds)
 		.select(({ fn }) => [
-			"rubric.id",
-			"rubric.type",
+			"criterion.id",
+			"criterion.kind",
 			"question.id as questionId",
-			fn.count<number>("rubricAssessment.id").as("assessmentCount"),
+			fn.count<number>("criterionAssessment.id").as("assessmentCount"),
 		])
-		.groupBy(["rubric.id", "rubric.type", "question.id"])
+		.groupBy(["criterion.id", "criterion.kind", "question.id"])
 		.execute();
 
-	const existingRubricsById = new Map(
-		rubricRows.map((row) => [
+	const existingCriteriaById = new Map(
+		criterionRows.map((row) => [
 			row.id,
 			{
-				type: row.type,
+				kind: row.kind,
 				questionId: row.questionId,
 				assessmentCount: Number(row.assessmentCount),
 			},
 		]),
 	);
 
-	return { existingRubricsById };
+	return { existingCriteriaById };
 }

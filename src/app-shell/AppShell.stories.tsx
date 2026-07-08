@@ -33,14 +33,14 @@ export const WithoutNavigation: Story = { args: { showNavigation: false } };
 
 export const ExportOptionsPersist: Story = {
 	play: async () => {
-		const rubricMarksCheckbox = screen.getByRole("checkbox", {
-			name: "Rubric marks",
+		const criterionMarksCheckbox = screen.getByRole("checkbox", {
+			name: "Criterion marks",
 		});
 
-		await expect(rubricMarksCheckbox).not.toBeChecked();
+		await expect(criterionMarksCheckbox).not.toBeChecked();
 
-		await userEvent.click(rubricMarksCheckbox);
+		await userEvent.click(criterionMarksCheckbox);
 
-		await expect(rubricMarksCheckbox).toBeChecked();
+		await expect(criterionMarksCheckbox).toBeChecked();
 	},
 };

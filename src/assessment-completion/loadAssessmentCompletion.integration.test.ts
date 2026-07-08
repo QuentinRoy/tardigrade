@@ -5,17 +5,17 @@ import type { DB } from "#db/generated/db.ts";
 import { buildTestId, createTestDb } from "#test/dbIntegration.ts";
 import { createProject } from "#test/projects.ts";
 import {
-	assessedRubricCountsBySubmissionCacheTags,
+	assessedCriterionCountsBySubmissionCacheTags,
 	assessmentCompletionRowsCacheTags,
-	buildAssessedRubricCountsBySubmission,
-	loadAssessedRubricCounts,
-	loadAssessedRubricCountsBySubmission,
-	loadAssessedRubricCountsBySubmissionFromDb,
+	buildAssessedCriterionCountsBySubmission,
+	criterionAssessmentsCountCacheTags,
+	loadAssessedCriterionCounts,
+	loadAssessedCriterionCountsBySubmission,
+	loadAssessedCriterionCountsBySubmissionFromDb,
 	loadAssessmentCompletionBySubmission,
 	loadAssessmentCompletionBySubmissionFromDb,
 	loadAssessmentCompletionSummary,
 	loadAssessmentCompletionSummaryFromDb,
-	rubricAssessmentsCountCacheTags,
 } from "./loadAssessmentCompletion.ts";
 
 vi.mock("next/cache", () => ({ cacheTag: vi.fn(), cacheLife: vi.fn() }));
@@ -64,8 +64,8 @@ async function createQuestion(
 	db: Kysely<DB>,
 	projectRowId: number,
 	questionId: string,
-	{ rubricId }: { rubricId?: string } = {},
-): Promise<{ questionRowId: number; rubricRowId: number | null }> {
+	{ criterionId }: { criterionId?: string } = {},
+): Promise<{ questionRowId: number; criterionRowId: number | null }> {
 	await db
 		.insertInto("question")
 		.values({
@@ -83,32 +83,32 @@ async function createQuestion(
 		.where("id", "=", questionId)
 		.executeTakeFirstOrThrow();
 
-	if (rubricId == null) {
-		return { questionRowId: question.rowId, rubricRowId: null };
+	if (criterionId == null) {
+		return { questionRowId: question.rowId, criterionRowId: null };
 	}
 
-	const rubricRows = await db
-		.insertInto("rubric")
+	const criterionRows = await db
+		.insertInto("criterion")
 		.values({
-			id: rubricId,
+			id: criterionId,
 			projectId: projectRowId,
 			questionId: question.rowId,
-			type: "boolean",
+			kind: "check",
 			position: 0,
 			label: "Correct",
 		})
 		.returning(["rowId"])
 		.execute();
 
-	const rubric = rubricRows[0];
-	if (rubric == null) throw new Error("Expected rubric row");
+	const criterion = criterionRows[0];
+	if (criterion == null) throw new Error("Expected criterion row");
 
 	await db
-		.insertInto("booleanRubric")
-		.values({ rubricId: rubric.rowId, marks: 1, falseMarks: 0 })
+		.insertInto("checkCriterion")
+		.values({ criterionId: criterion.rowId, marks: 1, falseMarks: 0 })
 		.execute();
 
-	return { questionRowId: question.rowId, rubricRowId: rubric.rowId };
+	return { questionRowId: question.rowId, criterionRowId: criterion.rowId };
 }
 
 async function addAssessment(
@@ -117,12 +117,12 @@ async function addAssessment(
 		projectRowId,
 		submissionId,
 		questionRowId,
-		rubricRowId,
+		criterionRowId,
 	}: {
 		projectRowId: number;
 		submissionId: number;
 		questionRowId: number;
-		rubricRowId?: number;
+		criterionRowId?: number;
 	},
 ): Promise<void> {
 	const assessment = await db
@@ -135,64 +135,64 @@ async function addAssessment(
 		.returning("id")
 		.executeTakeFirstOrThrow();
 
-	if (rubricRowId == null) {
+	if (criterionRowId == null) {
 		return;
 	}
 
 	await db
-		.insertInto("rubricAssessment")
+		.insertInto("criterionAssessment")
 		.values({
 			assessmentId: assessment.id,
-			rubricId: rubricRowId,
-			type: "boolean",
+			criterionId: criterionRowId,
+			kind: "check",
 		})
 		.execute();
 
-	const rubricAssessment = await db
-		.selectFrom("rubricAssessment")
+	const criterionAssessment = await db
+		.selectFrom("criterionAssessment")
 		.select("id")
 		.where("assessmentId", "=", assessment.id)
-		.where("rubricId", "=", rubricRowId)
+		.where("criterionId", "=", criterionRowId)
 		.executeTakeFirstOrThrow();
 
 	await db
-		.insertInto("booleanRubricAssessment")
-		.values({ rubricAssessmentId: rubricAssessment.id, passed: true })
+		.insertInto("checkCriterionAssessment")
+		.values({ criterionAssessmentId: criterionAssessment.id, passed: true })
 		.execute();
 }
 
-test("loadAssessedRubricCountsBySubmissionFromDb counts only assessments within the requested project when question ids collide across projects", async () => {
+test("loadAssessedCriterionCountsBySubmissionFromDb counts only assessments within the requested project when question ids collide across projects", async () => {
 	await using db = await createTestDb();
 	await using projectA = await createProject(db, "Progress Isolation A");
 	await using projectB = await createProject(db, "Progress Isolation B");
 
 	const sharedQuestionId = "shared-q-progress-iso";
-	const sharedRubricId = "shared-rubric-progress-iso";
+	const sharedCriterionId = "shared-criterion-progress-iso";
 
 	const submissionA = await createSubmission(db, projectA.rowId);
 	const submissionB = await createSubmission(db, projectB.rowId);
 	await createQuestion(db, projectA.rowId, sharedQuestionId, {
-		rubricId: sharedRubricId,
+		criterionId: sharedCriterionId,
 	});
-	const { questionRowId: questionBRowId, rubricRowId: rubricBRowId } =
+	const { questionRowId: questionBRowId, criterionRowId: criterionBRowId } =
 		await createQuestion(db, projectB.rowId, sharedQuestionId, {
-			rubricId: sharedRubricId,
+			criterionId: sharedCriterionId,
 		});
 
 	// Add assessment only for project B
-	if (rubricBRowId == null) throw new Error("Expected rubric row");
+	if (criterionBRowId == null) throw new Error("Expected criterion row");
 	await addAssessment(db, {
 		projectRowId: projectB.rowId,
 		submissionId: submissionB,
 		questionRowId: questionBRowId,
-		rubricRowId: rubricBRowId,
+		criterionRowId: criterionBRowId,
 	});
 
-	const progressA = await loadAssessedRubricCountsBySubmissionFromDb(db, {
+	const progressA = await loadAssessedCriterionCountsBySubmissionFromDb(db, {
 		questionId: sharedQuestionId,
 		projectId: projectA.id,
 	});
-	const progressB = await loadAssessedRubricCountsBySubmissionFromDb(db, {
+	const progressB = await loadAssessedCriterionCountsBySubmissionFromDb(db, {
 		questionId: sharedQuestionId,
 		projectId: projectB.id,
 	});
@@ -225,25 +225,25 @@ test("loadAssessmentCompletionBySubmissionFromDb counts only questions and asses
 	);
 
 	const sharedQuestionId = "shared-q-overview-iso";
-	const sharedRubricId = "shared-rubric-overview-iso";
+	const sharedCriterionId = "shared-criterion-overview-iso";
 
 	const submissionA = await createSubmission(db, projectA.rowId);
 	const submissionB = await createSubmission(db, projectB.rowId);
 	await createQuestion(db, projectA.rowId, sharedQuestionId, {
-		rubricId: sharedRubricId,
+		criterionId: sharedCriterionId,
 	});
-	const { questionRowId: questionBRowId, rubricRowId: rubricBRowId } =
+	const { questionRowId: questionBRowId, criterionRowId: criterionBRowId } =
 		await createQuestion(db, projectB.rowId, sharedQuestionId, {
-			rubricId: sharedRubricId,
+			criterionId: sharedCriterionId,
 		});
 
 	// Add assessment only for project B
-	if (rubricBRowId == null) throw new Error("Expected rubric row");
+	if (criterionBRowId == null) throw new Error("Expected criterion row");
 	await addAssessment(db, {
 		projectRowId: projectB.rowId,
 		submissionId: submissionB,
 		questionRowId: questionBRowId,
-		rubricRowId: rubricBRowId,
+		criterionRowId: criterionBRowId,
 	});
 
 	const overviewA = await loadAssessmentCompletionBySubmissionFromDb(db, {
@@ -267,16 +267,16 @@ test("loadAssessmentCompletionBySubmissionFromDb counts only questions and asses
 	expect(overviewB[submissionAId]).toBeUndefined();
 });
 
-test("loadAssessedRubricCountsBySubmission wrapper delegates to its primitive and declares its cache tags", async () => {
+test("loadAssessedCriterionCountsBySubmission wrapper delegates to its primitive and declares its cache tags", async () => {
 	await using db = await createTestDb();
 	await using project = await createProject(db, "Question Progress Wrapper");
 	const sharedQuestionId = buildTestId("question");
 	const submissionId = await createSubmission(db, project.rowId);
 	await createQuestion(db, project.rowId, sharedQuestionId, {
-		rubricId: buildTestId("rubric"),
+		criterionId: buildTestId("criterion"),
 	});
 
-	const progress = await loadAssessedRubricCountsBySubmission(
+	const progress = await loadAssessedCriterionCountsBySubmission(
 		{ questionId: sharedQuestionId, projectId: project.id },
 		{ db },
 	);
@@ -285,31 +285,31 @@ test("loadAssessedRubricCountsBySubmission wrapper delegates to its primitive an
 
 	const declaredTags = vi.mocked(cacheTag).mock.calls.map((call) => call[0]);
 	expect(declaredTags).toEqual(
-		assessedRubricCountsBySubmissionCacheTags(sharedQuestionId),
+		assessedCriterionCountsBySubmissionCacheTags(sharedQuestionId),
 	);
 });
 
-test("loadAssessedRubricCounts plus buildAssessedRubricCountsBySubmission matches the combined primitive, given the same submission ids", async () => {
+test("loadAssessedCriterionCounts plus buildAssessedCriterionCountsBySubmission matches the combined primitive, given the same submission ids", async () => {
 	await using db = await createTestDb();
 	await using project = await createProject(db, "Question Progress Split");
 	const questionId = buildTestId("question");
 	const submissionId = await createSubmission(db, project.rowId);
 	await createQuestion(db, project.rowId, questionId, {
-		rubricId: buildTestId("rubric"),
+		criterionId: buildTestId("criterion"),
 	});
 
-	const combined = await loadAssessedRubricCountsBySubmissionFromDb(db, {
+	const combined = await loadAssessedCriterionCountsBySubmissionFromDb(db, {
 		questionId,
 		projectId: project.id,
 	});
 
 	// Reuses an already-loaded submission id instead of letting the counts
 	// primitive query submissions itself (Finding 7).
-	const counts = await loadAssessedRubricCounts(
+	const counts = await loadAssessedCriterionCounts(
 		{ questionId, projectId: project.id },
 		{ db },
 	);
-	const split = buildAssessedRubricCountsBySubmission(
+	const split = buildAssessedCriterionCountsBySubmission(
 		[String(submissionId)],
 		counts,
 	);
@@ -322,7 +322,7 @@ test("loadAssessmentCompletionBySubmission is a plain deriver that shares loadAs
 	await using project = await createProject(db, "Overview Progress Wrapper");
 	const submissionId = await createSubmission(db, project.rowId);
 	await createQuestion(db, project.rowId, buildTestId("question"), {
-		rubricId: buildTestId("rubric"),
+		criterionId: buildTestId("criterion"),
 	});
 
 	const overview = await loadAssessmentCompletionBySubmission(
@@ -338,9 +338,9 @@ test("loadAssessmentCompletionBySubmission is a plain deriver that shares loadAs
 	expect(declaredTags).toEqual(assessmentCompletionRowsCacheTags());
 });
 
-test("a zero-rubric question counts as complete per submission and consistently with the summary", async () => {
+test("a zero-criterion question counts as complete per submission and consistently with the summary", async () => {
 	await using db = await createTestDb();
-	await using project = await createProject(db, "Zero Rubric Question");
+	await using project = await createProject(db, "Zero Criterion Question");
 
 	const submissionId = await createSubmission(db, project.rowId);
 	await createQuestion(db, project.rowId, buildTestId("question"));
@@ -367,19 +367,19 @@ test("loadAssessmentCompletionSummaryFromDb characterizes mixed completion acros
 	const submissionDone = await createSubmission(db, project.rowId);
 	await createSubmission(db, project.rowId);
 
-	const { questionRowId, rubricRowId } = await createQuestion(
+	const { questionRowId, criterionRowId } = await createQuestion(
 		db,
 		project.rowId,
 		buildTestId("question"),
-		{ rubricId: buildTestId("rubric") },
+		{ criterionId: buildTestId("criterion") },
 	);
-	if (rubricRowId == null) throw new Error("Expected rubric row");
+	if (criterionRowId == null) throw new Error("Expected criterion row");
 
 	await addAssessment(db, {
 		projectRowId: project.rowId,
 		submissionId: submissionDone,
 		questionRowId,
-		rubricRowId,
+		criterionRowId,
 	});
 
 	const summary = await loadAssessmentCompletionSummaryFromDb(db, {
@@ -389,7 +389,7 @@ test("loadAssessmentCompletionSummaryFromDb characterizes mixed completion acros
 	expect(summary).toEqual({
 		submissions: { completed: 1, total: 2 },
 		questions: { completed: 0, total: 1 },
-		rubrics: { completed: 1, total: 2 },
+		criteria: { completed: 1, total: 2 },
 	});
 });
 
@@ -404,7 +404,7 @@ test("loadAssessmentCompletionSummaryFromDb returns vacuous aggregates for an em
 	expect(summary).toEqual({
 		submissions: { completed: 0, total: 0 },
 		questions: { completed: 0, total: 0 },
-		rubrics: { completed: 0, total: 0 },
+		criteria: { completed: 0, total: 0 },
 	});
 });
 
@@ -413,7 +413,7 @@ test("loadAssessmentCompletionSummary is a plain deriver that shares loadAssessm
 	await using project = await createProject(db, "Summary Wrapper");
 	await createSubmission(db, project.rowId);
 	await createQuestion(db, project.rowId, buildTestId("question"), {
-		rubricId: buildTestId("rubric"),
+		criterionId: buildTestId("criterion"),
 	});
 
 	const summary = await loadAssessmentCompletionSummary(
@@ -424,15 +424,15 @@ test("loadAssessmentCompletionSummary is a plain deriver that shares loadAssessm
 	expect(summary).toEqual({
 		submissions: { completed: 0, total: 1 },
 		questions: { completed: 0, total: 1 },
-		rubrics: { completed: 0, total: 1 },
+		criteria: { completed: 0, total: 1 },
 	});
 
 	// No own cache scope (ADR 0008 rule 5): registers the tags of the two cached
 	// sources it composes, `loadAssessmentCompletionRows` and
-	// `loadRubricAssessmentsCount`.
+	// `loadCriterionAssessmentsCount`.
 	const declaredTags = vi.mocked(cacheTag).mock.calls.map((call) => call[0]);
 	expect(declaredTags).toEqual([
 		...assessmentCompletionRowsCacheTags(),
-		...rubricAssessmentsCountCacheTags(),
+		...criterionAssessmentsCountCacheTags(),
 	]);
 });

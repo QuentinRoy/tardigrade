@@ -2,11 +2,14 @@ import "server-only";
 import { once } from "node:events";
 import { stringify } from "csv-stringify";
 import type { Kysely } from "kysely";
+import { attachAssessment, markCriterion } from "#criteria/criterion.ts";
+import type {
+	AssessedCriterion,
+	AssessmentCriterionValue,
+} from "#criteria/types.ts";
 import type { DB } from "#db/generated/db.ts";
 import { db as defaultDb } from "#db/kysely.ts";
-import { loadQuestionRowsFromDb, toRubric } from "#questions/questions.ts";
-import { attachAssessment, markRubric } from "#rubrics/rubric.ts";
-import type { AssessedRubric, AssessmentRubricValue } from "#rubrics/types.ts";
+import { loadQuestionRowsFromDb, toCriterion } from "#questions/questions.ts";
 import type { SubmissionSubmitter } from "#submissions/types.ts";
 import { assertNever } from "#utils/utils.ts";
 import {
@@ -16,10 +19,10 @@ import {
 	type ExportOptions,
 	type ExportQuestionPlan,
 	type SubmissionExportAssessmentValue,
+	type SubmissionExportCriterionData,
 	type SubmissionExportDataRow,
 	type SubmissionExportQuestionData,
 	type SubmissionExportRecord,
-	type SubmissionExportRubricData,
 } from "./submissionExportCsv.ts";
 import {
 	groupSubmissionRows,
@@ -97,25 +100,25 @@ function streamSubmissionExportRowsFromDb(
 		.leftJoin("assessment", "assessment.submissionId", "submission.id")
 		.leftJoin("question", "question.rowId", "assessment.questionId")
 		.leftJoin(
-			"rubricAssessment",
-			"rubricAssessment.assessmentId",
+			"criterionAssessment",
+			"criterionAssessment.assessmentId",
 			"assessment.id",
 		)
-		.leftJoin("rubric", "rubric.rowId", "rubricAssessment.rubricId")
+		.leftJoin("criterion", "criterion.rowId", "criterionAssessment.criterionId")
 		.leftJoin(
-			"booleanRubricAssessment",
-			"booleanRubricAssessment.rubricAssessmentId",
-			"rubricAssessment.id",
+			"checkCriterionAssessment",
+			"checkCriterionAssessment.criterionAssessmentId",
+			"criterionAssessment.id",
 		)
 		.leftJoin(
-			"ordinalRubricAssessment",
-			"ordinalRubricAssessment.rubricAssessmentId",
-			"rubricAssessment.id",
+			"optionsCriterionAssessment",
+			"optionsCriterionAssessment.criterionAssessmentId",
+			"criterionAssessment.id",
 		)
 		.leftJoin(
-			"numericalRubricAssessment",
-			"numericalRubricAssessment.rubricAssessmentId",
-			"rubricAssessment.id",
+			"numberCriterionAssessment",
+			"numberCriterionAssessment.criterionAssessmentId",
+			"criterionAssessment.id",
 		)
 		.select([
 			"submission.id as submissionId",
@@ -123,14 +126,14 @@ function streamSubmissionExportRowsFromDb(
 			"team.name as teamName",
 			"student.id as studentId",
 			"question.id as questionId",
-			"rubric.id as rubricId",
-			"booleanRubricAssessment.passed as booleanPassed",
-			"ordinalRubricAssessment.selectedLabel as ordinalSelectedLabel",
-			"numericalRubricAssessment.score as numericalScore",
+			"criterion.id as criterionId",
+			"checkCriterionAssessment.passed as booleanPassed",
+			"optionsCriterionAssessment.selectedLabel as ordinalSelectedLabel",
+			"numberCriterionAssessment.score as numericalScore",
 		])
 		.orderBy("submission.id", "asc")
 		.orderBy("assessment.id", "asc")
-		.orderBy("rubricAssessment.id", "asc")
+		.orderBy("criterionAssessment.id", "asc")
 		.stream(200);
 }
 
@@ -146,55 +149,57 @@ export async function createSubmissionExport(
 	const questionRows = await loadQuestionRowsFromDb(db, { projectId });
 	const questions: ExportQuestionPlan[] = questionRows.map((row) => ({
 		id: row.id,
-		rubrics: row.rubrics.map(toRubric),
+		criteria: row.criteria.map(toCriterion),
 	}));
 
 	function getAssessmentValue(
-		rubric: AssessedRubric,
+		criterion: AssessedCriterion,
 	): SubmissionExportAssessmentValue | undefined {
-		if (rubric.assessment == null) {
+		if (criterion.assessment == null) {
 			return undefined;
 		}
 
-		switch (rubric.type) {
-			case "boolean": {
-				return rubric.assessment.passed;
+		switch (criterion.kind) {
+			case "check": {
+				return criterion.assessment.passed;
 			}
-			case "ordinal": {
-				return rubric.assessment.selectedLabel;
+			case "options": {
+				return criterion.assessment.selectedLabel;
 			}
-			case "numerical": {
-				return rubric.assessment.score;
+			case "number": {
+				return criterion.assessment.score;
 			}
 			default: {
-				return assertNever(rubric);
+				return assertNever(criterion);
 			}
 		}
 	}
 
 	function buildQuestionData(
-		valuesByKey: Map<string, AssessmentRubricValue>,
+		valuesByKey: Map<string, AssessmentCriterionValue>,
 	): SubmissionExportQuestionData[] {
 		return questions.map((question) => ({
 			questionId: question.id,
-			rubrics: question.rubrics.map((rubric) => {
-				const assessedRubric = attachAssessment(
-					rubric,
-					valuesByKey.get(buildAssessmentKey(question.id, rubric.id)),
+			criteria: question.criteria.map((criterion) => {
+				const assessedCriterion = attachAssessment(
+					criterion,
+					valuesByKey.get(buildAssessmentKey(question.id, criterion.id)),
 				);
 
-				const rowRubric: SubmissionExportRubricData = { rubricId: rubric.id };
+				const rowCriterion: SubmissionExportCriterionData = {
+					criterionId: criterion.id,
+				};
 
-				const assessment = getAssessmentValue(assessedRubric);
+				const assessment = getAssessmentValue(assessedCriterion);
 				if (assessment != null) {
-					rowRubric.assessment = assessment;
+					rowCriterion.assessment = assessment;
 				}
 
-				if (assessedRubric.assessment != null) {
-					rowRubric.marks = markRubric(assessedRubric);
+				if (assessedCriterion.assessment != null) {
+					rowCriterion.marks = markCriterion(assessedCriterion);
 				}
 
-				return rowRubric;
+				return rowCriterion;
 			}),
 		}));
 	}

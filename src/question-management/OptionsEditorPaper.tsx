@@ -2,17 +2,17 @@
 
 import { Textarea } from "@mantine/core";
 import type { ReactElement } from "react";
-import type { QuestionRubricFieldErrors } from "./errors.ts";
-import RubricEditorPaper from "./RubricEditorPaper.tsx";
-import type { RubricEditorValue } from "./types.ts";
+import CriterionEditorPaper from "./CriterionEditorPaper.tsx";
+import type { QuestionCriterionFieldErrors } from "./errors.ts";
+import type { CriterionEditorValue } from "./types.ts";
 
-type OrdinalRubric = Extract<RubricEditorValue, { type: "ordinal" }>;
+type OptionsCriterion = Extract<CriterionEditorValue, { kind: "options" }>;
 
-type OrdinalRubricEditorPaperProps = {
-	rubric: OrdinalRubric;
-	onChange: (rubric: RubricEditorValue) => void;
+type OptionsCriterionEditorPaperProps = {
+	criterion: OptionsCriterion;
+	onChange: (criterion: CriterionEditorValue) => void;
 	onRemove: () => void;
-	fieldErrors?: QuestionRubricFieldErrors | undefined;
+	fieldErrors?: QuestionCriterionFieldErrors | undefined;
 };
 
 function ordinalMarksToText(value: Record<string, number>): string {
@@ -39,15 +39,15 @@ function parseOrdinalMarks(value: string): Record<string, number> {
 	);
 }
 
-export default function OrdinalRubricEditorPaper({
-	rubric,
+export default function OptionsCriterionEditorPaper({
+	criterion,
 	onChange,
 	onRemove,
 	fieldErrors,
-}: OrdinalRubricEditorPaperProps): ReactElement {
+}: OptionsCriterionEditorPaperProps): ReactElement {
 	return (
-		<RubricEditorPaper
-			rubric={rubric}
+		<CriterionEditorPaper
+			criterion={criterion}
 			onChange={onChange}
 			onRemove={onRemove}
 			fieldErrors={fieldErrors}
@@ -60,16 +60,16 @@ export default function OrdinalRubricEditorPaper({
 						: undefined
 				}
 				error={fieldErrors?.marks}
-				value={ordinalMarksToText(rubric.marks)}
+				value={ordinalMarksToText(criterion.marks)}
 				onChange={(event) =>
 					onChange({
-						...rubric,
+						...criterion,
 						marks: parseOrdinalMarks(event.currentTarget.value),
 					})
 				}
 				minRows={4}
 				autosize
 			/>
-		</RubricEditorPaper>
+		</CriterionEditorPaper>
 	);
 }

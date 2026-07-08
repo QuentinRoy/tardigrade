@@ -4,11 +4,11 @@ import { buildTestId, createTestDb } from "#test/dbIntegration.ts";
 import { createProject } from "#test/projects.ts";
 import type { DB } from "./generated/db.ts";
 
-type RubricRowIds = { boolean: number; ordinal: number; numerical: number };
+type CriterionRowIds = { boolean: number; ordinal: number; numerical: number };
 
 type AssessmentConstraintFixture = {
-	ordinalRubricAssessmentIds: { primary: number; secondary: number };
-	numericalRubricAssessmentIds: { primary: number; secondary: number };
+	optionsCriterionAssessmentIds: { primary: number; secondary: number };
+	numberCriterionAssessmentIds: { primary: number; secondary: number };
 };
 
 async function createAssessmentConstraintFixture(
@@ -41,51 +41,51 @@ async function createAssessmentConstraintFixture(
 		.where("id", "=", questionId)
 		.executeTakeFirstOrThrow();
 
-	const insertedRubrics = await db
-		.insertInto("rubric")
+	const insertedCriteria = await db
+		.insertInto("criterion")
 		.values([
 			{
 				projectId: projectRowId,
-				id: buildTestId("rubric-boolean"),
+				id: buildTestId("criterion-boolean"),
 				questionId: question.rowId,
-				type: "boolean",
+				kind: "check",
 				position: 0,
-				label: "Boolean rubric",
+				label: "Boolean criterion",
 			},
 			{
 				projectId: projectRowId,
-				id: buildTestId("rubric-ordinal"),
+				id: buildTestId("criterion-ordinal"),
 				questionId: question.rowId,
-				type: "ordinal",
+				kind: "options",
 				position: 1,
-				label: "Ordinal rubric",
+				label: "Ordinal criterion",
 			},
 			{
 				projectId: projectRowId,
-				id: buildTestId("rubric-numerical"),
+				id: buildTestId("criterion-numerical"),
 				questionId: question.rowId,
-				type: "numerical",
+				kind: "number",
 				position: 2,
-				label: "Numerical rubric",
+				label: "Numerical criterion",
 			},
 		])
-		.returning(["id", "rowId", "type"])
+		.returning(["id", "rowId", "kind"])
 		.execute();
 
-	const rubricRowsByType = new Map(
-		insertedRubrics.map((rubric) => [rubric.type, rubric.rowId]),
+	const criterionRowsByKind = new Map(
+		insertedCriteria.map((criterion) => [criterion.kind, criterion.rowId]),
 	);
 
-	const booleanRubricId = rubricRowsByType.get("boolean");
-	const ordinalRubricId = rubricRowsByType.get("ordinal");
-	const numericalRubricId = rubricRowsByType.get("numerical");
+	const checkCriterionId = criterionRowsByKind.get("check");
+	const optionsCriterionId = criterionRowsByKind.get("options");
+	const numberCriterionId = criterionRowsByKind.get("number");
 
 	if (
-		booleanRubricId == null ||
-		ordinalRubricId == null ||
-		numericalRubricId == null
+		checkCriterionId == null ||
+		optionsCriterionId == null ||
+		numberCriterionId == null
 	) {
-		throw new Error("Expected all rubric rows to be created.");
+		throw new Error("Expected all criterion rows to be created.");
 	}
 
 	const studentAId = buildTestId("student-a");
@@ -173,43 +173,43 @@ async function createAssessmentConstraintFixture(
 		throw new Error("Expected assessment rows to be created.");
 	}
 
-	const insertedRubricAssessments = await db
-		.insertInto("rubricAssessment")
+	const insertedCriterionAssessments = await db
+		.insertInto("criterionAssessment")
 		.values([
 			{
 				assessmentId: primaryAssessment.id,
-				rubricId: ordinalRubricId,
-				type: "ordinal",
+				criterionId: optionsCriterionId,
+				kind: "options",
 			},
 			{
 				assessmentId: secondaryAssessment.id,
-				rubricId: ordinalRubricId,
-				type: "ordinal",
+				criterionId: optionsCriterionId,
+				kind: "options",
 			},
 			{
 				assessmentId: primaryAssessment.id,
-				rubricId: numericalRubricId,
-				type: "numerical",
+				criterionId: numberCriterionId,
+				kind: "number",
 			},
 			{
 				assessmentId: secondaryAssessment.id,
-				rubricId: numericalRubricId,
-				type: "numerical",
+				criterionId: numberCriterionId,
+				kind: "number",
 			},
 		])
-		.returning(["id", "assessmentId", "type"])
+		.returning(["id", "assessmentId", "kind"])
 		.execute();
 
-	const ordinalRubricAssessments = insertedRubricAssessments.filter(
-		(rubricAssessment) => rubricAssessment.type === "ordinal",
+	const optionsCriterionAssessments = insertedCriterionAssessments.filter(
+		(criterionAssessment) => criterionAssessment.kind === "options",
 	);
 
-	const numericalRubricAssessments = insertedRubricAssessments.filter(
-		(rubricAssessment) => rubricAssessment.type === "numerical",
+	const numberCriterionAssessments = insertedCriterionAssessments.filter(
+		(criterionAssessment) => criterionAssessment.kind === "number",
 	);
 
-	const [ordinalPrimary, ordinalSecondary] = ordinalRubricAssessments;
-	const [numericalPrimary, numericalSecondary] = numericalRubricAssessments;
+	const [ordinalPrimary, ordinalSecondary] = optionsCriterionAssessments;
+	const [numericalPrimary, numericalSecondary] = numberCriterionAssessments;
 
 	if (
 		ordinalPrimary == null ||
@@ -218,28 +218,28 @@ async function createAssessmentConstraintFixture(
 		numericalSecondary == null
 	) {
 		throw new Error(
-			"Expected rubric assessment rows for ordinal and numerical rubrics.",
+			"Expected criterion assessment rows for ordinal and numerical criteria.",
 		);
 	}
 
-	const ordinalRubric = await db
-		.insertInto("ordinalRubric")
-		.values({ rubricId: ordinalRubricId })
+	const optionsCriterion = await db
+		.insertInto("optionsCriterion")
+		.values({ criterionId: optionsCriterionId })
 		.returning("id")
 		.executeTakeFirstOrThrow();
 
 	await db
-		.insertInto("ordinalRubricValue")
+		.insertInto("optionsCriterionMark")
 		.values([
-			{ ordinalRubricId: ordinalRubric.id, label: "A", marks: 4 },
-			{ ordinalRubricId: ordinalRubric.id, label: "B", marks: 2 },
+			{ optionsCriterionId: optionsCriterion.id, label: "A", marks: 4 },
+			{ optionsCriterionId: optionsCriterion.id, label: "B", marks: 2 },
 		])
 		.execute();
 
 	await db
-		.insertInto("numericalRubric")
+		.insertInto("numberCriterion")
 		.values({
-			rubricId: numericalRubricId,
+			criterionId: numberCriterionId,
 			minScore: 0,
 			maxScore: 10,
 			minMarks: 0,
@@ -249,11 +249,11 @@ async function createAssessmentConstraintFixture(
 		.execute();
 
 	return {
-		ordinalRubricAssessmentIds: {
+		optionsCriterionAssessmentIds: {
 			primary: ordinalPrimary.id,
 			secondary: ordinalSecondary.id,
 		},
-		numericalRubricAssessmentIds: {
+		numberCriterionAssessmentIds: {
 			primary: numericalPrimary.id,
 			secondary: numericalSecondary.id,
 		},
@@ -263,7 +263,7 @@ async function createAssessmentConstraintFixture(
 async function createSubtypeConstraintFixture(
 	db: Kysely<DB>,
 	projectId: string,
-): Promise<RubricRowIds> {
+): Promise<CriterionRowIds> {
 	const project = await db
 		.selectFrom("project")
 		.select("rowId")
@@ -290,69 +290,71 @@ async function createSubtypeConstraintFixture(
 		.where("id", "=", questionId)
 		.executeTakeFirstOrThrow();
 
-	const insertedRubrics = await db
-		.insertInto("rubric")
+	const insertedCriteria = await db
+		.insertInto("criterion")
 		.values([
 			{
 				projectId: projectRowId,
-				id: buildTestId("subtype-rubric-boolean"),
+				id: buildTestId("subtype-criterion-boolean"),
 				questionId: question.rowId,
-				type: "boolean",
+				kind: "check",
 				position: 0,
-				label: "Subtype boolean rubric",
+				label: "Subtype boolean criterion",
 			},
 			{
 				projectId: projectRowId,
-				id: buildTestId("subtype-rubric-ordinal"),
+				id: buildTestId("subtype-criterion-ordinal"),
 				questionId: question.rowId,
-				type: "ordinal",
+				kind: "options",
 				position: 1,
-				label: "Subtype ordinal rubric",
+				label: "Subtype ordinal criterion",
 			},
 			{
 				projectId: projectRowId,
-				id: buildTestId("subtype-rubric-numerical"),
+				id: buildTestId("subtype-criterion-numerical"),
 				questionId: question.rowId,
-				type: "numerical",
+				kind: "number",
 				position: 2,
-				label: "Subtype numerical rubric",
+				label: "Subtype numerical criterion",
 			},
 		])
-		.returning(["type", "rowId"])
+		.returning(["kind", "rowId"])
 		.execute();
 
-	const rubricRowsByType = new Map(
-		insertedRubrics.map((rubric) => [rubric.type, rubric.rowId]),
+	const criterionRowsByKind = new Map(
+		insertedCriteria.map((criterion) => [criterion.kind, criterion.rowId]),
 	);
 
-	const booleanRubricId = rubricRowsByType.get("boolean");
-	const ordinalRubricId = rubricRowsByType.get("ordinal");
-	const numericalRubricId = rubricRowsByType.get("numerical");
+	const checkCriterionId = criterionRowsByKind.get("check");
+	const optionsCriterionId = criterionRowsByKind.get("options");
+	const numberCriterionId = criterionRowsByKind.get("number");
 
 	if (
-		booleanRubricId == null ||
-		ordinalRubricId == null ||
-		numericalRubricId == null
+		checkCriterionId == null ||
+		optionsCriterionId == null ||
+		numberCriterionId == null
 	) {
-		throw new Error("Expected all subtype fixture rubric rows to be created.");
+		throw new Error(
+			"Expected all subtype fixture criterion rows to be created.",
+		);
 	}
 
 	return {
-		boolean: booleanRubricId,
-		ordinal: ordinalRubricId,
-		numerical: numericalRubricId,
+		boolean: checkCriterionId,
+		ordinal: optionsCriterionId,
+		numerical: numberCriterionId,
 	};
 }
 
-test("ordinal rubric assessments accept valid labels and roll back failed transactional writes", async () => {
+test("ordinal criterion assessments accept valid labels and roll back failed transactional writes", async () => {
 	await using db = await createTestDb();
 	await using project = await createProject(db, "Constraint Ordinal Project");
 	const fixture = await createAssessmentConstraintFixture(db, project.id);
 
 	await db
-		.insertInto("ordinalRubricAssessment")
+		.insertInto("optionsCriterionAssessment")
 		.values({
-			rubricAssessmentId: fixture.ordinalRubricAssessmentIds.primary,
+			criterionAssessmentId: fixture.optionsCriterionAssessmentIds.primary,
 			selectedLabel: "A",
 		})
 		.execute();
@@ -360,17 +362,18 @@ test("ordinal rubric assessments accept valid labels and roll back failed transa
 	await expect(
 		db.transaction().execute(async (trx) => {
 			await trx
-				.insertInto("ordinalRubricAssessment")
+				.insertInto("optionsCriterionAssessment")
 				.values({
-					rubricAssessmentId: fixture.ordinalRubricAssessmentIds.secondary,
+					criterionAssessmentId:
+						fixture.optionsCriterionAssessmentIds.secondary,
 					selectedLabel: "B",
 				})
 				.execute();
 
 			await trx
-				.insertInto("ordinalRubricAssessment")
+				.insertInto("optionsCriterionAssessment")
 				.values({
-					rubricAssessmentId: fixture.ordinalRubricAssessmentIds.primary,
+					criterionAssessmentId: fixture.optionsCriterionAssessmentIds.primary,
 					selectedLabel: "INVALID",
 				})
 				.execute();
@@ -378,32 +381,32 @@ test("ordinal rubric assessments accept valid labels and roll back failed transa
 	).rejects.toThrow("selected_label");
 
 	const persisted = await db
-		.selectFrom("ordinalRubricAssessment")
-		.select(["rubricAssessmentId", "selectedLabel"])
-		.where("rubricAssessmentId", "in", [
-			fixture.ordinalRubricAssessmentIds.primary,
-			fixture.ordinalRubricAssessmentIds.secondary,
+		.selectFrom("optionsCriterionAssessment")
+		.select(["criterionAssessmentId", "selectedLabel"])
+		.where("criterionAssessmentId", "in", [
+			fixture.optionsCriterionAssessmentIds.primary,
+			fixture.optionsCriterionAssessmentIds.secondary,
 		])
-		.orderBy("rubricAssessmentId", "asc")
+		.orderBy("criterionAssessmentId", "asc")
 		.execute();
 
 	expect(persisted).toEqual([
 		{
-			rubricAssessmentId: fixture.ordinalRubricAssessmentIds.primary,
+			criterionAssessmentId: fixture.optionsCriterionAssessmentIds.primary,
 			selectedLabel: "A",
 		},
 	]);
 });
 
-test("numerical rubric assessments enforce score bounds and roll back failed transactional writes", async () => {
+test("numerical criterion assessments enforce score bounds and roll back failed transactional writes", async () => {
 	await using db = await createTestDb();
 	await using project = await createProject(db, "Constraint Numerical Project");
 	const fixture = await createAssessmentConstraintFixture(db, project.id);
 
 	await db
-		.insertInto("numericalRubricAssessment")
+		.insertInto("numberCriterionAssessment")
 		.values({
-			rubricAssessmentId: fixture.numericalRubricAssessmentIds.primary,
+			criterionAssessmentId: fixture.numberCriterionAssessmentIds.primary,
 			score: 7.5,
 		})
 		.execute();
@@ -411,17 +414,17 @@ test("numerical rubric assessments enforce score bounds and roll back failed tra
 	await expect(
 		db.transaction().execute(async (trx) => {
 			await trx
-				.insertInto("numericalRubricAssessment")
+				.insertInto("numberCriterionAssessment")
 				.values({
-					rubricAssessmentId: fixture.numericalRubricAssessmentIds.secondary,
+					criterionAssessmentId: fixture.numberCriterionAssessmentIds.secondary,
 					score: 4,
 				})
 				.execute();
 
 			await trx
-				.insertInto("numericalRubricAssessment")
+				.insertInto("numberCriterionAssessment")
 				.values({
-					rubricAssessmentId: fixture.numericalRubricAssessmentIds.primary,
+					criterionAssessmentId: fixture.numberCriterionAssessmentIds.primary,
 					score: 11,
 				})
 				.execute();
@@ -429,23 +432,23 @@ test("numerical rubric assessments enforce score bounds and roll back failed tra
 	).rejects.toThrow("out of bounds");
 
 	const persisted = await db
-		.selectFrom("numericalRubricAssessment")
-		.select(["rubricAssessmentId", "score"])
-		.where("rubricAssessmentId", "in", [
-			fixture.numericalRubricAssessmentIds.primary,
-			fixture.numericalRubricAssessmentIds.secondary,
+		.selectFrom("numberCriterionAssessment")
+		.select(["criterionAssessmentId", "score"])
+		.where("criterionAssessmentId", "in", [
+			fixture.numberCriterionAssessmentIds.primary,
+			fixture.numberCriterionAssessmentIds.secondary,
 		])
-		.orderBy("rubricAssessmentId", "asc")
+		.orderBy("criterionAssessmentId", "asc")
 		.execute();
 
 	const normalizedPersisted = persisted.map((row) => ({
-		rubricAssessmentId: row.rubricAssessmentId,
+		criterionAssessmentId: row.criterionAssessmentId,
 		score: Number(row.score),
 	}));
 
 	expect(normalizedPersisted).toEqual([
 		{
-			rubricAssessmentId: fixture.numericalRubricAssessmentIds.primary,
+			criterionAssessmentId: fixture.numberCriterionAssessmentIds.primary,
 			score: 7.5,
 		},
 	]);
@@ -529,46 +532,50 @@ test("submission owner/type check rejects invalid rows and rolls back transactio
 	expect(onlySubmission.teamId).toBeNull();
 });
 
-test("rubric subtype triggers reject mismatched subtype rows and roll back transactional writes", async () => {
+test("criterion subtype triggers reject mismatched subtype rows and roll back transactional writes", async () => {
 	await using db = await createTestDb();
 	await using project = await createProject(db, "Constraint Subtype Project");
-	const rubricRowIds = await createSubtypeConstraintFixture(db, project.id);
+	const criterionRowIds = await createSubtypeConstraintFixture(db, project.id);
 
 	await db
-		.insertInto("booleanRubric")
-		.values({ rubricId: rubricRowIds.boolean, marks: 2, falseMarks: 0 })
+		.insertInto("checkCriterion")
+		.values({ criterionId: criterionRowIds.boolean, marks: 2, falseMarks: 0 })
 		.execute();
 
 	await expect(
 		db.transaction().execute(async (trx) => {
 			await trx
-				.insertInto("ordinalRubric")
-				.values({ rubricId: rubricRowIds.ordinal })
+				.insertInto("optionsCriterion")
+				.values({ criterionId: criterionRowIds.ordinal })
 				.execute();
 
 			await trx
-				.insertInto("booleanRubric")
-				.values({ rubricId: rubricRowIds.ordinal, marks: 2, falseMarks: 0 })
+				.insertInto("checkCriterion")
+				.values({
+					criterionId: criterionRowIds.ordinal,
+					marks: 2,
+					falseMarks: 0,
+				})
 				.execute();
 		}),
-	).rejects.toThrow("requires Rubric.type boolean");
+	).rejects.toThrow("requires Criterion.kind check");
 
 	const booleanRows = await db
-		.selectFrom("booleanRubric")
-		.select("rubricId")
-		.where("rubricId", "=", rubricRowIds.ordinal)
+		.selectFrom("checkCriterion")
+		.select("criterionId")
+		.where("criterionId", "=", criterionRowIds.ordinal)
 		.execute();
 
 	const ordinalRows = await db
-		.selectFrom("ordinalRubric")
-		.select("rubricId")
-		.where("rubricId", "=", rubricRowIds.ordinal)
+		.selectFrom("optionsCriterion")
+		.select("criterionId")
+		.where("criterionId", "=", criterionRowIds.ordinal)
 		.execute();
 
 	const baselineBooleanRows = await db
-		.selectFrom("booleanRubric")
-		.select("rubricId")
-		.where("rubricId", "=", rubricRowIds.boolean)
+		.selectFrom("checkCriterion")
+		.select("criterionId")
+		.where("criterionId", "=", criterionRowIds.boolean)
 		.execute();
 
 	expect(booleanRows).toHaveLength(0);
@@ -576,19 +583,19 @@ test("rubric subtype triggers reject mismatched subtype rows and roll back trans
 	expect(baselineBooleanRows).toHaveLength(1);
 });
 
-test("numerical rubric score range check rejects a collapsed or inverted range and rolls back transactional writes", async () => {
+test("numerical criterion score range check rejects a collapsed or inverted range and rolls back transactional writes", async () => {
 	await using db = await createTestDb();
 	await using project = await createProject(
 		db,
 		"Constraint Numerical Score Range Project",
 	);
-	const rubricRowIds = await createSubtypeConstraintFixture(db, project.id);
+	const criterionRowIds = await createSubtypeConstraintFixture(db, project.id);
 
 	await expect(
 		db
-			.insertInto("numericalRubric")
+			.insertInto("numberCriterion")
 			.values({
-				rubricId: rubricRowIds.numerical,
+				criterionId: criterionRowIds.numerical,
 				minScore: 5,
 				maxScore: 5,
 				minMarks: 0,
@@ -600,9 +607,9 @@ test("numerical rubric score range check rejects a collapsed or inverted range a
 
 	await expect(
 		db
-			.insertInto("numericalRubric")
+			.insertInto("numberCriterion")
 			.values({
-				rubricId: rubricRowIds.numerical,
+				criterionId: criterionRowIds.numerical,
 				minScore: 10,
 				maxScore: 5,
 				minMarks: 0,
@@ -613,27 +620,27 @@ test("numerical rubric score range check rejects a collapsed or inverted range a
 	).rejects.toThrow("numerical_rubric_score_range_check");
 
 	const persisted = await db
-		.selectFrom("numericalRubric")
-		.select("rubricId")
-		.where("rubricId", "=", rubricRowIds.numerical)
+		.selectFrom("numberCriterion")
+		.select("criterionId")
+		.where("criterionId", "=", criterionRowIds.numerical)
 		.execute();
 
 	expect(persisted).toHaveLength(0);
 });
 
-test("numerical rubric marks range check rejects inverted marks and rolls back transactional writes", async () => {
+test("numerical criterion marks range check rejects inverted marks and rolls back transactional writes", async () => {
 	await using db = await createTestDb();
 	await using project = await createProject(
 		db,
 		"Constraint Numerical Marks Range Project",
 	);
-	const rubricRowIds = await createSubtypeConstraintFixture(db, project.id);
+	const criterionRowIds = await createSubtypeConstraintFixture(db, project.id);
 
 	await expect(
 		db
-			.insertInto("numericalRubric")
+			.insertInto("numberCriterion")
 			.values({
-				rubricId: rubricRowIds.numerical,
+				criterionId: criterionRowIds.numerical,
 				minScore: 0,
 				maxScore: 10,
 				minMarks: 10,
@@ -644,9 +651,9 @@ test("numerical rubric marks range check rejects inverted marks and rolls back t
 	).rejects.toThrow("numerical_rubric_marks_range_check");
 
 	await db
-		.insertInto("numericalRubric")
+		.insertInto("numberCriterion")
 		.values({
-			rubricId: rubricRowIds.numerical,
+			criterionId: criterionRowIds.numerical,
 			minScore: 0,
 			maxScore: 10,
 			minMarks: 5,
@@ -656,18 +663,18 @@ test("numerical rubric marks range check rejects inverted marks and rolls back t
 		.execute();
 
 	const persisted = await db
-		.selectFrom("numericalRubric")
-		.select(["rubricId", "minMarks", "maxMarks"])
-		.where("rubricId", "=", rubricRowIds.numerical)
+		.selectFrom("numberCriterion")
+		.select(["criterionId", "minMarks", "maxMarks"])
+		.where("criterionId", "=", criterionRowIds.numerical)
 		.execute();
 
 	const normalizedPersisted = persisted.map((row) => ({
-		rubricId: row.rubricId,
+		criterionId: row.criterionId,
 		minMarks: Number(row.minMarks),
 		maxMarks: Number(row.maxMarks),
 	}));
 
 	expect(normalizedPersisted).toEqual([
-		{ rubricId: rubricRowIds.numerical, minMarks: 5, maxMarks: 5 },
+		{ criterionId: criterionRowIds.numerical, minMarks: 5, maxMarks: 5 },
 	]);
 });

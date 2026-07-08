@@ -34,15 +34,15 @@ test("loadQuestionRowsFromDb returns only the rows scoped to the given project",
 		{
 			id: fixture.questionId,
 			label: "Boolean question",
-			rubrics: [
+			criteria: [
 				{
-					id: fixture.rubricId,
-					type: "boolean",
+					id: fixture.criterionId,
+					kind: "check",
 					description: null,
 					label: "Correct",
-					booleanRubric: { marks: 2, falseMarks: 0 },
-					ordinalRubric: null,
-					numericalRubric: null,
+					checkCriterion: { marks: 2, falseMarks: 0 },
+					optionsCriterion: null,
+					numberCriterion: null,
 				},
 			],
 		},
@@ -70,9 +70,9 @@ test("loadQuestionGrid forwards its db option to the shared loadQuestionRows sou
 	const grid = await loadQuestionGrid({ projectId: project.id }, { db });
 
 	expect(Object.keys(grid)).toEqual([fixture.questionId]);
-	expect(grid[fixture.questionId]?.rubrics.map((rubric) => rubric.id)).toEqual([
-		fixture.rubricId,
-	]);
+	expect(
+		grid[fixture.questionId]?.criteria.map((criterion) => criterion.id),
+	).toEqual([fixture.criterionId]);
 
 	const declaredTags = vi.mocked(cacheTag).mock.calls.map((call) => call[0]);
 	expect(declaredTags).toEqual(questionCacheTags());
@@ -88,30 +88,34 @@ test("loadQuestion forwards its db option to the shared loadQuestionRows source"
 		{ db },
 	);
 
-	expect(question?.rubrics.map((rubric) => rubric.id)).toEqual([
-		fixture.rubricId,
+	expect(question?.criteria.map((criterion) => criterion.id)).toEqual([
+		fixture.criterionId,
 	]);
 });
 
-test("loadQuestionRowsFromDb returns ordinalRubric with empty marks when the ordinalRubric row exists but has no ordinalRubricValue rows", async () => {
+test("loadQuestionRowsFromDb returns optionsCriterion with empty marks when the optionsCriterion row exists but has no optionsCriterionMark rows", async () => {
 	await using db = await createTestDb();
 	await using project = await createProject(db, "Ordinal Empty Marks Project");
 
-	const { questionId, rubricId } = await createOrdinalQuestionFixture(
+	const { questionId, criterionId } = await createOrdinalQuestionFixture(
 		db,
 		project.rowId,
 	);
 
 	await db
-		.deleteFrom("ordinalRubricValue")
+		.deleteFrom("optionsCriterionMark")
 		.where(
-			"ordinalRubricId",
+			"optionsCriterionId",
 			"in",
 			db
-				.selectFrom("ordinalRubric")
-				.innerJoin("rubric", "rubric.rowId", "ordinalRubric.rubricId")
-				.where("rubric.id", "=", rubricId)
-				.select("ordinalRubric.id"),
+				.selectFrom("optionsCriterion")
+				.innerJoin(
+					"criterion",
+					"criterion.rowId",
+					"optionsCriterion.criterionId",
+				)
+				.where("criterion.id", "=", criterionId)
+				.select("optionsCriterion.id"),
 		)
 		.execute();
 
@@ -121,15 +125,15 @@ test("loadQuestionRowsFromDb returns ordinalRubric with empty marks when the ord
 		{
 			id: questionId,
 			label: "Ordinal question",
-			rubrics: [
+			criteria: [
 				{
-					id: rubricId,
-					type: "ordinal",
+					id: criterionId,
+					kind: "options",
 					description: null,
 					label: "Ordinal",
-					booleanRubric: null,
-					ordinalRubric: { marks: [] },
-					numericalRubric: null,
+					checkCriterion: null,
+					optionsCriterion: { marks: [] },
+					numberCriterion: null,
 				},
 			],
 		},

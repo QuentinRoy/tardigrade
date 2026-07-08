@@ -54,49 +54,14 @@ export async function up(db: Kysely<unknown>): Promise<void> {
     ALTER TABLE "options_criterion_assessment" RENAME COLUMN "rubric_assessment_id" TO "criterion_assessment_id";
     ALTER TABLE "number_criterion_assessment" RENAME COLUMN "rubric_assessment_id" TO "criterion_assessment_id";
 
-    -- Constraints and indexes (keep names aligned with tables/columns).
-    ALTER TABLE "criterion" RENAME CONSTRAINT "rubric_pkey" TO "criterion_pkey";
-    ALTER TABLE "criterion" RENAME CONSTRAINT "Rubric_projectId_id_key" TO "Criterion_projectId_id_key";
-    ALTER TABLE "criterion" RENAME CONSTRAINT "Rubric_questionId_position_key" TO "Criterion_questionId_position_key";
-    ALTER TABLE "criterion" RENAME CONSTRAINT "Rubric_projectId_fkey" TO "Criterion_projectId_fkey";
-    ALTER TABLE "criterion" RENAME CONSTRAINT "Rubric_questionId_fkey" TO "Criterion_questionId_fkey";
-    ALTER INDEX "rubric_project_id_idx" RENAME TO "criterion_project_id_idx";
-
-    ALTER TABLE "criterion_assessment" RENAME CONSTRAINT "rubric_assessment_pkey" TO "criterion_assessment_pkey";
-    ALTER TABLE "criterion_assessment" RENAME CONSTRAINT "RubricAssessment_assessmentId_rubricId_key" TO "CriterionAssessment_assessmentId_criterionId_key";
-    ALTER TABLE "criterion_assessment" RENAME CONSTRAINT "RubricAssessment_assessmentId_fkey" TO "CriterionAssessment_assessmentId_fkey";
-    ALTER TABLE "criterion_assessment" RENAME CONSTRAINT "RubricAssessment_rubricId_fkey" TO "CriterionAssessment_criterionId_fkey";
-
-    ALTER TABLE "check_criterion" RENAME CONSTRAINT "boolean_rubric_pkey" TO "check_criterion_pkey";
-    ALTER TABLE "check_criterion" RENAME CONSTRAINT "boolean_rubric_rubric_id_key" TO "check_criterion_criterion_id_key";
-    ALTER TABLE "check_criterion" RENAME CONSTRAINT "BooleanRubric_rubricId_fkey" TO "CheckCriterion_criterionId_fkey";
-
-    ALTER TABLE "options_criterion" RENAME CONSTRAINT "ordinal_rubric_pkey" TO "options_criterion_pkey";
-    ALTER TABLE "options_criterion" RENAME CONSTRAINT "ordinal_rubric_rubric_id_key" TO "options_criterion_criterion_id_key";
-    ALTER TABLE "options_criterion" RENAME CONSTRAINT "OrdinalRubric_rubricId_fkey" TO "OptionsCriterion_criterionId_fkey";
-
-    ALTER TABLE "options_criterion_mark" RENAME CONSTRAINT "ordinal_rubric_value_pkey" TO "options_criterion_mark_pkey";
-    ALTER TABLE "options_criterion_mark" RENAME CONSTRAINT "OrdinalRubricValue_ordinalRubricId_label_key" TO "OptionsCriterionMark_optionsCriterionId_label_key";
-    ALTER TABLE "options_criterion_mark" RENAME CONSTRAINT "OrdinalRubricValue_ordinalRubricId_fkey" TO "OptionsCriterionMark_optionsCriterionId_fkey";
-    ALTER INDEX "OrdinalRubricValue_ordinalRubricId_label_idx" RENAME TO "OptionsCriterionMark_optionsCriterionId_label_idx";
-
-    ALTER TABLE "number_criterion" RENAME CONSTRAINT "numerical_rubric_pkey" TO "number_criterion_pkey";
-    ALTER TABLE "number_criterion" RENAME CONSTRAINT "numerical_rubric_rubric_id_key" TO "number_criterion_criterion_id_key";
-    ALTER TABLE "number_criterion" RENAME CONSTRAINT "numerical_rubric_marks_range_check" TO "number_criterion_marks_range_check";
-    ALTER TABLE "number_criterion" RENAME CONSTRAINT "numerical_rubric_score_range_check" TO "number_criterion_score_range_check";
-    ALTER TABLE "number_criterion" RENAME CONSTRAINT "NumericalRubric_rubricId_fkey" TO "NumberCriterion_criterionId_fkey";
-
-    ALTER TABLE "check_criterion_assessment" RENAME CONSTRAINT "boolean_rubric_assessment_pkey" TO "check_criterion_assessment_pkey";
-    ALTER TABLE "check_criterion_assessment" RENAME CONSTRAINT "boolean_rubric_assessment_rubric_assessment_id_key" TO "check_criterion_assessment_criterion_assessment_id_key";
-    ALTER TABLE "check_criterion_assessment" RENAME CONSTRAINT "BooleanRubricAssessment_rubricAssessmentId_fkey" TO "CheckCriterionAssessment_criterionAssessmentId_fkey";
-
-    ALTER TABLE "options_criterion_assessment" RENAME CONSTRAINT "ordinal_rubric_assessment_pkey" TO "options_criterion_assessment_pkey";
-    ALTER TABLE "options_criterion_assessment" RENAME CONSTRAINT "ordinal_rubric_assessment_rubric_assessment_id_key" TO "options_criterion_assessment_criterion_assessment_id_key";
-    ALTER TABLE "options_criterion_assessment" RENAME CONSTRAINT "OrdinalRubricAssessment_rubricAssessmentId_fkey" TO "OptionsCriterionAssessment_criterionAssessmentId_fkey";
-
-    ALTER TABLE "number_criterion_assessment" RENAME CONSTRAINT "numerical_rubric_assessment_pkey" TO "number_criterion_assessment_pkey";
-    ALTER TABLE "number_criterion_assessment" RENAME CONSTRAINT "numerical_rubric_assessment_rubric_assessment_id_key" TO "number_criterion_assessment_criterion_assessment_id_key";
-    ALTER TABLE "number_criterion_assessment" RENAME CONSTRAINT "NumericalRubricAssessment_rubricAssessmentId_fkey" TO "NumberCriterionAssessment_criterionAssessmentId_fkey";
+    -- Constraint and index identifiers are intentionally left unchanged. They
+    -- are never referenced by app code, and their exact spelling differs by
+    -- migration runner: earlier schema-builder constraints are snake_cased by
+    -- the test runner's CamelCasePlugin (e.g. "Rubric_projectId_fkey" ->
+    -- rubric_project_id_fkey) but kept verbatim by the plain prod runner. A raw
+    -- ALTER ... RENAME CONSTRAINT by hard-coded name would therefore succeed in
+    -- one environment and fail in the other. Renaming them for cosmetics is not
+    -- worth that fragility, so only tables, columns, the enum, and triggers move.
 
     -- Recreate kind-match, immutability, bounds, and label-valid enforcement.
     CREATE OR REPLACE FUNCTION enforce_check_criterion_kind_match()
@@ -278,50 +243,6 @@ export async function down(db: Kysely<unknown>): Promise<void> {
     DROP FUNCTION IF EXISTS enforce_number_criterion_kind_match();
     DROP FUNCTION IF EXISTS enforce_options_criterion_label_valid();
     DROP FUNCTION IF EXISTS enforce_number_criterion_score_bounds();
-
-    -- Constraints and indexes.
-    ALTER TABLE "criterion" RENAME CONSTRAINT "criterion_pkey" TO "rubric_pkey";
-    ALTER TABLE "criterion" RENAME CONSTRAINT "Criterion_projectId_id_key" TO "Rubric_projectId_id_key";
-    ALTER TABLE "criterion" RENAME CONSTRAINT "Criterion_questionId_position_key" TO "Rubric_questionId_position_key";
-    ALTER TABLE "criterion" RENAME CONSTRAINT "Criterion_projectId_fkey" TO "Rubric_projectId_fkey";
-    ALTER TABLE "criterion" RENAME CONSTRAINT "Criterion_questionId_fkey" TO "Rubric_questionId_fkey";
-    ALTER INDEX "criterion_project_id_idx" RENAME TO "rubric_project_id_idx";
-
-    ALTER TABLE "criterion_assessment" RENAME CONSTRAINT "criterion_assessment_pkey" TO "rubric_assessment_pkey";
-    ALTER TABLE "criterion_assessment" RENAME CONSTRAINT "CriterionAssessment_assessmentId_criterionId_key" TO "RubricAssessment_assessmentId_rubricId_key";
-    ALTER TABLE "criterion_assessment" RENAME CONSTRAINT "CriterionAssessment_assessmentId_fkey" TO "RubricAssessment_assessmentId_fkey";
-    ALTER TABLE "criterion_assessment" RENAME CONSTRAINT "CriterionAssessment_criterionId_fkey" TO "RubricAssessment_rubricId_fkey";
-
-    ALTER TABLE "check_criterion" RENAME CONSTRAINT "check_criterion_pkey" TO "boolean_rubric_pkey";
-    ALTER TABLE "check_criterion" RENAME CONSTRAINT "check_criterion_criterion_id_key" TO "boolean_rubric_rubric_id_key";
-    ALTER TABLE "check_criterion" RENAME CONSTRAINT "CheckCriterion_criterionId_fkey" TO "BooleanRubric_rubricId_fkey";
-
-    ALTER TABLE "options_criterion" RENAME CONSTRAINT "options_criterion_pkey" TO "ordinal_rubric_pkey";
-    ALTER TABLE "options_criterion" RENAME CONSTRAINT "options_criterion_criterion_id_key" TO "ordinal_rubric_rubric_id_key";
-    ALTER TABLE "options_criterion" RENAME CONSTRAINT "OptionsCriterion_criterionId_fkey" TO "OrdinalRubric_rubricId_fkey";
-
-    ALTER TABLE "options_criterion_mark" RENAME CONSTRAINT "options_criterion_mark_pkey" TO "ordinal_rubric_value_pkey";
-    ALTER TABLE "options_criterion_mark" RENAME CONSTRAINT "OptionsCriterionMark_optionsCriterionId_label_key" TO "OrdinalRubricValue_ordinalRubricId_label_key";
-    ALTER TABLE "options_criterion_mark" RENAME CONSTRAINT "OptionsCriterionMark_optionsCriterionId_fkey" TO "OrdinalRubricValue_ordinalRubricId_fkey";
-    ALTER INDEX "OptionsCriterionMark_optionsCriterionId_label_idx" RENAME TO "OrdinalRubricValue_ordinalRubricId_label_idx";
-
-    ALTER TABLE "number_criterion" RENAME CONSTRAINT "number_criterion_pkey" TO "numerical_rubric_pkey";
-    ALTER TABLE "number_criterion" RENAME CONSTRAINT "number_criterion_criterion_id_key" TO "numerical_rubric_rubric_id_key";
-    ALTER TABLE "number_criterion" RENAME CONSTRAINT "number_criterion_marks_range_check" TO "numerical_rubric_marks_range_check";
-    ALTER TABLE "number_criterion" RENAME CONSTRAINT "number_criterion_score_range_check" TO "numerical_rubric_score_range_check";
-    ALTER TABLE "number_criterion" RENAME CONSTRAINT "NumberCriterion_criterionId_fkey" TO "NumericalRubric_rubricId_fkey";
-
-    ALTER TABLE "check_criterion_assessment" RENAME CONSTRAINT "check_criterion_assessment_pkey" TO "boolean_rubric_assessment_pkey";
-    ALTER TABLE "check_criterion_assessment" RENAME CONSTRAINT "check_criterion_assessment_criterion_assessment_id_key" TO "boolean_rubric_assessment_rubric_assessment_id_key";
-    ALTER TABLE "check_criterion_assessment" RENAME CONSTRAINT "CheckCriterionAssessment_criterionAssessmentId_fkey" TO "BooleanRubricAssessment_rubricAssessmentId_fkey";
-
-    ALTER TABLE "options_criterion_assessment" RENAME CONSTRAINT "options_criterion_assessment_pkey" TO "ordinal_rubric_assessment_pkey";
-    ALTER TABLE "options_criterion_assessment" RENAME CONSTRAINT "options_criterion_assessment_criterion_assessment_id_key" TO "ordinal_rubric_assessment_rubric_assessment_id_key";
-    ALTER TABLE "options_criterion_assessment" RENAME CONSTRAINT "OptionsCriterionAssessment_criterionAssessmentId_fkey" TO "OrdinalRubricAssessment_rubricAssessmentId_fkey";
-
-    ALTER TABLE "number_criterion_assessment" RENAME CONSTRAINT "number_criterion_assessment_pkey" TO "numerical_rubric_assessment_pkey";
-    ALTER TABLE "number_criterion_assessment" RENAME CONSTRAINT "number_criterion_assessment_criterion_assessment_id_key" TO "numerical_rubric_assessment_rubric_assessment_id_key";
-    ALTER TABLE "number_criterion_assessment" RENAME CONSTRAINT "NumberCriterionAssessment_criterionAssessmentId_fkey" TO "NumericalRubricAssessment_rubricAssessmentId_fkey";
 
     -- Columns.
     ALTER TABLE "criterion" RENAME COLUMN "kind" TO "type";

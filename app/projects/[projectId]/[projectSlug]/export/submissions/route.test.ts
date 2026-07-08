@@ -94,7 +94,7 @@ describe("GET /export/submissions", () => {
 			/^attachment; filename="submission-assessments-intro-to-grading-\d{4}-\d{2}-\d{2}\.csv"$/,
 		);
 		expect(createCsvSubmissionExport).toHaveBeenCalledWith(
-			{ includeRubricAssessment: false, includeRubricMarks: false },
+			{ includeCriterionAssessment: false, includeCriterionMarks: false },
 			"project-1",
 		);
 	});
@@ -109,14 +109,14 @@ describe("GET /export/submissions", () => {
 
 		const response = await GET(
 			buildRequest(
-				"?include=rubric-assessment&include=rubric-marks&include=rubric-assessment",
+				"?include=criterion-assessment&include=criterion-marks&include=criterion-assessment",
 			),
 			{ params },
 		);
 
 		expect(response.status).toBe(200);
 		expect(createCsvSubmissionExport).toHaveBeenCalledWith(
-			{ includeRubricAssessment: true, includeRubricMarks: true },
+			{ includeCriterionAssessment: true, includeCriterionMarks: true },
 			"project-1",
 		);
 	});

@@ -1,14 +1,14 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { fn } from "storybook/test";
-import BooleanGradeControl from "./BooleanGradeControl.tsx";
+import CheckGradeControl from "./CheckGradeControl.tsx";
 
 const meta = {
-	title: "Rubrics/BooleanGradeControl",
-	component: BooleanGradeControl,
+	title: "Criteria/CheckGradeControl",
+	component: CheckGradeControl,
 	tags: ["autodocs"],
 	parameters: { layout: "centered" },
 	args: { onAssess: fn(), disabled: false },
-} satisfies Meta<typeof BooleanGradeControl>;
+} satisfies Meta<typeof CheckGradeControl>;
 
 export default meta;
 

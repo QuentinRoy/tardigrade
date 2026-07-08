@@ -27,42 +27,50 @@ export function resultsCacheTags(): string[] {
 
 // `db` may be the global client or a caller-supplied transaction. The only
 // results-specific, schema-sensitive query: the three-way leftJoin across the
-// boolean/ordinal/numerical assessment subtype tables.
+// check/options/number assessment subtype tables.
 export async function loadCriterionAssessmentRecordsFromDb(
 	db: Kysely<DB>,
 	{ projectId }: { projectId: string },
 ): Promise<ResultsAssessmentRecord[]> {
 	return db
-		.selectFrom("rubricAssessment")
-		.innerJoin("assessment", "assessment.id", "rubricAssessment.assessmentId")
-		.innerJoin("rubric", "rubric.rowId", "rubricAssessment.rubricId")
+		.selectFrom("criterionAssessment")
+		.innerJoin(
+			"assessment",
+			"assessment.id",
+			"criterionAssessment.assessmentId",
+		)
+		.innerJoin(
+			"criterion",
+			"criterion.rowId",
+			"criterionAssessment.criterionId",
+		)
 		.where(
 			"assessment.projectId",
 			"in",
 			db.selectFrom("project").select("rowId").where("id", "=", projectId),
 		)
 		.leftJoin(
-			"booleanRubricAssessment",
-			"booleanRubricAssessment.rubricAssessmentId",
-			"rubricAssessment.id",
+			"checkCriterionAssessment",
+			"checkCriterionAssessment.criterionAssessmentId",
+			"criterionAssessment.id",
 		)
 		.leftJoin(
-			"ordinalRubricAssessment",
-			"ordinalRubricAssessment.rubricAssessmentId",
-			"rubricAssessment.id",
+			"optionsCriterionAssessment",
+			"optionsCriterionAssessment.criterionAssessmentId",
+			"criterionAssessment.id",
 		)
 		.leftJoin(
-			"numericalRubricAssessment",
-			"numericalRubricAssessment.rubricAssessmentId",
-			"rubricAssessment.id",
+			"numberCriterionAssessment",
+			"numberCriterionAssessment.criterionAssessmentId",
+			"criterionAssessment.id",
 		)
 		.select([
 			"assessment.submissionId as gradeTargetId",
-			"rubric.id as criterionId",
-			"rubricAssessment.type as type",
-			"booleanRubricAssessment.passed as passed",
-			"ordinalRubricAssessment.selectedLabel as selectedLabel",
-			"numericalRubricAssessment.score as score",
+			"criterion.id as criterionId",
+			"criterionAssessment.kind as kind",
+			"checkCriterionAssessment.passed as passed",
+			"optionsCriterionAssessment.selectedLabel as selectedLabel",
+			"numberCriterionAssessment.score as score",
 		])
 		.execute();
 }

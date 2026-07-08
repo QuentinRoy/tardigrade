@@ -11,7 +11,7 @@ type CriterionDetailsTooltipProps = {
 };
 
 function propertyRows(details: CriterionDetails): ReactNode[] {
-	if (details.properties.type === "boolean") {
+	if (details.properties.kind === "check") {
 		return [
 			<Text key="true" size="xs">
 				True marks: {details.properties.trueMarks}
@@ -22,7 +22,7 @@ function propertyRows(details: CriterionDetails): ReactNode[] {
 		];
 	}
 
-	if (details.properties.type === "ordinal") {
+	if (details.properties.kind === "options") {
 		return details.properties.marksByLabel.map((entry) => (
 			<Text key={entry.label} size="xs">
 				{entry.label}: {entry.marks}
@@ -57,7 +57,7 @@ export default function CriterionDetailsTooltip({
 					{details.description != null && details.description.length > 0 && (
 						<Text size="xs">{details.description}</Text>
 					)}
-					<Text size="xs">Type: {details.type}</Text>
+					<Text size="xs">Kind: {details.kind}</Text>
 					{propertyRows(details)}
 				</Stack>
 			}

@@ -14,7 +14,7 @@ import { theme } from "#design-system/theme.ts";
 
 export const metadata = {
 	title: "Assessment",
-	description: "Simple assessment helper for rubric-based evaluation",
+	description: "Simple assessment helper for criterion-based evaluation",
 };
 
 type RootLayoutProps = { children: ReactNode };

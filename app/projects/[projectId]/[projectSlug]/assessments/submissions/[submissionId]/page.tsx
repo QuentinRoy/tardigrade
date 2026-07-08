@@ -6,13 +6,13 @@ import { loadSubmissionAssessments } from "#assessment-capture/assessments.ts";
 import SubmissionOverviewAssessmentClient from "#assessment-capture/SubmissionOverviewAssessmentClient.tsx";
 import { saveAssessment } from "#assessment-capture/saveAssessment.ts";
 import { loadAssessmentCompletionBySubmission } from "#assessment-completion/loadAssessmentCompletion.ts";
+import { attachAssessment } from "#criteria/criterion.ts";
 import AppLink from "#design-system/AppLink.tsx";
 import AppPage from "#design-system/AppPage.tsx";
 import PageHeader from "#design-system/PageHeader.tsx";
 import { projectAssessmentsPath } from "#projects/projectPaths.ts";
 import { loadProjectByPublicId } from "#projects/projects.ts";
 import { loadQuestionGrid } from "#questions/questions.ts";
-import { attachAssessment } from "#rubrics/rubric.ts";
 import { getSubmissionLabel } from "#submissions/getSubmissionLabel.ts";
 import { loadSubmissions } from "#submissions/submissions.ts";
 import type { Submission } from "#submissions/types.ts";
@@ -103,8 +103,8 @@ async function SubmissionGradingSection({
 		([questionId, question]) => ({
 			questionId,
 			questionLabel: question.label ?? questionId,
-			rubrics: question.rubrics.map((rubric) =>
-				attachAssessment(rubric, assessmentsByQuestionId[questionId]),
+			criteria: question.criteria.map((criterion) =>
+				attachAssessment(criterion, assessmentsByQuestionId[questionId]),
 			),
 		}),
 	);
@@ -123,7 +123,7 @@ async function SubmissionGradingSection({
 }
 
 // Mirrors `SubmissionOverviewAssessmentClient`'s layout (prev/next/lookup
-// buttons, then rubric rows) so the breadcrumb/title above stay in place and
+// buttons, then criterion rows) so the breadcrumb/title above stay in place and
 // the page doesn't jump once assessment values and progress load.
 function SubmissionGradingSectionSkeleton(): ReactElement {
 	return (

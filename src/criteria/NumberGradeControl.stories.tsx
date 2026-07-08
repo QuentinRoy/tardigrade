@@ -1,14 +1,14 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { expect, fn, screen, userEvent, waitFor } from "storybook/test";
-import NumericalGradeControl from "./NumericalGradeControl.tsx";
+import NumberGradeControl from "./NumberGradeControl.tsx";
 
 const meta = {
-	title: "Rubrics/NumericalGradeControl",
-	component: NumericalGradeControl,
+	title: "Criteria/NumberGradeControl",
+	component: NumberGradeControl,
 	tags: ["autodocs"],
 	parameters: { layout: "centered" },
 	args: { onAssess: fn(), disabled: false, minScore: 0, maxScore: 10 },
-} satisfies Meta<typeof NumericalGradeControl>;
+} satisfies Meta<typeof NumberGradeControl>;
 
 export default meta;
 

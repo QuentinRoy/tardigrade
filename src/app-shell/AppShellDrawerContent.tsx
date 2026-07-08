@@ -21,13 +21,13 @@ import { getProjectRouteContext } from "./AppShell.shared.ts";
 const EXPORT_STORAGE_KEY = "export-csv-options-v1";
 
 type ExportPersistedOptions = {
-	includeRubricAssessment: boolean;
-	includeRubricMarks: boolean;
+	includeCriterionAssessment: boolean;
+	includeCriterionMarks: boolean;
 };
 
 const DEFAULT_EXPORT_OPTIONS: ExportPersistedOptions = {
-	includeRubricAssessment: true,
-	includeRubricMarks: false,
+	includeCriterionAssessment: true,
+	includeCriterionMarks: false,
 };
 
 function deserializeExportOptions(raw: string): ExportPersistedOptions {
@@ -39,11 +39,12 @@ function deserializeExportOptions(raw: string): ExportPersistedOptions {
 	}
 
 	return {
-		includeRubricAssessment:
-			"includeRubricAssessment" in parsed &&
-			parsed.includeRubricAssessment === true,
-		includeRubricMarks:
-			"includeRubricMarks" in parsed && parsed.includeRubricMarks === true,
+		includeCriterionAssessment:
+			"includeCriterionAssessment" in parsed &&
+			parsed.includeCriterionAssessment === true,
+		includeCriterionMarks:
+			"includeCriterionMarks" in parsed &&
+			parsed.includeCriterionMarks === true,
 	};
 }
 
@@ -106,12 +107,12 @@ export default function AppShellDrawerContent({
 
 		const searchParams = new URLSearchParams();
 
-		if (exportOptions.includeRubricAssessment) {
-			searchParams.append("include", "rubric-assessment");
+		if (exportOptions.includeCriterionAssessment) {
+			searchParams.append("include", "criterion-assessment");
 		}
 
-		if (exportOptions.includeRubricMarks) {
-			searchParams.append("include", "rubric-marks");
+		if (exportOptions.includeCriterionMarks) {
+			searchParams.append("include", "criterion-marks");
 		}
 
 		const query = searchParams.toString();
@@ -202,22 +203,22 @@ export default function AppShellDrawerContent({
 				</Text>
 				<Stack gap="xs">
 					<Checkbox
-						label="Rubric assessment"
-						checked={exportOptions.includeRubricAssessment}
+						label="Criterion assessment"
+						checked={exportOptions.includeCriterionAssessment}
 						onChange={(event) => {
 							setExportOptions((current) => ({
 								...current,
-								includeRubricAssessment: event.currentTarget.checked,
+								includeCriterionAssessment: event.currentTarget.checked,
 							}));
 						}}
 					/>
 					<Checkbox
-						label="Rubric marks"
-						checked={exportOptions.includeRubricMarks}
+						label="Criterion marks"
+						checked={exportOptions.includeCriterionMarks}
 						onChange={(event) => {
 							setExportOptions((current) => ({
 								...current,
-								includeRubricMarks: event.currentTarget.checked,
+								includeCriterionMarks: event.currentTarget.checked,
 							}));
 						}}
 					/>

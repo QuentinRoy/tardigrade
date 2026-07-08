@@ -2,11 +2,11 @@ import { Stack } from "@mantine/core";
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import type { ReactElement } from "react";
 import { fn } from "storybook/test";
-import RubricCriterion from "./RubricCriterion.tsx";
+import CriterionGradeRow from "./CriterionGradeRow.tsx";
 
 const meta = {
-	title: "Rubrics/RubricCriterion",
-	component: RubricCriterion,
+	title: "Criteria/CriterionGradeRow",
+	component: CriterionGradeRow,
 	tags: ["autodocs"],
 	args: { onAssess: fn(), disabled: false, isPending: false },
 	decorators: [
@@ -16,17 +16,17 @@ const meta = {
 			</Stack>
 		),
 	],
-} satisfies Meta<typeof RubricCriterion>;
+} satisfies Meta<typeof CriterionGradeRow>;
 
 export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-export const BooleanUnset: Story = {
+export const CheckUnset: Story = {
 	args: {
-		rubric: {
+		criterion: {
 			id: "r1",
-			type: "boolean",
+			kind: "check",
 			marks: 2,
 			falseMarks: 0,
 			label: "Correct answer",
@@ -36,11 +36,11 @@ export const BooleanUnset: Story = {
 	},
 };
 
-export const BooleanGraded: Story = {
+export const CheckGraded: Story = {
 	args: {
-		rubric: {
+		criterion: {
 			id: "r1",
-			type: "boolean",
+			kind: "check",
 			marks: 2,
 			falseMarks: -1,
 			label: "Correct answer",
@@ -50,12 +50,12 @@ export const BooleanGraded: Story = {
 	},
 };
 
-export const BooleanPending: Story = {
+export const CheckPending: Story = {
 	args: {
 		isPending: true,
-		rubric: {
+		criterion: {
 			id: "r1",
-			type: "boolean",
+			kind: "check",
 			marks: 2,
 			falseMarks: 0,
 			label: "Correct answer",
@@ -64,11 +64,11 @@ export const BooleanPending: Story = {
 	},
 };
 
-export const BooleanZeroMaxUnset: Story = {
+export const CheckZeroMaxUnset: Story = {
 	args: {
-		rubric: {
+		criterion: {
 			id: "r1",
-			type: "boolean",
+			kind: "check",
 			marks: 0,
 			falseMarks: -1,
 			label: "Penalty only",
@@ -78,11 +78,11 @@ export const BooleanZeroMaxUnset: Story = {
 	},
 };
 
-export const BooleanZeroMaxGraded: Story = {
+export const CheckZeroMaxGraded: Story = {
 	args: {
-		rubric: {
+		criterion: {
 			id: "r1",
-			type: "boolean",
+			kind: "check",
 			marks: 0,
 			falseMarks: -1,
 			label: "Penalty only",
@@ -92,11 +92,11 @@ export const BooleanZeroMaxGraded: Story = {
 	},
 };
 
-export const NumericalUnset: Story = {
+export const NumberUnset: Story = {
 	args: {
-		rubric: {
+		criterion: {
 			id: "r2",
-			type: "numerical",
+			kind: "number",
 			minScore: 0,
 			maxScore: 5,
 			minMarks: 0,
@@ -109,11 +109,11 @@ export const NumericalUnset: Story = {
 	},
 };
 
-export const NumericalGraded: Story = {
+export const NumberGraded: Story = {
 	args: {
-		rubric: {
+		criterion: {
 			id: "r2",
-			type: "numerical",
+			kind: "number",
 			minScore: 0,
 			maxScore: 5,
 			minMarks: 0,
@@ -126,11 +126,11 @@ export const NumericalGraded: Story = {
 	},
 };
 
-export const OrdinalUnset: Story = {
+export const OptionsUnset: Story = {
 	args: {
-		rubric: {
+		criterion: {
 			id: "r3",
-			type: "ordinal",
+			kind: "options",
 			marks: { Excellent: 4, Good: 3, Satisfactory: 2, Poor: 1 },
 			label: "Overall performance",
 			assessment: null,
@@ -138,11 +138,11 @@ export const OrdinalUnset: Story = {
 	},
 };
 
-export const OrdinalGraded: Story = {
+export const OptionsGraded: Story = {
 	args: {
-		rubric: {
+		criterion: {
 			id: "r3",
-			type: "ordinal",
+			kind: "options",
 			marks: { Excellent: 4, Good: 3, Satisfactory: 2, Poor: 1 },
 			label: "Overall performance",
 			assessment: { selectedLabel: "Good" },
@@ -153,12 +153,12 @@ export const OrdinalGraded: Story = {
 export const Disabled: Story = {
 	args: {
 		disabled: true,
-		rubric: {
+		criterion: {
 			id: "r1",
-			type: "boolean",
+			kind: "check",
 			marks: 1,
 			falseMarks: 0,
-			label: "Read-only rubric",
+			label: "Read-only criterion",
 			assessment: { passed: false },
 		},
 	},
@@ -166,9 +166,9 @@ export const Disabled: Story = {
 
 export const WithoutDescription: Story = {
 	args: {
-		rubric: {
+		criterion: {
 			id: "r1",
-			type: "boolean",
+			kind: "check",
 			marks: 2,
 			falseMarks: 0,
 			label: "Correct answer",

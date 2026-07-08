@@ -39,12 +39,12 @@ export default function AssessmentsImportForm({
 						<code>submitter</code>.
 					</Text>
 					<Text size="sm" c="dimmed">
-						Assessment columns use the format <code>questionId:rubricId</code>.
-						For export/import round-trip, the exported CSV must include these
-						assessment columns; marks-only columns are not importable assessment
-						values. Values depend on rubric type: boolean uses <code>true</code>
-						/<code>false</code>, ordinal uses a label value, and numerical uses
-						a numeric score.
+						Assessment columns use the format{" "}
+						<code>questionId:criterionId</code>. For export/import round-trip,
+						the exported CSV must include these assessment columns; marks-only
+						columns are not importable assessment values. Values depend on
+						criterion type: boolean uses <code>true</code>/<code>false</code>,
+						ordinal uses a label value, and numerical uses a numeric score.
 					</Text>
 					<Text size="sm" c="dimmed">
 						Empty assessment cells are ignored. Missing submissions are silently

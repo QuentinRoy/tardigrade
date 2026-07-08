@@ -4,20 +4,20 @@ import { Button, Card, Group, Stack, Text, Title } from "@mantine/core";
 import NextLink from "next/link";
 import { useRouter } from "next/navigation";
 import type { ReactElement } from "react";
+import type { AssessedCriterion } from "#criteria/types.ts";
 import {
 	type SaveError,
 	useSaveErrors,
 } from "#design-system/SaveErrorsProvider.tsx";
 import { projectAssessmentSubmissionQuestionPath } from "#projects/projectPaths.ts";
-import type { AssessedRubric } from "#rubrics/types.ts";
 import { getSubmissionLabel } from "#submissions/getSubmissionLabel.ts";
 import type { Submission } from "#submissions/types.ts";
 import AssessmentProgressSummary from "./AssessmentProgressSummary.tsx";
-import { summarizeRubrics } from "./assessmentSummary.ts";
-import RubricGradeList from "./RubricGradeList.tsx";
+import { summarizeCriteria } from "./assessmentSummary.ts";
+import CriterionGradeList from "./CriterionGradeList.tsx";
 import SubmissionSelector from "./SubmissionSelector.tsx";
-import type { SaveAssessment } from "./saveRubricAssessment.ts";
-import { saveRubricAssessment } from "./saveRubricAssessment.ts";
+import type { SaveAssessment } from "./saveCriterionAssessment.ts";
+import { saveCriterionAssessment } from "./saveCriterionAssessment.ts";
 import { getSubmissionNavigation } from "./submissionNavigation.ts";
 import { useAssessmentSession } from "./useAssessmentSession.ts";
 import { useSubmissionQuickJump } from "./useSubmissionQuickJump.ts";
@@ -27,7 +27,7 @@ type SubmissionAssessmentClientProps = {
 	projectSlug: string;
 	questionId: string;
 	questionLabel?: string | undefined;
-	rubrics: AssessedRubric[];
+	criteria: AssessedCriterion[];
 	submissions: Submission[];
 	progressPromise: Promise<
 		Record<string, { completed: number; total: number }>
@@ -44,7 +44,7 @@ export default function SubmissionAssessmentClient({
 	projectSlug,
 	questionId,
 	questionLabel,
-	rubrics: initialRubrics,
+	criteria: initialCriteria,
 	submissions,
 	progressPromise,
 	currentSubmissionId,
@@ -67,16 +67,16 @@ export default function SubmissionAssessmentClient({
 		currentSubmissionIndex,
 		previousSubmission,
 		nextSubmission,
-		savedRubrics,
-		optimisticRubrics,
+		savedCriteria,
+		optimisticCriteria,
 		pendingByIndex,
 		assess,
 	} = useAssessmentSession<Omit<SaveError, "id">>({
-		initialRubrics,
+		initialCriteria,
 		submissions,
 		currentSubmissionId,
-		saveAssessment: (_rubric, assessment) =>
-			saveRubricAssessment({
+		saveAssessment: (_criterion, assessment) =>
+			saveCriterionAssessment({
 				saveAssessment,
 				submissionId: currentSubmissionId,
 				questionId,
@@ -93,9 +93,9 @@ export default function SubmissionAssessmentClient({
 		onError: addError,
 	});
 
-	const { marks, maxMarks, completedRubrics, totalRubrics } =
-		summarizeRubrics(optimisticRubrics);
-	const isCompleted = totalRubrics > 0 && completedRubrics === totalRubrics;
+	const { marks, maxMarks, completedCriteria, totalCriteria } =
+		summarizeCriteria(optimisticCriteria);
+	const isCompleted = totalCriteria > 0 && completedCriteria === totalCriteria;
 
 	const navigateToSubmission = (submissionId: string) => {
 		router.push(
@@ -165,11 +165,11 @@ export default function SubmissionAssessmentClient({
 				onSelectSubmission={navigateToSubmission}
 				submissions={submissions}
 				progressPromise={progressPromise}
-				progressLabel="rubrics"
+				progressLabel="criteria"
 			/>
-			<RubricGradeList
-				savedRubrics={savedRubrics}
-				rubrics={optimisticRubrics}
+			<CriterionGradeList
+				savedCriteria={savedCriteria}
+				criteria={optimisticCriteria}
 				pendingByIndex={pendingByIndex}
 				disabled={false}
 				onAssess={(index, assessment) => assess(index, assessment)}
@@ -177,8 +177,8 @@ export default function SubmissionAssessmentClient({
 			<AssessmentProgressSummary
 				marks={marks}
 				maxMarks={maxMarks}
-				completedRubrics={completedRubrics}
-				totalRubrics={totalRubrics}
+				completedCriteria={completedCriteria}
+				totalCriteria={totalCriteria}
 			/>
 		</Stack>
 	);

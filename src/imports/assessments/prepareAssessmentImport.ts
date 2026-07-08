@@ -1,5 +1,8 @@
+import type {
+	AssessmentCriterionValue,
+	CriterionKind,
+} from "#criteria/types.ts";
 import type { ImportedAssessmentRow } from "#imports/types.ts";
-import type { AssessmentRubricValue, RubricType } from "#rubrics/types.ts";
 import type { SubmissionType } from "#submissions/types.ts";
 
 // Column names match the snake_case headers produced by the assessment export.
@@ -8,30 +11,30 @@ const SUBMITTER_COLUMN = "submitter";
 const GRAND_TOTAL_MARKS_COLUMN = "grand_total_marks";
 const MARKS_COLUMN_SUFFIX = ":marks";
 
-export type AssessmentImportRubric = {
+export type AssessmentImportCriterion = {
 	id: string;
-	type: RubricType;
+	kind: CriterionKind;
 	questionId: string;
 	ordinalLabels: string[];
 };
 
 export type AssessmentImportContext = {
-	// Rubric value columns keyed `${questionId}:${rubricId}`.
-	rubricsByColumn: Map<string, AssessmentImportRubric>;
+	// Criterion value columns keyed `${questionId}:${criterionId}`.
+	criteriaByColumn: Map<string, AssessmentImportCriterion>;
 	// Question ids of the project; bare question columns are derived export
 	// output and are ignored on import.
 	questionIds: Set<string>;
 	// Candidate submission ids keyed by submissionLookupKey().
 	submissionIdsByLookup: Map<string, string[]>;
-	// (submission, rubric) pairs that already hold a value, keyed by
-	// assessedRubricKey(). Used to report overwrites.
-	assessedRubricKeys: Set<string>;
+	// (submission, criterion) pairs that already hold a value, keyed by
+	// assessedCriterionKey(). Used to report overwrites.
+	assessedCriterionKeys: Set<string>;
 };
 
 export type AssessmentImportWrite = {
 	submissionId: string;
 	questionId: string;
-	assessment: AssessmentRubricValue;
+	assessment: AssessmentCriterionValue;
 };
 
 // `row` is the 1-based CSV line number; the header is line 1, data starts at 2.
@@ -60,7 +63,7 @@ export type AssessmentImportBlockingDiagnostic =
 
 export type AssessmentImportOverwrite = {
 	submissionId: string;
-	rubricId: string;
+	criterionId: string;
 };
 
 export type AssessmentImportPlan = {
@@ -79,51 +82,55 @@ export function submissionLookupKey(params: {
 	return `${params.submissionType}:${params.submitter}`;
 }
 
-export function assessedRubricKey(params: {
+export function assessedCriterionKey(params: {
 	submissionId: string;
-	rubricId: string;
+	criterionId: string;
 }): string {
-	return `${params.submissionId}:${params.rubricId}`;
+	return `${params.submissionId}:${params.criterionId}`;
 }
 
 function parseAssessmentValue(params: {
 	value: string;
-	rubric: AssessmentImportRubric;
-}): AssessmentRubricValue {
-	const { value, rubric } = params;
+	criterion: AssessmentImportCriterion;
+}): AssessmentCriterionValue {
+	const { value, criterion } = params;
 
-	switch (rubric.type) {
-		case "boolean": {
+	switch (criterion.kind) {
+		case "check": {
 			const normalizedValue = value.toLowerCase();
 			if (normalizedValue !== "true" && normalizedValue !== "false") {
-				throw new Error(`Invalid boolean value "${value}"`);
+				throw new Error(`Invalid check value "${value}"`);
 			}
 
 			return {
-				rubricId: rubric.id,
-				type: "boolean",
+				criterionId: criterion.id,
+				kind: "check",
 				passed: normalizedValue === "true",
 			};
 		}
-		case "ordinal": {
-			if (rubric.ordinalLabels.length > 0) {
-				const labelExists = rubric.ordinalLabels.includes(value);
+		case "options": {
+			if (criterion.ordinalLabels.length > 0) {
+				const labelExists = criterion.ordinalLabels.includes(value);
 				if (!labelExists) {
 					throw new Error(
-						`Invalid ordinal value "${value}" for rubric ${rubric.id}`,
+						`Invalid ordinal value "${value}" for criterion ${criterion.id}`,
 					);
 				}
 			}
 
-			return { rubricId: rubric.id, type: "ordinal", selectedLabel: value };
+			return {
+				criterionId: criterion.id,
+				kind: "options",
+				selectedLabel: value,
+			};
 		}
-		case "numerical": {
+		case "number": {
 			const score = parseFloat(value);
 			if (Number.isNaN(score)) {
 				throw new Error(`Invalid numerical value "${value}"`);
 			}
 
-			return { rubricId: rubric.id, type: "numerical", score };
+			return { criterionId: criterion.id, kind: "number", score };
 		}
 	}
 }
@@ -143,14 +150,16 @@ export function prepareAssessmentImport(params: {
 		if (
 			column === SUBMISSION_TYPE_COLUMN ||
 			column === SUBMITTER_COLUMN ||
-			context.rubricsByColumn.has(column)
+			context.criteriaByColumn.has(column)
 		) {
 			continue;
 		}
 
 		const isDerivedMarksColumn =
 			column.endsWith(MARKS_COLUMN_SUFFIX) &&
-			context.rubricsByColumn.has(column.slice(0, -MARKS_COLUMN_SUFFIX.length));
+			context.criteriaByColumn.has(
+				column.slice(0, -MARKS_COLUMN_SUFFIX.length),
+			);
 		if (
 			column === GRAND_TOTAL_MARKS_COLUMN ||
 			context.questionIds.has(column) ||
@@ -163,7 +172,7 @@ export function prepareAssessmentImport(params: {
 		blockingDiagnostics.push({ type: "unknown-column", column });
 	}
 
-	if (!headerColumns.some((column) => context.rubricsByColumn.has(column))) {
+	if (!headerColumns.some((column) => context.criteriaByColumn.has(column))) {
 		blockingDiagnostics.push({ type: "no-assessment-columns" });
 	}
 
@@ -198,16 +207,16 @@ export function prepareAssessmentImport(params: {
 			continue;
 		}
 
-		for (const [column, rubric] of context.rubricsByColumn) {
+		for (const [column, criterion] of context.criteriaByColumn) {
 			const value = row[column]?.trim();
 
 			if (!value) {
 				continue;
 			}
 
-			let assessment: AssessmentRubricValue;
+			let assessment: AssessmentCriterionValue;
 			try {
-				assessment = parseAssessmentValue({ value, rubric });
+				assessment = parseAssessmentValue({ value, criterion });
 			} catch (error) {
 				blockingDiagnostics.push({
 					type: "invalid-value",
@@ -219,14 +228,18 @@ export function prepareAssessmentImport(params: {
 				continue;
 			}
 
-			writes.push({ submissionId, questionId: rubric.questionId, assessment });
+			writes.push({
+				submissionId,
+				questionId: criterion.questionId,
+				assessment,
+			});
 
 			if (
-				context.assessedRubricKeys.has(
-					assessedRubricKey({ submissionId, rubricId: rubric.id }),
+				context.assessedCriterionKeys.has(
+					assessedCriterionKey({ submissionId, criterionId: criterion.id }),
 				)
 			) {
-				overwrites.push({ submissionId, rubricId: rubric.id });
+				overwrites.push({ submissionId, criterionId: criterion.id });
 			}
 		}
 	}

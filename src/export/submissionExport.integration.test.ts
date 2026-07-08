@@ -8,9 +8,9 @@ import {
 import {
 	addFullAssessmentFixture,
 	createIndividualSubmissionFixtures,
-	createMixedRubricQuestionFixtureProject,
+	createMixedCriterionQuestionFixtureProject,
 	createStudentFixtures,
-} from "#test/mixedRubricAssessmentFixture.ts";
+} from "#test/mixedCriterionAssessmentFixture.ts";
 import { createCsvSubmissionExport } from "./submissionExport.ts";
 
 async function readStream(stream: ReadableStream<Uint8Array>): Promise<string> {
@@ -34,7 +34,7 @@ async function addSparseAssessment(
 		projectRowId: number;
 		submissionId: number;
 		questionRowId: number;
-		booleanRubricRowId: number;
+		checkCriterionRowId: number;
 	},
 ) {
 	const assessment = await db
@@ -47,19 +47,19 @@ async function addSparseAssessment(
 		.returning("id")
 		.executeTakeFirstOrThrow();
 
-	const rubricAssessment = await db
-		.insertInto("rubricAssessment")
+	const criterionAssessment = await db
+		.insertInto("criterionAssessment")
 		.values({
 			assessmentId: assessment.id,
-			rubricId: params.booleanRubricRowId,
-			type: "boolean",
+			criterionId: params.checkCriterionRowId,
+			kind: "check",
 		})
 		.returning("id")
 		.executeTakeFirstOrThrow();
 
 	await db
-		.insertInto("booleanRubricAssessment")
-		.values({ rubricAssessmentId: rubricAssessment.id, passed: false })
+		.insertInto("checkCriterionAssessment")
+		.values({ criterionAssessmentId: criterionAssessment.id, passed: false })
 		.execute();
 }
 
@@ -73,24 +73,22 @@ afterAll(async () => {
 	await db[Symbol.asyncDispose]();
 });
 
-test("createCsvSubmissionExport snapshots CSV for mixed rubric types and submission states", async () => {
-	const { project, question } = await createMixedRubricQuestionFixtureProject(
-		db,
-		{
+test("createCsvSubmissionExport snapshots CSV for mixed criterion types and submission states", async () => {
+	const { project, question } =
+		await createMixedCriterionQuestionFixtureProject(db, {
 			projectName: "Export Integration Project",
 			questionId: "q-export-test",
-			booleanRubricId: "r-bool-export-test",
-			ordinalRubricId: "r-ord-export-test",
-			numericalRubricId: "r-num-export-test",
-		},
-	);
+			checkCriterionId: "r-bool-export-test",
+			optionsCriterionId: "r-ord-export-test",
+			numberCriterionId: "r-num-export-test",
+		});
 
-	const rubricRowIds = await db
-		.selectFrom("rubric")
+	const criterionRowIds = await db
+		.selectFrom("criterion")
 		.where("projectId", "=", project.rowId)
 		.select(["id", "rowId"])
 		.execute();
-	const rubricRowId = new Map(rubricRowIds.map((r) => [r.id, r.rowId]));
+	const criterionRowId = new Map(criterionRowIds.map((r) => [r.id, r.rowId]));
 
 	const [student1, student2, student3] = await createStudentFixtures(db, [
 		{ projectRowId: project.rowId, id: "student-export-1" },
@@ -110,20 +108,20 @@ test("createCsvSubmissionExport snapshots CSV for mixed rubric types and submiss
 			projectRowId: project.rowId,
 			submissionId: sub1.id,
 			questionRowId: question.rowId,
-			booleanRubricRowId: rubricRowId.get(question.rubrics.booleanId)!,
-			ordinalRubricRowId: rubricRowId.get(question.rubrics.ordinalId)!,
-			numericalRubricRowId: rubricRowId.get(question.rubrics.numericalId)!,
+			checkCriterionRowId: criterionRowId.get(question.criteria.booleanId)!,
+			optionsCriterionRowId: criterionRowId.get(question.criteria.ordinalId)!,
+			numberCriterionRowId: criterionRowId.get(question.criteria.numericalId)!,
 		}),
 		addSparseAssessment(db, {
 			projectRowId: project.rowId,
 			submissionId: sub2.id,
 			questionRowId: question.rowId,
-			booleanRubricRowId: rubricRowId.get(question.rubrics.booleanId)!,
+			checkCriterionRowId: criterionRowId.get(question.criteria.booleanId)!,
 		}),
 	]);
 
 	const stream = await createCsvSubmissionExport(
-		{ includeRubricAssessment: true, includeRubricMarks: true },
+		{ includeCriterionAssessment: true, includeCriterionMarks: true },
 		project.id,
 		{ db },
 	);

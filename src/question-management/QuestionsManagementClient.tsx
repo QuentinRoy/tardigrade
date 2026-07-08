@@ -76,7 +76,7 @@ export default function QuestionsManagementClient({
 				<Stack gap="xs">
 					<Title order={1}>Questions Management</Title>
 					<Text c="dimmed">
-						Inspect, add, edit, and delete questions with rubric definitions.
+						Inspect, add, edit, and delete questions with criterion definitions.
 					</Text>
 				</Stack>
 

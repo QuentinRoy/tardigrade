@@ -23,7 +23,7 @@ export default function QuestionsImportForm({
 			action={action}
 			defaultValue={defaultQuestionsYaml}
 			title="Import Questions"
-			description="Load question rubrics into the database."
+			description="Load question criteria into the database."
 			fieldLabel="Questions YAML"
 			fieldName="questionsYaml"
 			placeholder={QUESTIONS_YAML_PLACEHOLDER}
@@ -37,13 +37,13 @@ export default function QuestionsImportForm({
 					<Text size="sm" c="dimmed">
 						A top-level <code>questions</code> array of question objects. Each
 						question requires a stable <code>id</code>, has an optional{" "}
-						<code>label</code>, and a <code>rubrics</code> array. Each rubric
-						requires a stable <code>id</code>, and accepts an optional{" "}
-						<code>description</code> and <code>label</code>. Boolean rubrics use{" "}
-						<code>marks</code> and optional <code>falseMarks</code>, ordinal
-						rubrics use <code>marks</code>, and numerical rubrics use{" "}
+						<code>label</code>, and a <code>criteria</code> array. Each
+						criterion requires a stable <code>id</code>, and accepts an optional{" "}
+						<code>description</code> and <code>label</code>. Boolean criteria
+						use <code>marks</code> and optional <code>falseMarks</code>, ordinal
+						criteria use <code>marks</code>, and numerical criteria use{" "}
 						<code>minScore</code>/<code>maxScore</code> and/or{" "}
-						<code>minMarks</code>/<code>maxMarks</code>. Numerical rubrics can
+						<code>minMarks</code>/<code>maxMarks</code>. Numerical criteria can
 						also set <code>reversed: true</code> to map the highest score to the
 						lowest mark.
 					</Text>

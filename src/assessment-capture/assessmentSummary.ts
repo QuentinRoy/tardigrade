@@ -1,73 +1,75 @@
-import { getRubricMaxMarks, markRubric } from "#rubrics/rubric.ts";
-import type { AssessedRubric } from "#rubrics/types.ts";
+import { getCriterionMaxMarks, markCriterion } from "#criteria/criterion.ts";
+import type { AssessedCriterion } from "#criteria/types.ts";
 
 export type AssessmentSummary = {
 	marks: number;
 	maxMarks: number;
-	completedRubrics: number;
-	totalRubrics: number;
+	completedCriteria: number;
+	totalCriteria: number;
 	completedQuestions?: number;
 	totalQuestions?: number;
 };
 
-function accumulateRubricMarks(
+function accumulateCriterionMarks(
 	summary: { marks: number; maxMarks: number },
-	rubric: AssessedRubric,
+	criterion: AssessedCriterion,
 ) {
-	if (rubric.assessment == null) {
+	if (criterion.assessment == null) {
 		return;
 	}
 
-	const rubricMarks = getRubricMaxMarks(rubric);
-	summary.maxMarks += rubricMarks;
-	summary.marks += markRubric(rubric);
+	const criterionMarks = getCriterionMaxMarks(criterion);
+	summary.maxMarks += criterionMarks;
+	summary.marks += markCriterion(criterion);
 }
 
-export function summarizeRubrics(rubrics: AssessedRubric[]): AssessmentSummary {
+export function summarizeCriteria(
+	criteria: AssessedCriterion[],
+): AssessmentSummary {
 	const summary = {
 		marks: 0,
 		maxMarks: 0,
-		completedRubrics: 0,
-		totalRubrics: 0,
+		completedCriteria: 0,
+		totalCriteria: 0,
 	};
 
-	rubrics.forEach((rubric) => {
-		summary.totalRubrics += 1;
-		if (rubric.assessment != null) {
-			summary.completedRubrics += 1;
+	criteria.forEach((criterion) => {
+		summary.totalCriteria += 1;
+		if (criterion.assessment != null) {
+			summary.completedCriteria += 1;
 		}
-		accumulateRubricMarks(summary, rubric);
+		accumulateCriterionMarks(summary, criterion);
 	});
 
 	return summary;
 }
 
 export function summarizeQuestionSections(
-	questions: Array<{ rubrics: AssessedRubric[] }>,
+	questions: Array<{ criteria: AssessedCriterion[] }>,
 ): AssessmentSummary {
 	const summary = {
 		marks: 0,
 		maxMarks: 0,
-		completedRubrics: 0,
-		totalRubrics: 0,
+		completedCriteria: 0,
+		totalCriteria: 0,
 		completedQuestions: 0,
 	};
 
 	questions.forEach((question) => {
-		let questionRubricsLeft = 0;
+		let questionCriteriaLeft = 0;
 
-		question.rubrics.forEach((rubric) => {
-			summary.totalRubrics += 1;
+		question.criteria.forEach((criterion) => {
+			summary.totalCriteria += 1;
 
-			if (rubric.assessment != null) {
-				summary.completedRubrics += 1;
-				accumulateRubricMarks(summary, rubric);
+			if (criterion.assessment != null) {
+				summary.completedCriteria += 1;
+				accumulateCriterionMarks(summary, criterion);
 			} else {
-				questionRubricsLeft += 1;
+				questionCriteriaLeft += 1;
 			}
 		});
 
-		if (questionRubricsLeft === 0) {
+		if (questionCriteriaLeft === 0) {
 			summary.completedQuestions += 1;
 		}
 	});

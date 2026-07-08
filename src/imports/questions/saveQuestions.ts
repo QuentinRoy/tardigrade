@@ -15,12 +15,12 @@ import { loadQuestionImportContextFromDb } from "./questionImportContext.ts";
 function formatBlockingDiagnostic(
 	diagnostic: QuestionImportBlockingDiagnostic,
 ): string {
-	switch (diagnostic.type) {
-		case "rubric-type-change-blocked": {
-			return `Rubric "${diagnostic.rubricId}" of question "${diagnostic.questionId}" has ${diagnostic.assessmentCount} linked assessments and cannot change type on import. Edit it in question management instead.`;
+	switch (diagnostic.kind) {
+		case "criterion-type-change-blocked": {
+			return `Criterion "${diagnostic.criterionId}" of question "${diagnostic.questionId}" has ${diagnostic.assessmentCount} linked assessments and cannot change type on import. Edit it in question management instead.`;
 		}
-		case "rubric-question-mismatch": {
-			return `Rubric "${diagnostic.rubricId}" already belongs to question "${diagnostic.existingQuestionId}" and cannot be moved to question "${diagnostic.importQuestionId}" on import.`;
+		case "criterion-question-mismatch": {
+			return `Criterion "${diagnostic.criterionId}" already belongs to question "${diagnostic.existingQuestionId}" and cannot be moved to question "${diagnostic.importQuestionId}" on import.`;
 		}
 	}
 }
@@ -40,7 +40,7 @@ function questionImportBlockedError(
 export async function saveQuestionImportPlanInDb(
 	db: Kysely<DB>,
 	{ plan, projectId }: { plan: QuestionImportPlan; projectId: string },
-): Promise<{ questionCount: number; rubricCount: number }> {
+): Promise<{ questionCount: number; criterionCount: number }> {
 	const questions: ImportedQuestions = plan.writes;
 
 	const questionsById = questions.map((question, position) => ({
@@ -49,58 +49,58 @@ export async function saveQuestionImportPlanInDb(
 		position,
 	}));
 
-	const rubricSources = questions.flatMap((question) =>
-		question.rubrics.map((rubric, position) => ({
-			id: rubric.id,
+	const criterionSources = questions.flatMap((question) =>
+		question.criteria.map((criterion, position) => ({
+			id: criterion.id,
 			questionId: question.id,
 			position,
-			description: rubric.description ?? null,
-			label: rubric.label ?? null,
-			type: rubric.type,
+			description: criterion.description ?? null,
+			label: criterion.label ?? null,
+			kind: criterion.kind,
 		})),
 	);
 
-	const booleanRubricSources = questions.flatMap((question) =>
-		question.rubrics.flatMap((rubric) =>
-			rubric.type === "boolean"
+	const checkCriterionSources = questions.flatMap((question) =>
+		question.criteria.flatMap((criterion) =>
+			criterion.kind === "check"
 				? [
 						{
-							rubricId: rubric.id,
-							marks: rubric.marks,
-							falseMarks: rubric.falseMarks ?? 0,
+							criterionId: criterion.id,
+							marks: criterion.marks,
+							falseMarks: criterion.falseMarks ?? 0,
 						},
 					]
 				: [],
 		),
 	);
 
-	const numericalRubricSources = questions.flatMap((question) =>
-		question.rubrics.flatMap((rubric) =>
-			rubric.type === "numerical"
+	const numberCriterionSources = questions.flatMap((question) =>
+		question.criteria.flatMap((criterion) =>
+			criterion.kind === "number"
 				? [
 						{
-							rubricId: rubric.id,
-							minScore: rubric.minScore,
-							maxScore: rubric.maxScore,
-							minMarks: rubric.minMarks,
-							maxMarks: rubric.maxMarks,
-							reversed: rubric.reversed,
+							criterionId: criterion.id,
+							minScore: criterion.minScore,
+							maxScore: criterion.maxScore,
+							minMarks: criterion.minMarks,
+							maxMarks: criterion.maxMarks,
+							reversed: criterion.reversed,
 						},
 					]
 				: [],
 		),
 	);
 
-	const ordinalRubricSources = questions.flatMap((question) =>
-		question.rubrics.flatMap((rubric) =>
-			rubric.type === "ordinal"
-				? [{ rubricId: rubric.id, marks: rubric.marks }]
+	const optionsCriterionSources = questions.flatMap((question) =>
+		question.criteria.flatMap((criterion) =>
+			criterion.kind === "options"
+				? [{ criterionId: criterion.id, marks: criterion.marks }]
 				: [],
 		),
 	);
 
 	const questionIds = questionsById.map((question) => question.id);
-	const rubricIds = rubricSources.map((rubric) => rubric.id);
+	const criterionIds = criterionSources.map((criterion) => criterion.id);
 
 	const projectRow = await db
 		.selectFrom("project")
@@ -109,18 +109,18 @@ export async function saveQuestionImportPlanInDb(
 		.executeTakeFirstOrThrow();
 	const projectRowId = projectRow.rowId;
 
-	// Rubrics whose type changed (no linked assessments, per the prepared plan)
+	// Criteria whose type changed (no linked assessments, per the prepared plan)
 	// are deleted and recreated so subtype tables (boolean/numerical/ordinal
-	// rubric) never hold stale rows for the previous type.
-	const rubricsToRecreate = plan.rubricTypeChanges.map(
-		(change) => change.rubricId,
+	// criterion) never hold stale rows for the previous type.
+	const criteriaToRecreate = plan.criterionTypeChanges.map(
+		(change) => change.criterionId,
 	);
 
-	if (rubricsToRecreate.length > 0) {
+	if (criteriaToRecreate.length > 0) {
 		await db
-			.deleteFrom("rubric")
+			.deleteFrom("criterion")
 			.where("projectId", "=", projectRowId)
-			.where("id", "in", rubricsToRecreate)
+			.where("id", "in", criteriaToRecreate)
 			.execute();
 	}
 
@@ -158,30 +158,30 @@ export async function saveQuestionImportPlanInDb(
 		existingQuestions.map((question) => [question.id, question.rowId]),
 	);
 
-	const rubricRows = rubricSources.map((rubric) => {
-		const questionRowId = questionRowIdByBusinessId.get(rubric.questionId);
+	const criterionRows = criterionSources.map((criterion) => {
+		const questionRowId = questionRowIdByBusinessId.get(criterion.questionId);
 
 		if (questionRowId == null) {
 			throw new Error(
-				`Imported rubric '${rubric.id}' references unknown question '${rubric.questionId}'.`,
+				`Imported criterion '${criterion.id}' references unknown question '${criterion.questionId}'.`,
 			);
 		}
 
 		return {
-			id: rubric.id,
+			id: criterion.id,
 			questionId: questionRowId,
-			position: rubric.position,
-			description: rubric.description,
-			label: rubric.label,
+			position: criterion.position,
+			description: criterion.description,
+			label: criterion.label,
 			projectId: projectRowId,
-			type: rubric.type,
+			kind: criterion.kind,
 		};
 	});
 
-	if (rubricRows.length > 0) {
+	if (criterionRows.length > 0) {
 		await db
-			.insertInto("rubric")
-			.values(rubricRows)
+			.insertInto("criterion")
+			.values(criterionRows)
 			.onConflict((conflict) =>
 				conflict
 					.columns(["projectId", "id"])
@@ -190,49 +190,54 @@ export async function saveQuestionImportPlanInDb(
 						position: expressionBuilder.ref("excluded.position"),
 						description: expressionBuilder.ref("excluded.description"),
 						label: expressionBuilder.ref("excluded.label"),
-						type: expressionBuilder.ref("excluded.type"),
+						kind: expressionBuilder.ref("excluded.kind"),
 					})),
 			)
 			.execute();
 	}
 
-	const existingPersistedRubrics =
-		rubricIds.length === 0
+	const existingPersistedCriteria =
+		criterionIds.length === 0
 			? []
 			: await db
-					.selectFrom("rubric")
+					.selectFrom("criterion")
 					.select(["id", "rowId"])
 					.where("projectId", "=", projectRowId)
-					.where("id", "in", rubricIds)
+					.where("id", "in", criterionIds)
 					.execute();
 
-	const rubricRowIdByBusinessId = new Map(
-		existingPersistedRubrics.map((rubric) => [rubric.id, rubric.rowId]),
+	const criterionRowIdByBusinessId = new Map(
+		existingPersistedCriteria.map((criterion) => [
+			criterion.id,
+			criterion.rowId,
+		]),
 	);
 
-	const booleanRubricRows = booleanRubricSources.map((rubric) => {
-		const rubricRowId = rubricRowIdByBusinessId.get(rubric.rubricId);
+	const checkCriterionRows = checkCriterionSources.map((criterion) => {
+		const criterionRowId = criterionRowIdByBusinessId.get(
+			criterion.criterionId,
+		);
 
-		if (rubricRowId == null) {
+		if (criterionRowId == null) {
 			throw new Error(
-				`Imported boolean rubric '${rubric.rubricId}' could not be resolved.`,
+				`Imported boolean criterion '${criterion.criterionId}' could not be resolved.`,
 			);
 		}
 
 		return {
-			rubricId: rubricRowId,
-			marks: rubric.marks,
-			falseMarks: rubric.falseMarks,
+			criterionId: criterionRowId,
+			marks: criterion.marks,
+			falseMarks: criterion.falseMarks,
 		};
 	});
 
-	if (booleanRubricRows.length > 0) {
+	if (checkCriterionRows.length > 0) {
 		await db
-			.insertInto("booleanRubric")
-			.values(booleanRubricRows)
+			.insertInto("checkCriterion")
+			.values(checkCriterionRows)
 			.onConflict((conflict) =>
 				conflict
-					.column("rubricId")
+					.column("criterionId")
 					.doUpdateSet((expressionBuilder) => ({
 						marks: expressionBuilder.ref("excluded.marks"),
 						falseMarks: expressionBuilder.ref("excluded.falseMarks"),
@@ -241,32 +246,34 @@ export async function saveQuestionImportPlanInDb(
 			.execute();
 	}
 
-	const numericalRubricRows = numericalRubricSources.map((rubric) => {
-		const rubricRowId = rubricRowIdByBusinessId.get(rubric.rubricId);
+	const numberCriterionRows = numberCriterionSources.map((criterion) => {
+		const criterionRowId = criterionRowIdByBusinessId.get(
+			criterion.criterionId,
+		);
 
-		if (rubricRowId == null) {
+		if (criterionRowId == null) {
 			throw new Error(
-				`Imported numerical rubric '${rubric.rubricId}' could not be resolved.`,
+				`Imported numerical criterion '${criterion.criterionId}' could not be resolved.`,
 			);
 		}
 
 		return {
-			rubricId: rubricRowId,
-			minScore: rubric.minScore,
-			maxScore: rubric.maxScore,
-			minMarks: rubric.minMarks,
-			maxMarks: rubric.maxMarks,
-			reversed: rubric.reversed,
+			criterionId: criterionRowId,
+			minScore: criterion.minScore,
+			maxScore: criterion.maxScore,
+			minMarks: criterion.minMarks,
+			maxMarks: criterion.maxMarks,
+			reversed: criterion.reversed,
 		};
 	});
 
-	if (numericalRubricRows.length > 0) {
+	if (numberCriterionRows.length > 0) {
 		await db
-			.insertInto("numericalRubric")
-			.values(numericalRubricRows)
+			.insertInto("numberCriterion")
+			.values(numberCriterionRows)
 			.onConflict((conflict) =>
 				conflict
-					.column("rubricId")
+					.column("criterionId")
 					.doUpdateSet((expressionBuilder) => ({
 						minScore: expressionBuilder.ref("excluded.minScore"),
 						maxScore: expressionBuilder.ref("excluded.maxScore"),
@@ -278,87 +285,91 @@ export async function saveQuestionImportPlanInDb(
 			.execute();
 	}
 
-	if (ordinalRubricSources.length > 0) {
-		const ordinalRubricRows = ordinalRubricSources.map((source) => {
-			const rubricRowId = rubricRowIdByBusinessId.get(source.rubricId);
+	if (optionsCriterionSources.length > 0) {
+		const optionsCriterionRows = optionsCriterionSources.map((source) => {
+			const criterionRowId = criterionRowIdByBusinessId.get(source.criterionId);
 
-			if (rubricRowId == null) {
+			if (criterionRowId == null) {
 				throw new Error(
-					`Imported ordinal rubric '${source.rubricId}' could not be resolved.`,
+					`Imported ordinal criterion '${source.criterionId}' could not be resolved.`,
 				);
 			}
 
-			return { rubricId: rubricRowId };
+			return { criterionId: criterionRowId };
 		});
 
 		await db
-			.insertInto("ordinalRubric")
-			.values(ordinalRubricRows)
-			.onConflict((conflict) => conflict.column("rubricId").doNothing())
+			.insertInto("optionsCriterion")
+			.values(optionsCriterionRows)
+			.onConflict((conflict) => conflict.column("criterionId").doNothing())
 			.execute();
 
-		const ordinalRubricIdsToFetch = ordinalRubricRows.map(
-			(source) => source.rubricId,
+		const optionsCriterionIdsToFetch = optionsCriterionRows.map(
+			(source) => source.criterionId,
 		);
 
-		const upsertedOrdinalRubrics = await db
-			.selectFrom("ordinalRubric")
-			.select(["id", "rubricId"])
-			.where("rubricId", "in", ordinalRubricIdsToFetch)
+		const upsertedOptionsCriterions = await db
+			.selectFrom("optionsCriterion")
+			.select(["id", "criterionId"])
+			.where("criterionId", "in", optionsCriterionIdsToFetch)
 			.execute();
 
-		const ordinalRubricIdByRubricId = new Map(
-			upsertedOrdinalRubrics.map((row) => [row.rubricId, row.id]),
+		const optionsCriterionIdByCriterionId = new Map(
+			upsertedOptionsCriterions.map((row) => [row.criterionId, row.id]),
 		);
 
-		const ordinalRubricIds = upsertedOrdinalRubrics.map((row) => row.id);
+		const optionsCriterionIds = upsertedOptionsCriterions.map((row) => row.id);
 
 		const validPairKeys = new Set(
-			ordinalRubricSources.flatMap((source) => {
-				const rubricRowId = rubricRowIdByBusinessId.get(source.rubricId);
-				if (rubricRowId == null) return [];
+			optionsCriterionSources.flatMap((source) => {
+				const criterionRowId = criterionRowIdByBusinessId.get(
+					source.criterionId,
+				);
+				if (criterionRowId == null) return [];
 
-				const ordinalRubricId = ordinalRubricIdByRubricId.get(rubricRowId);
-				if (ordinalRubricId == null) return [];
+				const optionsCriterionId =
+					optionsCriterionIdByCriterionId.get(criterionRowId);
+				if (optionsCriterionId == null) return [];
 
 				return Object.keys(source.marks).map(
-					(label) => `${ordinalRubricId}::${label}`,
+					(label) => `${optionsCriterionId}::${label}`,
 				);
 			}),
 		);
 
 		const existingOrdinalValues =
-			ordinalRubricIds.length === 0
+			optionsCriterionIds.length === 0
 				? []
 				: await db
-						.selectFrom("ordinalRubricValue")
-						.select(["id", "ordinalRubricId", "label"])
-						.where("ordinalRubricId", "in", ordinalRubricIds)
+						.selectFrom("optionsCriterionMark")
+						.select(["id", "optionsCriterionId", "label"])
+						.where("optionsCriterionId", "in", optionsCriterionIds)
 						.execute();
 
 		const staleOrdinalValueIds = existingOrdinalValues
 			.filter(
 				(value) =>
-					!validPairKeys.has(`${value.ordinalRubricId}::${value.label}`),
+					!validPairKeys.has(`${value.optionsCriterionId}::${value.label}`),
 			)
 			.map((value) => value.id);
 
 		if (staleOrdinalValueIds.length > 0) {
 			await db
-				.deleteFrom("ordinalRubricValue")
+				.deleteFrom("optionsCriterionMark")
 				.where("id", "in", staleOrdinalValueIds)
 				.execute();
 		}
 
-		const ordinalValueRows = ordinalRubricSources.flatMap((source) => {
-			const rubricRowId = rubricRowIdByBusinessId.get(source.rubricId);
-			if (rubricRowId == null) return [];
+		const ordinalValueRows = optionsCriterionSources.flatMap((source) => {
+			const criterionRowId = criterionRowIdByBusinessId.get(source.criterionId);
+			if (criterionRowId == null) return [];
 
-			const ordinalRubricId = ordinalRubricIdByRubricId.get(rubricRowId);
-			if (ordinalRubricId == null) return [];
+			const optionsCriterionId =
+				optionsCriterionIdByCriterionId.get(criterionRowId);
+			if (optionsCriterionId == null) return [];
 
 			return Object.entries(source.marks).map(([label, marks]) => ({
-				ordinalRubricId,
+				optionsCriterionId,
 				label,
 				marks,
 			}));
@@ -366,11 +377,11 @@ export async function saveQuestionImportPlanInDb(
 
 		if (ordinalValueRows.length > 0) {
 			await db
-				.insertInto("ordinalRubricValue")
+				.insertInto("optionsCriterionMark")
 				.values(ordinalValueRows)
 				.onConflict((conflict) =>
 					conflict
-						.columns(["ordinalRubricId", "label"])
+						.columns(["optionsCriterionId", "label"])
 						.doUpdateSet((expressionBuilder) => ({
 							marks: expressionBuilder.ref("excluded.marks"),
 						})),
@@ -379,7 +390,10 @@ export async function saveQuestionImportPlanInDb(
 		}
 	}
 
-	return { questionCount: questionIds.length, rubricCount: rubricIds.length };
+	return {
+		questionCount: questionIds.length,
+		criterionCount: criterionIds.length,
+	};
 }
 
 // Wrapper: owns the global db, the transaction boundary, and cache invalidation.
@@ -390,8 +404,8 @@ export async function saveQuestions(
 	{ db = defaultDb }: { db?: Kysely<DB> } = {},
 ): Promise<{
 	questionCount: number;
-	rubricCount: number;
-	typeChangedRubricCount: number;
+	criterionCount: number;
+	typeChangedCriterionCount: number;
 }> {
 	const result = await db.transaction().execute(async (tx) => {
 		const context = await loadQuestionImportContextFromDb(tx, {
@@ -411,7 +425,7 @@ export async function saveQuestions(
 
 		return {
 			...writeResult,
-			typeChangedRubricCount: plan.rubricTypeChanges.length,
+			typeChangedCriterionCount: plan.criterionTypeChanges.length,
 		};
 	});
 

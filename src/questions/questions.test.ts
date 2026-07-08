@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import type { QuestionRow } from "./questions.ts";
-import { questionCacheTags, toQuestionGrid, toRubric } from "./questions.ts";
+import { questionCacheTags, toCriterion, toQuestionGrid } from "./questions.ts";
 
 test("questionCacheTags declares the questions tag", () => {
 	expect(questionCacheTags()).toEqual(["questions"]);
@@ -10,15 +10,15 @@ describe("toQuestionGrid", () => {
 	const booleanRow: QuestionRow = {
 		id: "q1",
 		label: "Question 1",
-		rubrics: [
+		criteria: [
 			{
 				id: "r1",
-				type: "boolean",
+				kind: "check",
 				description: null,
 				label: "Correct",
-				booleanRubric: { marks: 2, falseMarks: 0 },
-				ordinalRubric: null,
-				numericalRubric: null,
+				checkCriterion: { marks: 2, falseMarks: 0 },
+				optionsCriterion: null,
+				numberCriterion: null,
 			},
 		],
 	};
@@ -33,7 +33,7 @@ describe("toQuestionGrid", () => {
 	});
 
 	test("converts null label to undefined", () => {
-		const row: QuestionRow = { id: "q2", label: null, rubrics: [] };
+		const row: QuestionRow = { id: "q2", label: null, criteria: [] };
 		expect(toQuestionGrid([row])["q2"]?.label).toBeUndefined();
 	});
 
@@ -41,87 +41,87 @@ describe("toQuestionGrid", () => {
 		expect(toQuestionGrid([booleanRow])["q1"]?.label).toBe("Question 1");
 	});
 
-	test("converts rubric rows via toRubric", () => {
+	test("converts criterion rows via toCriterion", () => {
 		const grid = toQuestionGrid([booleanRow]);
-		expect(grid["q1"]?.rubrics).toHaveLength(1);
-		expect(grid["q1"]?.rubrics[0]?.id).toBe("r1");
+		expect(grid["q1"]?.criteria).toHaveLength(1);
+		expect(grid["q1"]?.criteria[0]?.id).toBe("r1");
 	});
 });
 
-describe("toRubric", () => {
+describe("toCriterion", () => {
 	const base = { description: null, label: null };
 
-	describe("ordinal", () => {
-		test("throws when ordinalRubric row is missing (Rubric Subtype Invariant violation)", () => {
+	describe("options", () => {
+		test("throws when optionsCriterion row is missing (Criterion Subtype Invariant violation)", () => {
 			expect(() =>
-				toRubric({
+				toCriterion({
 					...base,
 					id: "r1",
-					type: "ordinal",
-					ordinalRubric: null,
-					booleanRubric: null,
-					numericalRubric: null,
+					kind: "options",
+					optionsCriterion: null,
+					checkCriterion: null,
+					numberCriterion: null,
 				}),
 			).toThrow();
 		});
 
-		test("maps to { type: 'ordinal', marks: {} } when ordinalRubric row exists with zero values", () => {
+		test("maps to { kind: 'ordinal', marks: {} } when optionsCriterion row exists with zero values", () => {
 			expect(
-				toRubric({
+				toCriterion({
 					...base,
 					id: "r1",
-					type: "ordinal",
-					ordinalRubric: { marks: [] },
-					booleanRubric: null,
-					numericalRubric: null,
+					kind: "options",
+					optionsCriterion: { marks: [] },
+					checkCriterion: null,
+					numberCriterion: null,
 				}),
-			).toMatchObject({ id: "r1", type: "ordinal", marks: {} });
+			).toMatchObject({ id: "r1", kind: "options", marks: {} });
 		});
 
 		test("maps marks correctly", () => {
 			expect(
-				toRubric({
+				toCriterion({
 					...base,
 					id: "r1",
-					type: "ordinal",
-					ordinalRubric: {
+					kind: "options",
+					optionsCriterion: {
 						marks: [
 							{ label: "A", marks: 4 },
 							{ label: "B", marks: 2 },
 						],
 					},
-					booleanRubric: null,
-					numericalRubric: null,
+					checkCriterion: null,
+					numberCriterion: null,
 				}),
-			).toMatchObject({ type: "ordinal", marks: { A: 4, B: 2 } });
+			).toMatchObject({ kind: "options", marks: { A: 4, B: 2 } });
 		});
 	});
 
-	describe("numerical", () => {
-		test("throws when numericalRubric row is missing (Rubric Subtype Invariant violation)", () => {
+	describe("number", () => {
+		test("throws when numberCriterion row is missing (Criterion Subtype Invariant violation)", () => {
 			expect(() =>
-				toRubric({
+				toCriterion({
 					...base,
 					id: "r1",
-					type: "numerical",
-					ordinalRubric: null,
-					booleanRubric: null,
-					numericalRubric: null,
+					kind: "number",
+					optionsCriterion: null,
+					checkCriterion: null,
+					numberCriterion: null,
 				}),
 			).toThrow();
 		});
 	});
 
-	describe("boolean", () => {
-		test("throws when booleanRubric row is missing (Rubric Subtype Invariant violation)", () => {
+	describe("check", () => {
+		test("throws when checkCriterion row is missing (Criterion Subtype Invariant violation)", () => {
 			expect(() =>
-				toRubric({
+				toCriterion({
 					...base,
 					id: "r1",
-					type: "boolean",
-					ordinalRubric: null,
-					booleanRubric: null,
-					numericalRubric: null,
+					kind: "check",
+					optionsCriterion: null,
+					checkCriterion: null,
+					numberCriterion: null,
 				}),
 			).toThrow();
 		});
