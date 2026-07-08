@@ -7,10 +7,59 @@ import { type Kysely, sql } from "kysely";
 // `rubric_assessment` -> here `criterion_assessment` keeps the "assessment" word)
 // are handled by later stages; `question_id` on `criterion`/`assessment` and the
 // score/value columns are intentionally left for stages 2b and 7b.
+//
+// Tables and columns are renamed with the Kysely schema builder. Raw SQL is used
+// only where the builder has no API: the enum type/value rename, trigger and
+// function management, and constraint/index renames. Constraint and index names
+// are additionally not consistent between the two migration runners -- the plain
+// prod runner (src/db/migrate.ts) keeps schema-builder names verbatim while the
+// test runner's CamelCasePlugin snake_cases them -- so those renames look each
+// object up by any of its candidate spellings rather than a single literal. See
+// docs/reference/database-migrations.md ("The CamelCasePlugin identifier trap").
+
+const TABLE_RENAMES: ReadonlyArray<readonly [string, string]> = [
+	["rubric", "criterion"],
+	["boolean_rubric", "check_criterion"],
+	["ordinal_rubric", "options_criterion"],
+	["ordinal_rubric_value", "options_criterion_mark"],
+	["numerical_rubric", "number_criterion"],
+	["rubric_assessment", "criterion_assessment"],
+	["boolean_rubric_assessment", "check_criterion_assessment"],
+	["ordinal_rubric_assessment", "options_criterion_assessment"],
+	["numerical_rubric_assessment", "number_criterion_assessment"],
+];
+
+// [table, fromColumn, toColumn]; table is the post-rename table name.
+const COLUMN_RENAMES: ReadonlyArray<readonly [string, string, string]> = [
+	["criterion", "type", "kind"],
+	["criterion_assessment", "type", "kind"],
+	["criterion_assessment", "rubric_id", "criterion_id"],
+	["check_criterion", "rubric_id", "criterion_id"],
+	["options_criterion", "rubric_id", "criterion_id"],
+	["number_criterion", "rubric_id", "criterion_id"],
+	["options_criterion_mark", "ordinal_rubric_id", "options_criterion_id"],
+	[
+		"check_criterion_assessment",
+		"rubric_assessment_id",
+		"criterion_assessment_id",
+	],
+	[
+		"options_criterion_assessment",
+		"rubric_assessment_id",
+		"criterion_assessment_id",
+	],
+	[
+		"number_criterion_assessment",
+		"rubric_assessment_id",
+		"criterion_assessment_id",
+	],
+];
 
 export async function up(db: Kysely<unknown>): Promise<void> {
+	// Drop triggers and functions (recreated at the end), and rename the enum.
+	// Raw SQL: no schema-builder API. These identifiers were created via raw SQL,
+	// so they are spelled the same under both runners.
 	await sql`
-    -- Drop triggers and functions; recreated at the end with new names/bodies.
     DROP TRIGGER IF EXISTS trg_rubric_type_immutable ON "rubric";
     DROP TRIGGER IF EXISTS trg_boolean_rubric_type_match ON "boolean_rubric";
     DROP TRIGGER IF EXISTS trg_ordinal_rubric_type_match ON "ordinal_rubric";
@@ -25,45 +74,83 @@ export async function up(db: Kysely<unknown>): Promise<void> {
     DROP FUNCTION IF EXISTS enforce_ordinal_label_valid();
     DROP FUNCTION IF EXISTS enforce_numerical_score_bounds();
 
-    -- Enum type and values.
     ALTER TYPE "rubric_type" RENAME TO "criterion_kind";
     ALTER TYPE "criterion_kind" RENAME VALUE 'boolean' TO 'check';
     ALTER TYPE "criterion_kind" RENAME VALUE 'ordinal' TO 'options';
     ALTER TYPE "criterion_kind" RENAME VALUE 'numerical' TO 'number';
+  `.execute(db);
 
-    -- Tables.
-    ALTER TABLE "rubric" RENAME TO "criterion";
-    ALTER TABLE "boolean_rubric" RENAME TO "check_criterion";
-    ALTER TABLE "ordinal_rubric" RENAME TO "options_criterion";
-    ALTER TABLE "ordinal_rubric_value" RENAME TO "options_criterion_mark";
-    ALTER TABLE "numerical_rubric" RENAME TO "number_criterion";
-    ALTER TABLE "rubric_assessment" RENAME TO "criterion_assessment";
-    ALTER TABLE "boolean_rubric_assessment" RENAME TO "check_criterion_assessment";
-    ALTER TABLE "ordinal_rubric_assessment" RENAME TO "options_criterion_assessment";
-    ALTER TABLE "numerical_rubric_assessment" RENAME TO "number_criterion_assessment";
+	// Tables and columns via the schema builder.
+	for (const [from, to] of TABLE_RENAMES) {
+		await db.schema.alterTable(from).renameTo(to).execute();
+	}
+	for (const [table, from, to] of COLUMN_RENAMES) {
+		await db.schema.alterTable(table).renameColumn(from, to).execute();
+	}
 
-    -- Columns: kind classifier and leaf foreign keys.
-    ALTER TABLE "criterion" RENAME COLUMN "type" TO "kind";
-    ALTER TABLE "criterion_assessment" RENAME COLUMN "type" TO "kind";
-    ALTER TABLE "criterion_assessment" RENAME COLUMN "rubric_id" TO "criterion_id";
-    ALTER TABLE "check_criterion" RENAME COLUMN "rubric_id" TO "criterion_id";
-    ALTER TABLE "options_criterion" RENAME COLUMN "rubric_id" TO "criterion_id";
-    ALTER TABLE "number_criterion" RENAME COLUMN "rubric_id" TO "criterion_id";
-    ALTER TABLE "options_criterion_mark" RENAME COLUMN "ordinal_rubric_id" TO "options_criterion_id";
-    ALTER TABLE "check_criterion_assessment" RENAME COLUMN "rubric_assessment_id" TO "criterion_assessment_id";
-    ALTER TABLE "options_criterion_assessment" RENAME COLUMN "rubric_assessment_id" TO "criterion_assessment_id";
-    ALTER TABLE "number_criterion_assessment" RENAME COLUMN "rubric_assessment_id" TO "criterion_assessment_id";
+	// Constraints and indexes. Raw SQL (no builder API for RENAME CONSTRAINT /
+	// ALTER INDEX). Each object is matched by any of its candidate spellings so
+	// the rename is correct whether or not CamelCasePlugin snake_cased the name.
+	await sql`
+    DO $$
+    DECLARE
+      item record;
+      actual text;
+    BEGIN
+      FOR item IN
+        SELECT * FROM (VALUES
+          ('criterion', ARRAY['rubric_pkey'], 'criterion_pkey'),
+          ('criterion', ARRAY['Rubric_projectId_id_key', 'rubric_project_id_id_key'], 'Criterion_projectId_id_key'),
+          ('criterion', ARRAY['Rubric_questionId_position_key', 'rubric_question_id_position_key'], 'Criterion_questionId_position_key'),
+          ('criterion', ARRAY['Rubric_projectId_fkey', 'rubric_project_id_fkey'], 'Criterion_projectId_fkey'),
+          ('criterion', ARRAY['Rubric_questionId_fkey', 'rubric_question_id_fkey'], 'Criterion_questionId_fkey'),
+          ('criterion_assessment', ARRAY['rubric_assessment_pkey'], 'criterion_assessment_pkey'),
+          ('criterion_assessment', ARRAY['RubricAssessment_assessmentId_rubricId_key', 'rubric_assessment_assessment_id_rubric_id_key'], 'CriterionAssessment_assessmentId_criterionId_key'),
+          ('criterion_assessment', ARRAY['RubricAssessment_assessmentId_fkey', 'rubric_assessment_assessment_id_fkey'], 'CriterionAssessment_assessmentId_fkey'),
+          ('criterion_assessment', ARRAY['RubricAssessment_rubricId_fkey', 'rubric_assessment_rubric_id_fkey'], 'CriterionAssessment_criterionId_fkey'),
+          ('check_criterion', ARRAY['boolean_rubric_pkey'], 'check_criterion_pkey'),
+          ('check_criterion', ARRAY['boolean_rubric_rubric_id_key'], 'check_criterion_criterion_id_key'),
+          ('check_criterion', ARRAY['BooleanRubric_rubricId_fkey', 'boolean_rubric_rubric_id_fkey'], 'CheckCriterion_criterionId_fkey'),
+          ('options_criterion', ARRAY['ordinal_rubric_pkey'], 'options_criterion_pkey'),
+          ('options_criterion', ARRAY['ordinal_rubric_rubric_id_key'], 'options_criterion_criterion_id_key'),
+          ('options_criterion', ARRAY['OrdinalRubric_rubricId_fkey', 'ordinal_rubric_rubric_id_fkey'], 'OptionsCriterion_criterionId_fkey'),
+          ('options_criterion_mark', ARRAY['ordinal_rubric_value_pkey'], 'options_criterion_mark_pkey'),
+          ('options_criterion_mark', ARRAY['OrdinalRubricValue_ordinalRubricId_label_key', 'ordinal_rubric_value_ordinal_rubric_id_label_key'], 'OptionsCriterionMark_optionsCriterionId_label_key'),
+          ('options_criterion_mark', ARRAY['OrdinalRubricValue_ordinalRubricId_fkey', 'ordinal_rubric_value_ordinal_rubric_id_fkey'], 'OptionsCriterionMark_optionsCriterionId_fkey'),
+          ('number_criterion', ARRAY['numerical_rubric_pkey'], 'number_criterion_pkey'),
+          ('number_criterion', ARRAY['numerical_rubric_rubric_id_key'], 'number_criterion_criterion_id_key'),
+          ('number_criterion', ARRAY['numerical_rubric_marks_range_check'], 'number_criterion_marks_range_check'),
+          ('number_criterion', ARRAY['numerical_rubric_score_range_check'], 'number_criterion_score_range_check'),
+          ('number_criterion', ARRAY['NumericalRubric_rubricId_fkey', 'numerical_rubric_rubric_id_fkey'], 'NumberCriterion_criterionId_fkey'),
+          ('check_criterion_assessment', ARRAY['boolean_rubric_assessment_pkey'], 'check_criterion_assessment_pkey'),
+          ('check_criterion_assessment', ARRAY['boolean_rubric_assessment_rubric_assessment_id_key'], 'check_criterion_assessment_criterion_assessment_id_key'),
+          ('check_criterion_assessment', ARRAY['BooleanRubricAssessment_rubricAssessmentId_fkey', 'boolean_rubric_assessment_rubric_assessment_id_fkey'], 'CheckCriterionAssessment_criterionAssessmentId_fkey'),
+          ('options_criterion_assessment', ARRAY['ordinal_rubric_assessment_pkey'], 'options_criterion_assessment_pkey'),
+          ('options_criterion_assessment', ARRAY['ordinal_rubric_assessment_rubric_assessment_id_key'], 'options_criterion_assessment_criterion_assessment_id_key'),
+          ('options_criterion_assessment', ARRAY['OrdinalRubricAssessment_rubricAssessmentId_fkey', 'ordinal_rubric_assessment_rubric_assessment_id_fkey'], 'OptionsCriterionAssessment_criterionAssessmentId_fkey'),
+          ('number_criterion_assessment', ARRAY['numerical_rubric_assessment_pkey'], 'number_criterion_assessment_pkey'),
+          ('number_criterion_assessment', ARRAY['numerical_rubric_assessment_rubric_assessment_id_key'], 'number_criterion_assessment_criterion_assessment_id_key'),
+          ('number_criterion_assessment', ARRAY['NumericalRubricAssessment_rubricAssessmentId_fkey', 'numerical_rubric_assessment_rubric_assessment_id_fkey'], 'NumberCriterionAssessment_criterionAssessmentId_fkey')
+        ) AS t(tbl, oldnames, newname)
+      LOOP
+        SELECT conname INTO actual
+        FROM pg_constraint
+        WHERE conrelid = item.tbl::regclass AND conname = ANY(item.oldnames)
+        LIMIT 1;
 
-    -- Constraint and index identifiers are intentionally left unchanged. They
-    -- are never referenced by app code, and their exact spelling differs by
-    -- migration runner: earlier schema-builder constraints are snake_cased by
-    -- the test runner's CamelCasePlugin (e.g. "Rubric_projectId_fkey" ->
-    -- rubric_project_id_fkey) but kept verbatim by the plain prod runner. A raw
-    -- ALTER ... RENAME CONSTRAINT by hard-coded name would therefore succeed in
-    -- one environment and fail in the other. Renaming them for cosmetics is not
-    -- worth that fragility, so only tables, columns, the enum, and triggers move.
+        IF actual IS NOT NULL AND actual <> item.newname THEN
+          EXECUTE format('ALTER TABLE %I RENAME CONSTRAINT %I TO %I', item.tbl, actual, item.newname);
+        END IF;
+      END LOOP;
+    END $$;
 
-    -- Recreate kind-match, immutability, bounds, and label-valid enforcement.
+    ALTER INDEX IF EXISTS "rubric_project_id_idx" RENAME TO "criterion_project_id_idx";
+    ALTER INDEX IF EXISTS "OrdinalRubricValue_ordinalRubricId_label_idx" RENAME TO "OptionsCriterionMark_optionsCriterionId_label_idx";
+    ALTER INDEX IF EXISTS "ordinal_rubric_value_ordinal_rubric_id_label_idx" RENAME TO "OptionsCriterionMark_optionsCriterionId_label_idx";
+  `.execute(db);
+
+	// Recreate kind-match, immutability, bounds, and label-valid enforcement.
+	await sql`
     CREATE OR REPLACE FUNCTION enforce_check_criterion_kind_match()
     RETURNS trigger
     LANGUAGE plpgsql
@@ -229,6 +316,7 @@ export async function up(db: Kysely<unknown>): Promise<void> {
 }
 
 export async function down(db: Kysely<unknown>): Promise<void> {
+	// Drop the new triggers/functions (raw; no builder API).
 	await sql`
     DROP TRIGGER IF EXISTS trg_criterion_kind_immutable ON "criterion";
     DROP TRIGGER IF EXISTS trg_check_criterion_kind_match ON "check_criterion";
@@ -243,37 +331,85 @@ export async function down(db: Kysely<unknown>): Promise<void> {
     DROP FUNCTION IF EXISTS enforce_number_criterion_kind_match();
     DROP FUNCTION IF EXISTS enforce_options_criterion_label_valid();
     DROP FUNCTION IF EXISTS enforce_number_criterion_score_bounds();
+  `.execute(db);
 
-    -- Columns.
-    ALTER TABLE "criterion" RENAME COLUMN "kind" TO "type";
-    ALTER TABLE "criterion_assessment" RENAME COLUMN "kind" TO "type";
-    ALTER TABLE "criterion_assessment" RENAME COLUMN "criterion_id" TO "rubric_id";
-    ALTER TABLE "check_criterion" RENAME COLUMN "criterion_id" TO "rubric_id";
-    ALTER TABLE "options_criterion" RENAME COLUMN "criterion_id" TO "rubric_id";
-    ALTER TABLE "number_criterion" RENAME COLUMN "criterion_id" TO "rubric_id";
-    ALTER TABLE "options_criterion_mark" RENAME COLUMN "options_criterion_id" TO "ordinal_rubric_id";
-    ALTER TABLE "check_criterion_assessment" RENAME COLUMN "criterion_assessment_id" TO "rubric_assessment_id";
-    ALTER TABLE "options_criterion_assessment" RENAME COLUMN "criterion_assessment_id" TO "rubric_assessment_id";
-    ALTER TABLE "number_criterion_assessment" RENAME COLUMN "criterion_assessment_id" TO "rubric_assessment_id";
+	// Constraints and indexes back. up() renamed each to a single literal, so the
+	// down candidate is that literal; this restores the prior spelling. (In the
+	// plugin runner a few schema-builder-origin constraints were snake_cased
+	// before; they come back in their PascalCase spelling, which is harmless.)
+	await sql`
+    DO $$
+    DECLARE
+      item record;
+      actual text;
+    BEGIN
+      FOR item IN
+        SELECT * FROM (VALUES
+          ('criterion', ARRAY['criterion_pkey'], 'rubric_pkey'),
+          ('criterion', ARRAY['Criterion_projectId_id_key'], 'Rubric_projectId_id_key'),
+          ('criterion', ARRAY['Criterion_questionId_position_key'], 'Rubric_questionId_position_key'),
+          ('criterion', ARRAY['Criterion_projectId_fkey'], 'Rubric_projectId_fkey'),
+          ('criterion', ARRAY['Criterion_questionId_fkey'], 'Rubric_questionId_fkey'),
+          ('criterion_assessment', ARRAY['criterion_assessment_pkey'], 'rubric_assessment_pkey'),
+          ('criterion_assessment', ARRAY['CriterionAssessment_assessmentId_criterionId_key'], 'RubricAssessment_assessmentId_rubricId_key'),
+          ('criterion_assessment', ARRAY['CriterionAssessment_assessmentId_fkey'], 'RubricAssessment_assessmentId_fkey'),
+          ('criterion_assessment', ARRAY['CriterionAssessment_criterionId_fkey'], 'RubricAssessment_rubricId_fkey'),
+          ('check_criterion', ARRAY['check_criterion_pkey'], 'boolean_rubric_pkey'),
+          ('check_criterion', ARRAY['check_criterion_criterion_id_key'], 'boolean_rubric_rubric_id_key'),
+          ('check_criterion', ARRAY['CheckCriterion_criterionId_fkey'], 'BooleanRubric_rubricId_fkey'),
+          ('options_criterion', ARRAY['options_criterion_pkey'], 'ordinal_rubric_pkey'),
+          ('options_criterion', ARRAY['options_criterion_criterion_id_key'], 'ordinal_rubric_rubric_id_key'),
+          ('options_criterion', ARRAY['OptionsCriterion_criterionId_fkey'], 'OrdinalRubric_rubricId_fkey'),
+          ('options_criterion_mark', ARRAY['options_criterion_mark_pkey'], 'ordinal_rubric_value_pkey'),
+          ('options_criterion_mark', ARRAY['OptionsCriterionMark_optionsCriterionId_label_key'], 'OrdinalRubricValue_ordinalRubricId_label_key'),
+          ('options_criterion_mark', ARRAY['OptionsCriterionMark_optionsCriterionId_fkey'], 'OrdinalRubricValue_ordinalRubricId_fkey'),
+          ('number_criterion', ARRAY['number_criterion_pkey'], 'numerical_rubric_pkey'),
+          ('number_criterion', ARRAY['number_criterion_criterion_id_key'], 'numerical_rubric_rubric_id_key'),
+          ('number_criterion', ARRAY['number_criterion_marks_range_check'], 'numerical_rubric_marks_range_check'),
+          ('number_criterion', ARRAY['number_criterion_score_range_check'], 'numerical_rubric_score_range_check'),
+          ('number_criterion', ARRAY['NumberCriterion_criterionId_fkey'], 'NumericalRubric_rubricId_fkey'),
+          ('check_criterion_assessment', ARRAY['check_criterion_assessment_pkey'], 'boolean_rubric_assessment_pkey'),
+          ('check_criterion_assessment', ARRAY['check_criterion_assessment_criterion_assessment_id_key'], 'boolean_rubric_assessment_rubric_assessment_id_key'),
+          ('check_criterion_assessment', ARRAY['CheckCriterionAssessment_criterionAssessmentId_fkey'], 'BooleanRubricAssessment_rubricAssessmentId_fkey'),
+          ('options_criterion_assessment', ARRAY['options_criterion_assessment_pkey'], 'ordinal_rubric_assessment_pkey'),
+          ('options_criterion_assessment', ARRAY['options_criterion_assessment_criterion_assessment_id_key'], 'ordinal_rubric_assessment_rubric_assessment_id_key'),
+          ('options_criterion_assessment', ARRAY['OptionsCriterionAssessment_criterionAssessmentId_fkey'], 'OrdinalRubricAssessment_rubricAssessmentId_fkey'),
+          ('number_criterion_assessment', ARRAY['number_criterion_assessment_pkey'], 'numerical_rubric_assessment_pkey'),
+          ('number_criterion_assessment', ARRAY['number_criterion_assessment_criterion_assessment_id_key'], 'numerical_rubric_assessment_rubric_assessment_id_key'),
+          ('number_criterion_assessment', ARRAY['NumberCriterionAssessment_criterionAssessmentId_fkey'], 'NumericalRubricAssessment_rubricAssessmentId_fkey')
+        ) AS t(tbl, oldnames, newname)
+      LOOP
+        SELECT conname INTO actual
+        FROM pg_constraint
+        WHERE conrelid = item.tbl::regclass AND conname = ANY(item.oldnames)
+        LIMIT 1;
 
-    -- Tables.
-    ALTER TABLE "criterion" RENAME TO "rubric";
-    ALTER TABLE "check_criterion" RENAME TO "boolean_rubric";
-    ALTER TABLE "options_criterion" RENAME TO "ordinal_rubric";
-    ALTER TABLE "options_criterion_mark" RENAME TO "ordinal_rubric_value";
-    ALTER TABLE "number_criterion" RENAME TO "numerical_rubric";
-    ALTER TABLE "criterion_assessment" RENAME TO "rubric_assessment";
-    ALTER TABLE "check_criterion_assessment" RENAME TO "boolean_rubric_assessment";
-    ALTER TABLE "options_criterion_assessment" RENAME TO "ordinal_rubric_assessment";
-    ALTER TABLE "number_criterion_assessment" RENAME TO "numerical_rubric_assessment";
+        IF actual IS NOT NULL AND actual <> item.newname THEN
+          EXECUTE format('ALTER TABLE %I RENAME CONSTRAINT %I TO %I', item.tbl, actual, item.newname);
+        END IF;
+      END LOOP;
+    END $$;
 
-    -- Enum values and type.
+    ALTER INDEX IF EXISTS "criterion_project_id_idx" RENAME TO "rubric_project_id_idx";
+    ALTER INDEX IF EXISTS "OptionsCriterionMark_optionsCriterionId_label_idx" RENAME TO "OrdinalRubricValue_ordinalRubricId_label_idx";
+  `.execute(db);
+
+	// Columns then tables back via the schema builder (columns while tables still
+	// carry their new names, then the tables themselves).
+	for (const [table, from, to] of COLUMN_RENAMES) {
+		await db.schema.alterTable(table).renameColumn(to, from).execute();
+	}
+	for (const [from, to] of TABLE_RENAMES) {
+		await db.schema.alterTable(to).renameTo(from).execute();
+	}
+
+	// Restore prior enum spelling and enforcement (raw; no builder API).
+	await sql`
     ALTER TYPE "criterion_kind" RENAME VALUE 'check' TO 'boolean';
     ALTER TYPE "criterion_kind" RENAME VALUE 'options' TO 'ordinal';
     ALTER TYPE "criterion_kind" RENAME VALUE 'number' TO 'numerical';
     ALTER TYPE "criterion_kind" RENAME TO "rubric_type";
 
-    -- Restore prior enforcement functions and triggers.
     CREATE OR REPLACE FUNCTION enforce_boolean_rubric_type_match()
     RETURNS trigger
     LANGUAGE plpgsql

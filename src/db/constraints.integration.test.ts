@@ -603,7 +603,7 @@ test("numerical criterion score range check rejects a collapsed or inverted rang
 				reversed: false,
 			})
 			.execute(),
-	).rejects.toThrow("numerical_rubric_score_range_check");
+	).rejects.toThrow("number_criterion_score_range_check");
 
 	await expect(
 		db
@@ -617,7 +617,7 @@ test("numerical criterion score range check rejects a collapsed or inverted rang
 				reversed: false,
 			})
 			.execute(),
-	).rejects.toThrow("numerical_rubric_score_range_check");
+	).rejects.toThrow("number_criterion_score_range_check");
 
 	const persisted = await db
 		.selectFrom("numberCriterion")
@@ -648,7 +648,7 @@ test("numerical criterion marks range check rejects inverted marks and rolls bac
 				reversed: false,
 			})
 			.execute(),
-	).rejects.toThrow("numerical_rubric_marks_range_check");
+	).rejects.toThrow("number_criterion_marks_range_check");
 
 	await db
 		.insertInto("numberCriterion")
