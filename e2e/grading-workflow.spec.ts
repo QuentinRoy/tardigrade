@@ -74,7 +74,7 @@ async function expectCompletionEventually(
 		await page.goto(dashboardUrl);
 		await expectCompletion(page, "Submissions assessed", expected.submissions);
 		await expectCompletion(page, "Questions assessed", expected.questions);
-		await expectCompletion(page, "Rubrics assessed", expected.rubrics);
+		await expectCompletion(page, "Criteria assessed", expected.criteria);
 	}).toPass({ timeout: 15_000, intervals: [250, 500, 1000, 2000] });
 }
 
