@@ -6,9 +6,13 @@ This document records project-specific testing conventions that should remain st
 
 - Unit and integration test cases are **co-located** with the module they test,
   next to the source file (for example
-  `src/assessments/assessmentCompletion.test.ts`). The Vitest unit project
-  discovers them via the `src/**/*.{test,spec}.{ts,tsx,js,jsx}` and
+  `src/assessment-completion/assessmentCompletion.test.ts`). The Vitest unit
+  project discovers them via the `src/**/*.{test,spec}.{ts,tsx,js,jsx}` and
   `app/**/*.{test,spec}.{ts,tsx}` globs in `vitest.config.ts`.
+- Integration test cases use the `<name>.integration.test.ts` suffix and are
+  co-located like unit tests. The suffix — not the folder — routes them to the
+  Vitest `integration` project, which runs against a real Postgres provisioned
+  once in global setup (`src/test/integrationGlobalSetup.ts`).
 - Tests may be co-located under `app/` only when they test route-specific files
   such as `page.tsx`, `layout.tsx`, `route.ts`, `loading.tsx`, or route-local
   helpers. Domain logic stays under `src/` in its owning feature folder (ADR
@@ -42,14 +46,19 @@ pnpm test:unit <changed-file-stem>
 
 Vitest matches by path stem. For example, `src/projects/projectPaths` runs `projectPaths.test.ts`.
 
-For changes under `src/db/`, run:
+For a changed integration test (`*.integration.test.ts`), run the focused
+integration test whose stem matches it:
 
 ```bash
-pnpm test src/db/
+pnpm test:integration <changed-file-stem>
 ```
 
-`src/db/` tests are not mirrored per source file. Integration tests spin up a
-Postgres container via Testcontainers (see `src/test/integrationGlobalSetup.ts`).
+Schema, constraint, and migration changes have no single co-located stem to
+match. Run the whole `src/db/` integration path instead:
+
+```bash
+pnpm test:integration src/db/
+```
 
 For changed Storybook stories, run:
 
@@ -141,7 +150,7 @@ Prefer re-declaring a disposable resource inside each `it` over wiring shared mu
 
 Do not use `using` when a single resource must stay alive across multiple `it` cases. A `using` declaration is disposed when its enclosing scope ends, and a `using` declaration in a `describe` body is disposed during test collection, before the tests run. Use `beforeAll`/`afterAll` for shared resources that intentionally span several tests.
 
-See `src/import/saveStudents.integration.test.ts` for `await using` with disposable database/project fixtures, and `src/ui/CosmeticSlugReplacement.stories.tsx` for `using` with a spy.
+See `src/imports/students/saveStudents.integration.test.ts` for `await using` with disposable database/project fixtures, and `src/app-shell/CosmeticSlugReplacement.stories.tsx` for `using` with a spy.
 
 ## User-facing error assertions
 
