@@ -85,6 +85,28 @@ describe("Kysely migrations", () => {
 			}
 		}
 
+		// Migration order is append-only. A new migration must never sort before
+		// an already-merged one: migrations run in filename order, so a
+		// backdated/earlier-sorting file would be left unexecuted on any
+		// environment that already ran the later migrations, silently skipping
+		// it. Filenames are fixed-width timestamp-prefixed, so lexicographic
+		// order is chronological order.
+		let latestBaseMigration = "";
+		for (const migration of baseMigrations) {
+			if (migration > latestBaseMigration) {
+				latestBaseMigration = migration;
+			}
+		}
+
+		for (const migration of currentMigrations) {
+			const isNewMigration = !baseMigrations.includes(migration);
+			if (isNewMigration && migration < latestBaseMigration) {
+				errors.push(
+					`Migration file ${migration} sorts before the latest existing migration ${latestBaseMigration}. New migrations must be appended after all existing ones; do not insert a migration earlier in the sequence with a backdated filename.`,
+				);
+			}
+		}
+
 		if (errors.length > 0) {
 			const message = `Immutable migration violations:\n${errors.map((error) => `  • ${error}`).join("\n")}`;
 			expect.fail(message);
