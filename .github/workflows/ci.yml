@@ -94,6 +94,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          # migrations.integration.test.ts diffs migration files against
+          # origin/main; the default shallow, single-ref checkout leaves that
+          # ref unresolvable and makes the check a silent no-op.
+          fetch-depth: 0
 
       - uses: ./.github/actions/setup-node-pnpm
 
