@@ -93,18 +93,12 @@ const rubricsSchema = z
 				),
 		},
 		{
-			// Turn Zod's terse "Unrecognized key" into an actionable message. The
-			// container word changed from "questions" to "rubrics" (terminology
-			// sweep stage 2b) with a hard cutover, so the likeliest unknown
-			// top-level entry is a stale `questions:` from the old format — name it
-			// and give the exact fix. Only overrides unrecognized-key errors;
-			// returning undefined leaves every other message untouched.
+			// Turn Zod's terse "Unrecognized key" into an actionable message. Only
+			// overrides unrecognized-key errors; returning undefined leaves every
+			// other message untouched.
 			error: (issue) => {
 				if (issue.code !== "unrecognized_keys") {
 					return undefined;
-				}
-				if (issue.keys.includes("questions")) {
-					return 'This looks like the old import format. Rename the top-level "questions:" to "rubrics:" and import again.';
 				}
 				const names = issue.keys.map((key) => `"${key}"`).join(", ");
 				const plural = issue.keys.length > 1;
