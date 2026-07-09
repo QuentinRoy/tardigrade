@@ -35,7 +35,7 @@ export const DeleteSettlesOnce: Story = {
 		await userEvent.click(screen.getByRole("button", { name: "Delete" }));
 
 		await userEvent.type(
-			screen.getByLabelText("Confirmation"),
+			await screen.findByLabelText("Confirmation"),
 			"DELETE q1 (5 assessments)",
 		);
 
