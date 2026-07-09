@@ -190,7 +190,7 @@ so object names are deterministic and identical on every database. Write all
 identifiers in migrations exactly as they exist in Postgres.
 
 Constraint and index names are snake_case since
-`20260710000000_snake_case_constraint_and_index_names.ts`, which case-folded the
+`20260709000001_snake_case_constraint_and_index_names.ts`, which case-folded the
 remaining Prisma-era PascalCase names. Later migrations rename constraints with
 plain `alterTable(t).renameConstraint(old, new)` calls — the candidate-spelling
 `DO` block in `20260707000000_rename_rubric_to_criterion.ts` was a workaround
