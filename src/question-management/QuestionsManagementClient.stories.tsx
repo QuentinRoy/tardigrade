@@ -11,7 +11,7 @@ const meta = {
 				id: "q1",
 				position: 0,
 				assessmentCount: 0,
-				question: { label: "Correctness", rubrics: [] },
+				question: { label: "Correctness", criteria: [] },
 			},
 		],
 		saveAction: fn(async () => ({

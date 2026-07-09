@@ -1,22 +1,22 @@
-import type { Grid } from "#questions/types.ts";
 import {
 	attachAssessment,
-	getRubricMaxMarks,
-	markRubric,
-} from "#rubrics/rubric.ts";
+	getCriterionMaxMarks,
+	markCriterion,
+} from "#criteria/criterion.ts";
 import type {
-	AssessmentRubricValue,
-	Rubric,
-	RubricType,
-} from "#rubrics/types.ts";
+	AssessmentCriterionValue,
+	Criterion,
+	CriterionKind,
+} from "#criteria/types.ts";
+import type { Grid } from "#questions/types.ts";
 import { getSubmissionLabel } from "#submissions/getSubmissionLabel.ts";
 import type { Submission } from "#submissions/types.ts";
 
 type CriterionPropertyDetails =
-	| { type: "boolean"; trueMarks: number; falseMarks: number }
-	| { type: "ordinal"; marksByLabel: Array<{ label: string; marks: number }> }
+	| { kind: "check"; trueMarks: number; falseMarks: number }
+	| { kind: "options"; marksByLabel: Array<{ label: string; marks: number }> }
 	| {
-			type: "numerical";
+			kind: "number";
 			minScore: number;
 			maxScore: number;
 			minMarks: number;
@@ -27,7 +27,7 @@ type CriterionPropertyDetails =
 export type CriterionDetails = {
 	label?: string | undefined;
 	description?: string | undefined;
-	type: RubricType;
+	kind: CriterionKind;
 	properties: CriterionPropertyDetails;
 };
 
@@ -70,14 +70,14 @@ export type ResultsData = {
 export type ResultsAssessmentRecord = {
 	gradeTargetId: number;
 	criterionId: string;
-	type: RubricType;
+	kind: CriterionKind;
 	passed: boolean | null;
 	selectedLabel: string | null;
 	score: number | null;
 };
 
 type OrderedCriterion = {
-	criterion: Rubric;
+	criterion: Criterion;
 	criterionId: string;
 	rubricId: string;
 	rubricLabel: string;
@@ -86,33 +86,33 @@ type OrderedCriterion = {
 
 function toAssessmentValue(
 	record: ResultsAssessmentRecord,
-): AssessmentRubricValue | null {
-	switch (record.type) {
-		case "boolean":
+): AssessmentCriterionValue | null {
+	switch (record.kind) {
+		case "check":
 			if (record.passed == null) {
 				return null;
 			}
 			return {
-				rubricId: record.criterionId,
-				type: "boolean",
+				criterionId: record.criterionId,
+				kind: "check",
 				passed: record.passed,
 			};
-		case "ordinal":
+		case "options":
 			if (record.selectedLabel == null) {
 				return null;
 			}
 			return {
-				rubricId: record.criterionId,
-				type: "ordinal",
+				criterionId: record.criterionId,
+				kind: "options",
 				selectedLabel: record.selectedLabel,
 			};
-		case "numerical":
+		case "number":
 			if (record.score == null) {
 				return null;
 			}
 			return {
-				rubricId: record.criterionId,
-				type: "numerical",
+				criterionId: record.criterionId,
+				kind: "number",
 				score: record.score,
 			};
 		default:
@@ -120,44 +120,43 @@ function toAssessmentValue(
 	}
 }
 
-function toCriterionDetails(rubric: Rubric): CriterionDetails {
-	switch (rubric.type) {
-		case "boolean":
+function toCriterionDetails(criterion: Criterion): CriterionDetails {
+	switch (criterion.kind) {
+		case "check":
 			return {
-				label: rubric.label,
-				description: rubric.description,
-				type: rubric.type,
+				label: criterion.label,
+				description: criterion.description,
+				kind: criterion.kind,
 				properties: {
-					type: "boolean",
-					trueMarks: rubric.marks,
-					falseMarks: rubric.falseMarks,
+					kind: "check",
+					trueMarks: criterion.marks,
+					falseMarks: criterion.falseMarks,
 				},
 			};
-		case "ordinal":
+		case "options":
 			return {
-				label: rubric.label,
-				description: rubric.description,
-				type: rubric.type,
+				label: criterion.label,
+				description: criterion.description,
+				kind: criterion.kind,
 				properties: {
-					type: "ordinal",
-					marksByLabel: Object.entries(rubric.marks).map(([label, marks]) => ({
-						label,
-						marks,
-					})),
+					kind: "options",
+					marksByLabel: Object.entries(criterion.marks).map(
+						([label, marks]) => ({ label, marks }),
+					),
 				},
 			};
-		case "numerical":
+		case "number":
 			return {
-				label: rubric.label,
-				description: rubric.description,
-				type: rubric.type,
+				label: criterion.label,
+				description: criterion.description,
+				kind: criterion.kind,
 				properties: {
-					type: "numerical",
-					minScore: rubric.minScore,
-					maxScore: rubric.maxScore,
-					minMarks: rubric.minMarks,
-					maxMarks: rubric.maxMarks,
-					reversed: rubric.reversed,
+					kind: "number",
+					minScore: criterion.minScore,
+					maxScore: criterion.maxScore,
+					minMarks: criterion.minMarks,
+					maxMarks: criterion.maxMarks,
+					reversed: criterion.reversed,
 				},
 			};
 	}
@@ -176,13 +175,13 @@ export function buildResultsData({
 
 	for (const [questionId, question] of Object.entries(questionGrid)) {
 		const questionLabel = question.label ?? questionId;
-		for (const rubric of question.rubrics) {
+		for (const criterion of question.criteria) {
 			orderedCriteria.push({
-				criterion: rubric,
-				criterionId: rubric.id,
+				criterion,
+				criterionId: criterion.id,
 				rubricId: questionId,
 				rubricLabel: questionLabel,
-				maxMarks: getRubricMaxMarks(rubric),
+				maxMarks: getCriterionMaxMarks(criterion),
 			});
 		}
 	}
@@ -238,11 +237,11 @@ export function buildResultsData({
 			continue;
 		}
 
-		const assessedRubric = attachAssessment(
+		const assessedCriterion = attachAssessment(
 			criterionMeta.criterion,
 			assessmentValue,
 		);
-		const marks = markRubric(assessedRubric);
+		const marks = markCriterion(assessedCriterion);
 		const gradeTargetId = String(record.gradeTargetId);
 		const gradeTargetRow = gradeTargetRowById.get(gradeTargetId);
 		const criterionStat = criterionStats.get(record.criterionId);

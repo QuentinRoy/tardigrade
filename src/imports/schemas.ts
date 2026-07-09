@@ -3,33 +3,33 @@ import { z } from "zod";
 const nonEmptyString = z.string().trim().min(1);
 const numericValue = z.number();
 
-const baseRubricSchema = z.object({
+const baseCriterionSchema = z.object({
 	id: nonEmptyString,
 	description: nonEmptyString.optional(),
 	label: nonEmptyString.optional(),
-	type: z.string(),
+	kind: z.string(),
 });
 
-export const booleanRubricSchema = baseRubricSchema.extend({
-	type: z.literal("boolean"),
+export const checkCriterionSchema = baseCriterionSchema.extend({
+	kind: z.literal("check"),
 	marks: numericValue,
 	falseMarks: numericValue.optional(),
 });
 
-const ordinalMarksSchema = z
+const optionsMarksSchema = z
 	.record(nonEmptyString, numericValue)
 	.refine((marks) => Object.keys(marks).length >= 2, {
-		message: "Ordinal rubric must have at least 2 mark entries",
+		message: "Options criterion must have at least 2 mark entries",
 	});
 
-export const ordinalRubricSchema = baseRubricSchema.extend({
-	type: z.literal("ordinal"),
-	marks: ordinalMarksSchema,
+export const optionsCriterionSchema = baseCriterionSchema.extend({
+	kind: z.literal("options"),
+	marks: optionsMarksSchema,
 });
 
-export const numericalRubricSchema = baseRubricSchema
+export const numberCriterionSchema = baseCriterionSchema
 	.extend({
-		type: z.literal("numerical"),
+		kind: z.literal("number"),
 		minScore: numericValue.optional(),
 		maxScore: numericValue.optional(),
 		minMarks: numericValue.optional(),
@@ -38,7 +38,7 @@ export const numericalRubricSchema = baseRubricSchema
 	})
 	.refine((r) => r.minMarks != null || r.maxMarks != null, {
 		message:
-			"Numerical rubric must provide at least one of minMarks or maxMarks",
+			"Number criterion must provide at least one of minMarks or maxMarks",
 	})
 	.refine((r) => r.minScore == null || r.maxScore != null, {
 		message: "maxScore must be provided when minScore is provided",
@@ -64,20 +64,20 @@ export const numericalRubricSchema = baseRubricSchema
 		message: "minScore must be less than maxScore",
 	});
 
-const rubricSchema = z.discriminatedUnion("type", [
-	booleanRubricSchema,
-	ordinalRubricSchema,
-	numericalRubricSchema,
+const criterionSchema = z.discriminatedUnion("kind", [
+	checkCriterionSchema,
+	optionsCriterionSchema,
+	numberCriterionSchema,
 ]);
 
 export const questionSchema = z.object({
 	id: nonEmptyString,
 	label: nonEmptyString.optional(),
-	rubrics: z
-		.array(rubricSchema)
+	criteria: z
+		.array(criterionSchema)
 		.refine(
-			(rubrics) => new Set(rubrics.map((r) => r.id)).size === rubrics.length,
-			{ message: "Rubric ids must be unique within a question" },
+			(criteria) => new Set(criteria.map((r) => r.id)).size === criteria.length,
+			{ message: "Criterion ids must be unique within a question" },
 		),
 });
 
@@ -120,4 +120,4 @@ export const assessmentRowSchema = z
 
 export const assessmentRowsSchema = z.array(assessmentRowSchema);
 
-export { questionsSchema, rubricSchema };
+export { criterionSchema, questionsSchema };

@@ -32,7 +32,7 @@ const baseRow: SubmissionRow = {
 	teamName: null,
 	studentId: "student-1",
 	questionId: null,
-	rubricId: null,
+	criterionId: null,
 	booleanPassed: null,
 	ordinalSelectedLabel: null,
 	numericalScore: null,
@@ -85,7 +85,7 @@ describe("groupSubmissionRows", () => {
 			{
 				...baseRow,
 				questionId: "q1",
-				rubricId: "r-bool",
+				criterionId: "r-bool",
 				booleanPassed: true,
 				ordinalSelectedLabel: null,
 				numericalScore: null,
@@ -93,7 +93,7 @@ describe("groupSubmissionRows", () => {
 			{
 				...baseRow,
 				questionId: "q1",
-				rubricId: "r-ord",
+				criterionId: "r-ord",
 				booleanPassed: null,
 				ordinalSelectedLabel: "A",
 				numericalScore: null,
@@ -101,7 +101,7 @@ describe("groupSubmissionRows", () => {
 			{
 				...baseRow,
 				questionId: "q1",
-				rubricId: "r-num",
+				criterionId: "r-num",
 				booleanPassed: null,
 				ordinalSelectedLabel: null,
 				numericalScore: 7.5,
@@ -112,29 +112,29 @@ describe("groupSubmissionRows", () => {
 		expect(groups).toHaveLength(1);
 		const values = groups[0]!.valuesByKey;
 		expect(values.get("q1::r-bool")).toEqual({
-			rubricId: "r-bool",
-			type: "boolean",
+			criterionId: "r-bool",
+			kind: "check",
 			passed: true,
 		});
 		expect(values.get("q1::r-ord")).toEqual({
-			rubricId: "r-ord",
-			type: "ordinal",
+			criterionId: "r-ord",
+			kind: "options",
 			selectedLabel: "A",
 		});
 		expect(values.get("q1::r-num")).toEqual({
-			rubricId: "r-num",
-			type: "numerical",
+			criterionId: "r-num",
+			kind: "number",
 			score: 7.5,
 		});
 	});
 
-	it("handles sparse assessments — rows with null questionId/rubricId contribute no values", async () => {
+	it("handles sparse assessments — rows with null questionId/criterionId contribute no values", async () => {
 		const rows: SubmissionRow[] = [
-			{ ...baseRow, questionId: null, rubricId: null },
+			{ ...baseRow, questionId: null, criterionId: null },
 			{
 				...baseRow,
 				questionId: "q1",
-				rubricId: "r-bool",
+				criterionId: "r-bool",
 				booleanPassed: false,
 			},
 		];
@@ -149,14 +149,14 @@ describe("groupSubmissionRows", () => {
 			{
 				...baseRow,
 				questionId: "q1",
-				rubricId: "r-num",
+				criterionId: "r-num",
 				numericalScore: "3.75",
 			},
 		];
 		const groups = await collectGroups(rows);
 
 		expect(groups[0]!.valuesByKey.get("q1::r-num")).toMatchObject({
-			type: "numerical",
+			kind: "number",
 			score: 3.75,
 		});
 	});

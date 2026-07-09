@@ -7,15 +7,15 @@ export type AssessmentFixture = {
 	questionId: string;
 	studentId: string;
 	submissionId: string;
-	rubricIds: { boolean: string; ordinal: string; numerical: string };
+	criterionIds: { boolean: string; ordinal: string; numerical: string };
 };
 
 export type AssessmentFixtureOptions = {
 	questionId?: string;
-	rubricIds?: { boolean: string; ordinal: string; numerical: string };
+	criterionIds?: { boolean: string; ordinal: string; numerical: string };
 };
 
-// Creates a submission with a question carrying one rubric of each type, ready for
+// Creates a submission with a question carrying one criterion of each type, ready for
 // assessment round-trips. Exposes the Project ID (public identifier); the Project
 // Row ID stays internal to the fixture plumbing. Cleanup is handled by disposing
 // the owning project (cascade), so no separate teardown helper is needed.
@@ -34,12 +34,12 @@ export async function createAssessmentFixture(
 
 	const questionId = options?.questionId ?? buildTestId("q");
 	const studentId = buildTestId("student");
-	const booleanRubricId =
-		options?.rubricIds?.boolean ?? buildTestId("rubric-boolean");
-	const ordinalRubricId =
-		options?.rubricIds?.ordinal ?? buildTestId("rubric-ordinal");
-	const numericalRubricId =
-		options?.rubricIds?.numerical ?? buildTestId("rubric-numerical");
+	const checkCriterionId =
+		options?.criterionIds?.boolean ?? buildTestId("criterion-boolean");
+	const optionsCriterionId =
+		options?.criterionIds?.ordinal ?? buildTestId("criterion-ordinal");
+	const numberCriterionId =
+		options?.criterionIds?.numerical ?? buildTestId("criterion-numerical");
 
 	await db
 		.insertInto("student")
@@ -85,76 +85,76 @@ export async function createAssessmentFixture(
 		.where("id", "=", questionId)
 		.executeTakeFirstOrThrow();
 
-	const insertedRubrics = await db
-		.insertInto("rubric")
+	const insertedCriteria = await db
+		.insertInto("criterion")
 		.values([
 			{
-				id: booleanRubricId,
+				id: checkCriterionId,
 				projectId: projectRowId,
 				questionId: question.rowId,
-				type: "boolean",
+				kind: "check",
 				position: 0,
-				label: "Boolean rubric",
+				label: "Boolean criterion",
 			},
 			{
-				id: ordinalRubricId,
+				id: optionsCriterionId,
 				projectId: projectRowId,
 				questionId: question.rowId,
-				type: "ordinal",
+				kind: "options",
 				position: 1,
-				label: "Ordinal rubric",
+				label: "Ordinal criterion",
 			},
 			{
-				id: numericalRubricId,
+				id: numberCriterionId,
 				projectId: projectRowId,
 				questionId: question.rowId,
-				type: "numerical",
+				kind: "number",
 				position: 2,
-				label: "Numerical rubric",
+				label: "Numerical criterion",
 			},
 		])
 		.returning(["id", "rowId"])
 		.execute();
 
-	const rubricRowIdById = new Map(
-		insertedRubrics.map((rubric) => [rubric.id, rubric.rowId]),
+	const criterionRowIdById = new Map(
+		insertedCriteria.map((criterion) => [criterion.id, criterion.rowId]),
 	);
 
-	const booleanRubricRowId = rubricRowIdById.get(booleanRubricId);
-	const ordinalRubricRowId = rubricRowIdById.get(ordinalRubricId);
-	const numericalRubricRowId = rubricRowIdById.get(numericalRubricId);
+	const checkCriterionRowId = criterionRowIdById.get(checkCriterionId);
+	const optionsCriterionRowId = criterionRowIdById.get(optionsCriterionId);
+	const numberCriterionRowId = criterionRowIdById.get(numberCriterionId);
 
 	if (
-		booleanRubricRowId == null ||
-		ordinalRubricRowId == null ||
-		numericalRubricRowId == null
+		checkCriterionRowId == null ||
+		optionsCriterionRowId == null ||
+		numberCriterionRowId == null
 	) {
-		throw new Error("Expected inserted rubrics to be returned with row ids.");
+		throw new Error("Expected inserted criteria to be returned with row ids.");
 	}
 
 	await db
-		.insertInto("booleanRubric")
-		.values({ rubricId: booleanRubricRowId, marks: 2 })
+		.insertInto("checkCriterion")
+		.values({ criterionId: checkCriterionRowId, marks: 2 })
 		.execute();
 
-	const ordinalRubric = await db
-		.insertInto("ordinalRubric")
-		.values({ rubricId: ordinalRubricRowId })
+	const optionsCriterion = await db
+		.insertInto("optionsCriterion")
+		.values({ criterionId: optionsCriterionRowId })
 		.returning("id")
 		.executeTakeFirstOrThrow();
 
 	await db
-		.insertInto("ordinalRubricValue")
+		.insertInto("optionsCriterionMark")
 		.values([
-			{ ordinalRubricId: ordinalRubric.id, label: "A", marks: 3 },
-			{ ordinalRubricId: ordinalRubric.id, label: "B", marks: 1 },
+			{ optionsCriterionId: optionsCriterion.id, label: "A", marks: 3 },
+			{ optionsCriterionId: optionsCriterion.id, label: "B", marks: 1 },
 		])
 		.execute();
 
 	await db
-		.insertInto("numericalRubric")
+		.insertInto("numberCriterion")
 		.values({
-			rubricId: numericalRubricRowId,
+			criterionId: numberCriterionRowId,
 			minScore: 0,
 			maxScore: 10,
 			minMarks: 0,
@@ -167,10 +167,10 @@ export async function createAssessmentFixture(
 		questionId,
 		studentId,
 		submissionId: String(submission.id),
-		rubricIds: {
-			boolean: booleanRubricId,
-			ordinal: ordinalRubricId,
-			numerical: numericalRubricId,
+		criterionIds: {
+			boolean: checkCriterionId,
+			ordinal: optionsCriterionId,
+			numerical: numberCriterionId,
 		},
 	};
 }

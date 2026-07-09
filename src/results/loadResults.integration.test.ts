@@ -71,16 +71,16 @@ async function createBooleanRubric(
 	{
 		projectRowId,
 		questionRowId,
-		rubricId,
-	}: { projectRowId: number; questionRowId: number; rubricId: string },
+		criterionId,
+	}: { projectRowId: number; questionRowId: number; criterionId: string },
 ): Promise<number> {
 	const rubric = await db
-		.insertInto("rubric")
+		.insertInto("criterion")
 		.values({
-			id: rubricId,
+			id: criterionId,
 			projectId: projectRowId,
 			questionId: questionRowId,
-			type: "boolean",
+			kind: "check",
 			position: 0,
 			label: "Boolean Rubric",
 		})
@@ -88,8 +88,8 @@ async function createBooleanRubric(
 		.executeTakeFirstOrThrow();
 
 	await db
-		.insertInto("booleanRubric")
-		.values({ rubricId: rubric.rowId, marks: 1, falseMarks: 0 })
+		.insertInto("checkCriterion")
+		.values({ criterionId: rubric.rowId, marks: 1, falseMarks: 0 })
 		.execute();
 
 	return rubric.rowId;
@@ -100,33 +100,33 @@ async function createOrdinalRubric(
 	{
 		projectRowId,
 		questionRowId,
-		rubricId,
-	}: { projectRowId: number; questionRowId: number; rubricId: string },
+		criterionId,
+	}: { projectRowId: number; questionRowId: number; criterionId: string },
 ): Promise<number> {
 	const rubric = await db
-		.insertInto("rubric")
+		.insertInto("criterion")
 		.values({
-			id: rubricId,
+			id: criterionId,
 			projectId: projectRowId,
 			questionId: questionRowId,
-			type: "ordinal",
+			kind: "options",
 			position: 1,
 			label: "Ordinal Rubric",
 		})
 		.returning("rowId")
 		.executeTakeFirstOrThrow();
 
-	const ordinalRubric = await db
-		.insertInto("ordinalRubric")
-		.values({ rubricId: rubric.rowId })
+	const optionsCriterion = await db
+		.insertInto("optionsCriterion")
+		.values({ criterionId: rubric.rowId })
 		.returning("id")
 		.executeTakeFirstOrThrow();
 
 	await db
-		.insertInto("ordinalRubricValue")
+		.insertInto("optionsCriterionMark")
 		.values([
-			{ ordinalRubricId: ordinalRubric.id, label: "low", marks: 1 },
-			{ ordinalRubricId: ordinalRubric.id, label: "high", marks: 3 },
+			{ optionsCriterionId: optionsCriterion.id, label: "low", marks: 1 },
+			{ optionsCriterionId: optionsCriterion.id, label: "high", marks: 3 },
 		])
 		.execute();
 
@@ -138,16 +138,16 @@ async function createNumericalRubric(
 	{
 		projectRowId,
 		questionRowId,
-		rubricId,
-	}: { projectRowId: number; questionRowId: number; rubricId: string },
+		criterionId,
+	}: { projectRowId: number; questionRowId: number; criterionId: string },
 ): Promise<number> {
 	const rubric = await db
-		.insertInto("rubric")
+		.insertInto("criterion")
 		.values({
-			id: rubricId,
+			id: criterionId,
 			projectId: projectRowId,
 			questionId: questionRowId,
-			type: "numerical",
+			kind: "number",
 			position: 2,
 			label: "Numerical Rubric",
 		})
@@ -155,9 +155,9 @@ async function createNumericalRubric(
 		.executeTakeFirstOrThrow();
 
 	await db
-		.insertInto("numericalRubric")
+		.insertInto("numberCriterion")
 		.values({
-			rubricId: rubric.rowId,
+			criterionId: rubric.rowId,
 			minScore: 0,
 			maxScore: 10,
 			minMarks: 0,
@@ -169,7 +169,7 @@ async function createNumericalRubric(
 }
 
 // `Assessment` is unique per (submissionId, questionId): multiple rubrics on the
-// same question share one assessment row, each with its own `rubricAssessment`.
+// same question share one assessment row, each with its own `criterionAssessment`.
 async function createAssessment(
 	db: Kysely<DB>,
 	{
@@ -199,15 +199,15 @@ async function addBooleanAssessment(
 		passed,
 	}: { assessmentId: number; rubricRowId: number; passed: boolean },
 ): Promise<void> {
-	const rubricAssessment = await db
-		.insertInto("rubricAssessment")
-		.values({ assessmentId, rubricId: rubricRowId, type: "boolean" })
+	const criterionAssessment = await db
+		.insertInto("criterionAssessment")
+		.values({ assessmentId, criterionId: rubricRowId, kind: "check" })
 		.returning("id")
 		.executeTakeFirstOrThrow();
 
 	await db
-		.insertInto("booleanRubricAssessment")
-		.values({ rubricAssessmentId: rubricAssessment.id, passed })
+		.insertInto("checkCriterionAssessment")
+		.values({ criterionAssessmentId: criterionAssessment.id, passed })
 		.execute();
 }
 
@@ -219,15 +219,15 @@ async function addOrdinalAssessment(
 		selectedLabel,
 	}: { assessmentId: number; rubricRowId: number; selectedLabel: string },
 ): Promise<void> {
-	const rubricAssessment = await db
-		.insertInto("rubricAssessment")
-		.values({ assessmentId, rubricId: rubricRowId, type: "ordinal" })
+	const criterionAssessment = await db
+		.insertInto("criterionAssessment")
+		.values({ assessmentId, criterionId: rubricRowId, kind: "options" })
 		.returning("id")
 		.executeTakeFirstOrThrow();
 
 	await db
-		.insertInto("ordinalRubricAssessment")
-		.values({ rubricAssessmentId: rubricAssessment.id, selectedLabel })
+		.insertInto("optionsCriterionAssessment")
+		.values({ criterionAssessmentId: criterionAssessment.id, selectedLabel })
 		.execute();
 }
 
@@ -239,15 +239,15 @@ async function addNumericalAssessment(
 		score,
 	}: { assessmentId: number; rubricRowId: number; score: number },
 ): Promise<void> {
-	const rubricAssessment = await db
-		.insertInto("rubricAssessment")
-		.values({ assessmentId, rubricId: rubricRowId, type: "numerical" })
+	const criterionAssessment = await db
+		.insertInto("criterionAssessment")
+		.values({ assessmentId, criterionId: rubricRowId, kind: "number" })
 		.returning("id")
 		.executeTakeFirstOrThrow();
 
 	await db
-		.insertInto("numericalRubricAssessment")
-		.values({ rubricAssessmentId: rubricAssessment.id, score })
+		.insertInto("numberCriterionAssessment")
+		.values({ criterionAssessmentId: criterionAssessment.id, score })
 		.execute();
 }
 
@@ -263,23 +263,23 @@ test("loadCriterionAssessmentRecordsFromDb maps the per-type value column for bo
 	);
 
 	const booleanRubricId = buildTestId("rubric-boolean");
-	const ordinalRubricId = buildTestId("rubric-ordinal");
+	const optionsCriterionId = buildTestId("rubric-ordinal");
 	const numericalRubricId = buildTestId("rubric-numerical");
 
 	const booleanRubricRowId = await createBooleanRubric(db, {
 		projectRowId: project.rowId,
 		questionRowId,
-		rubricId: booleanRubricId,
+		criterionId: booleanRubricId,
 	});
 	const ordinalRubricRowId = await createOrdinalRubric(db, {
 		projectRowId: project.rowId,
 		questionRowId,
-		rubricId: ordinalRubricId,
+		criterionId: optionsCriterionId,
 	});
 	const numericalRubricRowId = await createNumericalRubric(db, {
 		projectRowId: project.rowId,
 		questionRowId,
-		rubricId: numericalRubricId,
+		criterionId: numericalRubricId,
 	});
 
 	const assessmentId = await createAssessment(db, {
@@ -316,15 +316,15 @@ test("loadCriterionAssessmentRecordsFromDb maps the per-type value column for bo
 	expect(byCriterionId.get(booleanRubricId)).toEqual({
 		gradeTargetId: submissionId,
 		criterionId: booleanRubricId,
-		type: "boolean",
+		kind: "check",
 		passed: true,
 		selectedLabel: null,
 		score: null,
 	});
-	expect(byCriterionId.get(ordinalRubricId)).toEqual({
+	expect(byCriterionId.get(optionsCriterionId)).toEqual({
 		gradeTargetId: submissionId,
-		criterionId: ordinalRubricId,
-		type: "ordinal",
+		criterionId: optionsCriterionId,
+		kind: "options",
 		passed: null,
 		selectedLabel: "high",
 		score: null,
@@ -332,7 +332,7 @@ test("loadCriterionAssessmentRecordsFromDb maps the per-type value column for bo
 	expect(byCriterionId.get(numericalRubricId)).toEqual({
 		gradeTargetId: submissionId,
 		criterionId: numericalRubricId,
-		type: "numerical",
+		kind: "number",
 		passed: null,
 		selectedLabel: null,
 		score: 7,
@@ -364,12 +364,12 @@ test("loadCriterionAssessmentRecordsFromDb excludes assessment records from othe
 	const rubricRowIdA = await createBooleanRubric(db, {
 		projectRowId: projectA.rowId,
 		questionRowId: questionRowIdA,
-		rubricId: rubricIdA,
+		criterionId: rubricIdA,
 	});
 	const rubricRowIdB = await createBooleanRubric(db, {
 		projectRowId: projectB.rowId,
 		questionRowId: questionRowIdB,
-		rubricId: rubricIdB,
+		criterionId: rubricIdB,
 	});
 
 	const assessmentIdA = await createAssessment(db, {
@@ -404,7 +404,7 @@ test("loadCriterionAssessmentRecordsFromDb excludes assessment records from othe
 		{
 			gradeTargetId: submissionA,
 			criterionId: rubricIdA,
-			type: "boolean",
+			kind: "check",
 			passed: true,
 			selectedLabel: null,
 			score: null,
@@ -414,7 +414,7 @@ test("loadCriterionAssessmentRecordsFromDb excludes assessment records from othe
 		{
 			gradeTargetId: submissionB,
 			criterionId: rubricIdB,
-			type: "boolean",
+			kind: "check",
 			passed: false,
 			selectedLabel: null,
 			score: null,

@@ -9,17 +9,17 @@ describe("submission CSV ordering", () => {
 	const questions = [
 		{
 			id: "q1",
-			rubrics: [
-				{ id: "r1", type: "boolean" as const, marks: 2, falseMarks: -1 },
-				{ id: "r2", type: "ordinal" as const, marks: { A: 3, B: 1 } },
+			criteria: [
+				{ id: "r1", kind: "check" as const, marks: 2, falseMarks: -1 },
+				{ id: "r2", kind: "options" as const, marks: { A: 3, B: 1 } },
 			],
 		},
 		{
 			id: "q2",
-			rubrics: [
+			criteria: [
 				{
 					id: "r3",
-					type: "numerical" as const,
+					kind: "number" as const,
 					minScore: 0,
 					maxScore: 10,
 					minMarks: 0,
@@ -33,37 +33,40 @@ describe("submission CSV ordering", () => {
 	const fullyAssessedQuestions = [
 		{
 			questionId: "q1",
-			rubrics: [
-				{ rubricId: "r1", assessment: true, marks: 2 },
-				{ rubricId: "r2", assessment: "B", marks: 1 },
+			criteria: [
+				{ criterionId: "r1", assessment: true, marks: 2 },
+				{ criterionId: "r2", assessment: "B", marks: 1 },
 			],
 		},
 		{
 			questionId: "q2",
-			rubrics: [{ rubricId: "r3", assessment: 8, marks: 4 }],
+			criteria: [{ criterionId: "r3", assessment: 8, marks: 4 }],
 		},
 	];
 
 	const failedBooleanQuestions = [
 		{
 			questionId: "q1",
-			rubrics: [
-				{ rubricId: "r1", assessment: false, marks: -1 },
-				{ rubricId: "r2" },
+			criteria: [
+				{ criterionId: "r1", assessment: false, marks: -1 },
+				{ criterionId: "r2" },
 			],
 		},
-		{ questionId: "q2", rubrics: [{ rubricId: "r3" }] },
+		{ questionId: "q2", criteria: [{ criterionId: "r3" }] },
 	];
 
 	const unassessedQuestions = [
-		{ questionId: "q1", rubrics: [{ rubricId: "r1" }, { rubricId: "r2" }] },
-		{ questionId: "q2", rubrics: [{ rubricId: "r3" }] },
+		{
+			questionId: "q1",
+			criteria: [{ criterionId: "r1" }, { criterionId: "r2" }],
+		},
+		{ questionId: "q2", criteria: [{ criterionId: "r3" }] },
 	];
 
-	it("builds headers in rubric-before-question-total order", () => {
+	it("builds headers in criterion-before-question-total order", () => {
 		const headers = buildSubmissionExportHeaders(questions, {
-			includeRubricAssessment: true,
-			includeRubricMarks: true,
+			includeCriterionAssessment: true,
+			includeCriterionMarks: true,
 		});
 
 		expect(headers).toEqual([
@@ -87,7 +90,10 @@ describe("submission CSV ordering", () => {
 				submission: { id: "sub-1", type: "individual", studentId: "stu-123" },
 				questions: fullyAssessedQuestions,
 			},
-			options: { includeRubricAssessment: true, includeRubricMarks: true },
+			options: {
+				includeCriterionAssessment: true,
+				includeCriterionMarks: true,
+			},
 		});
 
 		expect(row).toMatchInlineSnapshot(`
@@ -107,13 +113,16 @@ describe("submission CSV ordering", () => {
     `);
 	});
 
-	it("uses falseMarks when a boolean rubric is not passed", () => {
+	it("uses falseMarks when a boolean criterion is not passed", () => {
 		const row = buildSubmissionExportRecord({
 			row: {
 				submission: { id: "sub-1", type: "individual", studentId: "stu-123" },
 				questions: failedBooleanQuestions,
 			},
-			options: { includeRubricAssessment: true, includeRubricMarks: true },
+			options: {
+				includeCriterionAssessment: true,
+				includeCriterionMarks: true,
+			},
 		});
 
 		expect(row).toMatchInlineSnapshot(`
@@ -133,7 +142,10 @@ describe("submission CSV ordering", () => {
 					submission: { id: "sub-team", type: "team", teamName: "" },
 					questions: unassessedQuestions,
 				},
-				options: { includeRubricAssessment: false, includeRubricMarks: false },
+				options: {
+					includeCriterionAssessment: false,
+					includeCriterionMarks: false,
+				},
 			}),
 		).toThrow("Submission sub-team has type team but no team is linked.");
 	});
@@ -144,7 +156,10 @@ describe("submission CSV ordering", () => {
 				submission: { id: "sub-team-1", type: "team", teamName: "Team A" },
 				questions: unassessedQuestions,
 			},
-			options: { includeRubricAssessment: true, includeRubricMarks: false },
+			options: {
+				includeCriterionAssessment: true,
+				includeCriterionMarks: false,
+			},
 		});
 
 		expect(row).toMatchInlineSnapshot(`

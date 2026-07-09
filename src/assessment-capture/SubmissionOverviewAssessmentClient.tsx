@@ -5,20 +5,20 @@ import NextLink from "next/link";
 import { useRouter } from "next/navigation";
 import type { ReactElement } from "react";
 import { useMemo } from "react";
+import type { AssessedCriterion } from "#criteria/types.ts";
 import {
 	type SaveError,
 	useSaveErrors,
 } from "#design-system/SaveErrorsProvider.tsx";
 import { projectAssessmentSubmissionPath } from "#projects/projectPaths.ts";
-import type { AssessedRubric } from "#rubrics/types.ts";
 import { getSubmissionLabel } from "#submissions/getSubmissionLabel.ts";
 import type { Submission } from "#submissions/types.ts";
 import AssessmentProgressSummary from "./AssessmentProgressSummary.tsx";
-import { summarizeRubrics } from "./assessmentSummary.ts";
-import RubricGradeList from "./RubricGradeList.tsx";
+import { summarizeCriteria } from "./assessmentSummary.ts";
+import CriterionGradeList from "./CriterionGradeList.tsx";
 import SubmissionSelector from "./SubmissionSelector.tsx";
-import type { SaveAssessment } from "./saveRubricAssessment.ts";
-import { saveRubricAssessment } from "./saveRubricAssessment.ts";
+import type { SaveAssessment } from "./saveCriterionAssessment.ts";
+import { saveCriterionAssessment } from "./saveCriterionAssessment.ts";
 import { getSubmissionNavigation } from "./submissionNavigation.ts";
 import { useAssessmentSession } from "./useAssessmentSession.ts";
 import { useSubmissionQuickJump } from "./useSubmissionQuickJump.ts";
@@ -26,13 +26,13 @@ import { useSubmissionQuickJump } from "./useSubmissionQuickJump.ts";
 type QuestionAssessmentSection = {
 	questionId: string;
 	questionLabel: string;
-	rubrics: AssessedRubric[];
+	criteria: AssessedCriterion[];
 };
 
 type OptimisticQuestionSection = {
 	questionId: string;
 	questionLabel: string;
-	rubrics: AssessedRubric[];
+	criteria: AssessedCriterion[];
 	flatIndices: Array<number | undefined>;
 };
 
@@ -73,40 +73,40 @@ export default function SubmissionOverviewAssessmentClient({
 			? getSubmissionLabel(currentSubmission)
 			: undefined;
 
-	const { initialRubrics, rubricInfoByRubricId } = useMemo(() => {
-		const rubrics: AssessedRubric[] = [];
+	const { initialCriteria, criterionInfoByCriterionId } = useMemo(() => {
+		const criteria: AssessedCriterion[] = [];
 		const infoMap = new Map<
 			string,
 			{ questionId: string; questionLabel: string }
 		>();
 
 		for (const question of initialQuestions) {
-			for (const rubric of question.rubrics) {
-				rubrics.push(rubric);
-				infoMap.set(rubric.id, {
+			for (const criterion of question.criteria) {
+				criteria.push(criterion);
+				infoMap.set(criterion.id, {
 					questionId: question.questionId,
 					questionLabel: question.questionLabel,
 				});
 			}
 		}
 
-		return { initialRubrics: rubrics, rubricInfoByRubricId: infoMap };
+		return { initialCriteria: criteria, criterionInfoByCriterionId: infoMap };
 	}, [initialQuestions]);
 
 	const {
 		currentSubmissionIndex,
 		previousSubmission,
 		nextSubmission,
-		savedRubrics,
-		optimisticRubrics,
+		savedCriteria,
+		optimisticCriteria,
 		pendingByIndex,
 		assess,
 	} = useAssessmentSession<Omit<SaveError, "id">>({
-		initialRubrics,
+		initialCriteria,
 		submissions,
 		currentSubmissionId,
-		saveAssessment: async (rubric, assessment) => {
-			const info = rubricInfoByRubricId.get(rubric.id);
+		saveAssessment: async (criterion, assessment) => {
+			const info = criterionInfoByCriterionId.get(criterion.id);
 			const baseErrorContext = {
 				projectId,
 				projectSlug,
@@ -121,12 +121,12 @@ export default function SubmissionOverviewAssessmentClient({
 						...baseErrorContext,
 						questionId: "unknown-question",
 						questionLabel: "Unknown question",
-						message: `Unknown rubric mapping for ${rubric.id}`,
+						message: `Unknown criterion mapping for ${criterion.id}`,
 					},
 				};
 			}
 
-			return saveRubricAssessment({
+			return saveCriterionAssessment({
 				saveAssessment,
 				submissionId: currentSubmissionId,
 				questionId: info.questionId,
@@ -142,32 +142,32 @@ export default function SubmissionOverviewAssessmentClient({
 	});
 
 	const optimisticQuestions = useMemo<OptimisticQuestionSection[]>(() => {
-		const rubricToFlatIndex = new Map<string, number>();
+		const criterionToFlatIndex = new Map<string, number>();
 
-		for (let i = 0; i < optimisticRubrics.length; i++) {
-			const optimisticRubric = optimisticRubrics[i];
-			if (optimisticRubric == null) {
+		for (let i = 0; i < optimisticCriteria.length; i++) {
+			const optimisticCriterion = optimisticCriteria[i];
+			if (optimisticCriterion == null) {
 				continue;
 			}
-			rubricToFlatIndex.set(optimisticRubric.id, i);
+			criterionToFlatIndex.set(optimisticCriterion.id, i);
 		}
 
 		return initialQuestions.map((question) => ({
 			questionId: question.questionId,
 			questionLabel: question.questionLabel,
-			rubrics: question.rubrics.map((rubric) => {
-				const flatIndex = rubricToFlatIndex.get(rubric.id);
+			criteria: question.criteria.map((criterion) => {
+				const flatIndex = criterionToFlatIndex.get(criterion.id);
 				return flatIndex != null
-					? (optimisticRubrics[flatIndex] ?? rubric)
-					: rubric;
+					? (optimisticCriteria[flatIndex] ?? criterion)
+					: criterion;
 			}),
-			flatIndices: question.rubrics.map((rubric) =>
-				rubricToFlatIndex.get(rubric.id),
+			flatIndices: question.criteria.map((criterion) =>
+				criterionToFlatIndex.get(criterion.id),
 			),
 		}));
-	}, [initialQuestions, optimisticRubrics]);
+	}, [initialQuestions, optimisticCriteria]);
 
-	const summary = summarizeRubrics(optimisticRubrics);
+	const summary = summarizeCriteria(optimisticCriteria);
 
 	const navigateToSubmission = (submissionId: string) => {
 		router.push(
@@ -207,7 +207,7 @@ export default function SubmissionOverviewAssessmentClient({
 				<Stack gap="xl">
 					{optimisticQuestions.map((question) => {
 						const { marks: questionMarks, maxMarks: questionMaxMarks } =
-							summarizeRubrics(question.rubrics);
+							summarizeCriteria(question.criteria);
 
 						return (
 							<Stack key={question.questionId} gap="md">
@@ -220,17 +220,17 @@ export default function SubmissionOverviewAssessmentClient({
 									</Text>
 								</Group>
 
-								{question.rubrics.map((rubric, localIndex) => {
+								{question.criteria.map((criterion, localIndex) => {
 									const flatIndex = question.flatIndices[localIndex];
-									const savedRubric =
+									const savedCriterion =
 										flatIndex != null
-											? (savedRubrics[flatIndex] ?? rubric)
-											: rubric;
+											? (savedCriteria[flatIndex] ?? criterion)
+											: criterion;
 									return (
-										<RubricGradeList
-											key={rubric.id}
-											savedRubrics={[savedRubric]}
-											rubrics={[rubric]}
+										<CriterionGradeList
+											key={criterion.id}
+											savedCriteria={[savedCriterion]}
+											criteria={[criterion]}
 											pendingByIndex={{
 												0:
 													flatIndex != null
@@ -255,8 +255,8 @@ export default function SubmissionOverviewAssessmentClient({
 			<AssessmentProgressSummary
 				marks={summary.marks}
 				maxMarks={summary.maxMarks}
-				completedRubrics={summary.completedRubrics}
-				totalRubrics={summary.totalRubrics}
+				completedCriteria={summary.completedCriteria}
+				totalCriteria={summary.totalCriteria}
 			/>
 		</Stack>
 	);

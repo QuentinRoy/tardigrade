@@ -17,13 +17,13 @@ export async function questionsImportAction(
 		const result = await saveQuestions({ questions, projectId });
 
 		const typeChangeNote =
-			result.typeChangedRubricCount > 0
-				? ` ${result.typeChangedRubricCount} rubric type(s) were changed.`
+			result.typeChangedCriterionCount > 0
+				? ` ${result.typeChangedCriterionCount} criterion type(s) were changed.`
 				: "";
 
 		return {
 			status: "success",
-			message: `Imported ${result.questionCount} questions and ${result.rubricCount} rubrics. Existing records were updated in place.${typeChangeNote}`,
+			message: `Imported ${result.questionCount} questions and ${result.criterionCount} criteria. Existing records were updated in place.${typeChangeNote}`,
 		};
 	} catch (error) {
 		return toImportErrorState(error);

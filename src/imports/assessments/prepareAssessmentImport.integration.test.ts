@@ -8,9 +8,9 @@ import {
 import {
 	addFullAssessmentFixture,
 	createIndividualSubmissionFixtures,
-	createMixedRubricQuestionFixtureProject,
+	createMixedCriterionQuestionFixtureProject,
 	createStudentFixtures,
-} from "#test/mixedRubricAssessmentFixture.ts";
+} from "#test/mixedCriterionAssessmentFixture.ts";
 import { loadAssessmentImportContextFromDb } from "./assessmentImportContext.ts";
 import { parseAssessmentsCsv } from "./parseAssessments.ts";
 import { prepareAssessmentImport } from "./prepareAssessmentImport.ts";
@@ -31,23 +31,21 @@ async function readStream(stream: ReadableStream<Uint8Array>): Promise<string> {
 }
 
 async function createRoundtripFixtureProject(db: DisposableTestDatabase) {
-	const { project, question } = await createMixedRubricQuestionFixtureProject(
-		db,
-		{
+	const { project, question } =
+		await createMixedCriterionQuestionFixtureProject(db, {
 			projectName: "Roundtrip Integration Project",
 			questionId: "q-roundtrip-test",
-			booleanRubricId: "r-bool-roundtrip-test",
-			ordinalRubricId: "r-ord-roundtrip-test",
-			numericalRubricId: "r-num-roundtrip-test",
-		},
-	);
+			checkCriterionId: "r-bool-roundtrip-test",
+			optionsCriterionId: "r-ord-roundtrip-test",
+			numberCriterionId: "r-num-roundtrip-test",
+		});
 
-	const rubricRowIds = await db
-		.selectFrom("rubric")
+	const criterionRowIds = await db
+		.selectFrom("criterion")
 		.where("projectId", "=", project.rowId)
 		.select(["id", "rowId"])
 		.execute();
-	const rubricRowId = new Map(rubricRowIds.map((r) => [r.id, r.rowId]));
+	const criterionRowId = new Map(criterionRowIds.map((r) => [r.id, r.rowId]));
 
 	const [student] = await createStudentFixtures(db, [
 		{ projectRowId: project.rowId, id: "student-roundtrip-1" },
@@ -59,16 +57,16 @@ async function createRoundtripFixtureProject(db: DisposableTestDatabase) {
 		projectRowId: project.rowId,
 		submissionId: submission.id,
 		questionRowId: question.rowId,
-		booleanRubricRowId: rubricRowId.get(question.rubrics.booleanId)!,
-		ordinalRubricRowId: rubricRowId.get(question.rubrics.ordinalId)!,
-		numericalRubricRowId: rubricRowId.get(question.rubrics.numericalId)!,
+		checkCriterionRowId: criterionRowId.get(question.criteria.booleanId)!,
+		optionsCriterionRowId: criterionRowId.get(question.criteria.ordinalId)!,
+		numberCriterionRowId: criterionRowId.get(question.criteria.numericalId)!,
 	});
 
 	return {
 		project,
 		submissionId: String(submission.id),
 		questionId: question.id,
-		rubricIds: question.rubrics,
+		criterionIds: question.criteria,
 	};
 }
 
@@ -89,11 +87,11 @@ afterAll(async () => {
 describe.each<{ name: string; options: ExportOptions }>([
 	{
 		name: "full export",
-		options: { includeRubricAssessment: true, includeRubricMarks: true },
+		options: { includeCriterionAssessment: true, includeCriterionMarks: true },
 	},
 	{
 		name: "assessment-only export",
-		options: { includeRubricAssessment: true, includeRubricMarks: false },
+		options: { includeCriterionAssessment: true, includeCriterionMarks: false },
 	},
 ])("$name re-imports into the same project without drift", ({ options }) => {
 	test("plan reproduces the seeded assessment values exactly", async () => {
@@ -120,8 +118,8 @@ describe.each<{ name: string; options: ExportOptions }>([
 					submissionId: fixture.submissionId,
 					questionId: fixture.questionId,
 					assessment: {
-						rubricId: fixture.rubricIds.booleanId,
-						type: "boolean",
+						criterionId: fixture.criterionIds.booleanId,
+						kind: "check",
 						passed: true,
 					},
 				},
@@ -129,8 +127,8 @@ describe.each<{ name: string; options: ExportOptions }>([
 					submissionId: fixture.submissionId,
 					questionId: fixture.questionId,
 					assessment: {
-						rubricId: fixture.rubricIds.ordinalId,
-						type: "ordinal",
+						criterionId: fixture.criterionIds.ordinalId,
+						kind: "options",
 						selectedLabel: "A",
 					},
 				},
@@ -138,8 +136,8 @@ describe.each<{ name: string; options: ExportOptions }>([
 					submissionId: fixture.submissionId,
 					questionId: fixture.questionId,
 					assessment: {
-						rubricId: fixture.rubricIds.numericalId,
-						type: "numerical",
+						criterionId: fixture.criterionIds.numericalId,
+						kind: "number",
 						score: 7.5,
 					},
 				},
@@ -154,7 +152,7 @@ test("marks-only export re-import is blocked with no-assessment-columns", async 
 	const fixture = await createRoundtripFixtureProject(db);
 
 	const stream = await createCsvSubmissionExport(
-		{ includeRubricAssessment: false, includeRubricMarks: true },
+		{ includeCriterionAssessment: false, includeCriterionMarks: true },
 		fixture.project.id,
 		{ db },
 	);

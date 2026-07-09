@@ -144,9 +144,49 @@ Implement `down` when practical.
 
 If `down` cannot safely preserve data, make that explicit in the migration.
 
-Prefer Kysely schema and query APIs.
+## Prefer the Kysely schema builder over raw SQL
 
-Use raw SQL only when Kysely cannot express the change clearly.
+Prefer Kysely's schema builder for migrations. It covers more than schema
+creation — including things easy to assume it lacks:
+
+- tables: `alterTable(t).renameTo(...)`, `createTable`, `dropTable`
+- columns: `alterTable(t).renameColumn(...)`, `addColumn`, `alterColumn`
+- constraints: `alterTable(t).renameConstraint(...)`, `addForeignKeyConstraint`,
+  `addUniqueConstraint`, `addCheckConstraint`, `dropConstraint`
+- enum types: `alterType(t).renameTo(...)` / `.renameValue(...)` / `.addValue(...)`,
+  plus `createType`/`dropType`
+
+Use raw `sql` tagged templates only for changes the builder genuinely cannot
+express — in this codebase that is **index renames** (there is no
+`alterIndex`/`renameIndex`; only `createIndex`/`dropIndex`) and **trigger /
+function** management. When raw SQL is used, keep it localized and document why
+it is necessary if the reason is not obvious.
+
+Run one DDL statement at a time (`await` each). Do not `Promise.all` schema
+changes: each `ALTER TABLE`/`ALTER TYPE` takes a heavy lock, so running them
+concurrently only makes them contend (and risk deadlocks) for no benefit — a
+migration is a one-time operation, not a hot path.
+
+### CamelCasePlugin and constraint/index names
+
+Every Kysely client in the codebase — both migration runners (`src/db/migrate.ts`
+and `createDisposableMigrationDb` in `src/test/dbIntegration.ts`) and both query
+clients (`src/db/kysely.ts`, `startTestDatabase`) — is built **with**
+`CamelCasePlugin`. Keep them consistent: the plugin `snake_case`s the identifier
+strings passed to the schema builder, so enabling it on some clients but not
+others would make builder-created object names diverge between environments.
+
+The catch is that the plugin only rewrites identifiers passed to the **schema
+builder**, never identifiers written inside a raw `sql` template. Earlier
+migrations were inconsistent: some constraints were created via the builder
+(stored `snake_case`d, e.g. `rubric_project_id_fkey`) and others re-created via
+raw SQL (stored verbatim, e.g. `Rubric_projectId_id_key`). Because of that mix,
+`alterTable(t).renameConstraint(old, new)` cannot rename them all — the plugin
+would `snake_case` `old`, matching only the builder-created ones. To rename such
+a constraint robustly, use raw SQL that looks the object up by any of its
+candidate spellings (a `DO` block over `pg_constraint`), which never goes through
+the plugin and so is immune to the mismatch. Tables, columns, and enum types have
+no such legacy inconsistency, so rename those with the builder as usual.
 
 ## Running migrations
 

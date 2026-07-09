@@ -1,16 +1,16 @@
 questions:
   - id: q1
     label: Question 1
-    rubrics:
+    criteria:
       - id: r1
-        type: boolean
+        kind: check
         marks: 1
         falseMarks: 0
   - id: q2
     label: Question 2
-    rubrics:
+    criteria:
       - id: r2
-        type: ordinal
+        kind: options
         marks:
           excellent: 2
           good: 1

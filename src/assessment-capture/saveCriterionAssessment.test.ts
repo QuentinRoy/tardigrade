@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { saveRubricAssessment } from "./saveRubricAssessment.ts";
+import { saveCriterionAssessment } from "./saveCriterionAssessment.ts";
 
 const errorContext = {
 	projectId: "project-1",
@@ -8,15 +8,15 @@ const errorContext = {
 	questionId: "question-1",
 };
 
-describe("saveRubricAssessment", () => {
+describe("saveCriterionAssessment", () => {
 	it("returns success when the server action succeeds", async () => {
 		const saveAssessment = vi.fn().mockResolvedValueOnce({ success: true });
 
-		const result = await saveRubricAssessment({
+		const result = await saveCriterionAssessment({
 			saveAssessment,
 			submissionId: "submission-1",
 			questionId: "question-1",
-			assessment: { rubricId: "rubric-1", type: "boolean", passed: true },
+			assessment: { criterionId: "criterion-1", kind: "check", passed: true },
 			errorContext,
 		});
 
@@ -28,11 +28,11 @@ describe("saveRubricAssessment", () => {
 			.fn()
 			.mockResolvedValueOnce({ success: false, error: "criterion changed" });
 
-		const result = await saveRubricAssessment({
+		const result = await saveCriterionAssessment({
 			saveAssessment,
 			submissionId: "submission-1",
 			questionId: "question-1",
-			assessment: { rubricId: "rubric-1", type: "boolean", passed: true },
+			assessment: { criterionId: "criterion-1", kind: "check", passed: true },
 			errorContext,
 		});
 
@@ -47,11 +47,11 @@ describe("saveRubricAssessment", () => {
 			.fn()
 			.mockRejectedValueOnce(new Error("fetch failed"));
 
-		const result = await saveRubricAssessment({
+		const result = await saveCriterionAssessment({
 			saveAssessment,
 			submissionId: "submission-1",
 			questionId: "question-1",
-			assessment: { rubricId: "rubric-1", type: "boolean", passed: true },
+			assessment: { criterionId: "criterion-1", kind: "check", passed: true },
 			errorContext,
 		});
 

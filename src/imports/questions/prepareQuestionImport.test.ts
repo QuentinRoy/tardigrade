@@ -8,15 +8,15 @@ import {
 function buildContext(
 	overrides: Partial<QuestionImportContext> = {},
 ): QuestionImportContext {
-	return { existingRubricsById: new Map(), ...overrides };
+	return { existingCriteriaById: new Map(), ...overrides };
 }
 
-test("prepareQuestionImport plans question and rubric upserts from parsed questions", () => {
+test("prepareQuestionImport plans question and criterion upserts from parsed questions", () => {
 	const questions: ImportedQuestions = [
 		{
 			id: "q1",
 			label: "Question 1",
-			rubrics: [{ id: "r1", type: "boolean", label: "Rubric 1", marks: 2 }],
+			criteria: [{ id: "r1", kind: "check", label: "Criterion 1", marks: 2 }],
 		},
 	];
 
@@ -24,19 +24,19 @@ test("prepareQuestionImport plans question and rubric upserts from parsed questi
 
 	expect(plan.writes).toEqual(questions);
 	expect(plan.blockingDiagnostics).toEqual([]);
-	expect(plan.rubricTypeChanges).toEqual([]);
+	expect(plan.criterionTypeChanges).toEqual([]);
 });
 
-test("prepareQuestionImport blocks a rubric type change when assessments are linked", () => {
+test("prepareQuestionImport blocks a criterion type change when assessments are linked", () => {
 	const questions: ImportedQuestions = [
 		{
 			id: "q1",
 			label: "Question 1",
-			rubrics: [
+			criteria: [
 				{
 					id: "r1",
-					type: "ordinal",
-					label: "Rubric 1",
+					kind: "options",
+					label: "Criterion 1",
 					marks: { good: 1, bad: 0 },
 				},
 			],
@@ -44,8 +44,8 @@ test("prepareQuestionImport blocks a rubric type change when assessments are lin
 	];
 
 	const context = buildContext({
-		existingRubricsById: new Map([
-			["r1", { type: "boolean", questionId: "q1", assessmentCount: 3 }],
+		existingCriteriaById: new Map([
+			["r1", { kind: "check", questionId: "q1", assessmentCount: 3 }],
 		]),
 	});
 
@@ -53,25 +53,25 @@ test("prepareQuestionImport blocks a rubric type change when assessments are lin
 
 	expect(plan.blockingDiagnostics).toEqual([
 		{
-			type: "rubric-type-change-blocked",
+			kind: "criterion-type-change-blocked",
 			questionId: "q1",
-			rubricId: "r1",
+			criterionId: "r1",
 			assessmentCount: 3,
 		},
 	]);
-	expect(plan.rubricTypeChanges).toEqual([]);
+	expect(plan.criterionTypeChanges).toEqual([]);
 });
 
-test("prepareQuestionImport allows and reports a rubric type change with no linked assessments", () => {
+test("prepareQuestionImport allows and reports a criterion type change with no linked assessments", () => {
 	const questions: ImportedQuestions = [
 		{
 			id: "q1",
 			label: "Question 1",
-			rubrics: [
+			criteria: [
 				{
 					id: "r1",
-					type: "ordinal",
-					label: "Rubric 1",
+					kind: "options",
+					label: "Criterion 1",
 					marks: { good: 1, bad: 0 },
 				},
 			],
@@ -79,36 +79,36 @@ test("prepareQuestionImport allows and reports a rubric type change with no link
 	];
 
 	const context = buildContext({
-		existingRubricsById: new Map([
-			["r1", { type: "boolean", questionId: "q1", assessmentCount: 0 }],
+		existingCriteriaById: new Map([
+			["r1", { kind: "check", questionId: "q1", assessmentCount: 0 }],
 		]),
 	});
 
 	const plan = prepareQuestionImport({ questions, context });
 
 	expect(plan.blockingDiagnostics).toEqual([]);
-	expect(plan.rubricTypeChanges).toEqual([
+	expect(plan.criterionTypeChanges).toEqual([
 		{
 			questionId: "q1",
-			rubricId: "r1",
-			fromType: "boolean",
-			toType: "ordinal",
+			criterionId: "r1",
+			fromType: "check",
+			toType: "options",
 		},
 	]);
 });
 
-test("prepareQuestionImport blocks when an imported rubric id belongs to another question", () => {
+test("prepareQuestionImport blocks when an imported criterion id belongs to another question", () => {
 	const questions: ImportedQuestions = [
 		{
 			id: "q2",
 			label: "Question 2",
-			rubrics: [{ id: "r1", type: "boolean", label: "Rubric 1", marks: 2 }],
+			criteria: [{ id: "r1", kind: "check", label: "Criterion 1", marks: 2 }],
 		},
 	];
 
 	const context = buildContext({
-		existingRubricsById: new Map([
-			["r1", { type: "boolean", questionId: "q1", assessmentCount: 0 }],
+		existingCriteriaById: new Map([
+			["r1", { kind: "check", questionId: "q1", assessmentCount: 0 }],
 		]),
 	});
 
@@ -116,8 +116,8 @@ test("prepareQuestionImport blocks when an imported rubric id belongs to another
 
 	expect(plan.blockingDiagnostics).toEqual([
 		{
-			type: "rubric-question-mismatch",
-			rubricId: "r1",
+			kind: "criterion-question-mismatch",
+			criterionId: "r1",
 			importQuestionId: "q2",
 			existingQuestionId: "q1",
 		},

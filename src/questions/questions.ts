@@ -1,10 +1,10 @@
 import "server-only";
 import type { Kysely } from "kysely";
 import { cacheLife } from "next/cache";
+import type { Criterion, CriterionKind } from "#criteria/types.ts";
 import { cacheTags, questionListCacheTag } from "#db/cacheTags.ts";
 import type { DB } from "#db/generated/db.ts";
 import { db as defaultDb } from "#db/kysely.ts";
-import type { Rubric, RubricType } from "#rubrics/types.ts";
 import type { Grid, Question } from "./types.ts";
 
 export function toNumber(value: string | number): number {
@@ -12,34 +12,34 @@ export function toNumber(value: string | number): number {
 	return parseFloat(value);
 }
 
-export function toRubric(data: {
+export function toCriterion(data: {
 	id: string;
-	type: RubricType;
+	kind: CriterionKind;
 	description: string | null;
 	label: string | null;
-	booleanRubric: { marks: number; falseMarks: number } | null;
-	ordinalRubric: { marks: { label: string; marks: number }[] } | null;
-	numericalRubric: {
+	checkCriterion: { marks: number; falseMarks: number } | null;
+	optionsCriterion: { marks: { label: string; marks: number }[] } | null;
+	numberCriterion: {
 		minScore: number;
 		maxScore: number;
 		minMarks: number;
 		maxMarks: number;
 		reversed: boolean;
 	} | null;
-}): Rubric {
-	if (data.type === "ordinal") {
-		if (data.ordinalRubric == null) {
+}): Criterion {
+	if (data.kind === "options") {
+		if (data.optionsCriterion == null) {
 			throw new Error(
-				`Rubric Subtype Invariant violation: missing ordinalRubric row for rubric ${data.id}.`,
+				`Criterion Subtype Invariant violation: missing optionsCriterion row for criterion ${data.id}.`,
 			);
 		}
 		return {
 			id: data.id,
 			description: data.description ?? undefined,
 			label: data.label ?? undefined,
-			type: "ordinal",
+			kind: "options",
 			marks: Object.fromEntries(
-				data.ordinalRubric.marks.map((item) => [
+				data.optionsCriterion.marks.map((item) => [
 					item.label,
 					toNumber(item.marks),
 				]),
@@ -47,51 +47,51 @@ export function toRubric(data: {
 		};
 	}
 
-	if (data.type === "numerical") {
-		if (data.numericalRubric == null) {
+	if (data.kind === "number") {
+		if (data.numberCriterion == null) {
 			throw new Error(
-				`Rubric Subtype Invariant violation: missing numericalRubric row for rubric ${data.id}.`,
+				`Criterion Subtype Invariant violation: missing numberCriterion row for criterion ${data.id}.`,
 			);
 		}
 		return {
 			id: data.id,
 			description: data.description ?? undefined,
 			label: data.label ?? undefined,
-			type: "numerical",
-			minScore: toNumber(data.numericalRubric.minScore),
-			maxScore: toNumber(data.numericalRubric.maxScore),
-			minMarks: toNumber(data.numericalRubric.minMarks),
-			maxMarks: toNumber(data.numericalRubric.maxMarks),
-			reversed: data.numericalRubric.reversed,
+			kind: "number",
+			minScore: toNumber(data.numberCriterion.minScore),
+			maxScore: toNumber(data.numberCriterion.maxScore),
+			minMarks: toNumber(data.numberCriterion.minMarks),
+			maxMarks: toNumber(data.numberCriterion.maxMarks),
+			reversed: data.numberCriterion.reversed,
 		};
 	}
 
-	if (data.booleanRubric == null) {
+	if (data.checkCriterion == null) {
 		throw new Error(
-			`Rubric Subtype Invariant violation: missing booleanRubric row for rubric ${data.id}.`,
+			`Criterion Subtype Invariant violation: missing checkCriterion row for criterion ${data.id}.`,
 		);
 	}
 	return {
 		id: data.id,
 		description: data.description ?? undefined,
 		label: data.label ?? undefined,
-		type: "boolean",
-		marks: toNumber(data.booleanRubric.marks),
-		falseMarks: toNumber(data.booleanRubric.falseMarks),
+		kind: "check",
+		marks: toNumber(data.checkCriterion.marks),
+		falseMarks: toNumber(data.checkCriterion.falseMarks),
 	};
 }
 
 export type QuestionRow = {
 	id: string;
 	label: string | null;
-	rubrics: {
+	criteria: {
 		id: string;
-		type: RubricType;
+		kind: CriterionKind;
 		description: string | null;
 		label: string | null;
-		booleanRubric: { marks: number; falseMarks: number } | null;
-		ordinalRubric: { marks: { label: string; marks: number }[] } | null;
-		numericalRubric: {
+		checkCriterion: { marks: number; falseMarks: number } | null;
+		optionsCriterion: { marks: { label: string; marks: number }[] } | null;
+		numberCriterion: {
 			minScore: number;
 			maxScore: number;
 			minMarks: number;
@@ -123,7 +123,7 @@ export async function loadQuestionRowsFromDb(
 ): Promise<QuestionRow[]> {
 	const projectRowId = await resolveProjectRowId(db, projectId);
 
-	const [questions, rubrics, booleanRubrics, numericalRubrics, ordinalMarks] =
+	const [questions, criteria, checkCriterions, numberCriterions, ordinalMarks] =
 		await Promise.all([
 			db
 				.selectFrom("question")
@@ -132,71 +132,79 @@ export async function loadQuestionRowsFromDb(
 				.orderBy("position", "asc")
 				.execute(),
 			db
-				.selectFrom("rubric")
-				.innerJoin("question", "question.rowId", "rubric.questionId")
-				.where("rubric.projectId", "=", projectRowId)
+				.selectFrom("criterion")
+				.innerJoin("question", "question.rowId", "criterion.questionId")
+				.where("criterion.projectId", "=", projectRowId)
 				.select([
-					"rubric.id as id",
+					"criterion.id as id",
 					"question.id as questionId",
-					"rubric.position as position",
-					"rubric.description as description",
-					"rubric.label as label",
-					"rubric.type as type",
+					"criterion.position as position",
+					"criterion.description as description",
+					"criterion.label as label",
+					"criterion.kind as kind",
 				])
-				.orderBy("rubric.position", "asc")
+				.orderBy("criterion.position", "asc")
 				.execute(),
 			db
-				.selectFrom("booleanRubric")
-				.innerJoin("rubric", "rubric.rowId", "booleanRubric.rubricId")
-				.where("rubric.projectId", "=", projectRowId)
+				.selectFrom("checkCriterion")
+				.innerJoin("criterion", "criterion.rowId", "checkCriterion.criterionId")
+				.where("criterion.projectId", "=", projectRowId)
 				.select([
-					"rubric.id as rubricId",
-					"booleanRubric.marks as marks",
-					"booleanRubric.falseMarks as falseMarks",
+					"criterion.id as criterionId",
+					"checkCriterion.marks as marks",
+					"checkCriterion.falseMarks as falseMarks",
 				])
 				.execute(),
 			db
-				.selectFrom("numericalRubric")
-				.innerJoin("rubric", "rubric.rowId", "numericalRubric.rubricId")
-				.where("rubric.projectId", "=", projectRowId)
-				.select([
-					"rubric.id as rubricId",
-					"numericalRubric.minScore as minScore",
-					"numericalRubric.maxScore as maxScore",
-					"numericalRubric.minMarks as minMarks",
-					"numericalRubric.maxMarks as maxMarks",
-					"numericalRubric.reversed as reversed",
-				])
-				.execute(),
-			db
-				.selectFrom("ordinalRubric")
-				.leftJoin(
-					"ordinalRubricValue",
-					"ordinalRubricValue.ordinalRubricId",
-					"ordinalRubric.id",
+				.selectFrom("numberCriterion")
+				.innerJoin(
+					"criterion",
+					"criterion.rowId",
+					"numberCriterion.criterionId",
 				)
-				.innerJoin("rubric", "rubric.rowId", "ordinalRubric.rubricId")
-				.where("rubric.projectId", "=", projectRowId)
+				.where("criterion.projectId", "=", projectRowId)
 				.select([
-					"rubric.id as rubricId",
-					"ordinalRubricValue.label as label",
-					"ordinalRubricValue.marks as marks",
+					"criterion.id as criterionId",
+					"numberCriterion.minScore as minScore",
+					"numberCriterion.maxScore as maxScore",
+					"numberCriterion.minMarks as minMarks",
+					"numberCriterion.maxMarks as maxMarks",
+					"numberCriterion.reversed as reversed",
 				])
-				.orderBy("ordinalRubricValue.marks", "desc")
-				.orderBy("ordinalRubricValue.label", "asc")
+				.execute(),
+			db
+				.selectFrom("optionsCriterion")
+				.leftJoin(
+					"optionsCriterionMark",
+					"optionsCriterionMark.optionsCriterionId",
+					"optionsCriterion.id",
+				)
+				.innerJoin(
+					"criterion",
+					"criterion.rowId",
+					"optionsCriterion.criterionId",
+				)
+				.where("criterion.projectId", "=", projectRowId)
+				.select([
+					"criterion.id as criterionId",
+					"optionsCriterionMark.label as label",
+					"optionsCriterionMark.marks as marks",
+				])
+				.orderBy("optionsCriterionMark.marks", "desc")
+				.orderBy("optionsCriterionMark.label", "asc")
 				.execute(),
 		]);
 
-	const booleanRubricById = new Map(
-		booleanRubrics.map((row) => [
-			row.rubricId,
+	const checkCriterionById = new Map(
+		checkCriterions.map((row) => [
+			row.criterionId,
 			{ marks: toNumber(row.marks), falseMarks: toNumber(row.falseMarks) },
 		]),
 	);
 
-	const numericalRubricById = new Map(
-		numericalRubrics.map((row) => [
-			row.rubricId,
+	const numberCriterionById = new Map(
+		numberCriterions.map((row) => [
+			row.criterionId,
 			{
 				minScore: toNumber(row.minScore),
 				maxScore: toNumber(row.maxScore),
@@ -207,50 +215,50 @@ export async function loadQuestionRowsFromDb(
 		]),
 	);
 
-	const ordinalMarksByRubricId = new Map<
+	const ordinalMarksByCriterionId = new Map<
 		string,
 		{ label: string; marks: number }[]
 	>();
 	for (const row of ordinalMarks) {
-		const list = ordinalMarksByRubricId.get(row.rubricId) ?? [];
+		const list = ordinalMarksByCriterionId.get(row.criterionId) ?? [];
 		if (row.label != null && row.marks != null) {
 			list.push({ label: row.label, marks: toNumber(row.marks) });
 		}
-		ordinalMarksByRubricId.set(row.rubricId, list);
+		ordinalMarksByCriterionId.set(row.criterionId, list);
 	}
 
-	const rubricsByQuestionId = new Map<
+	const criteriaByQuestionId = new Map<
 		string,
 		Array<{
 			id: string;
 			questionId: string;
 			description: string | null;
 			label: string | null;
-			type: RubricType;
+			kind: CriterionKind;
 		}>
 	>();
-	for (const rubric of rubrics) {
-		const list = rubricsByQuestionId.get(rubric.questionId) ?? [];
-		list.push(rubric);
-		rubricsByQuestionId.set(rubric.questionId, list);
+	for (const criterion of criteria) {
+		const list = criteriaByQuestionId.get(criterion.questionId) ?? [];
+		list.push(criterion);
+		criteriaByQuestionId.set(criterion.questionId, list);
 	}
 
 	return questions.map((question) => {
-		const questionRubrics = rubricsByQuestionId.get(question.id) ?? [];
+		const questionCriteria = criteriaByQuestionId.get(question.id) ?? [];
 
 		return {
 			id: question.id,
 			label: question.label,
-			rubrics: questionRubrics.map((rubric) => ({
-				id: rubric.id,
-				type: rubric.type,
-				description: rubric.description,
-				label: rubric.label,
-				booleanRubric: booleanRubricById.get(rubric.id) ?? null,
-				ordinalRubric: ordinalMarksByRubricId.has(rubric.id)
-					? { marks: ordinalMarksByRubricId.get(rubric.id) ?? [] }
+			criteria: questionCriteria.map((criterion) => ({
+				id: criterion.id,
+				kind: criterion.kind,
+				description: criterion.description,
+				label: criterion.label,
+				checkCriterion: checkCriterionById.get(criterion.id) ?? null,
+				optionsCriterion: ordinalMarksByCriterionId.has(criterion.id)
+					? { marks: ordinalMarksByCriterionId.get(criterion.id) ?? [] }
 					: null,
-				numericalRubric: numericalRubricById.get(rubric.id) ?? null,
+				numberCriterion: numberCriterionById.get(criterion.id) ?? null,
 			})),
 		};
 	});
@@ -264,7 +272,10 @@ export function toQuestionGrid(rows: QuestionRow[]): Grid {
 	return Object.fromEntries(
 		rows.map((row) => [
 			row.id,
-			{ label: row.label ?? undefined, rubrics: row.rubrics.map(toRubric) },
+			{
+				label: row.label ?? undefined,
+				criteria: row.criteria.map(toCriterion),
+			},
 		]),
 	);
 }
@@ -312,5 +323,8 @@ export async function loadQuestion(
 	const rows = await loadQuestionRows({ projectId }, options);
 	const row = rows.find((item) => item.id === questionId);
 	if (row == null) return undefined;
-	return { label: row.label ?? undefined, rubrics: row.rubrics.map(toRubric) };
+	return {
+		label: row.label ?? undefined,
+		criteria: row.criteria.map(toCriterion),
+	};
 }

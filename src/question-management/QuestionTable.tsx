@@ -101,7 +101,7 @@ const DraggableQuestionItem = memo(function DraggableQuestionItemRow({
 
 			<Group gap="xs" wrap="nowrap">
 				<Badge size="sm" variant="default">
-					{definition.question.rubrics.length} rubrics
+					{definition.question.criteria.length} criteria
 				</Badge>
 				<Badge size="sm" variant="default">
 					{definition.assessmentCount} assessments

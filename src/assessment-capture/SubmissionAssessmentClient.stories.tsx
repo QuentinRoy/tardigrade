@@ -2,16 +2,16 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import type { ComponentProps, ReactElement } from "react";
 import { expect, fn, mocked, screen, userEvent, waitFor } from "storybook/test";
 import { SaveErrorsDisplay } from "#app-shell/SaveErrorsDisplay.tsx";
+import type { AssessedCriterion } from "#criteria/types.ts";
 import { SaveErrorsProvider } from "#design-system/SaveErrorsProvider.tsx";
-import type { AssessedRubric } from "#rubrics/types.ts";
 import type { Submission } from "#submissions/types.ts";
 import SubmissionAssessmentClient from "./SubmissionAssessmentClient.tsx";
 import { assessmentUnreachableMessage } from "./saveAssessmentMessages.ts";
 
-const rubrics: AssessedRubric[] = [
+const criteria: AssessedCriterion[] = [
 	{
-		id: "rubric-correctness",
-		type: "boolean",
+		id: "criterion-correctness",
+		kind: "check",
 		label: "Correctness",
 		marks: 1,
 		falseMarks: 0,
@@ -23,7 +23,7 @@ const submissions: Submission[] = [
 	{ id: "submission-1", type: "individual", studentName: "Ada Lovelace" },
 ];
 
-// saveAssessment is injected as a prop (see saveRubricAssessment.ts) instead
+// saveAssessment is injected as a prop (see saveCriterionAssessment.ts) instead
 // of imported, so this story never touches the real "use server" action and
 // can drive it directly with a plain stub.
 function Harness(
@@ -45,7 +45,7 @@ const meta = {
 		projectSlug: "project-slug",
 		questionId: "question-1",
 		questionLabel: "Question 1",
-		rubrics,
+		criteria,
 		submissions,
 		progressPromise: Promise.resolve({}),
 		currentSubmissionId: "submission-1",

@@ -6,9 +6,10 @@ import { loadQuestionAssessment } from "#assessment-capture/assessments.ts";
 import SubmissionAssessmentClient from "#assessment-capture/SubmissionAssessmentClient.tsx";
 import { saveAssessment } from "#assessment-capture/saveAssessment.ts";
 import {
-	buildAssessedRubricCountsBySubmission,
-	loadAssessedRubricCounts,
+	buildAssessedCriterionCountsBySubmission,
+	loadAssessedCriterionCounts,
 } from "#assessment-completion/loadAssessmentCompletion.ts";
+import { attachAssessment } from "#criteria/criterion.ts";
 import {
 	cacheTags,
 	projectCacheTag,
@@ -20,7 +21,6 @@ import PageHeader from "#design-system/PageHeader.tsx";
 import { projectAssessmentsPath } from "#projects/projectPaths.ts";
 import { loadProjectByPublicId } from "#projects/projects.ts";
 import { loadQuestion } from "#questions/questions.ts";
-import { attachAssessment } from "#rubrics/rubric.ts";
 import { loadSubmissions } from "#submissions/submissions.ts";
 
 type PageParams = {
@@ -46,8 +46,8 @@ async function ProjectQuestionSubmissionPageContent({
 	return (
 		<AppPage>
 			<QuestionHeaderSection projectId={projectId} questionId={questionId} />
-			<Suspense fallback={<SubmissionRubricSectionSkeleton />}>
-				<SubmissionRubricSection
+			<Suspense fallback={<SubmissionCriterionSectionSkeleton />}>
+				<SubmissionCriterionSection
 					questionId={questionId}
 					submissionId={submissionId}
 					projectId={projectId}
@@ -95,11 +95,11 @@ async function QuestionHeaderSection({
 }
 
 // No "use cache" here: `loadQuestion`, `loadSubmissions` and `loadQuestionAssessment`
-// each cache themselves. The rubric progress used by the lookup dialog is
+// each cache themselves. The criterion progress used by the lookup dialog is
 // deliberately left uncached and unawaited at this scope so a save-then-navigate
 // never blocks on recomputing it — it streams in via Suspense once the dialog
 // opens (Finding 19).
-async function SubmissionRubricSection({
+async function SubmissionCriterionSection({
 	questionId,
 	submissionId,
 	projectId,
@@ -113,7 +113,7 @@ async function SubmissionRubricSection({
 	// Doesn't depend on `submissions`, so it's started alongside the Promise.all
 	// below rather than after it, keeping the progress work parallel and
 	// shortening the wait if the lookup dialog is opened quickly.
-	const rubricCountsPromise = loadAssessedRubricCounts({
+	const criterionCountsPromise = loadAssessedCriterionCounts({
 		questionId,
 		projectId: project.id,
 	});
@@ -133,15 +133,15 @@ async function SubmissionRubricSection({
 
 	// Reuses the submissions already loaded above instead of querying them again
 	// inside the progress primitive (Finding 7).
-	const progressPromise = rubricCountsPromise.then((rubricCounts) =>
-		buildAssessedRubricCountsBySubmission(
+	const progressPromise = criterionCountsPromise.then((criterionCounts) =>
+		buildAssessedCriterionCountsBySubmission(
 			submissions.map((submission) => submission.id),
-			rubricCounts,
+			criterionCounts,
 		),
 	);
 
-	const rubricsWithAssessments = question.rubrics.map((rubric) =>
-		attachAssessment(rubric, assessments),
+	const criteriaWithAssessments = question.criteria.map((criterion) =>
+		attachAssessment(criterion, assessments),
 	);
 
 	return (
@@ -151,7 +151,7 @@ async function SubmissionRubricSection({
 			projectSlug={project.slug}
 			questionId={questionId}
 			questionLabel={question.label}
-			rubrics={rubricsWithAssessments}
+			criteria={criteriaWithAssessments}
 			submissions={submissions}
 			progressPromise={progressPromise}
 			currentSubmissionId={submissionId}
@@ -161,9 +161,9 @@ async function SubmissionRubricSection({
 }
 
 // Mirrors `SubmissionAssessmentClient`'s layout (current-submission card,
-// prev/next/lookup buttons, rubric rows) so the question header above stays in
+// prev/next/lookup buttons, criterion rows) so the question header above stays in
 // place and the page doesn't jump once assessment values and progress load.
-function SubmissionRubricSectionSkeleton(): ReactElement {
+function SubmissionCriterionSectionSkeleton(): ReactElement {
 	return (
 		<Stack gap="md">
 			<Card withBorder padding="md">

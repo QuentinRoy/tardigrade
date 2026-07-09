@@ -13,17 +13,17 @@ import {
 	loadQuestionRowsFromDb,
 	type QuestionRow,
 	resolveProjectRowId,
-	toRubric,
+	toCriterion,
 } from "#questions/questions.ts";
 import type { QuestionDefinition } from "./types.ts";
 
-export type RubricDefinitionInput =
+export type CriterionDefinitionInput =
 	| {
 			previousId?: string | undefined;
 			id: string;
 			description?: string | undefined;
 			label?: string | undefined;
-			type: "boolean";
+			kind: "check";
 			marks: number;
 			falseMarks?: number | undefined;
 	  }
@@ -32,7 +32,7 @@ export type RubricDefinitionInput =
 			id: string;
 			description?: string | undefined;
 			label?: string | undefined;
-			type: "ordinal";
+			kind: "options";
 			marks: Record<string, number>;
 	  }
 	| {
@@ -40,7 +40,7 @@ export type RubricDefinitionInput =
 			id: string;
 			description?: string | undefined;
 			label?: string | undefined;
-			type: "numerical";
+			kind: "number";
 			minScore: number;
 			maxScore: number;
 			minMarks: number;
@@ -52,7 +52,7 @@ export type QuestionDefinitionInput = {
 	originalId?: string | undefined;
 	id: string;
 	label?: string | undefined;
-	rubrics: RubricDefinitionInput[];
+	criteria: CriterionDefinitionInput[];
 };
 
 // `db` may be the global client or a caller-supplied transaction.
@@ -87,7 +87,7 @@ function toQuestionDefinitions(
 		assessmentCount: assessmentCountByQuestionId.get(row.id) ?? 0,
 		question: {
 			label: row.label ?? undefined,
-			rubrics: row.rubrics.map(toRubric),
+			criteria: row.criteria.map(toCriterion),
 		},
 	}));
 }
@@ -114,7 +114,7 @@ export function questionDefinitionCacheTags(): string[] {
 // is composed inside this scope. Counts derive from the coarse `assessments`
 // aggregate, busted by every save, so this scope uses the `projection` lifetime
 // class rather than `definitions` even though most of what it renders is
-// question/rubric structure (ADR 0008 rule 4).
+// question/criterion structure (ADR 0008 rule 4).
 //
 // `options` is forwarded to `loadQuestionRows` unchanged (ADR 0007 rule 14): never
 // resolve a default here before forwarding, so an omitted `db` stays `undefined`

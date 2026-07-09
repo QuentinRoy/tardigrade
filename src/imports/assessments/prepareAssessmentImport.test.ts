@@ -2,7 +2,7 @@ import { expect, test } from "vitest";
 import type { ImportedAssessmentRow } from "#imports/types.ts";
 import {
 	type AssessmentImportContext,
-	assessedRubricKey,
+	assessedCriterionKey,
 	prepareAssessmentImport,
 	submissionLookupKey,
 } from "./prepareAssessmentImport.ts";
@@ -11,30 +11,30 @@ function buildContext(
 	overrides: Partial<AssessmentImportContext> = {},
 ): AssessmentImportContext {
 	return {
-		rubricsByColumn: new Map(),
+		criteriaByColumn: new Map(),
 		questionIds: new Set(),
 		submissionIdsByLookup: new Map(),
-		assessedRubricKeys: new Set(),
+		assessedCriterionKeys: new Set(),
 		...overrides,
 	};
 }
 
-test("prepareAssessmentImport plans one write per non-empty rubric cell of a matched submission", () => {
+test("prepareAssessmentImport plans one write per non-empty criterion cell of a matched submission", () => {
 	const context = buildContext({
-		rubricsByColumn: new Map([
+		criteriaByColumn: new Map([
 			[
 				"q1:r-bool",
-				{ id: "r-bool", type: "boolean", questionId: "q1", ordinalLabels: [] },
+				{ id: "r-bool", kind: "check", questionId: "q1", ordinalLabels: [] },
 			],
 			[
 				"q1:r-num",
-				{ id: "r-num", type: "numerical", questionId: "q1", ordinalLabels: [] },
+				{ id: "r-num", kind: "number", questionId: "q1", ordinalLabels: [] },
 			],
 			[
 				"q2:r-ord",
 				{
 					id: "r-ord",
-					type: "ordinal",
+					kind: "options",
 					questionId: "q2",
 					ordinalLabels: ["good", "bad"],
 				},
@@ -67,22 +67,22 @@ test("prepareAssessmentImport plans one write per non-empty rubric cell of a mat
 		{
 			submissionId: "42",
 			questionId: "q1",
-			assessment: { rubricId: "r-bool", type: "boolean", passed: true },
+			assessment: { criterionId: "r-bool", kind: "check", passed: true },
 		},
 		{
 			submissionId: "42",
 			questionId: "q1",
-			assessment: { rubricId: "r-num", type: "numerical", score: 7.5 },
+			assessment: { criterionId: "r-num", kind: "number", score: 7.5 },
 		},
 	]);
 });
 
 test("prepareAssessmentImport reports an unmatched submission as a blocking diagnostic", () => {
 	const context = buildContext({
-		rubricsByColumn: new Map([
+		criteriaByColumn: new Map([
 			[
 				"q1:r-bool",
-				{ id: "r-bool", type: "boolean", questionId: "q1", ordinalLabels: [] },
+				{ id: "r-bool", kind: "check", questionId: "q1", ordinalLabels: [] },
 			],
 		]),
 	});
@@ -110,10 +110,10 @@ test("prepareAssessmentImport reports an unmatched submission as a blocking diag
 
 test("prepareAssessmentImport reports an ambiguous submission as a blocking diagnostic", () => {
 	const context = buildContext({
-		rubricsByColumn: new Map([
+		criteriaByColumn: new Map([
 			[
 				"q1:r-bool",
-				{ id: "r-bool", type: "boolean", questionId: "q1", ordinalLabels: [] },
+				{ id: "r-bool", kind: "check", questionId: "q1", ordinalLabels: [] },
 			],
 		]),
 		submissionIdsByLookup: new Map([
@@ -143,10 +143,10 @@ test("prepareAssessmentImport reports an ambiguous submission as a blocking diag
 
 test("prepareAssessmentImport reports an invalid cell value as a blocking diagnostic", () => {
 	const context = buildContext({
-		rubricsByColumn: new Map([
+		criteriaByColumn: new Map([
 			[
 				"q1:r-bool",
-				{ id: "r-bool", type: "boolean", questionId: "q1", ordinalLabels: [] },
+				{ id: "r-bool", kind: "check", questionId: "q1", ordinalLabels: [] },
 			],
 		]),
 		submissionIdsByLookup: new Map([
@@ -177,17 +177,17 @@ test("prepareAssessmentImport reports an invalid cell value as a blocking diagno
 			row: 2,
 			submitter: "student-1",
 			column: "q1:r-bool",
-			message: 'Invalid boolean value "not-a-boolean"',
+			message: 'Invalid check value "not-a-boolean"',
 		},
 	]);
 });
 
 test("prepareAssessmentImport reports an unknown column as a blocking diagnostic", () => {
 	const context = buildContext({
-		rubricsByColumn: new Map([
+		criteriaByColumn: new Map([
 			[
 				"q1:r-bool",
-				{ id: "r-bool", type: "boolean", questionId: "q1", ordinalLabels: [] },
+				{ id: "r-bool", kind: "check", questionId: "q1", ordinalLabels: [] },
 			],
 		]),
 		submissionIdsByLookup: new Map([
@@ -219,10 +219,10 @@ test("prepareAssessmentImport reports an unknown column as a blocking diagnostic
 
 test("prepareAssessmentImport reports derived export columns as ignored, never blocking", () => {
 	const context = buildContext({
-		rubricsByColumn: new Map([
+		criteriaByColumn: new Map([
 			[
 				"q1:r-bool",
-				{ id: "r-bool", type: "boolean", questionId: "q1", ordinalLabels: [] },
+				{ id: "r-bool", kind: "check", questionId: "q1", ordinalLabels: [] },
 			],
 		]),
 		questionIds: new Set(["q1"]),
@@ -261,14 +261,14 @@ test("prepareAssessmentImport reports derived export columns as ignored, never b
 
 test("prepareAssessmentImport lists existing values of targeted pairs as overwrites", () => {
 	const context = buildContext({
-		rubricsByColumn: new Map([
+		criteriaByColumn: new Map([
 			[
 				"q1:r-bool",
-				{ id: "r-bool", type: "boolean", questionId: "q1", ordinalLabels: [] },
+				{ id: "r-bool", kind: "check", questionId: "q1", ordinalLabels: [] },
 			],
 			[
 				"q1:r-num",
-				{ id: "r-num", type: "numerical", questionId: "q1", ordinalLabels: [] },
+				{ id: "r-num", kind: "number", questionId: "q1", ordinalLabels: [] },
 			],
 		]),
 		submissionIdsByLookup: new Map([
@@ -280,8 +280,8 @@ test("prepareAssessmentImport lists existing values of targeted pairs as overwri
 				["42"],
 			],
 		]),
-		assessedRubricKeys: new Set([
-			assessedRubricKey({ submissionId: "42", rubricId: "r-bool" }),
+		assessedCriterionKeys: new Set([
+			assessedCriterionKey({ submissionId: "42", criterionId: "r-bool" }),
 		]),
 	});
 
@@ -297,15 +297,17 @@ test("prepareAssessmentImport lists existing values of targeted pairs as overwri
 	const plan = prepareAssessmentImport({ rows, context });
 
 	expect(plan.writes).toHaveLength(2);
-	expect(plan.overwrites).toEqual([{ submissionId: "42", rubricId: "r-bool" }]);
+	expect(plan.overwrites).toEqual([
+		{ submissionId: "42", criterionId: "r-bool" },
+	]);
 });
 
 test("prepareAssessmentImport blocks with no-assessment-columns when the header has only derived export columns", () => {
 	const context = buildContext({
-		rubricsByColumn: new Map([
+		criteriaByColumn: new Map([
 			[
 				"q1:r-bool",
-				{ id: "r-bool", type: "boolean", questionId: "q1", ordinalLabels: [] },
+				{ id: "r-bool", kind: "check", questionId: "q1", ordinalLabels: [] },
 			],
 		]),
 		questionIds: new Set(["q1"]),
@@ -338,10 +340,10 @@ test("prepareAssessmentImport blocks with no-assessment-columns when the header 
 
 test("prepareAssessmentImport blocks with no-assessment-columns on an empty CSV", () => {
 	const context = buildContext({
-		rubricsByColumn: new Map([
+		criteriaByColumn: new Map([
 			[
 				"q1:r-bool",
-				{ id: "r-bool", type: "boolean", questionId: "q1", ordinalLabels: [] },
+				{ id: "r-bool", kind: "check", questionId: "q1", ordinalLabels: [] },
 			],
 		]),
 	});
@@ -354,10 +356,10 @@ test("prepareAssessmentImport blocks with no-assessment-columns on an empty CSV"
 
 test("prepareAssessmentImport does not block when the header has an assessment column with no values", () => {
 	const context = buildContext({
-		rubricsByColumn: new Map([
+		criteriaByColumn: new Map([
 			[
 				"q1:r-bool",
-				{ id: "r-bool", type: "boolean", questionId: "q1", ordinalLabels: [] },
+				{ id: "r-bool", kind: "check", questionId: "q1", ordinalLabels: [] },
 			],
 		]),
 		submissionIdsByLookup: new Map([
