@@ -511,7 +511,7 @@ test("submission owner/type check rejects invalid rows and rolls back transactio
 				})
 				.execute();
 		}),
-	).rejects.toThrow("Submission_type_participant_check");
+	).rejects.toThrow("submission_type_participant_check");
 
 	const persisted = await db
 		.selectFrom("submission")
