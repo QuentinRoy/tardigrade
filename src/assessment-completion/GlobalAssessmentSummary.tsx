@@ -59,14 +59,14 @@ export default function GlobalAssessmentSummary({
 				total={progress.criteria.total}
 			/>
 			<MetricCard
-				title="Questions assessed"
+				title="Rubrics assessed"
 				helper="Fully assessed across all submissions"
-				completed={progress.questions.completed}
-				total={progress.questions.total}
+				completed={progress.rubrics.completed}
+				total={progress.rubrics.total}
 			/>
 			<MetricCard
 				title="Submissions assessed"
-				helper="Fully assessed across all questions"
+				helper="Fully assessed across all rubrics"
 				completed={progress.submissions.completed}
 				total={progress.submissions.total}
 			/>

@@ -73,7 +73,7 @@ async function expectCompletionEventually(
 	await expect(async () => {
 		await page.goto(dashboardUrl);
 		await expectCompletion(page, "Submissions assessed", expected.submissions);
-		await expectCompletion(page, "Questions assessed", expected.questions);
+		await expectCompletion(page, "Rubrics assessed", expected.rubrics);
 		await expectCompletion(page, "Criteria assessed", expected.criteria);
 	}).toPass({ timeout: 15_000, intervals: [250, 500, 1000, 2000] });
 }
@@ -192,13 +192,13 @@ test("grading workflow: import, assess, persist, and export a computed total", a
 		);
 	}
 
-	// Import in dependency order: questions define the rubric model, students
+	// Import in dependency order: rubrics define the rubric model, students
 	// create the submissions, assessments are the grade source.
-	await page.goto(`/projects/${projectId}/${projectSlug}/import/questions`);
+	await page.goto(`/projects/${projectId}/${projectSlug}/import/rubrics`);
 	await importFixture(page, {
-		fieldLabel: "Questions YAML",
-		submitLabel: "Import questions",
-		content: readFixture("questions.yaml"),
+		fieldLabel: "Rubrics YAML",
+		submitLabel: "Import rubrics",
+		content: readFixture("rubrics.yaml"),
 	});
 
 	await page.goto(`/projects/${projectId}/${projectSlug}/import/students`);

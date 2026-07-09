@@ -5,19 +5,19 @@ import {
 	criterionAssessmentsCountCacheTags,
 } from "./loadAssessmentCompletion.ts";
 
-test("assessedCriterionCountsBySubmissionCacheTags scopes invalidation to the given question", () => {
+test("assessedCriterionCountsBySubmissionCacheTags scopes invalidation to the given rubric", () => {
 	expect(assessedCriterionCountsBySubmissionCacheTags("q-1")).toEqual([
 		"submissions",
-		"questions",
-		"assessments:question:q-1",
+		"rubrics",
+		"assessments:rubric:q-1",
 		"assessments:all",
 	]);
 });
 
-test("assessmentCompletionRowsCacheTags declares the coarse submission, question and assessment tags", () => {
+test("assessmentCompletionRowsCacheTags declares the coarse submission, rubric and assessment tags", () => {
 	expect(assessmentCompletionRowsCacheTags()).toEqual([
 		"submissions",
-		"questions",
+		"rubrics",
 		"assessments",
 	]);
 });

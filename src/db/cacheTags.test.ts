@@ -2,18 +2,18 @@ import { expect, test } from "vitest";
 import {
 	assessmentAggregateCacheTag,
 	assessmentForSubmissionCacheTag,
-	assessmentForSubmissionQuestionCacheTag,
+	assessmentForSubmissionRubricCacheTag,
 	assessmentImportCacheTag,
-	assessmentProgressForQuestionCacheTag,
+	assessmentProgressForRubricCacheTag,
 	projectCacheTag,
 	projectListCacheTag,
-	questionListCacheTag,
+	rubricListCacheTag,
 	submissionListCacheTag,
 } from "./cacheTags.ts";
 
 test("list tags name their entity collection", () => {
 	expect(projectListCacheTag()).toBe("projects");
-	expect(questionListCacheTag()).toBe("questions");
+	expect(rubricListCacheTag()).toBe("rubrics");
 	expect(submissionListCacheTag()).toBe("submissions");
 });
 
@@ -26,18 +26,18 @@ test("assessment aggregate and import tags are distinct", () => {
 	expect(assessmentImportCacheTag()).toBe("assessments:all");
 });
 
-test("assessment scope tags nest from submission to question", () => {
+test("assessment scope tags nest from submission to rubric", () => {
 	expect(assessmentForSubmissionCacheTag("s-1")).toBe("assessments:s-1");
 	expect(
-		assessmentForSubmissionQuestionCacheTag({
+		assessmentForSubmissionRubricCacheTag({
 			submissionId: "s-1",
-			questionId: "q-1",
+			rubricId: "q-1",
 		}),
 	).toBe("assessments:s-1:q-1");
 });
 
-test("assessmentProgressForQuestionCacheTag scopes to the question", () => {
-	expect(assessmentProgressForQuestionCacheTag("q-1")).toBe(
-		"assessments:question:q-1",
+test("assessmentProgressForRubricCacheTag scopes to the rubric", () => {
+	expect(assessmentProgressForRubricCacheTag("q-1")).toBe(
+		"assessments:rubric:q-1",
 	);
 });

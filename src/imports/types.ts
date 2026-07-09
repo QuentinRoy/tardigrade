@@ -5,7 +5,7 @@ import type {
 	checkCriterionSchema,
 	numberCriterionSchema,
 	optionsCriterionSchema,
-	questionSchema,
+	rubricSchema,
 	studentRowSchema,
 } from "./schemas.ts";
 
@@ -13,8 +13,8 @@ export type ImportedCriterion =
 	| z.output<typeof checkCriterionSchema>
 	| z.output<typeof optionsCriterionSchema>
 	| z.output<typeof numberCriterionSchema>;
-export type ImportedQuestion = z.output<typeof questionSchema>;
-export type ImportedQuestions = ImportedQuestion[];
+export type ImportedRubric = z.output<typeof rubricSchema>;
+export type ImportedRubrics = ImportedRubric[];
 export type ImportedStudent = z.output<typeof studentRowSchema>;
 export type ImportedAssessmentRow = z.output<typeof assessmentRowSchema>;
 export type NormalizedImportedSubmission = {

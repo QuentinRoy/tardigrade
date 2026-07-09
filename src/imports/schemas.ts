@@ -70,26 +70,46 @@ const criterionSchema = z.discriminatedUnion("kind", [
 	numberCriterionSchema,
 ]);
 
-export const questionSchema = z.object({
+export const rubricSchema = z.object({
 	id: nonEmptyString,
 	label: nonEmptyString.optional(),
 	criteria: z
 		.array(criterionSchema)
 		.refine(
 			(criteria) => new Set(criteria.map((r) => r.id)).size === criteria.length,
-			{ message: "Criterion ids must be unique within a question" },
+			{ message: "Criterion ids must be unique within a rubric" },
 		),
 });
 
-const questionsSchema = z.object({
-	questions: z
-		.array(questionSchema)
-		.refine(
-			(questions) =>
-				new Set(questions.map((q) => q.id)).size === questions.length,
-			{ message: "Question ids must be unique" },
-		),
-});
+const rubricsSchema = z
+	.object(
+		{
+			rubrics: z
+				.array(rubricSchema)
+				.refine(
+					(rubrics) =>
+						new Set(rubrics.map((rubric) => rubric.id)).size === rubrics.length,
+					{ message: "Rubric ids must be unique" },
+				),
+		},
+		{
+			// Turn Zod's terse "Unrecognized key" into an actionable message. Only
+			// overrides unrecognized-key errors; returning undefined leaves every
+			// other message untouched.
+			error: (issue) => {
+				if (issue.code !== "unrecognized_keys") {
+					return undefined;
+				}
+				const names = issue.keys.map((key) => `"${key}"`).join(", ");
+				const plural = issue.keys.length > 1;
+				return `Unexpected top-level ${plural ? "entries" : "entry"} ${names}. A rubrics file must contain a single top-level "rubrics:" list — remove ${plural ? "them" : "it"} or fix the spelling, then import again.`;
+			},
+		},
+	)
+	// Reject unknown top-level keys so an old-format file fails loudly (see the
+	// error message above) instead of being silently stripped and reported only
+	// as a missing `rubrics:`.
+	.strict();
 
 export const studentRowSchema = z
 	.object({
@@ -120,4 +140,4 @@ export const assessmentRowSchema = z
 
 export const assessmentRowsSchema = z.array(assessmentRowSchema);
 
-export { criterionSchema, questionsSchema };
+export { criterionSchema, rubricsSchema };

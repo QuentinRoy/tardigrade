@@ -6,13 +6,13 @@ import AppNavLink from "#design-system/AppNavLink.tsx";
 import AppPage from "#design-system/AppPage.tsx";
 import {
 	projectAssessmentSubmissionPath,
-	projectAssessmentSubmissionQuestionPath,
-	projectQuestionsPath,
+	projectAssessmentSubmissionRubricPath,
 	projectResultsPath,
+	projectRubricsPath,
 } from "#projects/projectPaths.ts";
 import { loadProjectByPublicId } from "#projects/projects.ts";
-import QuestionList from "#question-management/QuestionList.tsx";
-import { loadQuestionGrid } from "#questions/questions.ts";
+import RubricList from "#rubric-management/RubricList.tsx";
+import { loadRubricsById } from "#rubrics/rubrics.ts";
 import { getSubmissionLabel } from "#submissions/getSubmissionLabel.ts";
 import { loadSubmissions } from "#submissions/submissions.ts";
 import type { Submission } from "#submissions/types.ts";
@@ -28,7 +28,7 @@ export default async function ProjectAssessmentPage({
 	return <ProjectAssessmentPageContent projectId={projectId} />;
 }
 
-// No page-level `"use cache"` wrapper: `loadProjectByPublicId`, `loadQuestionGrid`
+// No page-level `"use cache"` wrapper: `loadProjectByPublicId`, `loadRubricsById`
 // and `loadSubmissions` each cache themselves, and the submission progress below
 // is deliberately left uncached at this scope so it can stream in under Suspense
 // instead of blocking this render on a project-wide completion recompute (Finding 19).
@@ -39,22 +39,22 @@ async function ProjectAssessmentPageContent({
 }) {
 	const project = await loadProjectByPublicId(projectId, { required: true });
 
-	const [grid, submissions] = await Promise.all([
-		loadQuestionGrid({ projectId: project.id }),
+	const [rubricsById, submissions] = await Promise.all([
+		loadRubricsById({ projectId: project.id }),
 		loadSubmissions({ projectId: project.id }),
 	]);
 
-	const hasQuestions = Object.keys(grid).length > 0;
+	const hasRubrics = Object.keys(rubricsById).length > 0;
 	const firstSubmissionId = submissions[0]?.id;
-	const questions = firstSubmissionId
-		? Object.entries(grid).map(([id, { label }]) => ({
+	const rubrics = firstSubmissionId
+		? Object.entries(rubricsById).map(([id, { label }]) => ({
 				id,
 				label: label == null ? id : label,
-				href: projectAssessmentSubmissionQuestionPath({
+				href: projectAssessmentSubmissionRubricPath({
 					projectId: project.id,
 					projectSlug: project.slug,
 					submissionId: firstSubmissionId,
-					questionId: id,
+					rubricId: id,
 				}),
 			}))
 		: [];
@@ -72,18 +72,18 @@ async function ProjectAssessmentPageContent({
 				>
 					Open results
 				</AppButtonLink>
-				{!hasQuestions ? (
+				{!hasRubrics ? (
 					<Stack gap="sm" align="flex-start">
 						<Text c="dimmed">
-							No questions yet — add questions to start assessing.
+							No rubrics yet — add rubrics to start assessing.
 						</Text>
 						<AppButtonLink
-							href={projectQuestionsPath({
+							href={projectRubricsPath({
 								projectId: project.id,
 								projectSlug: project.slug,
 							})}
 						>
-							Add questions
+							Add rubrics
 						</AppButtonLink>
 					</Stack>
 				) : (
@@ -107,12 +107,12 @@ async function ProjectAssessmentPageContent({
 							</Suspense>
 						</Stack>
 						<Stack gap="sm">
-							<Title order={2}>Assess by question</Title>
+							<Title order={2}>Assess by rubric</Title>
 							{firstSubmissionId ? (
-								<QuestionList questions={questions} />
+								<RubricList rubrics={rubrics} />
 							) : (
 								<Text c="dimmed">
-									Add a submission first to start assessments by question.
+									Add a submission first to start assessments by rubric.
 								</Text>
 							)}
 						</Stack>

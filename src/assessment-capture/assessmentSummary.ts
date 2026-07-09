@@ -6,8 +6,8 @@ export type AssessmentSummary = {
 	maxMarks: number;
 	completedCriteria: number;
 	totalCriteria: number;
-	completedQuestions?: number;
-	totalQuestions?: number;
+	completedRubrics?: number;
+	totalRubrics?: number;
 };
 
 function accumulateCriterionMarks(
@@ -44,35 +44,35 @@ export function summarizeCriteria(
 	return summary;
 }
 
-export function summarizeQuestionSections(
-	questions: Array<{ criteria: AssessedCriterion[] }>,
+export function summarizeRubricSections(
+	rubrics: Array<{ criteria: AssessedCriterion[] }>,
 ): AssessmentSummary {
 	const summary = {
 		marks: 0,
 		maxMarks: 0,
 		completedCriteria: 0,
 		totalCriteria: 0,
-		completedQuestions: 0,
+		completedRubrics: 0,
 	};
 
-	questions.forEach((question) => {
-		let questionCriteriaLeft = 0;
+	rubrics.forEach((rubric) => {
+		let rubricCriteriaLeft = 0;
 
-		question.criteria.forEach((criterion) => {
+		rubric.criteria.forEach((criterion) => {
 			summary.totalCriteria += 1;
 
 			if (criterion.assessment != null) {
 				summary.completedCriteria += 1;
 				accumulateCriterionMarks(summary, criterion);
 			} else {
-				questionCriteriaLeft += 1;
+				rubricCriteriaLeft += 1;
 			}
 		});
 
-		if (questionCriteriaLeft === 0) {
-			summary.completedQuestions += 1;
+		if (rubricCriteriaLeft === 0) {
+			summary.completedRubrics += 1;
 		}
 	});
 
-	return { ...summary, totalQuestions: questions.length };
+	return { ...summary, totalRubrics: rubrics.length };
 }

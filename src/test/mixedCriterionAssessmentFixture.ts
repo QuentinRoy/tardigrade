@@ -11,44 +11,44 @@ function mustGet<TKey, TValue>(map: Map<TKey, TValue>, key: TKey): TValue {
 	return value;
 }
 
-export type MixedCriterionQuestionFixture = {
+export type MixedCriterionRubricFixture = {
 	project: { id: string; rowId: number };
-	question: {
+	rubric: {
 		id: string;
 		rowId: number;
 		criteria: { booleanId: string; ordinalId: string; numericalId: string };
 	};
 };
 
-// Shared by export and import integration tests: a project with one question
+// Shared by export and import integration tests: a project with one rubric
 // that has one criterion of each type (boolean/ordinal/numerical). Criterion and
-// question ids are project-scoped, so each caller can pick its own ids
+// rubric ids are project-scoped, so each caller can pick its own ids
 // without colliding with other tests' projects.
-export async function createMixedCriterionQuestionFixtureProject(
+export async function createMixedCriterionRubricFixtureProject(
 	db: Kysely<DB>,
 	params: {
 		projectName: string;
-		questionId: string;
+		rubricId: string;
 		checkCriterionId: string;
 		optionsCriterionId: string;
 		numberCriterionId: string;
 	},
-): Promise<MixedCriterionQuestionFixture> {
+): Promise<MixedCriterionRubricFixture> {
 	const {
 		projectName,
-		questionId,
+		rubricId,
 		checkCriterionId,
 		optionsCriterionId,
 		numberCriterionId,
 	} = params;
 	const project = await createProjectRecord(db, projectName);
 
-	const questionRow = await db
-		.insertInto("question")
+	const rubricRow = await db
+		.insertInto("rubric")
 		.values({
 			projectId: project.rowId,
-			id: questionId,
-			label: "Mixed question",
+			id: rubricId,
+			label: "Mixed rubric",
 			position: 0,
 		})
 		.returning("rowId")
@@ -60,7 +60,7 @@ export async function createMixedCriterionQuestionFixtureProject(
 			{
 				id: checkCriterionId,
 				projectId: project.rowId,
-				questionId: questionRow.rowId,
+				rubricId: rubricRow.rowId,
 				kind: "check",
 				position: 0,
 				label: "Boolean",
@@ -68,7 +68,7 @@ export async function createMixedCriterionQuestionFixtureProject(
 			{
 				id: optionsCriterionId,
 				projectId: project.rowId,
-				questionId: questionRow.rowId,
+				rubricId: rubricRow.rowId,
 				kind: "options",
 				position: 1,
 				label: "Ordinal",
@@ -76,7 +76,7 @@ export async function createMixedCriterionQuestionFixtureProject(
 			{
 				id: numberCriterionId,
 				projectId: project.rowId,
-				questionId: questionRow.rowId,
+				rubricId: rubricRow.rowId,
 				kind: "number",
 				position: 2,
 				label: "Numerical",
@@ -124,9 +124,9 @@ export async function createMixedCriterionQuestionFixtureProject(
 
 	return {
 		project: { id: project.id, rowId: project.rowId },
-		question: {
-			id: questionId,
-			rowId: questionRow.rowId,
+		rubric: {
+			id: rubricId,
+			rowId: rubricRow.rowId,
 			criteria: {
 				booleanId: checkCriterionId,
 				ordinalId: optionsCriterionId,
@@ -228,7 +228,7 @@ export async function addFullAssessmentFixture(
 	params: {
 		projectRowId: number;
 		submissionId: number;
-		questionRowId: number;
+		rubricRowId: number;
 		checkCriterionRowId: number;
 		optionsCriterionRowId: number;
 		numberCriterionRowId: number;
@@ -239,7 +239,7 @@ export async function addFullAssessmentFixture(
 		.values({
 			projectId: params.projectRowId,
 			submissionId: params.submissionId,
-			questionId: params.questionRowId,
+			rubricId: params.rubricRowId,
 		})
 		.returning("id")
 		.executeTakeFirstOrThrow();

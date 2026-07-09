@@ -4,10 +4,10 @@ import { saveAssessmentInDb } from "#assessment-persistence/assessmentMutations.
 import { createAssessmentFixture } from "#test/assessments.ts";
 import { createTestDb } from "#test/dbIntegration.ts";
 import { createProject } from "#test/projects.ts";
-import { createBooleanQuestionFixture } from "#test/questions.ts";
+import { createBooleanRubricFixture } from "#test/rubrics.ts";
 import {
-	loadQuestionAssessment,
-	loadQuestionAssessmentFromDb,
+	loadRubricAssessment,
+	loadRubricAssessmentFromDb,
 	loadSubmissionAssessments,
 	loadSubmissionAssessmentsFromDb,
 } from "./assessments.ts";
@@ -18,7 +18,7 @@ vi.mock("next/cache", () => ({
 	updateTag: vi.fn(),
 }));
 
-test("loadQuestionAssessmentFromDb returns an empty list when no assessment exists", async () => {
+test("loadRubricAssessmentFromDb returns an empty list when no assessment exists", async () => {
 	await using db = await createTestDb();
 	await using project = await createProject(
 		db,
@@ -26,23 +26,23 @@ test("loadQuestionAssessmentFromDb returns an empty list when no assessment exis
 	);
 	const fixture = await createAssessmentFixture(db, project.id);
 
-	const result = await loadQuestionAssessmentFromDb(db, {
+	const result = await loadRubricAssessmentFromDb(db, {
 		submissionId: fixture.submissionId,
 		projectId: fixture.projectId,
-		questionId: fixture.questionId,
+		rubricId: fixture.rubricId,
 	});
 
 	expect(result).toEqual([]);
 });
 
-test("loadQuestionAssessmentFromDb returns the stored criterion values for a submission/question", async () => {
+test("loadRubricAssessmentFromDb returns the stored criterion values for a submission/rubric", async () => {
 	await using db = await createTestDb();
 	await using project = await createProject(db, "Assessment Read Project");
 	const fixture = await createAssessmentFixture(db, project.id);
 
 	await saveAssessmentInDb(db, {
 		submissionId: fixture.submissionId,
-		questionId: fixture.questionId,
+		rubricId: fixture.rubricId,
 		assessment: {
 			criterionId: fixture.criterionIds.boolean,
 			kind: "check",
@@ -51,7 +51,7 @@ test("loadQuestionAssessmentFromDb returns the stored criterion values for a sub
 	});
 	await saveAssessmentInDb(db, {
 		submissionId: fixture.submissionId,
-		questionId: fixture.questionId,
+		rubricId: fixture.rubricId,
 		assessment: {
 			criterionId: fixture.criterionIds.ordinal,
 			kind: "options",
@@ -60,7 +60,7 @@ test("loadQuestionAssessmentFromDb returns the stored criterion values for a sub
 	});
 	await saveAssessmentInDb(db, {
 		submissionId: fixture.submissionId,
-		questionId: fixture.questionId,
+		rubricId: fixture.rubricId,
 		assessment: {
 			criterionId: fixture.criterionIds.numerical,
 			kind: "number",
@@ -68,10 +68,10 @@ test("loadQuestionAssessmentFromDb returns the stored criterion values for a sub
 		},
 	});
 
-	const loaded = await loadQuestionAssessmentFromDb(db, {
+	const loaded = await loadRubricAssessmentFromDb(db, {
 		submissionId: fixture.submissionId,
 		projectId: fixture.projectId,
-		questionId: fixture.questionId,
+		rubricId: fixture.rubricId,
 	});
 
 	const byCriterionId = new Map(
@@ -98,16 +98,16 @@ test("loadQuestionAssessmentFromDb returns the stored criterion values for a sub
 // Next caching is inert under vitest, so the read wrapper runs directly against the
 // injected handle. Assert it delegates to its primitive (returns the test db's rows)
 // and declares "assessments:all" alongside its granular tag: bulk imports only bust
-// the coarse tag, so without this declaration the per-question grading view would
+// the coarse tag, so without this declaration the per-rubric grading view would
 // serve stale data after an assessment import.
-test("loadQuestionAssessment wrapper delegates to its primitive and declares its cache tags", async () => {
+test("loadRubricAssessment wrapper delegates to its primitive and declares its cache tags", async () => {
 	await using db = await createTestDb();
 	await using project = await createProject(db, "Assessment Cache Tag Project");
 	const fixture = await createAssessmentFixture(db, project.id);
 
 	await saveAssessmentInDb(db, {
 		submissionId: fixture.submissionId,
-		questionId: fixture.questionId,
+		rubricId: fixture.rubricId,
 		assessment: {
 			criterionId: fixture.criterionIds.boolean,
 			kind: "check",
@@ -115,11 +115,11 @@ test("loadQuestionAssessment wrapper delegates to its primitive and declares its
 		},
 	});
 
-	const loaded = await loadQuestionAssessment(
+	const loaded = await loadRubricAssessment(
 		{
 			submissionId: fixture.submissionId,
 			projectId: fixture.projectId,
-			questionId: fixture.questionId,
+			rubricId: fixture.rubricId,
 		},
 		{ db },
 	);
@@ -131,28 +131,24 @@ test("loadQuestionAssessment wrapper delegates to its primitive and declares its
 	const declaredTags = vi.mocked(cacheTag).mock.calls.map((call) => call[0]);
 	expect(declaredTags).toContain("assessments:all");
 	expect(declaredTags).toContain(
-		`assessments:${fixture.submissionId}:${fixture.questionId}`,
+		`assessments:${fixture.submissionId}:${fixture.rubricId}`,
 	);
 });
 
-test("loadSubmissionAssessmentsFromDb groups a submission's criterion values by question", async () => {
+test("loadSubmissionAssessmentsFromDb groups a submission's criterion values by rubric", async () => {
 	await using db = await createTestDb();
 	await using project = await createProject(
 		db,
 		"Assessment Submission Read Project",
 	);
 	const fixture = await createAssessmentFixture(db, project.id);
-	// Second question on the same submission's project, so the grouping across
-	// questions is observable.
-	const secondQuestion = await createBooleanQuestionFixture(
-		db,
-		project.rowId,
-		1,
-	);
+	// Second rubric on the same submission's project, so the grouping across
+	// rubrics is observable.
+	const secondRubric = await createBooleanRubricFixture(db, project.rowId, 1);
 
 	await saveAssessmentInDb(db, {
 		submissionId: fixture.submissionId,
-		questionId: fixture.questionId,
+		rubricId: fixture.rubricId,
 		assessment: {
 			criterionId: fixture.criterionIds.boolean,
 			kind: "check",
@@ -161,7 +157,7 @@ test("loadSubmissionAssessmentsFromDb groups a submission's criterion values by 
 	});
 	await saveAssessmentInDb(db, {
 		submissionId: fixture.submissionId,
-		questionId: fixture.questionId,
+		rubricId: fixture.rubricId,
 		assessment: {
 			criterionId: fixture.criterionIds.numerical,
 			kind: "number",
@@ -170,23 +166,23 @@ test("loadSubmissionAssessmentsFromDb groups a submission's criterion values by 
 	});
 	await saveAssessmentInDb(db, {
 		submissionId: fixture.submissionId,
-		questionId: secondQuestion.questionId,
+		rubricId: secondRubric.rubricId,
 		assessment: {
-			criterionId: secondQuestion.criterionId,
+			criterionId: secondRubric.criterionId,
 			kind: "check",
 			passed: false,
 		},
 	});
 
-	const byQuestionId = await loadSubmissionAssessmentsFromDb(db, {
+	const byRubricId = await loadSubmissionAssessmentsFromDb(db, {
 		submissionId: fixture.submissionId,
 		projectId: fixture.projectId,
 	});
 
-	expect(Object.keys(byQuestionId).toSorted()).toEqual(
-		[fixture.questionId, secondQuestion.questionId].toSorted(),
+	expect(Object.keys(byRubricId).toSorted()).toEqual(
+		[fixture.rubricId, secondRubric.rubricId].toSorted(),
 	);
-	expect(byQuestionId[fixture.questionId]).toEqual(
+	expect(byRubricId[fixture.rubricId]).toEqual(
 		expect.arrayContaining([
 			{
 				criterionId: fixture.criterionIds.boolean,
@@ -200,12 +196,12 @@ test("loadSubmissionAssessmentsFromDb groups a submission's criterion values by 
 			},
 		]),
 	);
-	expect(byQuestionId[secondQuestion.questionId]).toEqual([
-		{ criterionId: secondQuestion.criterionId, kind: "check", passed: false },
+	expect(byRubricId[secondRubric.rubricId]).toEqual([
+		{ criterionId: secondRubric.criterionId, kind: "check", passed: false },
 	]);
 });
 
-// Mirrors the loadQuestionAssessment wrapper test: the whole-submission read must
+// Mirrors the loadRubricAssessment wrapper test: the whole-submission read must
 // declare the submission-scoped tag (busted by individual saves) and
 // "assessments:all" (busted by bulk imports) or the overview would serve stale data.
 test("loadSubmissionAssessments wrapper delegates to its primitive and declares its cache tags", async () => {
@@ -218,7 +214,7 @@ test("loadSubmissionAssessments wrapper delegates to its primitive and declares 
 
 	await saveAssessmentInDb(db, {
 		submissionId: fixture.submissionId,
-		questionId: fixture.questionId,
+		rubricId: fixture.rubricId,
 		assessment: {
 			criterionId: fixture.criterionIds.boolean,
 			kind: "check",
@@ -232,7 +228,7 @@ test("loadSubmissionAssessments wrapper delegates to its primitive and declares 
 	);
 
 	expect(loaded).toEqual({
-		[fixture.questionId]: [
+		[fixture.rubricId]: [
 			{
 				criterionId: fixture.criterionIds.boolean,
 				kind: "check",
@@ -256,7 +252,7 @@ test("assessment reads return nothing when the Project ID does not match the sub
 
 	await saveAssessmentInDb(db, {
 		submissionId: fixture.submissionId,
-		questionId: fixture.questionId,
+		rubricId: fixture.rubricId,
 		assessment: {
 			criterionId: fixture.criterionIds.boolean,
 			kind: "check",
@@ -264,12 +260,12 @@ test("assessment reads return nothing when the Project ID does not match the sub
 		},
 	});
 
-	const questionAssessment = await loadQuestionAssessmentFromDb(db, {
+	const rubricAssessment = await loadRubricAssessmentFromDb(db, {
 		submissionId: fixture.submissionId,
 		projectId: projectB.id,
-		questionId: fixture.questionId,
+		rubricId: fixture.rubricId,
 	});
-	expect(questionAssessment).toEqual([]);
+	expect(rubricAssessment).toEqual([]);
 
 	const submissionAssessments = await loadSubmissionAssessmentsFromDb(db, {
 		submissionId: fixture.submissionId,

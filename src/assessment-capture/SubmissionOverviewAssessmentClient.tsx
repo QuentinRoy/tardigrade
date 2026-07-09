@@ -23,15 +23,15 @@ import { getSubmissionNavigation } from "./submissionNavigation.ts";
 import { useAssessmentSession } from "./useAssessmentSession.ts";
 import { useSubmissionQuickJump } from "./useSubmissionQuickJump.ts";
 
-type QuestionAssessmentSection = {
-	questionId: string;
-	questionLabel: string;
+type RubricAssessmentSection = {
+	rubricId: string;
+	rubricLabel: string;
 	criteria: AssessedCriterion[];
 };
 
-type OptimisticQuestionSection = {
-	questionId: string;
-	questionLabel: string;
+type OptimisticRubricSection = {
+	rubricId: string;
+	rubricLabel: string;
 	criteria: AssessedCriterion[];
 	flatIndices: Array<number | undefined>;
 };
@@ -39,7 +39,7 @@ type OptimisticQuestionSection = {
 type SubmissionOverviewAssessmentClientProps = {
 	projectId: string;
 	projectSlug: string;
-	questions: QuestionAssessmentSection[];
+	rubrics: RubricAssessmentSection[];
 	submissions: Submission[];
 	progressPromise: Promise<
 		Record<string, { completed: number; total: number }>
@@ -54,7 +54,7 @@ type SubmissionOverviewAssessmentClientProps = {
 export default function SubmissionOverviewAssessmentClient({
 	projectId,
 	projectSlug,
-	questions: initialQuestions,
+	rubrics: initialRubrics,
 	submissions,
 	progressPromise,
 	currentSubmissionId,
@@ -77,21 +77,21 @@ export default function SubmissionOverviewAssessmentClient({
 		const criteria: AssessedCriterion[] = [];
 		const infoMap = new Map<
 			string,
-			{ questionId: string; questionLabel: string }
+			{ rubricId: string; rubricLabel: string }
 		>();
 
-		for (const question of initialQuestions) {
-			for (const criterion of question.criteria) {
+		for (const rubric of initialRubrics) {
+			for (const criterion of rubric.criteria) {
 				criteria.push(criterion);
 				infoMap.set(criterion.id, {
-					questionId: question.questionId,
-					questionLabel: question.questionLabel,
+					rubricId: rubric.rubricId,
+					rubricLabel: rubric.rubricLabel,
 				});
 			}
 		}
 
 		return { initialCriteria: criteria, criterionInfoByCriterionId: infoMap };
-	}, [initialQuestions]);
+	}, [initialRubrics]);
 
 	const {
 		currentSubmissionIndex,
@@ -119,8 +119,8 @@ export default function SubmissionOverviewAssessmentClient({
 					success: false,
 					error: {
 						...baseErrorContext,
-						questionId: "unknown-question",
-						questionLabel: "Unknown question",
+						rubricId: "unknown-rubric",
+						rubricLabel: "Unknown rubric",
 						message: `Unknown criterion mapping for ${criterion.id}`,
 					},
 				};
@@ -129,19 +129,19 @@ export default function SubmissionOverviewAssessmentClient({
 			return saveCriterionAssessment({
 				saveAssessment,
 				submissionId: currentSubmissionId,
-				questionId: info.questionId,
+				rubricId: info.rubricId,
 				assessment,
 				errorContext: {
 					...baseErrorContext,
-					questionId: info.questionId,
-					questionLabel: info.questionLabel,
+					rubricId: info.rubricId,
+					rubricLabel: info.rubricLabel,
 				},
 			});
 		},
 		onError: addError,
 	});
 
-	const optimisticQuestions = useMemo<OptimisticQuestionSection[]>(() => {
+	const optimisticRubrics = useMemo<OptimisticRubricSection[]>(() => {
 		const criterionToFlatIndex = new Map<string, number>();
 
 		for (let i = 0; i < optimisticCriteria.length; i++) {
@@ -152,20 +152,20 @@ export default function SubmissionOverviewAssessmentClient({
 			criterionToFlatIndex.set(optimisticCriterion.id, i);
 		}
 
-		return initialQuestions.map((question) => ({
-			questionId: question.questionId,
-			questionLabel: question.questionLabel,
-			criteria: question.criteria.map((criterion) => {
+		return initialRubrics.map((rubric) => ({
+			rubricId: rubric.rubricId,
+			rubricLabel: rubric.rubricLabel,
+			criteria: rubric.criteria.map((criterion) => {
 				const flatIndex = criterionToFlatIndex.get(criterion.id);
 				return flatIndex != null
 					? (optimisticCriteria[flatIndex] ?? criterion)
 					: criterion;
 			}),
-			flatIndices: question.criteria.map((criterion) =>
+			flatIndices: rubric.criteria.map((criterion) =>
 				criterionToFlatIndex.get(criterion.id),
 			),
 		}));
-	}, [initialQuestions, optimisticCriteria]);
+	}, [initialRubrics, optimisticCriteria]);
 
 	const summary = summarizeCriteria(optimisticCriteria);
 
@@ -198,30 +198,30 @@ export default function SubmissionOverviewAssessmentClient({
 				onSelectSubmission={navigateToSubmission}
 				submissions={submissions}
 				progressPromise={progressPromise}
-				progressLabel="questions"
+				progressLabel="rubrics"
 			/>
 
-			{optimisticQuestions.length === 0 ? (
-				<Text>No questions found in database.</Text>
+			{optimisticRubrics.length === 0 ? (
+				<Text>No rubrics found in database.</Text>
 			) : (
 				<Stack gap="xl">
-					{optimisticQuestions.map((question) => {
-						const { marks: questionMarks, maxMarks: questionMaxMarks } =
-							summarizeCriteria(question.criteria);
+					{optimisticRubrics.map((rubric) => {
+						const { marks: rubricMarks, maxMarks: rubricMaxMarks } =
+							summarizeCriteria(rubric.criteria);
 
 						return (
-							<Stack key={question.questionId} gap="md">
+							<Stack key={rubric.rubricId} gap="md">
 								<Group justify="space-between" align="baseline" gap="xs">
 									<Title m="0" order={2}>
-										{question.questionLabel}
+										{rubric.rubricLabel}
 									</Title>
 									<Text size="sm">
-										({questionMarks}&nbsp;/&nbsp;{questionMaxMarks})
+										({rubricMarks}&nbsp;/&nbsp;{rubricMaxMarks})
 									</Text>
 								</Group>
 
-								{question.criteria.map((criterion, localIndex) => {
-									const flatIndex = question.flatIndices[localIndex];
+								{rubric.criteria.map((criterion, localIndex) => {
+									const flatIndex = rubric.flatIndices[localIndex];
 									const savedCriterion =
 										flatIndex != null
 											? (savedCriteria[flatIndex] ?? criterion)

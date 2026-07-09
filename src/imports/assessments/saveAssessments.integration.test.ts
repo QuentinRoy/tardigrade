@@ -17,13 +17,13 @@ async function createAssessmentFixture(
 	db: Kysely<DB>,
 	projectId: number,
 ): Promise<{
-	questionId: string;
+	rubricId: string;
 	studentId: string;
 	submissionId: string;
 	criterionId: string;
 	numberCriterionId: string;
 }> {
-	const questionId = buildTestId("question");
+	const rubricId = buildTestId("rubric");
 	const studentId = buildTestId("student");
 	const criterionId = buildTestId("criterion");
 	const numberCriterionId = buildTestId("criterion-numerical");
@@ -52,20 +52,15 @@ async function createAssessmentFixture(
 		.executeTakeFirstOrThrow();
 
 	await db
-		.insertInto("question")
-		.values({
-			projectId,
-			id: questionId,
-			label: "Import question",
-			position: 0,
-		})
+		.insertInto("rubric")
+		.values({ projectId, id: rubricId, label: "Import rubric", position: 0 })
 		.execute();
 
-	const question = await db
-		.selectFrom("question")
+	const rubric = await db
+		.selectFrom("rubric")
 		.select(["id", "rowId"])
 		.where("projectId", "=", projectId)
-		.where("id", "=", questionId)
+		.where("id", "=", rubricId)
 		.executeTakeFirstOrThrow();
 
 	const criterion = await db
@@ -73,7 +68,7 @@ async function createAssessmentFixture(
 		.values({
 			id: criterionId,
 			projectId,
-			questionId: question.rowId,
+			rubricId: rubric.rowId,
 			kind: "check",
 			position: 0,
 			label: "Correctness",
@@ -97,7 +92,7 @@ async function createAssessmentFixture(
 		.values({
 			id: numberCriterionId,
 			projectId,
-			questionId: question.rowId,
+			rubricId: rubric.rowId,
 			kind: "number",
 			position: 1,
 			label: "Score",
@@ -117,7 +112,7 @@ async function createAssessmentFixture(
 		.execute();
 
 	return {
-		questionId,
+		rubricId,
 		studentId,
 		submissionId: String(submission.id),
 		criterionId,
@@ -135,12 +130,12 @@ test("saveAssessments does not persist valid rows when a later row fails validat
 		{
 			submission_type: "individual",
 			submitter: fixture.studentId,
-			[`${fixture.questionId}:${fixture.criterionId}`]: "true",
+			[`${fixture.rubricId}:${fixture.criterionId}`]: "true",
 		},
 		{
 			submission_type: "individual",
 			submitter: fixture.studentId,
-			[`${fixture.questionId}:${fixture.criterionId}`]: "not-a-boolean",
+			[`${fixture.rubricId}:${fixture.criterionId}`]: "not-a-boolean",
 		},
 	];
 
@@ -168,7 +163,7 @@ test("saveAssessments rejects unknown columns before writing any assessment", as
 			submission_type: "individual",
 			submitter: fixture.studentId,
 			unknown_column: "oops",
-			[`${fixture.questionId}:${fixture.criterionId}`]: "true",
+			[`${fixture.rubricId}:${fixture.criterionId}`]: "true",
 		},
 	];
 
@@ -196,12 +191,12 @@ test("saveAssessments blocks the import when a row has no matching submission", 
 		{
 			submission_type: "individual",
 			submitter: fixture.studentId,
-			[`${fixture.questionId}:${fixture.criterionId}`]: "true",
+			[`${fixture.rubricId}:${fixture.criterionId}`]: "true",
 		},
 		{
 			submission_type: "individual",
 			submitter: missingStudentId,
-			[`${fixture.questionId}:${fixture.criterionId}`]: "true",
+			[`${fixture.rubricId}:${fixture.criterionId}`]: "true",
 		},
 	];
 
@@ -230,7 +225,7 @@ test("saveAssessments returns imported and overwritten counts", async () => {
 		{
 			submission_type: "individual",
 			submitter: fixture.studentId,
-			[`${fixture.questionId}:${fixture.criterionId}`]: "true",
+			[`${fixture.rubricId}:${fixture.criterionId}`]: "true",
 		},
 	];
 
@@ -242,8 +237,8 @@ test("saveAssessments returns imported and overwritten counts", async () => {
 		{
 			submission_type: "individual",
 			submitter: fixture.studentId,
-			[`${fixture.questionId}:${fixture.criterionId}`]: "false",
-			[`${fixture.questionId}:${fixture.numberCriterionId}`]: "5",
+			[`${fixture.rubricId}:${fixture.criterionId}`]: "false",
+			[`${fixture.rubricId}:${fixture.numberCriterionId}`]: "5",
 		},
 	];
 
@@ -270,12 +265,12 @@ test("saveAssessments rolls back all writes if a later transactional write fails
 		{
 			submission_type: "individual",
 			submitter: fixture.studentId,
-			[`${fixture.questionId}:${fixture.criterionId}`]: "true",
+			[`${fixture.rubricId}:${fixture.criterionId}`]: "true",
 		},
 		{
 			submission_type: "individual",
 			submitter: fixture.studentId,
-			[`${fixture.questionId}:${fixture.numberCriterionId}`]: "999",
+			[`${fixture.rubricId}:${fixture.numberCriterionId}`]: "999",
 		},
 	];
 
@@ -299,12 +294,12 @@ test("saveAssessments links assessments only to the target project even when the
 	const projectBPublicId = projectB.id;
 
 	// The same student external id exists in both projects.
-	// Each project has its own question/criterion ids (to avoid saveAssessment
-	// ambiguity on shared question text ids, which is a separate concern).
+	// Each project has its own rubric/criterion ids (to avoid saveAssessment
+	// ambiguity on shared rubric text ids, which is a separate concern).
 	const sharedStudentId = "shared-student-cross-proj";
 
 	async function buildFixtureInProject(projectId: number) {
-		const questionId = buildTestId("question");
+		const rubricId = buildTestId("rubric");
 		const criterionId = buildTestId("criterion");
 
 		await db
@@ -330,15 +325,15 @@ test("saveAssessments links assessments only to the target project even when the
 			.execute();
 
 		await db
-			.insertInto("question")
-			.values({ projectId, id: questionId, label: "Q", position: 0 })
+			.insertInto("rubric")
+			.values({ projectId, id: rubricId, label: "Q", position: 0 })
 			.execute();
 
-		const question = await db
-			.selectFrom("question")
+		const rubric = await db
+			.selectFrom("rubric")
 			.select("rowId")
 			.where("projectId", "=", projectId)
-			.where("id", "=", questionId)
+			.where("id", "=", rubricId)
 			.executeTakeFirstOrThrow();
 
 		const criterionRows = await db
@@ -346,7 +341,7 @@ test("saveAssessments links assessments only to the target project even when the
 			.values({
 				id: criterionId,
 				projectId,
-				questionId: question.rowId,
+				rubricId: rubric.rowId,
 				kind: "check",
 				position: 0,
 				label: "Correct",
@@ -362,12 +357,12 @@ test("saveAssessments links assessments only to the target project even when the
 			.values({ criterionId: criterion.rowId, marks: 1, falseMarks: 0 })
 			.execute();
 
-		return { questionId, criterionId };
+		return { rubricId, criterionId };
 	}
 
 	// Build fixtures; only capture project B's ids for the import rows
 	await buildFixtureInProject(projectA.rowId);
-	const { questionId: questionBId, criterionId: criterionBId } =
+	const { rubricId: rubricBId, criterionId: criterionBId } =
 		await buildFixtureInProject(projectB.rowId);
 
 	// Import assessments targeting project B only using project B's criterion column
@@ -375,7 +370,7 @@ test("saveAssessments links assessments only to the target project even when the
 		{
 			submission_type: "individual",
 			submitter: sharedStudentId,
-			[`${questionBId}:${criterionBId}`]: "true",
+			[`${rubricBId}:${criterionBId}`]: "true",
 		},
 	];
 
@@ -409,7 +404,7 @@ test("saveAssessments invalidates the assessment tags after the import commits",
 		{
 			submission_type: "individual",
 			submitter: fixture.studentId,
-			[`${fixture.questionId}:${fixture.criterionId}`]: "true",
+			[`${fixture.rubricId}:${fixture.criterionId}`]: "true",
 		},
 	];
 
@@ -430,7 +425,7 @@ test("saveAssessments does not invalidate when the import fails", async () => {
 		{
 			submission_type: "individual",
 			submitter: fixture.studentId,
-			[`${fixture.questionId}:${fixture.criterionId}`]: "not-a-boolean",
+			[`${fixture.rubricId}:${fixture.criterionId}`]: "not-a-boolean",
 		},
 	];
 

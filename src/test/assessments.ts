@@ -4,18 +4,18 @@ import { buildTestId } from "./dbIntegration.ts";
 
 export type AssessmentFixture = {
 	projectId: string;
-	questionId: string;
+	rubricId: string;
 	studentId: string;
 	submissionId: string;
 	criterionIds: { boolean: string; ordinal: string; numerical: string };
 };
 
 export type AssessmentFixtureOptions = {
-	questionId?: string;
+	rubricId?: string;
 	criterionIds?: { boolean: string; ordinal: string; numerical: string };
 };
 
-// Creates a submission with a question carrying one criterion of each type, ready for
+// Creates a submission with a rubric carrying one criterion of each type, ready for
 // assessment round-trips. Exposes the Project ID (public identifier); the Project
 // Row ID stays internal to the fixture plumbing. Cleanup is handled by disposing
 // the owning project (cascade), so no separate teardown helper is needed.
@@ -32,7 +32,7 @@ export async function createAssessmentFixture(
 
 	const projectRowId = project.rowId;
 
-	const questionId = options?.questionId ?? buildTestId("q");
+	const rubricId = options?.rubricId ?? buildTestId("q");
 	const studentId = buildTestId("student");
 	const checkCriterionId =
 		options?.criterionIds?.boolean ?? buildTestId("criterion-boolean");
@@ -69,20 +69,20 @@ export async function createAssessmentFixture(
 		.executeTakeFirstOrThrow();
 
 	await db
-		.insertInto("question")
+		.insertInto("rubric")
 		.values({
 			projectId: projectRowId,
-			id: questionId,
-			label: "Integration question",
+			id: rubricId,
+			label: "Integration rubric",
 			position: 0,
 		})
 		.execute();
 
-	const question = await db
-		.selectFrom("question")
+	const rubric = await db
+		.selectFrom("rubric")
 		.select(["id", "rowId"])
 		.where("projectId", "=", projectRowId)
-		.where("id", "=", questionId)
+		.where("id", "=", rubricId)
 		.executeTakeFirstOrThrow();
 
 	const insertedCriteria = await db
@@ -91,7 +91,7 @@ export async function createAssessmentFixture(
 			{
 				id: checkCriterionId,
 				projectId: projectRowId,
-				questionId: question.rowId,
+				rubricId: rubric.rowId,
 				kind: "check",
 				position: 0,
 				label: "Boolean criterion",
@@ -99,7 +99,7 @@ export async function createAssessmentFixture(
 			{
 				id: optionsCriterionId,
 				projectId: projectRowId,
-				questionId: question.rowId,
+				rubricId: rubric.rowId,
 				kind: "options",
 				position: 1,
 				label: "Ordinal criterion",
@@ -107,7 +107,7 @@ export async function createAssessmentFixture(
 			{
 				id: numberCriterionId,
 				projectId: projectRowId,
-				questionId: question.rowId,
+				rubricId: rubric.rowId,
 				kind: "number",
 				position: 2,
 				label: "Numerical criterion",
@@ -164,7 +164,7 @@ export async function createAssessmentFixture(
 
 	return {
 		projectId,
-		questionId,
+		rubricId,
 		studentId,
 		submissionId: String(submission.id),
 		criterionIds: {

@@ -5,7 +5,7 @@ const criteria = [
 	{
 		criterionId: "r-correctness",
 		rubricId: "q1",
-		rubricLabel: "Question 1",
+		rubricLabel: "Rubric 1",
 		maxMarks: 5,
 		averageMarks: 3.5,
 		averagePercent: 70,
@@ -22,7 +22,7 @@ const criteria = [
 	{
 		criterionId: "r-explanation",
 		rubricId: "q2",
-		rubricLabel: "Question 2",
+		rubricLabel: "Rubric 2",
 		maxMarks: 4,
 		averageMarks: 1.2,
 		averagePercent: 30,

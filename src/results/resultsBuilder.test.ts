@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { Grid } from "#questions/types.ts";
+import type { RubricsById } from "#rubrics/types.ts";
 import type { Submission } from "#submissions/types.ts";
 import {
 	buildResultsData,
@@ -26,9 +26,9 @@ describe("buildResultsData", () => {
 		},
 	];
 
-	const questionGrid: Grid = {
+	const rubricsById: RubricsById = {
 		q1: {
-			label: "Question 1",
+			label: "Rubric 1",
 			criteria: [
 				{
 					id: "r-boolean",
@@ -41,7 +41,7 @@ describe("buildResultsData", () => {
 			],
 		},
 		q2: {
-			label: "Question 2",
+			label: "Rubric 2",
 			criteria: [
 				{
 					id: "r-numerical",
@@ -61,7 +61,7 @@ describe("buildResultsData", () => {
 	it("preserves authored criterion order", () => {
 		const data = buildResultsData({
 			submissions,
-			questionGrid,
+			rubricsById,
 			assessmentRecords: [],
 		});
 
@@ -101,7 +101,7 @@ describe("buildResultsData", () => {
 
 		const data = buildResultsData({
 			submissions,
-			questionGrid,
+			rubricsById,
 			assessmentRecords: records,
 		});
 
@@ -132,7 +132,7 @@ describe("buildResultsData", () => {
 	it("maps details with type-specific properties", () => {
 		const data = buildResultsData({
 			submissions,
-			questionGrid,
+			rubricsById,
 			assessmentRecords: [],
 		});
 
@@ -180,7 +180,7 @@ describe("buildResultsData", () => {
 
 		const data = buildResultsData({
 			submissions,
-			questionGrid,
+			rubricsById,
 			assessmentRecords: records,
 		});
 
@@ -201,9 +201,9 @@ describe("buildResultsData", () => {
 	});
 
 	it("treats a null value field as unassessed for each criterion kind", () => {
-		const ordinalGrid: Grid = {
+		const ordinalGrid: RubricsById = {
 			q1: {
-				label: "Question 1",
+				label: "Rubric 1",
 				criteria: [
 					{
 						id: "r-boolean",
@@ -216,7 +216,7 @@ describe("buildResultsData", () => {
 				],
 			},
 			q2: {
-				label: "Question 2",
+				label: "Rubric 2",
 				criteria: [
 					{
 						id: "r-ordinal",
@@ -228,7 +228,7 @@ describe("buildResultsData", () => {
 				],
 			},
 			q3: {
-				label: "Question 3",
+				label: "Rubric 3",
 				criteria: [
 					{
 						id: "r-numerical",
@@ -274,7 +274,7 @@ describe("buildResultsData", () => {
 
 		const data = buildResultsData({
 			submissions,
-			questionGrid: ordinalGrid,
+			rubricsById: ordinalGrid,
 			assessmentRecords: records,
 		});
 
@@ -311,7 +311,7 @@ describe("buildResultsData", () => {
 
 		const data = buildResultsData({
 			submissions,
-			questionGrid,
+			rubricsById,
 			assessmentRecords: records,
 		});
 

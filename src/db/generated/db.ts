@@ -22,7 +22,7 @@ export interface Assessment {
 	createdAt: Generated<Timestamp>;
 	id: Generated<number>;
 	projectId: number;
-	questionId: number;
+	rubricId: number;
 	submissionId: number;
 	updatedAt: Generated<Timestamp>;
 }
@@ -48,8 +48,8 @@ export interface Criterion {
 	label: string | null;
 	position: number;
 	projectId: number;
-	questionId: number;
 	rowId: Generated<number>;
+	rubricId: number;
 	updatedAt: Generated<Timestamp>;
 }
 
@@ -104,7 +104,7 @@ export interface Project {
 	updatedAt: Generated<Timestamp>;
 }
 
-export interface Question {
+export interface Rubric {
 	createdAt: Generated<Timestamp>;
 	id: string;
 	label: string | null;
@@ -159,7 +159,7 @@ export interface DB {
 	optionsCriterionAssessment: OptionsCriterionAssessment;
 	optionsCriterionMark: OptionsCriterionMark;
 	project: Project;
-	question: Question;
+	rubric: Rubric;
 	student: Student;
 	studentToTeam: StudentToTeam;
 	submission: Submission;

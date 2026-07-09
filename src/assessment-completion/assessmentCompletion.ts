@@ -2,92 +2,88 @@ export type CompletionMetric = { completed: number; total: number };
 
 export type AssessmentCompletionInput = {
 	submissionIds: string[];
-	questions: Array<{ id: string; criterionCount: number }>;
+	rubrics: Array<{ id: string; criterionCount: number }>;
 	assessmentCounts: Array<{
 		submissionId: string;
-		questionId: string;
+		rubricId: string;
 		assessmentCount: number;
 	}>;
 };
 
 export type AssessmentCompletion = {
 	totalSubmissions: number;
-	totalQuestions: number;
-	completedQuestionCountBySubmissionId: Map<string, number>;
-	completedSubmissionCountByQuestionId: Map<string, number>;
+	totalRubrics: number;
+	completedRubricCountBySubmissionId: Map<string, number>;
+	completedSubmissionCountByRubricId: Map<string, number>;
 	completedSubmissions: number;
-	completedQuestions: number;
+	completedRubrics: number;
 };
 
 export function buildAssessmentCompletion({
 	submissionIds,
-	questions,
+	rubrics,
 	assessmentCounts,
 }: AssessmentCompletionInput): AssessmentCompletion {
 	const totalSubmissions = submissionIds.length;
-	const totalQuestions = questions.length;
+	const totalRubrics = rubrics.length;
 
 	const assessmentCountByKey = new Map<string, number>(
-		assessmentCounts.map(({ submissionId, questionId, assessmentCount }) => [
-			`${submissionId}:${questionId}`,
+		assessmentCounts.map(({ submissionId, rubricId, assessmentCount }) => [
+			`${submissionId}:${rubricId}`,
 			assessmentCount,
 		]),
 	);
 
-	const completedQuestionCountBySubmissionId = new Map<string, number>();
-	const completedSubmissionCountByQuestionId = new Map<string, number>(
-		questions.map((question) => [question.id, 0]),
+	const completedRubricCountBySubmissionId = new Map<string, number>();
+	const completedSubmissionCountByRubricId = new Map<string, number>(
+		rubrics.map((rubric) => [rubric.id, 0]),
 	);
 
 	for (const submissionId of submissionIds) {
-		let completedQuestionCount = 0;
+		let completedRubricCount = 0;
 
-		for (const question of questions) {
+		for (const rubric of rubrics) {
 			const assessmentCount =
-				assessmentCountByKey.get(`${submissionId}:${question.id}`) ?? 0;
+				assessmentCountByKey.get(`${submissionId}:${rubric.id}`) ?? 0;
 			const isComplete =
-				question.criterionCount === 0 ||
-				assessmentCount >= question.criterionCount;
+				rubric.criterionCount === 0 || assessmentCount >= rubric.criterionCount;
 
 			if (isComplete) {
-				completedQuestionCount += 1;
-				completedSubmissionCountByQuestionId.set(
-					question.id,
-					(completedSubmissionCountByQuestionId.get(question.id) ?? 0) + 1,
+				completedRubricCount += 1;
+				completedSubmissionCountByRubricId.set(
+					rubric.id,
+					(completedSubmissionCountByRubricId.get(rubric.id) ?? 0) + 1,
 				);
 			}
 		}
 
-		completedQuestionCountBySubmissionId.set(
-			submissionId,
-			completedQuestionCount,
-		);
+		completedRubricCountBySubmissionId.set(submissionId, completedRubricCount);
 	}
 
 	const completedSubmissions =
-		totalQuestions === 0
+		totalRubrics === 0
 			? totalSubmissions
 			: submissionIds.filter(
 					(submissionId) =>
-						completedQuestionCountBySubmissionId.get(submissionId) ===
-						totalQuestions,
+						completedRubricCountBySubmissionId.get(submissionId) ===
+						totalRubrics,
 				).length;
 
-	const completedQuestions =
+	const completedRubrics =
 		totalSubmissions === 0
-			? totalQuestions
-			: questions.filter(
-					(question) =>
-						completedSubmissionCountByQuestionId.get(question.id) ===
+			? totalRubrics
+			: rubrics.filter(
+					(rubric) =>
+						completedSubmissionCountByRubricId.get(rubric.id) ===
 						totalSubmissions,
 				).length;
 
 	return {
 		totalSubmissions,
-		totalQuestions,
-		completedQuestionCountBySubmissionId,
-		completedSubmissionCountByQuestionId,
+		totalRubrics,
+		completedRubricCountBySubmissionId,
+		completedSubmissionCountByRubricId,
 		completedSubmissions,
-		completedQuestions,
+		completedRubrics,
 	};
 }

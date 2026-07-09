@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
 	projectAssessmentSubmissionPath,
-	projectAssessmentSubmissionQuestionPath,
+	projectAssessmentSubmissionRubricPath,
 	projectAssessmentsPath,
 	projectResultsPath,
 } from "./projectPaths.ts";
@@ -32,16 +32,16 @@ describe("project assessment routes", () => {
 		).toBe("/projects/proj_123/cs101/assessments/submissions/sub_42");
 	});
 
-	it("builds submission question path and preserves question context", () => {
+	it("builds submission rubric path and preserves rubric context", () => {
 		expect(
-			projectAssessmentSubmissionQuestionPath({
+			projectAssessmentSubmissionRubricPath({
 				projectId,
 				projectSlug,
 				submissionId: "sub_42",
-				questionId: "question-7",
+				rubricId: "rubric-7",
 			}),
 		).toBe(
-			"/projects/proj_123/cs101/assessments/submissions/sub_42/questions/question-7",
+			"/projects/proj_123/cs101/assessments/submissions/sub_42/rubrics/rubric-7",
 		);
 	});
 });
