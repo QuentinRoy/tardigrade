@@ -1,17 +1,15 @@
 import { type Kysely, sql } from "kysely";
 
-// Terminology sweep stage 2b: the container gradeable shape is renamed
-// Question -> Rubric. The leaf (Criterion) and the criterion-kind axis landed in
-// stage 2a; the assess axis (`assessment`, `saveAssessment`, the `assessment-*`
-// modules) is stage 5. Here only the container noun moves: table `question` ->
-// `rubric`, and the container FK `question_id` -> `rubric_id` on `criterion` and
-// `assessment`. The `assessment` table keeps its name (stage 5); only its FK
-// column moves now, so `question`/`question_id` is fully vacated from the schema.
+// Renames the container gradeable shape's table from `question` to `rubric`,
+// and its foreign key from `question_id` to `rubric_id` on `criterion` and
+// `assessment`. The `assessment` table itself keeps its name — only the FK
+// column moves — so `question`/`question_id` is fully removed from the schema
+// after this migration.
 //
 // The schema builder is used throughout: renameTo for the table, renameColumn
 // for the columns, and renameConstraint for the constraints. The migration
 // runners build Kysely without CamelCasePlugin, so every identifier below is
-// passed to Postgres verbatim and the pre-2b names are the same on every
+// passed to Postgres verbatim and the pre-migration names are the same on every
 // database (see docs/reference/database-migrations.md). Constraint names keep
 // their historical spelling style here (PascalCase where they were PascalCase);
 // the snake_case normalization is a separate follow-up migration.
@@ -21,9 +19,8 @@ import { type Kysely, sql } from "kysely";
 // `question_project_id_idx`. Raw SQL for that single rename: the schema builder
 // has no index-rename API.
 //
-// No enum or trigger changes are needed: 2a's enforcement functions/triggers
-// are all criterion-scoped and neither `question` nor `assessment` carries a
-// trigger.
+// No enum or trigger changes are needed: neither `question` nor `assessment`
+// carries a trigger, and no enforcement function references either table.
 
 const CONSTRAINT_RENAMES: ReadonlyArray<readonly [string, string, string]> = [
 	// [table (post table-rename), from, to]

@@ -80,9 +80,9 @@ describe("parseRubricsYaml", () => {
 		).toThrow("Rubric ids must be unique");
 	});
 
-	// Terminology sweep stage 2b: the top-level key changed from `questions:` to
-	// `rubrics:` with a hard cutover. An old-format file must be rejected loudly,
-	// naming the stale key, rather than silently importing nothing.
+	// The top-level key was renamed from `questions:` to `rubrics:`. A file still
+	// using the old key must be rejected loudly, naming the stale key, rather
+	// than silently importing nothing.
 	it("rejects the old top-level `questions:` key by name", () => {
 		expect(() =>
 			parseRubricsYaml(`questions:

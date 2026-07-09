@@ -7,6 +7,8 @@
 
 The vocabulary is settled in `CONTEXT.md` (internal domain glossary) and `docs/reference/lexicon.md` (user-facing). This plan applies those decisions to the implementation, staged so each step is independently reviewable and shippable. Mostly mechanical application — but grilling stage 1 (2026-07-07) surfaced one genuine terminology decision the sweep had to make: the grid's summary surfaces (**Dashboard**, "Rubric overview", "Analytics") were near-synonyms. Resolved to **Overview** (grid home — retires "Dashboard") vs **Results** (the outcomes page holding the **Grades** matrix + **Analytics** breakdown); recorded in the lexicon.
 
+**Don't leak this plan's own labels into code comments.** Terms like "stage 2b", "terminology sweep", a grilling question id (`Q4`), or a finding number are meaningless to a reader who doesn't have this plan open — and this plan is temporary (`plans/` lifecycle: `Active` → `Completed`/`Abandoned`, then it stops being anyone's reference). A code comment must stand on its own: state the actual technical reason (what invariant, what constraint, what behavior would otherwise surprise a reader), not a pointer into this document. If a comment genuinely cannot be self-contained without this plan's context, link the specific file (`plans/2026-07-06-terminology-sweep.md`) rather than naming a stage in prose — but that should be rare; usually the self-contained technical reason is what belongs in the comment anyway.
+
 ## State of the code (2026-07-06, after the MUI → Mantine merge #242)
 
 The Mantine migration independently and **partially** adopted some of the new vocabulary, leaving the tree in a mixed state the sweep must reconcile — not a clean single-direction rename from the old terms:
