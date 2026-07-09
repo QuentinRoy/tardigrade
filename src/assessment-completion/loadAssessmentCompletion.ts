@@ -4,9 +4,9 @@ import { cacheLife } from "next/cache";
 import {
 	assessmentAggregateCacheTag,
 	assessmentImportCacheTag,
-	assessmentProgressForQuestionCacheTag,
+	assessmentProgressForRubricCacheTag,
 	cacheTags,
-	questionListCacheTag,
+	rubricListCacheTag,
 	submissionListCacheTag,
 } from "#db/cacheTags.ts";
 import type { DB } from "#db/generated/db.ts";
@@ -18,17 +18,17 @@ import {
 } from "./assessmentCompletion.ts";
 import type { AssessmentCompletionSummary } from "./types.ts";
 
-// Question-scoped progress: saving a criterion for question Q busts
-// `assessments:question:Q` (and the coarse aggregate), so progress for Q
-// refreshes without busting other questions; the import tag covers bulk imports,
+// Rubric-scoped progress: saving a criterion for rubric Q busts
+// `assessments:rubric:Q` (and the coarse aggregate), so progress for Q
+// refreshes without busting other rubrics; the import tag covers bulk imports,
 // and the list tags cover roster and definition changes.
 export function assessedCriterionCountsBySubmissionCacheTags(
-	questionId: string,
+	rubricId: string,
 ): string[] {
 	return [
 		submissionListCacheTag(),
-		questionListCacheTag(),
-		assessmentProgressForQuestionCacheTag(questionId),
+		rubricListCacheTag(),
+		assessmentProgressForRubricCacheTag(rubricId),
 		assessmentImportCacheTag(),
 	];
 }
@@ -36,7 +36,7 @@ export function assessedCriterionCountsBySubmissionCacheTags(
 export function assessmentCompletionRowsCacheTags(): string[] {
 	return [
 		submissionListCacheTag(),
-		questionListCacheTag(),
+		rubricListCacheTag(),
 		assessmentAggregateCacheTag(),
 	];
 }
@@ -52,26 +52,26 @@ export async function loadAssessmentCompletionRowsFromDb(
 		.select("rowId")
 		.where("id", "=", projectId);
 
-	const [submissions, questions, assessmentCounts] = await Promise.all([
+	const [submissions, rubrics, assessmentCounts] = await Promise.all([
 		db
 			.selectFrom("submission")
 			.where("submission.projectId", "in", projectRowIdQuery)
 			.select("id")
 			.execute(),
 		db
-			.selectFrom("question")
-			.where("question.projectId", "in", projectRowIdQuery)
-			.leftJoin("criterion", "criterion.questionId", "question.rowId")
+			.selectFrom("rubric")
+			.where("rubric.projectId", "in", projectRowIdQuery)
+			.leftJoin("criterion", "criterion.rubricId", "rubric.rowId")
 			.select((eb) => [
-				"question.id as id",
+				"rubric.id as id",
 				eb.fn.count<number>("criterion.id").as("criterionCount"),
 			])
-			.groupBy("question.id")
+			.groupBy("rubric.id")
 			.execute(),
 		db
 			.selectFrom("assessment")
 			.where("assessment.projectId", "in", projectRowIdQuery)
-			.innerJoin("question", "question.rowId", "assessment.questionId")
+			.innerJoin("rubric", "rubric.rowId", "assessment.rubricId")
 			.leftJoin(
 				"criterionAssessment",
 				"criterionAssessment.assessmentId",
@@ -79,22 +79,22 @@ export async function loadAssessmentCompletionRowsFromDb(
 			)
 			.select((eb) => [
 				"assessment.submissionId as submissionId",
-				"question.id as questionId",
+				"rubric.id as rubricId",
 				eb.fn.count<number>("criterionAssessment.id").as("assessmentCount"),
 			])
-			.groupBy(["assessment.submissionId", "question.id"])
+			.groupBy(["assessment.submissionId", "rubric.id"])
 			.execute(),
 	]);
 
 	return {
 		submissionIds: submissions.map((submission) => String(submission.id)),
-		questions: questions.map((question) => ({
-			id: question.id,
-			criterionCount: Number(question.criterionCount),
+		rubrics: rubrics.map((rubric) => ({
+			id: rubric.id,
+			criterionCount: Number(rubric.criterionCount),
 		})),
 		assessmentCounts: assessmentCounts.map((row) => ({
 			submissionId: String(row.submissionId),
-			questionId: row.questionId,
+			rubricId: row.rubricId,
 			assessmentCount: Number(row.assessmentCount),
 		})),
 	};
@@ -111,9 +111,8 @@ function buildCompletionBySubmission(
 			submissionId,
 			{
 				completed:
-					completion.completedQuestionCountBySubmissionId.get(submissionId) ??
-					0,
-				total: completion.totalQuestions,
+					completion.completedRubricCountBySubmissionId.get(submissionId) ?? 0,
+				total: completion.totalRubrics,
 			},
 		]),
 	);
@@ -172,7 +171,7 @@ export type AssessedCriterionCounts = {
 // instead of querying submissions twice (Finding 7).
 export async function loadAssessedCriterionCountsFromDb(
 	db: Kysely<DB>,
-	{ questionId, projectId }: { questionId: string; projectId: string },
+	{ rubricId, projectId }: { rubricId: string; projectId: string },
 ): Promise<AssessedCriterionCounts> {
 	const projectRowIdQuery = db
 		.selectFrom("project")
@@ -183,20 +182,20 @@ export async function loadAssessedCriterionCountsFromDb(
 		db
 			.selectFrom("criterion")
 			.where("criterion.projectId", "in", projectRowIdQuery)
-			.innerJoin("question", "question.rowId", "criterion.questionId")
-			.where("question.id", "=", questionId)
+			.innerJoin("rubric", "rubric.rowId", "criterion.rubricId")
+			.where("rubric.id", "=", rubricId)
 			.select((eb) => eb.fn.countAll<number>().as("count"))
 			.executeTakeFirstOrThrow(),
 		db
 			.selectFrom("assessment")
 			.where("assessment.projectId", "in", projectRowIdQuery)
-			.innerJoin("question", "question.rowId", "assessment.questionId")
+			.innerJoin("rubric", "rubric.rowId", "assessment.rubricId")
 			.leftJoin(
 				"criterionAssessment",
 				"criterionAssessment.assessmentId",
 				"assessment.id",
 			)
-			.where("question.id", "=", questionId)
+			.where("rubric.id", "=", rubricId)
 			.select((eb) => [
 				"assessment.submissionId as submissionId",
 				eb.fn.count<number>("criterionAssessment.id").as("completed"),
@@ -219,13 +218,13 @@ export async function loadAssessedCriterionCountsFromDb(
 // Plain wrapper exposing the default db for callers outside `src/`, such as a
 // page composing this inside its own `"use cache"` scope (ADR 0007 rule 5).
 export async function loadAssessedCriterionCounts(
-	{ questionId, projectId }: { questionId: string; projectId: string },
+	{ rubricId, projectId }: { rubricId: string; projectId: string },
 	{ db = defaultDb }: { db?: Kysely<DB> } = {},
 ): Promise<AssessedCriterionCounts> {
-	return loadAssessedCriterionCountsFromDb(db, { questionId, projectId });
+	return loadAssessedCriterionCountsFromDb(db, { rubricId, projectId });
 }
 
-// Pure builder: per-submission completed/total criterion counts for one question,
+// Pure builder: per-submission completed/total criterion counts for one rubric,
 // from already-loaded submission ids plus the counts above.
 export function buildAssessedCriterionCountsBySubmission(
 	submissionIds: string[],
@@ -246,7 +245,7 @@ export function buildAssessedCriterionCountsBySubmission(
 // `db` may be the global client or a caller-supplied transaction.
 export async function loadAssessedCriterionCountsBySubmissionFromDb(
 	db: Kysely<DB>,
-	{ questionId, projectId }: { questionId: string; projectId: string },
+	{ rubricId, projectId }: { rubricId: string; projectId: string },
 ): Promise<Record<string, CompletionMetric>> {
 	const projectRowIdQuery = db
 		.selectFrom("project")
@@ -259,7 +258,7 @@ export async function loadAssessedCriterionCountsBySubmissionFromDb(
 			.where("submission.projectId", "in", projectRowIdQuery)
 			.select("id")
 			.execute(),
-		loadAssessedCriterionCountsFromDb(db, { questionId, projectId }),
+		loadAssessedCriterionCountsFromDb(db, { rubricId, projectId }),
 	]);
 
 	return buildAssessedCriterionCountsBySubmission(
@@ -269,15 +268,15 @@ export async function loadAssessedCriterionCountsBySubmissionFromDb(
 }
 
 export async function loadAssessedCriterionCountsBySubmission(
-	{ questionId, projectId }: { questionId: string; projectId: string },
+	{ rubricId, projectId }: { rubricId: string; projectId: string },
 	{ db = defaultDb }: { db?: Kysely<DB> } = {},
 ): Promise<Record<string, CompletionMetric>> {
 	"use cache";
-	cacheTags(...assessedCriterionCountsBySubmissionCacheTags(questionId));
+	cacheTags(...assessedCriterionCountsBySubmissionCacheTags(rubricId));
 	cacheLife("projection");
 
 	return loadAssessedCriterionCountsBySubmissionFromDb(db, {
-		questionId,
+		rubricId,
 		projectId,
 	});
 }
@@ -333,8 +332,8 @@ function buildCompletionSummary(
 ): AssessmentCompletionSummary {
 	const completion = buildAssessmentCompletion(rows);
 
-	const totalCriteriaInProject = rows.questions.reduce(
-		(sum, question) => sum + question.criterionCount,
+	const totalCriteriaInProject = rows.rubrics.reduce(
+		(sum, rubric) => sum + rubric.criterionCount,
 		0,
 	);
 	const totalExpectedCriterionAssessments =
@@ -345,9 +344,9 @@ function buildCompletionSummary(
 			completed: completion.completedSubmissions,
 			total: completion.totalSubmissions,
 		},
-		questions: {
-			completed: completion.completedQuestions,
-			total: completion.totalQuestions,
+		rubrics: {
+			completed: completion.completedRubrics,
+			total: completion.totalRubrics,
 		},
 		criteria: {
 			completed: Math.min(

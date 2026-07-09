@@ -6,7 +6,7 @@ import {
 } from "./submissionExportCsv.ts";
 
 describe("submission CSV ordering", () => {
-	const questions = [
+	const rubrics = [
 		{
 			id: "q1",
 			criteria: [
@@ -30,41 +30,41 @@ describe("submission CSV ordering", () => {
 		},
 	];
 
-	const fullyAssessedQuestions = [
+	const fullyAssessedRubrics = [
 		{
-			questionId: "q1",
+			rubricId: "q1",
 			criteria: [
 				{ criterionId: "r1", assessment: true, marks: 2 },
 				{ criterionId: "r2", assessment: "B", marks: 1 },
 			],
 		},
 		{
-			questionId: "q2",
+			rubricId: "q2",
 			criteria: [{ criterionId: "r3", assessment: 8, marks: 4 }],
 		},
 	];
 
-	const failedBooleanQuestions = [
+	const failedBooleanRubrics = [
 		{
-			questionId: "q1",
+			rubricId: "q1",
 			criteria: [
 				{ criterionId: "r1", assessment: false, marks: -1 },
 				{ criterionId: "r2" },
 			],
 		},
-		{ questionId: "q2", criteria: [{ criterionId: "r3" }] },
+		{ rubricId: "q2", criteria: [{ criterionId: "r3" }] },
 	];
 
-	const unassessedQuestions = [
+	const unassessedRubrics = [
 		{
-			questionId: "q1",
+			rubricId: "q1",
 			criteria: [{ criterionId: "r1" }, { criterionId: "r2" }],
 		},
-		{ questionId: "q2", criteria: [{ criterionId: "r3" }] },
+		{ rubricId: "q2", criteria: [{ criterionId: "r3" }] },
 	];
 
-	it("builds headers in criterion-before-question-total order", () => {
-		const headers = buildSubmissionExportHeaders(questions, {
+	it("builds headers in criterion-before-rubric-total order", () => {
+		const headers = buildSubmissionExportHeaders(rubrics, {
 			includeCriterionAssessment: true,
 			includeCriterionMarks: true,
 		});
@@ -84,11 +84,11 @@ describe("submission CSV ordering", () => {
 		]);
 	});
 
-	it("builds sparse record values with question totals and grand total", () => {
+	it("builds sparse record values with rubric totals and grand total", () => {
 		const row = buildSubmissionExportRecord({
 			row: {
 				submission: { id: "sub-1", type: "individual", studentId: "stu-123" },
-				questions: fullyAssessedQuestions,
+				rubrics: fullyAssessedRubrics,
 			},
 			options: {
 				includeCriterionAssessment: true,
@@ -117,7 +117,7 @@ describe("submission CSV ordering", () => {
 		const row = buildSubmissionExportRecord({
 			row: {
 				submission: { id: "sub-1", type: "individual", studentId: "stu-123" },
-				questions: failedBooleanQuestions,
+				rubrics: failedBooleanRubrics,
 			},
 			options: {
 				includeCriterionAssessment: true,
@@ -140,7 +140,7 @@ describe("submission CSV ordering", () => {
 			buildSubmissionExportRecord({
 				row: {
 					submission: { id: "sub-team", type: "team", teamName: "" },
-					questions: unassessedQuestions,
+					rubrics: unassessedRubrics,
 				},
 				options: {
 					includeCriterionAssessment: false,
@@ -154,7 +154,7 @@ describe("submission CSV ordering", () => {
 		const row = buildSubmissionExportRecord({
 			row: {
 				submission: { id: "sub-team-1", type: "team", teamName: "Team A" },
-				questions: unassessedQuestions,
+				rubrics: unassessedRubrics,
 			},
 			options: {
 				includeCriterionAssessment: true,

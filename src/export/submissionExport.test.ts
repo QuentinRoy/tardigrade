@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { createCsvSubmissionExportDataStream } from "./submissionExport.ts";
 import type {
-	ExportQuestionPlan,
+	ExportRubricPlan,
 	SubmissionExportDataRow,
 } from "./submissionExportCsv.ts";
 
@@ -26,7 +26,7 @@ async function readStream(stream: ReadableStream<Uint8Array>): Promise<string> {
 
 describe("createCsvSubmissionExportDataStream", () => {
 	it("serializes nested camelCase rows using underscore CSV columns", async () => {
-		const questions: ExportQuestionPlan[] = [
+		const rubrics: ExportRubricPlan[] = [
 			{
 				id: "q1",
 				criteria: [{ id: "r1", kind: "check", marks: 2, falseMarks: 0 }],
@@ -36,9 +36,9 @@ describe("createCsvSubmissionExportDataStream", () => {
 		async function* rows(): AsyncGenerator<SubmissionExportDataRow> {
 			yield {
 				submission: { id: "sub-1", type: "individual", studentId: "stu-1" },
-				questions: [
+				rubrics: [
 					{
-						questionId: "q1",
+						rubricId: "q1",
 						criteria: [{ criterionId: "r1", assessment: true, marks: 2 }],
 					},
 				],
@@ -46,12 +46,12 @@ describe("createCsvSubmissionExportDataStream", () => {
 
 			yield {
 				submission: { id: "sub-2", type: "individual", studentId: "stu-2" },
-				questions: [{ questionId: "q1", criteria: [{ criterionId: "r1" }] }],
+				rubrics: [{ rubricId: "q1", criteria: [{ criterionId: "r1" }] }],
 			};
 		}
 
 		const stream = createCsvSubmissionExportDataStream({
-			questions,
+			rubrics,
 			rows: rows(),
 			options: {
 				includeCriterionAssessment: true,

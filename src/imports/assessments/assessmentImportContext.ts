@@ -15,7 +15,7 @@ async function loadCriteriaByColumn(
 ): Promise<Map<string, AssessmentImportCriterion>> {
 	const criterionRows = await db
 		.selectFrom("criterion")
-		.innerJoin("question", "question.rowId", "criterion.questionId")
+		.innerJoin("rubric", "rubric.rowId", "criterion.rubricId")
 		.leftJoin(
 			"optionsCriterion",
 			"optionsCriterion.criterionId",
@@ -30,7 +30,7 @@ async function loadCriteriaByColumn(
 		.select([
 			"criterion.id",
 			"criterion.kind",
-			"question.id as questionId",
+			"rubric.id as rubricId",
 			"optionsCriterionMark.label",
 		])
 		.execute();
@@ -38,14 +38,14 @@ async function loadCriteriaByColumn(
 	const criteriaByColumn = new Map<string, AssessmentImportCriterion>();
 
 	for (const row of criterionRows) {
-		const column = `${row.questionId}:${row.id}`;
+		const column = `${row.rubricId}:${row.id}`;
 		const existing = criteriaByColumn.get(column);
 
 		if (existing == null) {
 			criteriaByColumn.set(column, {
 				id: row.id,
 				kind: row.kind,
-				questionId: row.questionId,
+				rubricId: row.rubricId,
 				ordinalLabels: row.label == null ? [] : [row.label],
 			});
 		} else if (
@@ -59,17 +59,17 @@ async function loadCriteriaByColumn(
 	return criteriaByColumn;
 }
 
-async function loadQuestionIds(
+async function loadRubricIds(
 	db: Kysely<DB>,
 	projectRowId: number,
 ): Promise<Set<string>> {
-	const questions = await db
-		.selectFrom("question")
+	const rubrics = await db
+		.selectFrom("rubric")
 		.where("projectId", "=", projectRowId)
 		.select("id")
 		.execute();
 
-	return new Set(questions.map((question) => question.id));
+	return new Set(rubrics.map((rubric) => rubric.id));
 }
 
 async function loadSubmissionIdsByLookup(
@@ -192,19 +192,19 @@ export async function loadAssessmentImportContextFromDb(
 
 	const [
 		criteriaByColumn,
-		questionIds,
+		rubricIds,
 		submissionIdsByLookup,
 		assessedCriterionKeys,
 	] = await Promise.all([
 		loadCriteriaByColumn(db, projectRowId),
-		loadQuestionIds(db, projectRowId),
+		loadRubricIds(db, projectRowId),
 		loadSubmissionIdsByLookup(db, { rows, projectRowId }),
 		loadAssessedCriterionKeys(db, projectRowId),
 	]);
 
 	return {
 		criteriaByColumn,
-		questionIds,
+		rubricIds,
 		submissionIdsByLookup,
 		assessedCriterionKeys,
 	};

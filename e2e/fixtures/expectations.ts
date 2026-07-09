@@ -2,7 +2,7 @@
 // the three fixture payloads in this folder. Keep this file in lockstep with
 // those fixtures: if a fixture changes, redo the arithmetic below.
 //
-// Marks model (from questions.yaml):
+// Marks model (from rubrics.yaml):
 //   q1:r1 check  -> true = 1, false = 0
 //   q2:r2 options  -> excellent = 2, good = 1, poor = 0
 //
@@ -18,13 +18,13 @@
 //   jane_smith: unassessed                        -> grand_total_marks blank
 //
 // Dashboard completion semantics (see `src/assessments/assessmentCompletion.ts`):
-//   - submissions: a submission is complete once every question on it is fully
+//   - submissions: a submission is complete once every rubric on it is fully
 //     assessed. Total = submission count (3); complete = john_doe, Team A (2).
-//   - questions: a question is complete only once it is fully assessed on every
-//     submission project-wide. Total = question count (2); since jane_smith
-//     leaves both q1 and q2 incomplete, neither question is complete (0).
+//   - rubrics: a rubric is complete only once it is fully assessed on every
+//     submission project-wide. Total = rubric count (2); since jane_smith
+//     leaves both q1 and q2 incomplete, neither rubric is complete (0).
 //   - criteria: counts individual (submission, rubric) pairs, not deduplicated
-//     by question. Total = submissions x rubrics = 3 x 2 = 6; complete = the 4
+//     by rubric. Total = submissions x rubrics = 3 x 2 = 6; complete = the 4
 //     pairs assessed for john_doe and Team A.
 
 export const PROJECT_NAME = "E2E Smoke Project";
@@ -41,7 +41,7 @@ export const EXPECTED_GRAND_TOTAL_MARKS: Record<string, number | null> = {
 // Assessment Completion shown on the dashboard, as `completed / total`.
 export const EXPECTED_COMPLETION = {
 	submissions: { completed: 2, total: 3 },
-	questions: { completed: 0, total: 2 },
+	rubrics: { completed: 0, total: 2 },
 	criteria: { completed: 4, total: 6 },
 };
 

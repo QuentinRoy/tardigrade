@@ -8,7 +8,7 @@ import {
 import {
 	addFullAssessmentFixture,
 	createIndividualSubmissionFixtures,
-	createMixedCriterionQuestionFixtureProject,
+	createMixedCriterionRubricFixtureProject,
 	createStudentFixtures,
 } from "#test/mixedCriterionAssessmentFixture.ts";
 import { createCsvSubmissionExport } from "./submissionExport.ts";
@@ -33,7 +33,7 @@ async function addSparseAssessment(
 	params: {
 		projectRowId: number;
 		submissionId: number;
-		questionRowId: number;
+		rubricRowId: number;
 		checkCriterionRowId: number;
 	},
 ) {
@@ -42,7 +42,7 @@ async function addSparseAssessment(
 		.values({
 			projectId: params.projectRowId,
 			submissionId: params.submissionId,
-			questionId: params.questionRowId,
+			rubricId: params.rubricRowId,
 		})
 		.returning("id")
 		.executeTakeFirstOrThrow();
@@ -74,14 +74,16 @@ afterAll(async () => {
 });
 
 test("createCsvSubmissionExport snapshots CSV for mixed criterion types and submission states", async () => {
-	const { project, question } =
-		await createMixedCriterionQuestionFixtureProject(db, {
+	const { project, rubric } = await createMixedCriterionRubricFixtureProject(
+		db,
+		{
 			projectName: "Export Integration Project",
-			questionId: "q-export-test",
+			rubricId: "q-export-test",
 			checkCriterionId: "r-bool-export-test",
 			optionsCriterionId: "r-ord-export-test",
 			numberCriterionId: "r-num-export-test",
-		});
+		},
+	);
 
 	const criterionRowIds = await db
 		.selectFrom("criterion")
@@ -107,16 +109,16 @@ test("createCsvSubmissionExport snapshots CSV for mixed criterion types and subm
 		addFullAssessmentFixture(db, {
 			projectRowId: project.rowId,
 			submissionId: sub1.id,
-			questionRowId: question.rowId,
-			checkCriterionRowId: criterionRowId.get(question.criteria.booleanId)!,
-			optionsCriterionRowId: criterionRowId.get(question.criteria.ordinalId)!,
-			numberCriterionRowId: criterionRowId.get(question.criteria.numericalId)!,
+			rubricRowId: rubric.rowId,
+			checkCriterionRowId: criterionRowId.get(rubric.criteria.booleanId)!,
+			optionsCriterionRowId: criterionRowId.get(rubric.criteria.ordinalId)!,
+			numberCriterionRowId: criterionRowId.get(rubric.criteria.numericalId)!,
 		}),
 		addSparseAssessment(db, {
 			projectRowId: project.rowId,
 			submissionId: sub2.id,
-			questionRowId: question.rowId,
-			checkCriterionRowId: criterionRowId.get(question.criteria.booleanId)!,
+			rubricRowId: rubric.rowId,
+			checkCriterionRowId: criterionRowId.get(rubric.criteria.booleanId)!,
 		}),
 	]);
 

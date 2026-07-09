@@ -9,7 +9,7 @@ import {
 	type SaveError,
 	useSaveErrors,
 } from "#design-system/SaveErrorsProvider.tsx";
-import { projectAssessmentSubmissionQuestionPath } from "#projects/projectPaths.ts";
+import { projectAssessmentSubmissionRubricPath } from "#projects/projectPaths.ts";
 import { getSubmissionLabel } from "#submissions/getSubmissionLabel.ts";
 import type { Submission } from "#submissions/types.ts";
 import AssessmentProgressSummary from "./AssessmentProgressSummary.tsx";
@@ -25,8 +25,8 @@ import { useSubmissionQuickJump } from "./useSubmissionQuickJump.ts";
 type SubmissionAssessmentClientProps = {
 	projectId: string;
 	projectSlug: string;
-	questionId: string;
-	questionLabel?: string | undefined;
+	rubricId: string;
+	rubricLabel?: string | undefined;
 	criteria: AssessedCriterion[];
 	submissions: Submission[];
 	progressPromise: Promise<
@@ -42,8 +42,8 @@ type SubmissionAssessmentClientProps = {
 export default function SubmissionAssessmentClient({
 	projectId,
 	projectSlug,
-	questionId,
-	questionLabel,
+	rubricId,
+	rubricLabel,
 	criteria: initialCriteria,
 	submissions,
 	progressPromise,
@@ -79,15 +79,15 @@ export default function SubmissionAssessmentClient({
 			saveCriterionAssessment({
 				saveAssessment,
 				submissionId: currentSubmissionId,
-				questionId,
+				rubricId,
 				assessment,
 				errorContext: {
 					projectId,
 					projectSlug,
 					submissionId: currentSubmissionId,
 					submissionLabel: currentSubmissionLabel,
-					questionId,
-					questionLabel,
+					rubricId,
+					rubricLabel,
 				},
 			}),
 		onError: addError,
@@ -99,11 +99,11 @@ export default function SubmissionAssessmentClient({
 
 	const navigateToSubmission = (submissionId: string) => {
 		router.push(
-			projectAssessmentSubmissionQuestionPath({
+			projectAssessmentSubmissionRubricPath({
 				projectId,
 				projectSlug,
 				submissionId,
-				questionId,
+				rubricId,
 			}),
 		);
 	};
@@ -126,11 +126,11 @@ export default function SubmissionAssessmentClient({
 			<Group gap="xs" wrap="wrap">
 				<Button
 					component={NextLink}
-					href={projectAssessmentSubmissionQuestionPath({
+					href={projectAssessmentSubmissionRubricPath({
 						projectId,
 						projectSlug,
 						submissionId: previousSubmission?.id ?? currentSubmissionId,
-						questionId,
+						rubricId,
 					})}
 					prefetch={previousSubmission != null}
 					variant="outline"
@@ -141,11 +141,11 @@ export default function SubmissionAssessmentClient({
 				</Button>
 				<Button
 					component={NextLink}
-					href={projectAssessmentSubmissionQuestionPath({
+					href={projectAssessmentSubmissionRubricPath({
 						projectId,
 						projectSlug,
 						submissionId: nextSubmission?.id ?? currentSubmissionId,
-						questionId,
+						rubricId,
 					})}
 					prefetch={nextSubmission != null}
 					variant="outline"

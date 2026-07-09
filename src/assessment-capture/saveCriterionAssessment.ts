@@ -19,22 +19,18 @@ export type SaveAssessment = (
 export async function saveCriterionAssessment({
 	saveAssessment,
 	submissionId,
-	questionId,
+	rubricId,
 	assessment,
 	errorContext,
 }: {
 	saveAssessment: SaveAssessment;
 	submissionId: string;
-	questionId: string;
+	rubricId: string;
 	assessment: SaveAssessmentParams["assessment"];
 	errorContext: Omit<SaveError, "id" | "message">;
 }): Promise<SaveResult<Omit<SaveError, "id">>> {
 	try {
-		const result = await saveAssessment({
-			submissionId,
-			questionId,
-			assessment,
-		});
+		const result = await saveAssessment({ submissionId, rubricId, assessment });
 
 		if (result.success) {
 			return { success: true };

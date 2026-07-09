@@ -22,23 +22,23 @@ async function createAssessmentConstraintFixture(
 		.executeTakeFirstOrThrow();
 	const projectRowId = project.rowId;
 
-	const questionId = buildTestId("question");
+	const rubricId = buildTestId("rubric");
 
 	await db
-		.insertInto("question")
+		.insertInto("rubric")
 		.values({
 			projectId: projectRowId,
-			id: questionId,
-			label: "Constraint question",
+			id: rubricId,
+			label: "Constraint rubric",
 			position: 0,
 		})
 		.execute();
 
-	const question = await db
-		.selectFrom("question")
+	const rubric = await db
+		.selectFrom("rubric")
 		.select("rowId")
 		.where("projectId", "=", projectRowId)
-		.where("id", "=", questionId)
+		.where("id", "=", rubricId)
 		.executeTakeFirstOrThrow();
 
 	const insertedCriteria = await db
@@ -47,7 +47,7 @@ async function createAssessmentConstraintFixture(
 			{
 				projectId: projectRowId,
 				id: buildTestId("criterion-boolean"),
-				questionId: question.rowId,
+				rubricId: rubric.rowId,
 				kind: "check",
 				position: 0,
 				label: "Boolean criterion",
@@ -55,7 +55,7 @@ async function createAssessmentConstraintFixture(
 			{
 				projectId: projectRowId,
 				id: buildTestId("criterion-ordinal"),
-				questionId: question.rowId,
+				rubricId: rubric.rowId,
 				kind: "options",
 				position: 1,
 				label: "Ordinal criterion",
@@ -63,7 +63,7 @@ async function createAssessmentConstraintFixture(
 			{
 				projectId: projectRowId,
 				id: buildTestId("criterion-numerical"),
-				questionId: question.rowId,
+				rubricId: rubric.rowId,
 				kind: "number",
 				position: 2,
 				label: "Numerical criterion",
@@ -156,12 +156,12 @@ async function createAssessmentConstraintFixture(
 			{
 				projectId: projectRowId,
 				submissionId: primarySubmission.id,
-				questionId: question.rowId,
+				rubricId: rubric.rowId,
 			},
 			{
 				projectId: projectRowId,
 				submissionId: secondarySubmission.id,
-				questionId: question.rowId,
+				rubricId: rubric.rowId,
 			},
 		])
 		.returning("id")
@@ -271,23 +271,23 @@ async function createSubtypeConstraintFixture(
 		.executeTakeFirstOrThrow();
 	const projectRowId = project.rowId;
 
-	const questionId = buildTestId("question-subtype");
+	const rubricId = buildTestId("rubric-subtype");
 
 	await db
-		.insertInto("question")
+		.insertInto("rubric")
 		.values({
 			projectId: projectRowId,
-			id: questionId,
-			label: "Subtype question",
+			id: rubricId,
+			label: "Subtype rubric",
 			position: 0,
 		})
 		.execute();
 
-	const question = await db
-		.selectFrom("question")
+	const rubric = await db
+		.selectFrom("rubric")
 		.select("rowId")
 		.where("projectId", "=", projectRowId)
-		.where("id", "=", questionId)
+		.where("id", "=", rubricId)
 		.executeTakeFirstOrThrow();
 
 	const insertedCriteria = await db
@@ -296,7 +296,7 @@ async function createSubtypeConstraintFixture(
 			{
 				projectId: projectRowId,
 				id: buildTestId("subtype-criterion-boolean"),
-				questionId: question.rowId,
+				rubricId: rubric.rowId,
 				kind: "check",
 				position: 0,
 				label: "Subtype boolean criterion",
@@ -304,7 +304,7 @@ async function createSubtypeConstraintFixture(
 			{
 				projectId: projectRowId,
 				id: buildTestId("subtype-criterion-ordinal"),
-				questionId: question.rowId,
+				rubricId: rubric.rowId,
 				kind: "options",
 				position: 1,
 				label: "Subtype ordinal criterion",
@@ -312,7 +312,7 @@ async function createSubtypeConstraintFixture(
 			{
 				projectId: projectRowId,
 				id: buildTestId("subtype-criterion-numerical"),
-				questionId: question.rowId,
+				rubricId: rubric.rowId,
 				kind: "number",
 				position: 2,
 				label: "Subtype numerical criterion",

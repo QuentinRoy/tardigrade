@@ -9,7 +9,7 @@ const meta = {
 	args: {
 		progress: {
 			submissions: { completed: 3, total: 10 },
-			questions: { completed: 4, total: 12 },
+			rubrics: { completed: 4, total: 12 },
 			criteria: { completed: 120, total: 360 },
 		},
 	},
@@ -25,7 +25,7 @@ export const AlmostDone: Story = {
 	args: {
 		progress: {
 			submissions: { completed: 9, total: 10 },
-			questions: { completed: 11, total: 12 },
+			rubrics: { completed: 11, total: 12 },
 			criteria: { completed: 332, total: 360 },
 		},
 	},
@@ -35,7 +35,7 @@ export const Completed: Story = {
 	args: {
 		progress: {
 			submissions: { completed: 10, total: 10 },
-			questions: { completed: 12, total: 12 },
+			rubrics: { completed: 12, total: 12 },
 			criteria: { completed: 360, total: 360 },
 		},
 	},
@@ -45,7 +45,7 @@ export const EmptyAssessment: Story = {
 	args: {
 		progress: {
 			submissions: { completed: 0, total: 0 },
-			questions: { completed: 0, total: 0 },
+			rubrics: { completed: 0, total: 0 },
 			criteria: { completed: 0, total: 0 },
 		},
 	},

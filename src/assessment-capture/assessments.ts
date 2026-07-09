@@ -4,7 +4,7 @@ import { cacheLife } from "next/cache";
 import type { AssessmentCriterionValue } from "#criteria/types.ts";
 import {
 	assessmentForSubmissionCacheTag,
-	assessmentForSubmissionQuestionCacheTag,
+	assessmentForSubmissionRubricCacheTag,
 	assessmentImportCacheTag,
 	cacheTags,
 } from "#db/cacheTags.ts";
@@ -14,44 +14,40 @@ import { assertNever, nonNull } from "#utils/utils.ts";
 
 export function loadAssessmentCacheTags({
 	submissionId,
-	questionId,
+	rubricId,
 }: {
 	submissionId: string;
-	questionId?: string | undefined;
+	rubricId?: string | undefined;
 }) {
 	// The granular (or submission-scoped) tag refreshes on individual saves;
 	// the import tag refreshes on bulk imports.
 	const scopeTag =
-		questionId == null
+		rubricId == null
 			? assessmentForSubmissionCacheTag(submissionId)
-			: assessmentForSubmissionQuestionCacheTag({ submissionId, questionId });
+			: assessmentForSubmissionRubricCacheTag({ submissionId, rubricId });
 	return [scopeTag, assessmentImportCacheTag()];
 }
 
-// Returns the typed criterion values for a single submission/question assessment.
+// Returns the typed criterion values for a single submission/rubric assessment.
 // `db` is a test seam only (ADR 0007 rules 13–14): never pass a handle at runtime —
 // Kysely instances are not serializable and Next.js throws on the cache key.
-export async function loadQuestionAssessment(
+export async function loadRubricAssessment(
 	{
 		submissionId,
 		projectId,
-		questionId,
-	}: { submissionId: string; projectId: string; questionId: string },
+		rubricId,
+	}: { submissionId: string; projectId: string; rubricId: string },
 	{ db = defaultDb }: { db?: Kysely<DB> } = {},
 ): Promise<AssessmentCriterionValue[]> {
 	"use cache";
-	cacheTags(...loadAssessmentCacheTags({ submissionId, questionId }));
+	cacheTags(...loadAssessmentCacheTags({ submissionId, rubricId }));
 	cacheLife("values");
-	return loadQuestionAssessmentFromDb(db, {
-		submissionId,
-		projectId,
-		questionId,
-	});
+	return loadRubricAssessmentFromDb(db, { submissionId, projectId, rubricId });
 }
 
-// Returns every question's criterion values for a submission in one query, keyed by
-// Question ID. Lets the submission overview load all assessments at once instead
-// of issuing one request per question.
+// Returns every rubric's criterion values for a submission in one query, keyed by
+// Rubric ID. Lets the submission overview load all assessments at once instead
+// of issuing one request per rubric.
 // `db` is a test seam only (ADR 0007 rules 13–14): never pass a handle at runtime —
 // Kysely instances are not serializable and Next.js throws on the cache key.
 export async function loadSubmissionAssessments(
@@ -65,18 +61,18 @@ export async function loadSubmissionAssessments(
 }
 
 // `db` may be the global client or a caller-supplied transaction.
-export async function loadQuestionAssessmentFromDb(
+export async function loadRubricAssessmentFromDb(
 	db: Kysely<DB>,
 	{
 		submissionId,
 		projectId,
-		questionId,
-	}: { submissionId: string; projectId: string; questionId: string },
+		rubricId,
+	}: { submissionId: string; projectId: string; rubricId: string },
 ): Promise<AssessmentCriterionValue[]> {
 	const rows = await loadCriterionAssessmentRows(db, {
 		submissionId,
 		projectId,
-		questionId,
+		rubricId,
 	});
 
 	const values: AssessmentCriterionValue[] = [];
@@ -99,20 +95,20 @@ export async function loadSubmissionAssessmentsFromDb(
 		projectId,
 	});
 
-	const valuesByQuestionId: Record<string, AssessmentCriterionValue[]> = {};
+	const valuesByRubricId: Record<string, AssessmentCriterionValue[]> = {};
 	for (const row of rows) {
 		const value = toCriterionValue(row);
 		if (value != null) {
-			const values = valuesByQuestionId[row.questionId] ?? [];
+			const values = valuesByRubricId[row.rubricId] ?? [];
 			values.push(value);
-			valuesByQuestionId[row.questionId] = values;
+			valuesByRubricId[row.rubricId] = values;
 		}
 	}
-	return valuesByQuestionId;
+	return valuesByRubricId;
 }
 
 type CriterionAssessmentRow = {
-	questionId: string;
+	rubricId: string;
 	criterionId: string;
 	kind: AssessmentCriterionValue["kind"];
 	passed: boolean | null;
@@ -121,25 +117,21 @@ type CriterionAssessmentRow = {
 };
 
 // Loads one row per stored criterion assessment for a submission, optionally scoped
-// to a single question. Filtering by Project ID disambiguates submissions and
-// questions that share public ids across projects.
+// to a single rubric. Filtering by Project ID disambiguates submissions and
+// rubrics that share public ids across projects.
 async function loadCriterionAssessmentRows(
 	db: Kysely<DB>,
 	{
 		submissionId,
 		projectId,
-		questionId,
-	}: {
-		submissionId: string;
-		projectId: string;
-		questionId?: string | undefined;
-	},
+		rubricId,
+	}: { submissionId: string; projectId: string; rubricId?: string | undefined },
 ): Promise<CriterionAssessmentRow[]> {
 	return db
 		.selectFrom("assessment")
 		.innerJoin("submission", "submission.id", "assessment.submissionId")
 		.innerJoin("project", "project.rowId", "submission.projectId")
-		.innerJoin("question", "question.rowId", "assessment.questionId")
+		.innerJoin("rubric", "rubric.rowId", "assessment.rubricId")
 		.innerJoin(
 			"criterionAssessment",
 			"criterionAssessment.assessmentId",
@@ -167,11 +159,11 @@ async function loadCriterionAssessmentRows(
 		)
 		.where("project.id", "=", projectId)
 		.where("submission.id", "=", Number(submissionId))
-		.$if(questionId != null, (qb) =>
-			qb.where("question.id", "=", nonNull(questionId)),
+		.$if(rubricId != null, (qb) =>
+			qb.where("rubric.id", "=", nonNull(rubricId)),
 		)
 		.select([
-			"question.id as questionId",
+			"rubric.id as rubricId",
 			"criterion.id as criterionId",
 			"criterionAssessment.kind as kind",
 			"checkCriterionAssessment.passed as passed",

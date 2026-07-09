@@ -6,7 +6,7 @@ import AppPage from "#design-system/AppPage.tsx";
 import {
 	projectAssessmentsPath,
 	projectImportStudentsPath,
-	projectQuestionsPath,
+	projectRubricsPath,
 } from "#projects/projectPaths.ts";
 import { loadProjectByPublicId } from "#projects/projects.ts";
 
@@ -29,18 +29,18 @@ export default async function ProjectDashboardPage({
 		<AppPage>
 			<Stack gap="lg">
 				<Title order={1}>{project.name} Dashboard</Title>
-				{progress.questions.total === 0 ? (
+				{progress.rubrics.total === 0 ? (
 					<Stack gap="sm" align="flex-start">
 						<Text c="dimmed">
-							No questions yet — add questions to start assessing.
+							No rubrics yet — add rubrics to start assessing.
 						</Text>
 						<AppButtonLink
-							href={projectQuestionsPath({
+							href={projectRubricsPath({
 								projectId: project.id,
 								projectSlug: project.slug,
 							})}
 						>
-							Add questions
+							Add rubrics
 						</AppButtonLink>
 					</Stack>
 				) : progress.submissions.total === 0 ? (

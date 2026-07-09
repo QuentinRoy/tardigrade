@@ -21,9 +21,9 @@ export async function saveAssessment(
 	const result = await db
 		.transaction()
 		.execute((tx) => saveAssessmentInDb(tx, params));
-	const { submissionId, questionId } = params;
+	const { submissionId, rubricId } = params;
 	if (result.success) {
-		invalidateAssessmentSave({ submissionId, questionId });
+		invalidateAssessmentSave({ submissionId, rubricId });
 	}
 
 	return result;

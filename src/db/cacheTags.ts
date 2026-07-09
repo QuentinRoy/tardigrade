@@ -13,8 +13,8 @@ export function projectListCacheTag(): string {
 	return "projects";
 }
 
-export function questionListCacheTag(): string {
-	return "questions";
+export function rubricListCacheTag(): string {
+	return "rubrics";
 }
 
 export function submissionListCacheTag(): string {
@@ -38,27 +38,25 @@ export function assessmentImportCacheTag(): string {
 	return "assessments:all";
 }
 
-// One submission's assessments across all questions.
+// One submission's assessments across all rubrics.
 export function assessmentForSubmissionCacheTag(submissionId: string): string {
 	return `assessments:${submissionId}`;
 }
 
-// One exact submission/question assessment pair.
-export function assessmentForSubmissionQuestionCacheTag({
+// One exact submission/rubric assessment pair.
+export function assessmentForSubmissionRubricCacheTag({
 	submissionId,
-	questionId,
+	rubricId,
 }: {
 	submissionId: string;
-	questionId: string;
+	rubricId: string;
 }): string {
-	return `assessments:${submissionId}:${questionId}`;
+	return `assessments:${submissionId}:${rubricId}`;
 }
 
-// One question's assessment progress across submissions.
-export function assessmentProgressForQuestionCacheTag(
-	questionId: string,
-): string {
-	return `assessments:question:${questionId}`;
+// One rubric's assessment progress across submissions.
+export function assessmentProgressForRubricCacheTag(rubricId: string): string {
+	return `assessments:rubric:${rubricId}`;
 }
 
 export function cacheTags(...tags: string[]): void {

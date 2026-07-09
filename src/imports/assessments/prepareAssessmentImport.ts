@@ -14,16 +14,16 @@ const MARKS_COLUMN_SUFFIX = ":marks";
 export type AssessmentImportCriterion = {
 	id: string;
 	kind: CriterionKind;
-	questionId: string;
+	rubricId: string;
 	ordinalLabels: string[];
 };
 
 export type AssessmentImportContext = {
-	// Criterion value columns keyed `${questionId}:${criterionId}`.
+	// Criterion value columns keyed `${rubricId}:${criterionId}`.
 	criteriaByColumn: Map<string, AssessmentImportCriterion>;
-	// Question ids of the project; bare question columns are derived export
+	// Rubric ids of the project; bare rubric columns are derived export
 	// output and are ignored on import.
-	questionIds: Set<string>;
+	rubricIds: Set<string>;
 	// Candidate submission ids keyed by submissionLookupKey().
 	submissionIdsByLookup: Map<string, string[]>;
 	// (submission, criterion) pairs that already hold a value, keyed by
@@ -33,7 +33,7 @@ export type AssessmentImportContext = {
 
 export type AssessmentImportWrite = {
 	submissionId: string;
-	questionId: string;
+	rubricId: string;
 	assessment: AssessmentCriterionValue;
 };
 
@@ -162,7 +162,7 @@ export function prepareAssessmentImport(params: {
 			);
 		if (
 			column === GRAND_TOTAL_MARKS_COLUMN ||
-			context.questionIds.has(column) ||
+			context.rubricIds.has(column) ||
 			isDerivedMarksColumn
 		) {
 			ignoredColumns.push(column);
@@ -228,11 +228,7 @@ export function prepareAssessmentImport(params: {
 				continue;
 			}
 
-			writes.push({
-				submissionId,
-				questionId: criterion.questionId,
-				assessment,
-			});
+			writes.push({ submissionId, rubricId: criterion.rubricId, assessment });
 
 			if (
 				context.assessedCriterionKeys.has(

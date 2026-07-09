@@ -12,9 +12,9 @@ export type SaveError = {
 	id: string;
 	projectId: string;
 	projectSlug: string;
-	questionId: string;
+	rubricId: string;
 	submissionId: string;
-	questionLabel?: string | undefined;
+	rubricLabel?: string | undefined;
 	submissionLabel?: string | undefined;
 	message: string;
 };
