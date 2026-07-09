@@ -373,7 +373,9 @@ export async function down(db: Kysely<unknown>): Promise<void> {
           ('criterion', ARRAY['criterion_pkey'], 'rubric_pkey'),
           ('criterion', ARRAY['Criterion_projectId_id_key'], 'Rubric_projectId_id_key'),
           ('criterion', ARRAY['Criterion_questionId_position_key'], 'Rubric_questionId_position_key'),
-          ('criterion', ARRAY['Criterion_projectId_fkey'], 'Rubric_projectId_fkey'),
+          -- Restored snake_cased: 20260527 re-created this FK via the schema
+          -- builder (CamelCasePlugin), so that is its spelling before up().
+          ('criterion', ARRAY['Criterion_projectId_fkey'], 'rubric_project_id_fkey'),
           ('criterion', ARRAY['Criterion_questionId_fkey'], 'Rubric_questionId_fkey'),
           ('criterion_assessment', ARRAY['criterion_assessment_pkey'], 'rubric_assessment_pkey'),
           ('criterion_assessment', ARRAY['CriterionAssessment_assessmentId_criterionId_key'], 'RubricAssessment_assessmentId_rubricId_key'),
@@ -416,7 +418,9 @@ export async function down(db: Kysely<unknown>): Promise<void> {
     END $$;
 
     ALTER INDEX IF EXISTS "criterion_project_id_idx" RENAME TO "rubric_project_id_idx";
-    ALTER INDEX IF EXISTS "OptionsCriterionMark_optionsCriterionId_label_idx" RENAME TO "OrdinalRubricValue_ordinalRubricId_label_idx";
+    -- Restored snake_cased: 20260514000002 created this index via the schema
+    -- builder (CamelCasePlugin), so that is its spelling before up().
+    ALTER INDEX IF EXISTS "OptionsCriterionMark_optionsCriterionId_label_idx" RENAME TO "ordinal_rubric_value_ordinal_rubric_id_label_idx";
   `.execute(db);
 
 	// Columns then tables back via the schema builder (sequential; see up()).
