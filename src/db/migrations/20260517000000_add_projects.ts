@@ -114,20 +114,9 @@ export async function up(db: Kysely<MigrationDB>): Promise<void> {
 }
 
 export async function down(db: Kysely<MigrationDB>): Promise<void> {
-	await Promise.all(
-		tablesWithProjectEntries.map(async ({ table, index }) => {
-			await db.schema.dropIndex(index).execute();
-			await db.schema.alterTable(table).dropColumn("project_id").execute();
-		}),
-	);
-
-	await db.schema.dropTable("project").ifExists().execute();
-
-	await db.schema
-		.alterTable("student")
-		.dropConstraint("Student_projectId_id_key")
-		.execute();
-
+	// Constraints that include project_id must be dropped before the column:
+	// dropping the column first would implicitly drop them, making the explicit
+	// dropConstraint calls fail with "constraint does not exist".
 	await db.schema
 		.alterTable("team")
 		.dropConstraint("Team_name_projectId_key")
@@ -137,4 +126,16 @@ export async function down(db: Kysely<MigrationDB>): Promise<void> {
 		.alterTable("team")
 		.addUniqueConstraint("team_name_key", ["name"])
 		.execute();
+
+	await db.schema
+		.alterTable("student")
+		.dropConstraint("Student_projectId_id_key")
+		.execute();
+
+	for (const { table, index } of tablesWithProjectEntries) {
+		await db.schema.dropIndex(index).execute();
+		await db.schema.alterTable(table).dropColumn("project_id").execute();
+	}
+
+	await db.schema.dropTable("project").ifExists().execute();
 }
