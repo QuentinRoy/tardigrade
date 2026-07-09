@@ -45,10 +45,10 @@ test("saveQuestionDefinitionInDb persists inside a caller transaction and rolls 
 				input: {
 					id: questionId,
 					label: "Inside transaction",
-					rubrics: [
+					criteria: [
 						{
-							id: buildTestId("rubric"),
-							type: "boolean",
+							id: buildTestId("criterion"),
+							kind: "check",
 							label: "Correct",
 							marks: 2,
 							falseMarks: 0,
@@ -89,11 +89,11 @@ test("saveQuestionDefinitionInDb renames question id while preserving linked ass
 			originalId: fixture.questionId,
 			id: renamedQuestionId,
 			label: "Renamed question",
-			rubrics: [
+			criteria: [
 				{
-					previousId: fixture.rubricId,
-					id: fixture.rubricId,
-					type: "boolean",
+					previousId: fixture.criterionId,
+					id: fixture.criterionId,
+					kind: "check",
 					label: "Correct",
 					marks: 2,
 					falseMarks: 0,
@@ -125,23 +125,23 @@ test("saveQuestionDefinitionInDb renames question id while preserving linked ass
 	expect(assessment.questionId).toBe(fixture.questionRowId);
 });
 
-test("saveQuestionDefinitionInDb replaces rubric subtype data when rubric type changes", async () => {
+test("saveQuestionDefinitionInDb replaces criterion subtype data when criterion type changes", async () => {
 	await using db = await createTestDb();
 	await using project = await createProject(db, "Save Type Change Project");
 	const fixture = await createAssessedBooleanQuestionFixture(db, project.rowId);
 
-	const replacedRubricId = buildTestId("rubric-numerical");
+	const replacedCriterionId = buildTestId("criterion-numerical");
 
 	await saveQuestionDefinitionInDb(db, {
 		input: {
 			originalId: fixture.questionId,
 			id: fixture.questionId,
 			label: "Type-changed question",
-			rubrics: [
+			criteria: [
 				{
-					previousId: fixture.rubricId,
-					id: replacedRubricId,
-					type: "numerical",
+					previousId: fixture.criterionId,
+					id: replacedCriterionId,
+					kind: "number",
 					label: "Score",
 					minScore: 0,
 					maxScore: 10,
@@ -154,71 +154,71 @@ test("saveQuestionDefinitionInDb replaces rubric subtype data when rubric type c
 		projectId: project.id,
 	});
 
-	const oldRubric = await db
-		.selectFrom("rubric")
+	const oldCriterion = await db
+		.selectFrom("criterion")
 		.select("rowId")
 		.where("projectId", "=", project.rowId)
-		.where("id", "=", fixture.rubricId)
+		.where("id", "=", fixture.criterionId)
 		.execute();
 
-	expect(oldRubric).toHaveLength(0);
+	expect(oldCriterion).toHaveLength(0);
 
-	const newRubric = await db
-		.selectFrom("rubric")
-		.select(["rowId", "type"])
+	const newCriterion = await db
+		.selectFrom("criterion")
+		.select(["rowId", "kind"])
 		.where("projectId", "=", project.rowId)
-		.where("id", "=", replacedRubricId)
+		.where("id", "=", replacedCriterionId)
 		.executeTakeFirstOrThrow();
 
-	expect(newRubric.type).toBe("numerical");
+	expect(newCriterion.kind).toBe("number");
 
 	const booleanSubtypeRows = await db
-		.selectFrom("booleanRubric")
+		.selectFrom("checkCriterion")
 		.select("id")
-		.where("rubricId", "=", fixture.rubricRowId)
+		.where("criterionId", "=", fixture.criterionRowId)
 		.execute();
 
 	const numericalSubtypeRows = await db
-		.selectFrom("numericalRubric")
-		.select(["rubricId", "minScore", "maxScore"])
-		.where("rubricId", "=", newRubric.rowId)
+		.selectFrom("numberCriterion")
+		.select(["criterionId", "minScore", "maxScore"])
+		.where("criterionId", "=", newCriterion.rowId)
 		.execute();
 
-	const linkedRubricAssessments = await db
-		.selectFrom("rubricAssessment")
+	const linkedCriterionAssessments = await db
+		.selectFrom("criterionAssessment")
 		.select("id")
 		.where("assessmentId", "=", fixture.assessmentId)
 		.execute();
 
 	expect(booleanSubtypeRows).toHaveLength(0);
 	expect(numericalSubtypeRows).toHaveLength(1);
-	expect(linkedRubricAssessments).toHaveLength(0);
+	expect(linkedCriterionAssessments).toHaveLength(0);
 });
 
-test("saveQuestionDefinitionInDb removes stale rubrics that are no longer referenced", async () => {
+test("saveQuestionDefinitionInDb removes stale criteria that are no longer referenced", async () => {
 	await using db = await createTestDb();
-	await using project = await createProject(db, "Save Stale Rubric Project");
+	await using project = await createProject(db, "Save Stale Criterion Project");
 	const fixture = await createAssessedBooleanQuestionFixture(db, project.rowId);
 
-	const staleRubricId = buildTestId("rubric-stale");
+	const staleCriterionId = buildTestId("criterion-stale");
 
 	await saveQuestionDefinitionInDb(db, {
 		input: {
 			originalId: fixture.questionId,
 			id: fixture.questionId,
-			label: "With stale rubric",
-			rubrics: [
+			label: "With stale criterion",
+			criteria: [
 				{
-					previousId: fixture.rubricId,
-					id: fixture.rubricId,
-					type: "boolean",
+					previousId: fixture.criterionId,
+					id: fixture.criterionId,
+					kind: "check",
 					label: "Primary",
 					marks: 2,
 					falseMarks: 0,
 				},
 				{
-					id: staleRubricId,
-					type: "boolean",
+					id: staleCriterionId,
+					kind: "check",
 					label: "Temporary",
 					marks: 1,
 					falseMarks: 0,
@@ -233,11 +233,11 @@ test("saveQuestionDefinitionInDb removes stale rubrics that are no longer refere
 			originalId: fixture.questionId,
 			id: fixture.questionId,
 			label: "Stale removed",
-			rubrics: [
+			criteria: [
 				{
-					previousId: fixture.rubricId,
-					id: fixture.rubricId,
-					type: "boolean",
+					previousId: fixture.criterionId,
+					id: fixture.criterionId,
+					kind: "check",
 					label: "Primary",
 					marks: 2,
 					falseMarks: 0,
@@ -247,27 +247,27 @@ test("saveQuestionDefinitionInDb removes stale rubrics that are no longer refere
 		projectId: project.id,
 	});
 
-	const staleRubricRows = await db
-		.selectFrom("rubric")
+	const staleCriterionRows = await db
+		.selectFrom("criterion")
 		.select("id")
 		.where("projectId", "=", project.rowId)
-		.where("id", "=", staleRubricId)
+		.where("id", "=", staleCriterionId)
 		.execute();
 
-	const remainingRubrics = await db
-		.selectFrom("rubric")
+	const remainingCriteria = await db
+		.selectFrom("criterion")
 		.select("id")
 		.where("projectId", "=", project.rowId)
 		.where("questionId", "=", fixture.questionRowId)
 		.execute();
 
-	expect(staleRubricRows).toHaveLength(0);
-	expect(remainingRubrics.map((rubric) => rubric.id)).toEqual([
-		fixture.rubricId,
+	expect(staleCriterionRows).toHaveLength(0);
+	expect(remainingCriteria.map((criterion) => criterion.id)).toEqual([
+		fixture.criterionId,
 	]);
 });
 
-test("saveQuestionDefinitionInDb replaces ordinal rubric values using the provided label set", async () => {
+test("saveQuestionDefinitionInDb replaces ordinal criterion values using the provided label set", async () => {
 	await using db = await createTestDb();
 	await using project = await createProject(db, "Save Ordinal Values Project");
 	const fixture = await createOrdinalQuestionFixture(db, project.rowId);
@@ -277,11 +277,11 @@ test("saveQuestionDefinitionInDb replaces ordinal rubric values using the provid
 			originalId: fixture.questionId,
 			id: fixture.questionId,
 			label: "Ordinal updated",
-			rubrics: [
+			criteria: [
 				{
-					previousId: fixture.rubricId,
-					id: fixture.rubricId,
-					type: "ordinal",
+					previousId: fixture.criterionId,
+					id: fixture.criterionId,
+					kind: "options",
 					label: "Ordinal",
 					marks: { B: 2.5, C: 1 },
 				},
@@ -290,23 +290,23 @@ test("saveQuestionDefinitionInDb replaces ordinal rubric values using the provid
 		projectId: project.id,
 	});
 
-	const rubricRow = await db
-		.selectFrom("rubric")
+	const criterionRow = await db
+		.selectFrom("criterion")
 		.select("rowId")
 		.where("projectId", "=", project.rowId)
-		.where("id", "=", fixture.rubricId)
+		.where("id", "=", fixture.criterionId)
 		.executeTakeFirstOrThrow();
 
-	const ordinalRubric = await db
-		.selectFrom("ordinalRubric")
+	const optionsCriterion = await db
+		.selectFrom("optionsCriterion")
 		.select("id")
-		.where("rubricId", "=", rubricRow.rowId)
+		.where("criterionId", "=", criterionRow.rowId)
 		.executeTakeFirstOrThrow();
 
 	const values = await db
-		.selectFrom("ordinalRubricValue")
+		.selectFrom("optionsCriterionMark")
 		.select(["label", "marks"])
-		.where("ordinalRubricId", "=", ordinalRubric.id)
+		.where("optionsCriterionId", "=", optionsCriterion.id)
 		.orderBy("label", "asc")
 		.execute();
 
@@ -508,10 +508,10 @@ test("saveQuestionDefinition wrapper updates the question list read-your-writes 
 			input: {
 				id: questionId,
 				label: "Cached question",
-				rubrics: [
+				criteria: [
 					{
-						id: buildTestId("rubric"),
-						type: "boolean",
+						id: buildTestId("criterion"),
+						kind: "check",
 						label: "Correct",
 						marks: 2,
 						falseMarks: 0,
@@ -548,11 +548,11 @@ test("saveQuestionDefinition wrapper revalidates the previous question's progres
 				originalId: fixture.questionId,
 				id: renamedQuestionId,
 				label: "Renamed question",
-				rubrics: [
+				criteria: [
 					{
-						previousId: fixture.rubricId,
-						id: fixture.rubricId,
-						type: "boolean",
+						previousId: fixture.criterionId,
+						id: fixture.criterionId,
+						kind: "check",
 						label: "Correct",
 						marks: 2,
 						falseMarks: 0,
@@ -584,7 +584,7 @@ test("saveQuestionDefinition wrapper does not invalidate when persistence throws
 
 	await expect(
 		saveQuestionDefinition(
-			{ input: { id: "   ", rubrics: [] }, projectId: project.id },
+			{ input: { id: "   ", criteria: [] }, projectId: project.id },
 			{ db },
 		),
 	).rejects.toThrow();

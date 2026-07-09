@@ -16,7 +16,7 @@ export type SaveAssessment = (
 	params: SaveAssessmentParams,
 ) => Promise<SaveAssessmentResult>;
 
-export async function saveRubricAssessment({
+export async function saveCriterionAssessment({
 	saveAssessment,
 	submissionId,
 	questionId,

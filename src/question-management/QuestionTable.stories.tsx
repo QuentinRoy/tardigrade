@@ -8,13 +8,13 @@ const sampleQuestions: QuestionDefinition[] = [
 		id: "q1",
 		position: 0,
 		assessmentCount: 12,
-		question: { label: "Correctness", rubrics: [] },
+		question: { label: "Correctness", criteria: [] },
 	},
 	{
 		id: "q2",
 		position: 1,
 		assessmentCount: 8,
-		question: { label: "Code Quality", rubrics: [] },
+		question: { label: "Code Quality", criteria: [] },
 	},
 ];
 

@@ -34,7 +34,7 @@ const meta = {
 			101: { completed: 1, total: 2 },
 			102: { completed: 2, total: 2 },
 		}),
-		progressLabel: "rubrics",
+		progressLabel: "criteria",
 	},
 	argTypes: {
 		// A Promise is not a serializable control value; leaving it editable makes

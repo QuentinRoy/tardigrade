@@ -210,6 +210,8 @@ type DisposableMigrationDb = {
 function createDisposableMigrationDb(
 	connectionString: string,
 ): DisposableMigrationDb {
+	// Mirrors the production migration runner (src/db/migrate.ts), which also
+	// builds Kysely with CamelCasePlugin, so migrations run identically here.
 	const db = new Kysely<DB>({
 		dialect: new PostgresDialect({ pool: createTestPool(connectionString) }),
 		plugins: [new CamelCasePlugin()],

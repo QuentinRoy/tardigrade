@@ -1,49 +1,52 @@
-import type { Rubric } from "#rubrics/types.ts";
+import type { Criterion } from "#criteria/types.ts";
 import type { SubmissionSubmitter } from "#submissions/types.ts";
 
 export type ExportOptions = {
-	includeRubricAssessment: boolean;
-	includeRubricMarks: boolean;
+	includeCriterionAssessment: boolean;
+	includeCriterionMarks: boolean;
 };
 
-type RubricOfType<TType extends Rubric["type"]> = Extract<
-	Rubric,
-	{ type: TType }
+type CriterionOfKind<TKind extends Criterion["kind"]> = Extract<
+	Criterion,
+	{ kind: TKind }
 >;
 
-type ExportBooleanRubricPlan = Pick<
-	RubricOfType<"boolean">,
-	"id" | "type" | "marks" | "falseMarks"
+type ExportCheckCriterionPlan = Pick<
+	CriterionOfKind<"check">,
+	"id" | "kind" | "marks" | "falseMarks"
 >;
 
-type ExportOrdinalRubricPlan = Pick<
-	RubricOfType<"ordinal">,
-	"id" | "type" | "marks"
+type ExportOptionsCriterionPlan = Pick<
+	CriterionOfKind<"options">,
+	"id" | "kind" | "marks"
 >;
 
-type ExportNumericalRubricPlan = Pick<
-	RubricOfType<"numerical">,
-	"id" | "type" | "minScore" | "maxScore" | "minMarks" | "maxMarks" | "reversed"
+type ExportNumberCriterionPlan = Pick<
+	CriterionOfKind<"number">,
+	"id" | "kind" | "minScore" | "maxScore" | "minMarks" | "maxMarks" | "reversed"
 >;
 
-export type ExportRubricPlan =
-	| ExportBooleanRubricPlan
-	| ExportOrdinalRubricPlan
-	| ExportNumericalRubricPlan;
+export type ExportCriterionPlan =
+	| ExportCheckCriterionPlan
+	| ExportOptionsCriterionPlan
+	| ExportNumberCriterionPlan;
 
-export type ExportQuestionPlan = { id: string; rubrics: ExportRubricPlan[] };
+export type ExportQuestionPlan = {
+	id: string;
+	criteria: ExportCriterionPlan[];
+};
 
 export type SubmissionExportAssessmentValue = string | number | boolean;
 
-export type SubmissionExportRubricData = {
-	rubricId: string;
+export type SubmissionExportCriterionData = {
+	criterionId: string;
 	assessment?: SubmissionExportAssessmentValue;
 	marks?: number;
 };
 
 export type SubmissionExportQuestionData = {
 	questionId: string;
-	rubrics: SubmissionExportRubricData[];
+	criteria: SubmissionExportCriterionData[];
 };
 
 export type SubmissionExportDataRow = {
@@ -64,9 +67,9 @@ export type SubmissionExportRecord = {
 
 export function buildAssessmentKey(
 	questionId: string,
-	rubricId: string,
+	criterionId: string,
 ): string {
-	return `${questionId}::${rubricId}`;
+	return `${questionId}::${criterionId}`;
 }
 
 export function getSubmissionExportIdentifier(
@@ -92,16 +95,19 @@ export function getSubmissionExportIdentifier(
 
 const COLUMN_PART_SEPARATOR = ":";
 
-function getRubricKey(questionId: string, rubricId: string): string {
-	return `${questionId}${COLUMN_PART_SEPARATOR}${rubricId}`;
+function getCriterionKey(questionId: string, criterionId: string): string {
+	return `${questionId}${COLUMN_PART_SEPARATOR}${criterionId}`;
 }
 
-function getAssessmentColumnName(questionId: string, rubricId: string): string {
-	return `${getRubricKey(questionId, rubricId)}`;
+function getAssessmentColumnName(
+	questionId: string,
+	criterionId: string,
+): string {
+	return `${getCriterionKey(questionId, criterionId)}`;
 }
 
-function getMarksColumnName(questionId: string, rubricId: string): string {
-	return `${getRubricKey(questionId, rubricId)}${COLUMN_PART_SEPARATOR}marks`;
+function getMarksColumnName(questionId: string, criterionId: string): string {
+	return `${getCriterionKey(questionId, criterionId)}${COLUMN_PART_SEPARATOR}marks`;
 }
 
 export function buildSubmissionExportHeaders(
@@ -111,12 +117,12 @@ export function buildSubmissionExportHeaders(
 	const headers = ["submission_type", "submitter"];
 
 	for (const question of questions) {
-		for (const rubric of question.rubrics) {
-			if (options.includeRubricAssessment) {
-				headers.push(getAssessmentColumnName(question.id, rubric.id));
+		for (const criterion of question.criteria) {
+			if (options.includeCriterionAssessment) {
+				headers.push(getAssessmentColumnName(question.id, criterion.id));
 			}
-			if (options.includeRubricMarks) {
-				headers.push(getMarksColumnName(question.id, rubric.id));
+			if (options.includeCriterionMarks) {
+				headers.push(getMarksColumnName(question.id, criterion.id));
 			}
 		}
 
@@ -147,28 +153,29 @@ export function buildSubmissionExportRecord(params: {
 		let questionTotalMarks = 0;
 		let isQuestionFullyAssessed = true;
 
-		for (const rubric of question.rubrics) {
-			if (rubric.assessment == null) {
+		for (const criterion of question.criteria) {
+			if (criterion.assessment == null) {
 				isQuestionFullyAssessed = false;
 			}
 
-			if (options.includeRubricAssessment) {
-				const assessmentValue = rubric.assessment;
+			if (options.includeCriterionAssessment) {
+				const assessmentValue = criterion.assessment;
 				if (assessmentValue != null) {
-					row[getAssessmentColumnName(question.questionId, rubric.rubricId)] =
-						assessmentValue;
+					row[
+						getAssessmentColumnName(question.questionId, criterion.criterionId)
+					] = assessmentValue;
 				}
 			}
 
-			if (options.includeRubricMarks) {
-				if (rubric.marks != null) {
-					row[getMarksColumnName(question.questionId, rubric.rubricId)] =
-						rubric.marks;
+			if (options.includeCriterionMarks) {
+				if (criterion.marks != null) {
+					row[getMarksColumnName(question.questionId, criterion.criterionId)] =
+						criterion.marks;
 				}
 			}
 
-			if (rubric.marks != null) {
-				questionTotalMarks += rubric.marks;
+			if (criterion.marks != null) {
+				questionTotalMarks += criterion.marks;
 			}
 		}
 

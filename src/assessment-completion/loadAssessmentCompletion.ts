@@ -18,11 +18,11 @@ import {
 } from "./assessmentCompletion.ts";
 import type { AssessmentCompletionSummary } from "./types.ts";
 
-// Question-scoped progress: saving a rubric for question Q busts
+// Question-scoped progress: saving a criterion for question Q busts
 // `assessments:question:Q` (and the coarse aggregate), so progress for Q
 // refreshes without busting other questions; the import tag covers bulk imports,
 // and the list tags cover roster and definition changes.
-export function assessedRubricCountsBySubmissionCacheTags(
+export function assessedCriterionCountsBySubmissionCacheTags(
 	questionId: string,
 ): string[] {
 	return [
@@ -61,10 +61,10 @@ export async function loadAssessmentCompletionRowsFromDb(
 		db
 			.selectFrom("question")
 			.where("question.projectId", "in", projectRowIdQuery)
-			.leftJoin("rubric", "rubric.questionId", "question.rowId")
+			.leftJoin("criterion", "criterion.questionId", "question.rowId")
 			.select((eb) => [
 				"question.id as id",
-				eb.fn.count<number>("rubric.id").as("rubricCount"),
+				eb.fn.count<number>("criterion.id").as("criterionCount"),
 			])
 			.groupBy("question.id")
 			.execute(),
@@ -73,14 +73,14 @@ export async function loadAssessmentCompletionRowsFromDb(
 			.where("assessment.projectId", "in", projectRowIdQuery)
 			.innerJoin("question", "question.rowId", "assessment.questionId")
 			.leftJoin(
-				"rubricAssessment",
-				"rubricAssessment.assessmentId",
+				"criterionAssessment",
+				"criterionAssessment.assessmentId",
 				"assessment.id",
 			)
 			.select((eb) => [
 				"assessment.submissionId as submissionId",
 				"question.id as questionId",
-				eb.fn.count<number>("rubricAssessment.id").as("assessmentCount"),
+				eb.fn.count<number>("criterionAssessment.id").as("assessmentCount"),
 			])
 			.groupBy(["assessment.submissionId", "question.id"])
 			.execute(),
@@ -90,7 +90,7 @@ export async function loadAssessmentCompletionRowsFromDb(
 		submissionIds: submissions.map((submission) => String(submission.id)),
 		questions: questions.map((question) => ({
 			id: question.id,
-			rubricCount: Number(question.rubricCount),
+			criterionCount: Number(question.criterionCount),
 		})),
 		assessmentCounts: assessmentCounts.map((row) => ({
 			submissionId: String(row.submissionId),
@@ -160,30 +160,30 @@ export async function loadAssessmentCompletionBySubmission(
 	return buildCompletionBySubmission(rows);
 }
 
-export type AssessedRubricCounts = {
-	totalRubrics: number;
+export type AssessedCriterionCounts = {
+	totalCriteria: number;
 	completedBySubmissionId: Map<string, number>;
 };
 
 // `db` may be the global client or a caller-supplied transaction. Counts only —
 // does not load submission ids, so a caller that already has the project's
 // submissions (for example a page that also renders the roster) can build the
-// per-submission result from `buildAssessedRubricCountsBySubmission` below
+// per-submission result from `buildAssessedCriterionCountsBySubmission` below
 // instead of querying submissions twice (Finding 7).
-export async function loadAssessedRubricCountsFromDb(
+export async function loadAssessedCriterionCountsFromDb(
 	db: Kysely<DB>,
 	{ questionId, projectId }: { questionId: string; projectId: string },
-): Promise<AssessedRubricCounts> {
+): Promise<AssessedCriterionCounts> {
 	const projectRowIdQuery = db
 		.selectFrom("project")
 		.select("rowId")
 		.where("id", "=", projectId);
 
-	const [rubricCountRow, assessmentCounts] = await Promise.all([
+	const [criterionCountRow, assessmentCounts] = await Promise.all([
 		db
-			.selectFrom("rubric")
-			.where("rubric.projectId", "in", projectRowIdQuery)
-			.innerJoin("question", "question.rowId", "rubric.questionId")
+			.selectFrom("criterion")
+			.where("criterion.projectId", "in", projectRowIdQuery)
+			.innerJoin("question", "question.rowId", "criterion.questionId")
 			.where("question.id", "=", questionId)
 			.select((eb) => eb.fn.countAll<number>().as("count"))
 			.executeTakeFirstOrThrow(),
@@ -192,21 +192,21 @@ export async function loadAssessedRubricCountsFromDb(
 			.where("assessment.projectId", "in", projectRowIdQuery)
 			.innerJoin("question", "question.rowId", "assessment.questionId")
 			.leftJoin(
-				"rubricAssessment",
-				"rubricAssessment.assessmentId",
+				"criterionAssessment",
+				"criterionAssessment.assessmentId",
 				"assessment.id",
 			)
 			.where("question.id", "=", questionId)
 			.select((eb) => [
 				"assessment.submissionId as submissionId",
-				eb.fn.count<number>("rubricAssessment.id").as("completed"),
+				eb.fn.count<number>("criterionAssessment.id").as("completed"),
 			])
 			.groupBy("assessment.submissionId")
 			.execute(),
 	]);
 
 	return {
-		totalRubrics: Number(rubricCountRow.count),
+		totalCriteria: Number(criterionCountRow.count),
 		completedBySubmissionId: new Map(
 			assessmentCounts.map((row) => [
 				String(row.submissionId),
@@ -218,33 +218,33 @@ export async function loadAssessedRubricCountsFromDb(
 
 // Plain wrapper exposing the default db for callers outside `src/`, such as a
 // page composing this inside its own `"use cache"` scope (ADR 0007 rule 5).
-export async function loadAssessedRubricCounts(
+export async function loadAssessedCriterionCounts(
 	{ questionId, projectId }: { questionId: string; projectId: string },
 	{ db = defaultDb }: { db?: Kysely<DB> } = {},
-): Promise<AssessedRubricCounts> {
-	return loadAssessedRubricCountsFromDb(db, { questionId, projectId });
+): Promise<AssessedCriterionCounts> {
+	return loadAssessedCriterionCountsFromDb(db, { questionId, projectId });
 }
 
-// Pure builder: per-submission completed/total rubric counts for one question,
+// Pure builder: per-submission completed/total criterion counts for one question,
 // from already-loaded submission ids plus the counts above.
-export function buildAssessedRubricCountsBySubmission(
+export function buildAssessedCriterionCountsBySubmission(
 	submissionIds: string[],
-	{ totalRubrics, completedBySubmissionId }: AssessedRubricCounts,
+	{ totalCriteria, completedBySubmissionId }: AssessedCriterionCounts,
 ): Record<string, CompletionMetric> {
 	return Object.fromEntries(
 		submissionIds.map((submissionId) => {
 			const completed = Math.min(
 				completedBySubmissionId.get(submissionId) ?? 0,
-				totalRubrics,
+				totalCriteria,
 			);
 
-			return [submissionId, { completed, total: totalRubrics }];
+			return [submissionId, { completed, total: totalCriteria }];
 		}),
 	);
 }
 
 // `db` may be the global client or a caller-supplied transaction.
-export async function loadAssessedRubricCountsBySubmissionFromDb(
+export async function loadAssessedCriterionCountsBySubmissionFromDb(
 	db: Kysely<DB>,
 	{ questionId, projectId }: { questionId: string; projectId: string },
 ): Promise<Record<string, CompletionMetric>> {
@@ -259,31 +259,31 @@ export async function loadAssessedRubricCountsBySubmissionFromDb(
 			.where("submission.projectId", "in", projectRowIdQuery)
 			.select("id")
 			.execute(),
-		loadAssessedRubricCountsFromDb(db, { questionId, projectId }),
+		loadAssessedCriterionCountsFromDb(db, { questionId, projectId }),
 	]);
 
-	return buildAssessedRubricCountsBySubmission(
+	return buildAssessedCriterionCountsBySubmission(
 		submissions.map((submission) => String(submission.id)),
 		counts,
 	);
 }
 
-export async function loadAssessedRubricCountsBySubmission(
+export async function loadAssessedCriterionCountsBySubmission(
 	{ questionId, projectId }: { questionId: string; projectId: string },
 	{ db = defaultDb }: { db?: Kysely<DB> } = {},
 ): Promise<Record<string, CompletionMetric>> {
 	"use cache";
-	cacheTags(...assessedRubricCountsBySubmissionCacheTags(questionId));
+	cacheTags(...assessedCriterionCountsBySubmissionCacheTags(questionId));
 	cacheLife("projection");
 
-	return loadAssessedRubricCountsBySubmissionFromDb(db, {
+	return loadAssessedCriterionCountsBySubmissionFromDb(db, {
 		questionId,
 		projectId,
 	});
 }
 
 // `db` may be the global client or a caller-supplied transaction.
-export async function loadRubricAssessmentsCountFromDb(
+export async function loadCriterionAssessmentsCountFromDb(
 	db: Kysely<DB>,
 	{ projectId }: { projectId: string },
 ): Promise<number> {
@@ -293,8 +293,12 @@ export async function loadRubricAssessmentsCountFromDb(
 		.where("id", "=", projectId);
 
 	const row = await db
-		.selectFrom("rubricAssessment")
-		.innerJoin("assessment", "assessment.id", "rubricAssessment.assessmentId")
+		.selectFrom("criterionAssessment")
+		.innerJoin(
+			"assessment",
+			"assessment.id",
+			"criterionAssessment.assessmentId",
+		)
 		.where("assessment.projectId", "in", projectRowIdQuery)
 		.select((eb) => eb.fn.countAll<number>().as("count"))
 		.executeTakeFirstOrThrow();
@@ -302,39 +306,39 @@ export async function loadRubricAssessmentsCountFromDb(
 	return Number(row.count);
 }
 
-export function rubricAssessmentsCountCacheTags(): string[] {
+export function criterionAssessmentsCountCacheTags(): string[] {
 	return [assessmentAggregateCacheTag()];
 }
 
-// Canonical cached source for the project-wide rubric-assessment count, so the
+// Canonical cached source for the project-wide criterion-assessment count, so the
 // uncached project dashboard page (`app/.../[projectSlug]/page.tsx`) doesn't run
 // this query on every request even though completion rows are cached.
-export async function loadRubricAssessmentsCount(
+export async function loadCriterionAssessmentsCount(
 	{ projectId }: { projectId: string },
 	options?: { db?: Kysely<DB> },
 ): Promise<number> {
 	"use cache";
-	cacheTags(...rubricAssessmentsCountCacheTags());
+	cacheTags(...criterionAssessmentsCountCacheTags());
 	cacheLife("projection");
-	return loadRubricAssessmentsCountFromDb(options?.db ?? defaultDb, {
+	return loadCriterionAssessmentsCountFromDb(options?.db ?? defaultDb, {
 		projectId,
 	});
 }
 
-// Pure builder: completion summary from shared completion rows plus the rubric
+// Pure builder: completion summary from shared completion rows plus the criterion
 // assessment count.
 function buildCompletionSummary(
 	rows: AssessmentCompletionInput,
-	rubricAssessmentsCount: number,
+	criterionAssessmentsCount: number,
 ): AssessmentCompletionSummary {
 	const completion = buildAssessmentCompletion(rows);
 
-	const totalRubricsInProject = rows.questions.reduce(
-		(sum, question) => sum + question.rubricCount,
+	const totalCriteriaInProject = rows.questions.reduce(
+		(sum, question) => sum + question.criterionCount,
 		0,
 	);
-	const totalExpectedRubricAssessments =
-		completion.totalSubmissions * totalRubricsInProject;
+	const totalExpectedCriterionAssessments =
+		completion.totalSubmissions * totalCriteriaInProject;
 
 	return {
 		submissions: {
@@ -345,12 +349,12 @@ function buildCompletionSummary(
 			completed: completion.completedQuestions,
 			total: completion.totalQuestions,
 		},
-		rubrics: {
+		criteria: {
 			completed: Math.min(
-				rubricAssessmentsCount,
-				totalExpectedRubricAssessments,
+				criterionAssessmentsCount,
+				totalExpectedCriterionAssessments,
 			),
-			total: totalExpectedRubricAssessments,
+			total: totalExpectedCriterionAssessments,
 		},
 	};
 }
@@ -360,12 +364,12 @@ export async function loadAssessmentCompletionSummaryFromDb(
 	db: Kysely<DB>,
 	{ projectId }: { projectId: string },
 ): Promise<AssessmentCompletionSummary> {
-	const [rows, rubricAssessmentsCount] = await Promise.all([
+	const [rows, criterionAssessmentsCount] = await Promise.all([
 		loadAssessmentCompletionRowsFromDb(db, { projectId }),
-		loadRubricAssessmentsCountFromDb(db, { projectId }),
+		loadCriterionAssessmentsCountFromDb(db, { projectId }),
 	]);
 
-	return buildCompletionSummary(rows, rubricAssessmentsCount);
+	return buildCompletionSummary(rows, criterionAssessmentsCount);
 }
 
 // Plain deriver: shares `loadAssessmentCompletionRows`' cache entry at runtime
@@ -377,10 +381,10 @@ export async function loadAssessmentCompletionSummary(
 	{ projectId }: { projectId: string },
 	options?: { db?: Kysely<DB> },
 ): Promise<AssessmentCompletionSummary> {
-	const [rows, rubricAssessmentsCount] = await Promise.all([
+	const [rows, criterionAssessmentsCount] = await Promise.all([
 		loadAssessmentCompletionRows({ projectId }, options),
-		loadRubricAssessmentsCount({ projectId }, options),
+		loadCriterionAssessmentsCount({ projectId }, options),
 	]);
 
-	return buildCompletionSummary(rows, rubricAssessmentsCount);
+	return buildCompletionSummary(rows, criterionAssessmentsCount);
 }

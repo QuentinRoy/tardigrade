@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { fn } from "storybook/test";
-import OrdinalGradeControl from "./OrdinalGradeControl.tsx";
+import OptionsGradeControl from "./OptionsGradeControl.tsx";
 
 const exampleMarks = {
 	Excellent: 4,
@@ -11,12 +11,12 @@ const exampleMarks = {
 };
 
 const meta = {
-	title: "Rubrics/OrdinalGradeControl",
-	component: OrdinalGradeControl,
+	title: "Criteria/OptionsGradeControl",
+	component: OptionsGradeControl,
 	tags: ["autodocs"],
 	parameters: { layout: "centered" },
 	args: { onAssess: fn(), disabled: false, marks: exampleMarks },
-} satisfies Meta<typeof OrdinalGradeControl>;
+} satisfies Meta<typeof OptionsGradeControl>;
 
 export default meta;
 

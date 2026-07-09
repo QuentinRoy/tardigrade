@@ -4,7 +4,7 @@ import { NumberInput } from "@mantine/core";
 import { type ReactElement, useRef } from "react";
 import { clamp } from "#utils/utils.ts";
 
-type NumericalGradeControlProps = {
+type NumberGradeControlProps = {
 	value?: number | undefined;
 	minScore: number;
 	maxScore: number;
@@ -12,13 +12,13 @@ type NumericalGradeControlProps = {
 	onAssess: (value: number) => void;
 };
 
-export default function NumericalGradeControl({
+export default function NumberGradeControl({
 	value,
 	minScore,
 	maxScore,
 	disabled,
 	onAssess,
-}: NumericalGradeControlProps): ReactElement {
+}: NumberGradeControlProps): ReactElement {
 	const ref = useRef<HTMLInputElement>(null);
 	const lastValueRef = useRef(value);
 

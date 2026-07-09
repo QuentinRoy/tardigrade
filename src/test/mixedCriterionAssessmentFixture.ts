@@ -11,35 +11,35 @@ function mustGet<TKey, TValue>(map: Map<TKey, TValue>, key: TKey): TValue {
 	return value;
 }
 
-export type MixedRubricQuestionFixture = {
+export type MixedCriterionQuestionFixture = {
 	project: { id: string; rowId: number };
 	question: {
 		id: string;
 		rowId: number;
-		rubrics: { booleanId: string; ordinalId: string; numericalId: string };
+		criteria: { booleanId: string; ordinalId: string; numericalId: string };
 	};
 };
 
 // Shared by export and import integration tests: a project with one question
-// that has one rubric of each type (boolean/ordinal/numerical). Rubric and
+// that has one criterion of each type (boolean/ordinal/numerical). Criterion and
 // question ids are project-scoped, so each caller can pick its own ids
 // without colliding with other tests' projects.
-export async function createMixedRubricQuestionFixtureProject(
+export async function createMixedCriterionQuestionFixtureProject(
 	db: Kysely<DB>,
 	params: {
 		projectName: string;
 		questionId: string;
-		booleanRubricId: string;
-		ordinalRubricId: string;
-		numericalRubricId: string;
+		checkCriterionId: string;
+		optionsCriterionId: string;
+		numberCriterionId: string;
 	},
-): Promise<MixedRubricQuestionFixture> {
+): Promise<MixedCriterionQuestionFixture> {
 	const {
 		projectName,
 		questionId,
-		booleanRubricId,
-		ordinalRubricId,
-		numericalRubricId,
+		checkCriterionId,
+		optionsCriterionId,
+		numberCriterionId,
 	} = params;
 	const project = await createProjectRecord(db, projectName);
 
@@ -54,30 +54,30 @@ export async function createMixedRubricQuestionFixtureProject(
 		.returning("rowId")
 		.executeTakeFirstOrThrow();
 
-	const insertedRubrics = await db
-		.insertInto("rubric")
+	const insertedCriteria = await db
+		.insertInto("criterion")
 		.values([
 			{
-				id: booleanRubricId,
+				id: checkCriterionId,
 				projectId: project.rowId,
 				questionId: questionRow.rowId,
-				type: "boolean",
+				kind: "check",
 				position: 0,
 				label: "Boolean",
 			},
 			{
-				id: ordinalRubricId,
+				id: optionsCriterionId,
 				projectId: project.rowId,
 				questionId: questionRow.rowId,
-				type: "ordinal",
+				kind: "options",
 				position: 1,
 				label: "Ordinal",
 			},
 			{
-				id: numericalRubricId,
+				id: numberCriterionId,
 				projectId: project.rowId,
 				questionId: questionRow.rowId,
-				type: "numerical",
+				kind: "number",
 				position: 2,
 				label: "Numerical",
 			},
@@ -85,35 +85,35 @@ export async function createMixedRubricQuestionFixtureProject(
 		.returning(["id", "rowId"])
 		.execute();
 
-	const rubricRowId = new Map(insertedRubrics.map((r) => [r.id, r.rowId]));
+	const criterionRowId = new Map(insertedCriteria.map((r) => [r.id, r.rowId]));
 
 	await Promise.all([
 		db
-			.insertInto("booleanRubric")
+			.insertInto("checkCriterion")
 			.values({
-				rubricId: mustGet(rubricRowId, booleanRubricId),
+				criterionId: mustGet(criterionRowId, checkCriterionId),
 				marks: 2,
 				falseMarks: 0,
 			})
 			.execute(),
 		db
-			.insertInto("ordinalRubric")
-			.values({ rubricId: mustGet(rubricRowId, ordinalRubricId) })
+			.insertInto("optionsCriterion")
+			.values({ criterionId: mustGet(criterionRowId, optionsCriterionId) })
 			.returning("id")
 			.executeTakeFirstOrThrow()
-			.then((ordinalRubric) =>
+			.then((optionsCriterion) =>
 				db
-					.insertInto("ordinalRubricValue")
+					.insertInto("optionsCriterionMark")
 					.values([
-						{ ordinalRubricId: ordinalRubric.id, label: "A", marks: 4 },
-						{ ordinalRubricId: ordinalRubric.id, label: "B", marks: 2 },
+						{ optionsCriterionId: optionsCriterion.id, label: "A", marks: 4 },
+						{ optionsCriterionId: optionsCriterion.id, label: "B", marks: 2 },
 					])
 					.execute(),
 			),
 		db
-			.insertInto("numericalRubric")
+			.insertInto("numberCriterion")
 			.values({
-				rubricId: mustGet(rubricRowId, numericalRubricId),
+				criterionId: mustGet(criterionRowId, numberCriterionId),
 				minScore: 0,
 				maxScore: 10,
 				minMarks: 0,
@@ -127,10 +127,10 @@ export async function createMixedRubricQuestionFixtureProject(
 		question: {
 			id: questionId,
 			rowId: questionRow.rowId,
-			rubrics: {
-				booleanId: booleanRubricId,
-				ordinalId: ordinalRubricId,
-				numericalId: numericalRubricId,
+			criteria: {
+				booleanId: checkCriterionId,
+				ordinalId: optionsCriterionId,
+				numericalId: numberCriterionId,
 			},
 		},
 	};
@@ -221,7 +221,7 @@ export async function createIndividualSubmissionFixtures<
 	})) as SubmissionFixtureTuple<TFixtures>;
 }
 
-// Inserts one assessment with all three rubric types filled in: boolean
+// Inserts one assessment with all three criterion types filled in: boolean
 // passed, ordinal "A", numerical 7.5.
 export async function addFullAssessmentFixture(
 	db: Kysely<DB>,
@@ -229,9 +229,9 @@ export async function addFullAssessmentFixture(
 		projectRowId: number;
 		submissionId: number;
 		questionRowId: number;
-		booleanRubricRowId: number;
-		ordinalRubricRowId: number;
-		numericalRubricRowId: number;
+		checkCriterionRowId: number;
+		optionsCriterionRowId: number;
+		numberCriterionRowId: number;
 	},
 ): Promise<void> {
 	const assessment = await db
@@ -244,51 +244,60 @@ export async function addFullAssessmentFixture(
 		.returning("id")
 		.executeTakeFirstOrThrow();
 
-	const rubricAssessments = await db
-		.insertInto("rubricAssessment")
+	const criterionAssessments = await db
+		.insertInto("criterionAssessment")
 		.values([
 			{
 				assessmentId: assessment.id,
-				rubricId: params.booleanRubricRowId,
-				type: "boolean",
+				criterionId: params.checkCriterionRowId,
+				kind: "check",
 			},
 			{
 				assessmentId: assessment.id,
-				rubricId: params.ordinalRubricRowId,
-				type: "ordinal",
+				criterionId: params.optionsCriterionRowId,
+				kind: "options",
 			},
 			{
 				assessmentId: assessment.id,
-				rubricId: params.numericalRubricRowId,
-				type: "numerical",
+				criterionId: params.numberCriterionRowId,
+				kind: "number",
 			},
 		])
-		.returning(["id", "rubricId"])
+		.returning(["id", "criterionId"])
 		.execute();
 
-	const raByRubricId = new Map(
-		rubricAssessments.map((ra) => [ra.rubricId, ra.id]),
+	const raByCriterionId = new Map(
+		criterionAssessments.map((ra) => [ra.criterionId, ra.id]),
 	);
 
 	await Promise.all([
 		db
-			.insertInto("booleanRubricAssessment")
+			.insertInto("checkCriterionAssessment")
 			.values({
-				rubricAssessmentId: mustGet(raByRubricId, params.booleanRubricRowId),
+				criterionAssessmentId: mustGet(
+					raByCriterionId,
+					params.checkCriterionRowId,
+				),
 				passed: true,
 			})
 			.execute(),
 		db
-			.insertInto("ordinalRubricAssessment")
+			.insertInto("optionsCriterionAssessment")
 			.values({
-				rubricAssessmentId: mustGet(raByRubricId, params.ordinalRubricRowId),
+				criterionAssessmentId: mustGet(
+					raByCriterionId,
+					params.optionsCriterionRowId,
+				),
 				selectedLabel: "A",
 			})
 			.execute(),
 		db
-			.insertInto("numericalRubricAssessment")
+			.insertInto("numberCriterionAssessment")
 			.values({
-				rubricAssessmentId: mustGet(raByRubricId, params.numericalRubricRowId),
+				criterionAssessmentId: mustGet(
+					raByCriterionId,
+					params.numberCriterionRowId,
+				),
 				score: 7.5,
 			})
 			.execute(),

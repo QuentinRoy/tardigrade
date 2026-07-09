@@ -5,7 +5,7 @@ describe("buildAssessmentCompletion", () => {
 	it("counts a fully assessed question as complete on both axes", () => {
 		const result = buildAssessmentCompletion({
 			submissionIds: ["s1"],
-			questions: [{ id: "q1", rubricCount: 1 }],
+			questions: [{ id: "q1", criterionCount: 1 }],
 			assessmentCounts: [
 				{ submissionId: "s1", questionId: "q1", assessmentCount: 1 },
 			],
@@ -22,7 +22,7 @@ describe("buildAssessmentCompletion", () => {
 	it("does not count a partially assessed question on either axis", () => {
 		const result = buildAssessmentCompletion({
 			submissionIds: ["s1"],
-			questions: [{ id: "q1", rubricCount: 2 }],
+			questions: [{ id: "q1", criterionCount: 2 }],
 			assessmentCounts: [
 				{ submissionId: "s1", questionId: "q1", assessmentCount: 1 },
 			],
@@ -34,10 +34,10 @@ describe("buildAssessmentCompletion", () => {
 		expect(result.completedQuestions).toBe(0);
 	});
 
-	it("counts a zero-rubric question as complete on both axes", () => {
+	it("counts a zero-criterion question as complete on both axes", () => {
 		const result = buildAssessmentCompletion({
 			submissionIds: ["s1"],
-			questions: [{ id: "q1", rubricCount: 0 }],
+			questions: [{ id: "q1", criterionCount: 0 }],
 			assessmentCounts: [],
 		});
 
@@ -50,7 +50,7 @@ describe("buildAssessmentCompletion", () => {
 	it("treats an empty submission grouping as vacuously complete on the question axis", () => {
 		const result = buildAssessmentCompletion({
 			submissionIds: [],
-			questions: [{ id: "q1", rubricCount: 1 }],
+			questions: [{ id: "q1", criterionCount: 1 }],
 			assessmentCounts: [],
 		});
 
@@ -69,12 +69,12 @@ describe("buildAssessmentCompletion", () => {
 		expect(result.completedSubmissions).toBe(1);
 	});
 
-	it("keeps a submission with no assessment rows at zero plus zero-rubric credit, and clamps overshooting counts", () => {
+	it("keeps a submission with no assessment rows at zero plus zero-criterion credit, and clamps overshooting counts", () => {
 		const result = buildAssessmentCompletion({
 			submissionIds: ["s1"],
 			questions: [
-				{ id: "q1", rubricCount: 1 },
-				{ id: "q2", rubricCount: 0 },
+				{ id: "q1", criterionCount: 1 },
+				{ id: "q2", criterionCount: 0 },
 			],
 			assessmentCounts: [
 				// q3 doesn't exist among questions; an overshooting count for q1

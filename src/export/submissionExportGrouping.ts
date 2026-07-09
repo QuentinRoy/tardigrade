@@ -1,4 +1,4 @@
-import type { AssessmentRubricValue } from "#rubrics/types.ts";
+import type { AssessmentCriterionValue } from "#criteria/types.ts";
 import { buildAssessmentKey } from "./submissionExportCsv.ts";
 
 export type SubmissionRow = {
@@ -7,7 +7,7 @@ export type SubmissionRow = {
 	teamName: string | null;
 	studentId: string | null;
 	questionId: string | null;
-	rubricId: string | null;
+	criterionId: string | null;
 	booleanPassed: boolean | null;
 	ordinalSelectedLabel: string | null;
 	numericalScore: string | number | null;
@@ -18,7 +18,7 @@ export type SubmissionGroup = {
 	submissionType: "team" | "individual";
 	teamName: string | null;
 	studentId: string | null;
-	valuesByKey: Map<string, AssessmentRubricValue>;
+	valuesByKey: Map<string, AssessmentCriterionValue>;
 };
 
 function toNumber(value: string | number): number {
@@ -33,7 +33,7 @@ export async function* groupSubmissionRows(
 	let currentSubmissionType: "team" | "individual" | null = null;
 	let currentTeamName: string | null = null;
 	let currentStudentId: string | null = null;
-	let currentValuesByKey = new Map<string, AssessmentRubricValue>();
+	let currentValuesByKey = new Map<string, AssessmentCriterionValue>();
 
 	function flush(): SubmissionGroup {
 		if (currentSubmissionId == null || currentSubmissionType == null) {
@@ -64,14 +64,14 @@ export async function* groupSubmissionRows(
 		currentTeamName = row.teamName;
 		currentStudentId = row.studentId;
 
-		if (row.questionId == null || row.rubricId == null) continue;
+		if (row.questionId == null || row.criterionId == null) continue;
 
-		const key = buildAssessmentKey(row.questionId, row.rubricId);
+		const key = buildAssessmentKey(row.questionId, row.criterionId);
 
 		if (row.booleanPassed != null) {
 			currentValuesByKey.set(key, {
-				rubricId: row.rubricId,
-				type: "boolean",
+				criterionId: row.criterionId,
+				kind: "check",
 				passed: row.booleanPassed,
 			});
 			continue;
@@ -79,8 +79,8 @@ export async function* groupSubmissionRows(
 
 		if (row.ordinalSelectedLabel != null) {
 			currentValuesByKey.set(key, {
-				rubricId: row.rubricId,
-				type: "ordinal",
+				criterionId: row.criterionId,
+				kind: "options",
 				selectedLabel: row.ordinalSelectedLabel,
 			});
 			continue;
@@ -88,8 +88,8 @@ export async function* groupSubmissionRows(
 
 		if (row.numericalScore != null) {
 			currentValuesByKey.set(key, {
-				rubricId: row.rubricId,
-				type: "numerical",
+				criterionId: row.criterionId,
+				kind: "number",
 				score: toNumber(row.numericalScore),
 			});
 		}

@@ -1,34 +1,34 @@
+import type { CriterionKind } from "#criteria/types.ts";
 import type { ImportedQuestions } from "#imports/types.ts";
-import type { RubricType } from "#rubrics/types.ts";
 
-export type ExistingQuestionImportRubric = {
-	type: RubricType;
+export type ExistingQuestionImportCriterion = {
+	kind: CriterionKind;
 	questionId: string;
 	assessmentCount: number;
 };
 
 export type QuestionImportContext = {
-	// Existing rubrics keyed by rubric id, scoped to the project.
-	existingRubricsById: Map<string, ExistingQuestionImportRubric>;
+	// Existing criteria keyed by criterion id, scoped to the project.
+	existingCriteriaById: Map<string, ExistingQuestionImportCriterion>;
 };
 
-export type QuestionImportRubricTypeChange = {
+export type QuestionImportCriterionTypeChange = {
 	questionId: string;
-	rubricId: string;
-	fromType: RubricType;
-	toType: RubricType;
+	criterionId: string;
+	fromType: CriterionKind;
+	toType: CriterionKind;
 };
 
 export type QuestionImportBlockingDiagnostic =
 	| {
-			type: "rubric-type-change-blocked";
+			kind: "criterion-type-change-blocked";
 			questionId: string;
-			rubricId: string;
+			criterionId: string;
 			assessmentCount: number;
 	  }
 	| {
-			type: "rubric-question-mismatch";
-			rubricId: string;
+			kind: "criterion-question-mismatch";
+			criterionId: string;
 			importQuestionId: string;
 			existingQuestionId: string;
 	  };
@@ -36,9 +36,9 @@ export type QuestionImportBlockingDiagnostic =
 export type QuestionImportPlan = {
 	writes: ImportedQuestions;
 	blockingDiagnostics: QuestionImportBlockingDiagnostic[];
-	// Rubric type changes that proceed (no linked assessments), reported for the
+	// Criterion type changes that proceed (no linked assessments), reported for the
 	// success message.
-	rubricTypeChanges: QuestionImportRubricTypeChange[];
+	criterionTypeChanges: QuestionImportCriterionTypeChange[];
 };
 
 export function prepareQuestionImport(params: {
@@ -47,47 +47,47 @@ export function prepareQuestionImport(params: {
 }): QuestionImportPlan {
 	const { questions, context } = params;
 	const blockingDiagnostics: QuestionImportBlockingDiagnostic[] = [];
-	const rubricTypeChanges: QuestionImportRubricTypeChange[] = [];
+	const criterionTypeChanges: QuestionImportCriterionTypeChange[] = [];
 
 	for (const question of questions) {
-		for (const rubric of question.rubrics) {
-			const existing = context.existingRubricsById.get(rubric.id);
+		for (const criterion of question.criteria) {
+			const existing = context.existingCriteriaById.get(criterion.id);
 			if (existing == null) {
 				continue;
 			}
 
 			if (existing.questionId !== question.id) {
 				blockingDiagnostics.push({
-					type: "rubric-question-mismatch",
-					rubricId: rubric.id,
+					kind: "criterion-question-mismatch",
+					criterionId: criterion.id,
 					importQuestionId: question.id,
 					existingQuestionId: existing.questionId,
 				});
 				continue;
 			}
 
-			if (existing.type === rubric.type) {
+			if (existing.kind === criterion.kind) {
 				continue;
 			}
 
 			if (existing.assessmentCount > 0) {
 				blockingDiagnostics.push({
-					type: "rubric-type-change-blocked",
+					kind: "criterion-type-change-blocked",
 					questionId: question.id,
-					rubricId: rubric.id,
+					criterionId: criterion.id,
 					assessmentCount: existing.assessmentCount,
 				});
 				continue;
 			}
 
-			rubricTypeChanges.push({
+			criterionTypeChanges.push({
 				questionId: question.id,
-				rubricId: rubric.id,
-				fromType: existing.type,
-				toType: rubric.type,
+				criterionId: criterion.id,
+				fromType: existing.kind,
+				toType: criterion.kind,
 			});
 		}
 	}
 
-	return { writes: questions, blockingDiagnostics, rubricTypeChanges };
+	return { writes: questions, blockingDiagnostics, criterionTypeChanges };
 }

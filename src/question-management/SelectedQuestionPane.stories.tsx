@@ -10,7 +10,7 @@ const meta = {
 			id: "q1",
 			position: 0,
 			assessmentCount: 5,
-			question: { label: "Correctness", rubrics: [] },
+			question: { label: "Correctness", criteria: [] },
 		},
 		deleteAction: fn(async () => ({
 			status: "success" as const,

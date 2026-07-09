@@ -41,12 +41,12 @@ test("loadQuestionDefinitionsFromDb returns scoped definitions with assessment c
 			assessmentCount: 1,
 			question: {
 				label: "Boolean question",
-				rubrics: [
+				criteria: [
 					{
-						id: fixture.rubricId,
+						id: fixture.criterionId,
 						label: "Correct",
 						description: undefined,
-						type: "boolean",
+						kind: "check",
 						marks: 2,
 						falseMarks: 0,
 					},
@@ -73,7 +73,7 @@ test("loadQuestionDefinitionsFromDb returns zero assessment count for unassessed
 			id: question.id,
 			position: 0,
 			assessmentCount: 0,
-			question: { label: "Question 0", rubrics: [] },
+			question: { label: "Question 0", criteria: [] },
 		},
 	]);
 });

@@ -1,7 +1,7 @@
 import "server-only";
 import type { Kysely } from "kysely";
+import type { AssessmentCriterionValue } from "#criteria/types.ts";
 import type { DB } from "#db/generated/db.ts";
-import type { AssessmentRubricValue } from "#rubrics/types.ts";
 import { assertNever } from "#utils/utils.ts";
 
 export type SaveAssessmentResult =
@@ -11,7 +11,7 @@ export type SaveAssessmentResult =
 export type SaveAssessmentParams = {
 	submissionId: string;
 	questionId: string;
-	assessment: AssessmentRubricValue;
+	assessment: AssessmentCriterionValue;
 };
 
 export const assessmentErrors = {
@@ -36,7 +36,7 @@ export async function saveAssessmentInDb(
 	db: Kysely<DB>,
 	{ submissionId, questionId, assessment }: SaveAssessmentParams,
 ): Promise<SaveAssessmentResult> {
-	const rubricId = assessment.rubricId;
+	const criterionId = assessment.criterionId;
 
 	const submission = await db
 		.selectFrom("submission")
@@ -59,35 +59,43 @@ export async function saveAssessmentInDb(
 		return { success: false, error: assessmentErrors.contextMissing };
 	}
 
-	const rubric = await db
-		.selectFrom("rubric")
-		.leftJoin("ordinalRubric", "ordinalRubric.rubricId", "rubric.rowId")
+	const criterion = await db
+		.selectFrom("criterion")
 		.leftJoin(
-			"ordinalRubricValue",
-			"ordinalRubricValue.ordinalRubricId",
-			"ordinalRubric.id",
+			"optionsCriterion",
+			"optionsCriterion.criterionId",
+			"criterion.rowId",
 		)
-		.leftJoin("numericalRubric", "numericalRubric.rubricId", "rubric.rowId")
-		.where("rubric.id", "=", rubricId)
-		.where("rubric.projectId", "=", question.projectId)
+		.leftJoin(
+			"optionsCriterionMark",
+			"optionsCriterionMark.optionsCriterionId",
+			"optionsCriterion.id",
+		)
+		.leftJoin(
+			"numberCriterion",
+			"numberCriterion.criterionId",
+			"criterion.rowId",
+		)
+		.where("criterion.id", "=", criterionId)
+		.where("criterion.projectId", "=", question.projectId)
 		.select([
-			"rubric.id",
-			"rubric.rowId",
-			"rubric.type",
-			"rubric.questionId",
-			"ordinalRubricValue.label",
-			"numericalRubric.minScore",
-			"numericalRubric.maxScore",
+			"criterion.id",
+			"criterion.rowId",
+			"criterion.kind",
+			"criterion.questionId",
+			"optionsCriterionMark.label",
+			"numberCriterion.minScore",
+			"numberCriterion.maxScore",
 		])
 		.executeTakeFirst();
 
-	if (rubric == null || rubric.questionId !== question.rowId) {
+	if (criterion == null || criterion.questionId !== question.rowId) {
 		return { success: false, error: assessmentErrors.criterionMissing };
 	}
 
-	const rubricRowId = rubric.rowId;
+	const criterionRowId = criterion.rowId;
 
-	if (rubric.type !== assessment.type) {
+	if (criterion.kind !== assessment.kind) {
 		return { success: false, error: assessmentErrors.criterionChanged };
 	}
 
@@ -113,47 +121,51 @@ export async function saveAssessmentInDb(
 	const assessmentId = existingAssessment.id;
 
 	await db
-		.insertInto("rubricAssessment")
-		.values({ assessmentId, rubricId: rubricRowId, type: assessment.type })
+		.insertInto("criterionAssessment")
+		.values({
+			assessmentId,
+			criterionId: criterionRowId,
+			kind: assessment.kind,
+		})
 		.onConflict((conflict) =>
 			conflict
-				.columns(["assessmentId", "rubricId"])
-				.doUpdateSet({ type: assessment.type }),
+				.columns(["assessmentId", "criterionId"])
+				.doUpdateSet({ kind: assessment.kind }),
 		)
 		.execute();
 
-	const existingRubricAssessment = await db
-		.selectFrom("rubricAssessment")
+	const existingCriterionAssessment = await db
+		.selectFrom("criterionAssessment")
 		.where("assessmentId", "=", assessmentId)
-		.where("rubricId", "=", rubricRowId)
+		.where("criterionId", "=", criterionRowId)
 		.select("id")
 		.executeTakeFirstOrThrow();
 
-	const rubricAssessmentId = existingRubricAssessment.id;
+	const criterionAssessmentId = existingCriterionAssessment.id;
 
-	// Each writer persists one rubric type's value and clears the other two
-	// types, so a rubric never carries stale values from a previous type. A
+	// Each writer persists one criterion type's value and clears the other two
+	// types, so a criterion never carries stale values from a previous type. A
 	// non-undefined return is a validation failure that aborts the save.
 	async function saveBooleanAssessment(
-		booleanAssessment: Extract<AssessmentRubricValue, { type: "boolean" }>,
+		booleanAssessment: Extract<AssessmentCriterionValue, { kind: "check" }>,
 	): Promise<SaveAssessmentResult | undefined> {
 		await Promise.all([
 			db
-				.insertInto("booleanRubricAssessment")
-				.values({ rubricAssessmentId, passed: booleanAssessment.passed })
+				.insertInto("checkCriterionAssessment")
+				.values({ criterionAssessmentId, passed: booleanAssessment.passed })
 				.onConflict((conflict) =>
 					conflict
-						.column("rubricAssessmentId")
+						.column("criterionAssessmentId")
 						.doUpdateSet({ passed: booleanAssessment.passed }),
 				)
 				.execute(),
 			db
-				.deleteFrom("ordinalRubricAssessment")
-				.where("rubricAssessmentId", "=", rubricAssessmentId)
+				.deleteFrom("optionsCriterionAssessment")
+				.where("criterionAssessmentId", "=", criterionAssessmentId)
 				.execute(),
 			db
-				.deleteFrom("numericalRubricAssessment")
-				.where("rubricAssessmentId", "=", rubricAssessmentId)
+				.deleteFrom("numberCriterionAssessment")
+				.where("criterionAssessmentId", "=", criterionAssessmentId)
 				.execute(),
 		]);
 
@@ -161,17 +173,17 @@ export async function saveAssessmentInDb(
 	}
 
 	async function saveOrdinalAssessment(
-		ordinalAssessment: Extract<AssessmentRubricValue, { type: "ordinal" }>,
+		ordinalAssessment: Extract<AssessmentCriterionValue, { kind: "options" }>,
 	): Promise<SaveAssessmentResult | undefined> {
 		const ordinalLabels = await db
-			.selectFrom("ordinalRubricValue")
+			.selectFrom("optionsCriterionMark")
 			.innerJoin(
-				"ordinalRubric",
-				"ordinalRubric.id",
-				"ordinalRubricValue.ordinalRubricId",
+				"optionsCriterion",
+				"optionsCriterion.id",
+				"optionsCriterionMark.optionsCriterionId",
 			)
-			.where("ordinalRubric.rubricId", "=", rubricRowId)
-			.select("ordinalRubricValue.label")
+			.where("optionsCriterion.criterionId", "=", criterionRowId)
+			.select("optionsCriterionMark.label")
 			.execute();
 
 		const allowedValues = ordinalLabels.map((item) => item.label);
@@ -181,24 +193,24 @@ export async function saveAssessmentInDb(
 
 		await Promise.all([
 			db
-				.insertInto("ordinalRubricAssessment")
+				.insertInto("optionsCriterionAssessment")
 				.values({
-					rubricAssessmentId,
+					criterionAssessmentId,
 					selectedLabel: ordinalAssessment.selectedLabel,
 				})
 				.onConflict((conflict) =>
 					conflict
-						.column("rubricAssessmentId")
+						.column("criterionAssessmentId")
 						.doUpdateSet({ selectedLabel: ordinalAssessment.selectedLabel }),
 				)
 				.execute(),
 			db
-				.deleteFrom("booleanRubricAssessment")
-				.where("rubricAssessmentId", "=", rubricAssessmentId)
+				.deleteFrom("checkCriterionAssessment")
+				.where("criterionAssessmentId", "=", criterionAssessmentId)
 				.execute(),
 			db
-				.deleteFrom("numericalRubricAssessment")
-				.where("rubricAssessmentId", "=", rubricAssessmentId)
+				.deleteFrom("numberCriterionAssessment")
+				.where("criterionAssessmentId", "=", criterionAssessmentId)
 				.execute(),
 		]);
 
@@ -206,26 +218,26 @@ export async function saveAssessmentInDb(
 	}
 
 	async function saveNumericalAssessment(
-		numericalAssessment: Extract<AssessmentRubricValue, { type: "numerical" }>,
+		numericalAssessment: Extract<AssessmentCriterionValue, { kind: "number" }>,
 	): Promise<SaveAssessmentResult | undefined> {
 		const parsed = numericalAssessment.score;
 		if (!Number.isFinite(parsed)) {
 			return { success: false, error: assessmentErrors.invalidScore };
 		}
 
-		const numericalRubricData = await db
-			.selectFrom("numericalRubric")
-			.where("rubricId", "=", rubricRowId)
+		const numberCriterionData = await db
+			.selectFrom("numberCriterion")
+			.where("criterionId", "=", criterionRowId)
 			.select(["minScore", "maxScore"])
 			.executeTakeFirst();
 
 		const minScore =
-			numericalRubricData?.minScore != null
-				? Number(numericalRubricData.minScore)
+			numberCriterionData?.minScore != null
+				? Number(numberCriterionData.minScore)
 				: null;
 		const maxScore =
-			numericalRubricData?.maxScore != null
-				? Number(numericalRubricData.maxScore)
+			numberCriterionData?.maxScore != null
+				? Number(numberCriterionData.maxScore)
 				: null;
 
 		if (minScore == null || maxScore == null || maxScore <= minScore) {
@@ -244,19 +256,21 @@ export async function saveAssessmentInDb(
 
 		await Promise.all([
 			db
-				.insertInto("numericalRubricAssessment")
-				.values({ rubricAssessmentId, score: parsed })
+				.insertInto("numberCriterionAssessment")
+				.values({ criterionAssessmentId, score: parsed })
 				.onConflict((conflict) =>
-					conflict.column("rubricAssessmentId").doUpdateSet({ score: parsed }),
+					conflict
+						.column("criterionAssessmentId")
+						.doUpdateSet({ score: parsed }),
 				)
 				.execute(),
 			db
-				.deleteFrom("booleanRubricAssessment")
-				.where("rubricAssessmentId", "=", rubricAssessmentId)
+				.deleteFrom("checkCriterionAssessment")
+				.where("criterionAssessmentId", "=", criterionAssessmentId)
 				.execute(),
 			db
-				.deleteFrom("ordinalRubricAssessment")
-				.where("rubricAssessmentId", "=", rubricAssessmentId)
+				.deleteFrom("optionsCriterionAssessment")
+				.where("criterionAssessmentId", "=", criterionAssessmentId)
 				.execute(),
 		]);
 
@@ -264,12 +278,12 @@ export async function saveAssessmentInDb(
 	}
 
 	const result = await ((): Promise<SaveAssessmentResult | undefined> => {
-		switch (assessment.type) {
-			case "boolean":
+		switch (assessment.kind) {
+			case "check":
 				return saveBooleanAssessment(assessment);
-			case "ordinal":
+			case "options":
 				return saveOrdinalAssessment(assessment);
-			case "numerical":
+			case "number":
 				return saveNumericalAssessment(assessment);
 			default:
 				return assertNever(assessment);

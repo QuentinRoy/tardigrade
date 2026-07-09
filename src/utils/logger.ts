@@ -13,7 +13,7 @@ type LogScope =
 	| "import"
 	| "projects"
 	| "questions"
-	| "rubrics"
+	| "criteria"
 	| "submissions";
 
 const rootLogger = pino();

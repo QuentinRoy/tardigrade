@@ -53,10 +53,10 @@ export default function GlobalAssessmentSummary({
 	return (
 		<Group gap="sm" wrap="wrap" align="stretch">
 			<MetricCard
-				title="Rubrics assessed"
-				helper="Saved rubric assessments across all submissions"
-				completed={progress.rubrics.completed}
-				total={progress.rubrics.total}
+				title="Criteria assessed"
+				helper="Saved criterion assessments across all submissions"
+				completed={progress.criteria.completed}
+				total={progress.criteria.total}
 			/>
 			<MetricCard
 				title="Questions assessed"

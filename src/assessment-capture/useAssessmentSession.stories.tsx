@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { expect, fn, screen, userEvent, waitFor } from "storybook/test";
-import type { AssessedRubric } from "#rubrics/types.ts";
+import type { AssessedCriterion } from "#criteria/types.ts";
 import type { Submission } from "#submissions/types.ts";
 import type { SaveResult } from "./useAssessmentSession.ts";
 import { useAssessmentSession } from "./useAssessmentSession.ts";
@@ -10,25 +10,25 @@ import { useAssessmentSession } from "./useAssessmentSession.ts";
 // delays. See plan decision 5 (plans/active/2026-06-23-tier2-action-route-ux-hardening.md).
 type Deferred<TValue> = ReturnType<typeof Promise.withResolvers<TValue>>;
 
-const initialRubrics: AssessedRubric[] = [
+const initialCriteria: AssessedCriterion[] = [
 	{
-		id: "rubric-correctness",
-		type: "boolean",
+		id: "criterion-correctness",
+		kind: "check",
 		label: "Correctness",
 		marks: 1,
 		falseMarks: 0,
 		assessment: null,
 	},
 	{
-		id: "rubric-style",
-		type: "ordinal",
+		id: "criterion-style",
+		kind: "options",
 		label: "Style",
 		marks: { poor: 0, fair: 1, good: 2 },
 		assessment: null,
 	},
 	{
-		id: "rubric-performance",
-		type: "numerical",
+		id: "criterion-performance",
+		kind: "number",
 		label: "Performance",
 		minScore: 0,
 		maxScore: 100,
@@ -44,7 +44,7 @@ const submissions: Submission[] = [
 ];
 
 // Calls to the saveAssessment stub are recorded in order, so the play function
-// can resolve a specific call by its index regardless of which rubric index
+// can resolve a specific call by its index regardless of which criterion index
 // it targeted.
 function Harness({
 	calls,
@@ -53,9 +53,9 @@ function Harness({
 	calls: Deferred<SaveResult<string>>[];
 	onError: (error: string) => void;
 }) {
-	const { savedRubrics, optimisticRubrics, pendingByIndex, assess } =
+	const { savedCriteria, optimisticCriteria, pendingByIndex, assess } =
 		useAssessmentSession<string>({
-			initialRubrics,
+			initialCriteria,
 			submissions,
 			currentSubmissionId: "submission-1",
 			saveAssessment: async () => {
@@ -72,8 +72,8 @@ function Harness({
 				type="button"
 				onClick={() =>
 					assess(0, {
-						rubricId: "rubric-correctness",
-						type: "boolean",
+						criterionId: "criterion-correctness",
+						kind: "check",
 						passed: true,
 					})
 				}
@@ -84,8 +84,8 @@ function Harness({
 				type="button"
 				onClick={() =>
 					assess(1, {
-						rubricId: "rubric-style",
-						type: "ordinal",
+						criterionId: "criterion-style",
+						kind: "options",
 						selectedLabel: "good",
 					})
 				}
@@ -93,22 +93,22 @@ function Harness({
 				Assess style
 			</button>
 			<ul>
-				{optimisticRubrics.map((rubric, index) => (
-					<li key={rubric.id} data-testid={`optimistic-${index}`}>
-						{describeAssessment(rubric)}
+				{optimisticCriteria.map((criterion, index) => (
+					<li key={criterion.id} data-testid={`optimistic-${index}`}>
+						{describeAssessment(criterion)}
 					</li>
 				))}
 			</ul>
 			<ul>
-				{savedRubrics.map((rubric, index) => (
-					<li key={rubric.id} data-testid={`saved-${index}`}>
-						{describeAssessment(rubric)}
+				{savedCriteria.map((criterion, index) => (
+					<li key={criterion.id} data-testid={`saved-${index}`}>
+						{describeAssessment(criterion)}
 					</li>
 				))}
 			</ul>
 			<ul>
-				{initialRubrics.map((rubric, index) => (
-					<li key={rubric.id} data-testid={`pending-${index}`}>
+				{initialCriteria.map((criterion, index) => (
+					<li key={criterion.id} data-testid={`pending-${index}`}>
 						{pendingByIndex[index] ?? 0}
 					</li>
 				))}
@@ -117,17 +117,17 @@ function Harness({
 	);
 }
 
-function describeAssessment(rubric: AssessedRubric): string {
-	if (rubric.assessment == null) {
+function describeAssessment(criterion: AssessedCriterion): string {
+	if (criterion.assessment == null) {
 		return "unassessed";
 	}
-	switch (rubric.type) {
-		case "boolean":
-			return rubric.assessment.passed ? "passed" : "failed";
-		case "ordinal":
-			return rubric.assessment.selectedLabel;
-		case "numerical":
-			return String(rubric.assessment.score);
+	switch (criterion.kind) {
+		case "check":
+			return criterion.assessment.passed ? "passed" : "failed";
+		case "options":
+			return criterion.assessment.selectedLabel;
+		case "number":
+			return String(criterion.assessment.score);
 	}
 }
 

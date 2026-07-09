@@ -29,10 +29,10 @@ describe("buildResultsData", () => {
 	const questionGrid: Grid = {
 		q1: {
 			label: "Question 1",
-			rubrics: [
+			criteria: [
 				{
 					id: "r-boolean",
-					type: "boolean",
+					kind: "check",
 					marks: 2,
 					falseMarks: 0,
 					label: "Correct",
@@ -42,10 +42,10 @@ describe("buildResultsData", () => {
 		},
 		q2: {
 			label: "Question 2",
-			rubrics: [
+			criteria: [
 				{
 					id: "r-numerical",
-					type: "numerical",
+					kind: "number",
 					minScore: 0,
 					maxScore: 10,
 					minMarks: 0,
@@ -76,7 +76,7 @@ describe("buildResultsData", () => {
 			{
 				gradeTargetId: 1,
 				criterionId: "r-boolean",
-				type: "boolean",
+				kind: "check",
 				passed: true,
 				selectedLabel: null,
 				score: null,
@@ -84,7 +84,7 @@ describe("buildResultsData", () => {
 			{
 				gradeTargetId: 2,
 				criterionId: "r-boolean",
-				type: "boolean",
+				kind: "check",
 				passed: false,
 				selectedLabel: null,
 				score: null,
@@ -92,7 +92,7 @@ describe("buildResultsData", () => {
 			{
 				gradeTargetId: 1,
 				criterionId: "r-numerical",
-				type: "numerical",
+				kind: "number",
 				passed: null,
 				selectedLabel: null,
 				score: 8,
@@ -139,16 +139,16 @@ describe("buildResultsData", () => {
 		expect(data.criteria[0]?.details).toEqual({
 			label: "Correct",
 			description: "Correct answer",
-			type: "boolean",
-			properties: { type: "boolean", trueMarks: 2, falseMarks: 0 },
+			kind: "check",
+			properties: { kind: "check", trueMarks: 2, falseMarks: 0 },
 		});
 
 		expect(data.criteria[1]?.details).toEqual({
 			label: "Quality",
 			description: "Quality from 0 to 10",
-			type: "numerical",
+			kind: "number",
 			properties: {
-				type: "numerical",
+				kind: "number",
 				minScore: 0,
 				maxScore: 10,
 				minMarks: 0,
@@ -163,7 +163,7 @@ describe("buildResultsData", () => {
 			{
 				gradeTargetId: 1,
 				criterionId: "r-boolean",
-				type: "boolean",
+				kind: "check",
 				passed: true,
 				selectedLabel: null,
 				score: null,
@@ -171,7 +171,7 @@ describe("buildResultsData", () => {
 			{
 				gradeTargetId: 1,
 				criterionId: "r-boolean",
-				type: "boolean",
+				kind: "check",
 				passed: false,
 				selectedLabel: null,
 				score: null,
@@ -204,10 +204,10 @@ describe("buildResultsData", () => {
 		const ordinalGrid: Grid = {
 			q1: {
 				label: "Question 1",
-				rubrics: [
+				criteria: [
 					{
 						id: "r-boolean",
-						type: "boolean",
+						kind: "check",
 						marks: 2,
 						falseMarks: 0,
 						label: "Correct",
@@ -217,10 +217,10 @@ describe("buildResultsData", () => {
 			},
 			q2: {
 				label: "Question 2",
-				rubrics: [
+				criteria: [
 					{
 						id: "r-ordinal",
-						type: "ordinal",
+						kind: "options",
 						marks: { low: 1, high: 3 },
 						label: "Rating",
 						description: "Rating scale",
@@ -229,10 +229,10 @@ describe("buildResultsData", () => {
 			},
 			q3: {
 				label: "Question 3",
-				rubrics: [
+				criteria: [
 					{
 						id: "r-numerical",
-						type: "numerical",
+						kind: "number",
 						minScore: 0,
 						maxScore: 10,
 						minMarks: 0,
@@ -249,7 +249,7 @@ describe("buildResultsData", () => {
 			{
 				gradeTargetId: 1,
 				criterionId: "r-boolean",
-				type: "boolean",
+				kind: "check",
 				passed: null,
 				selectedLabel: null,
 				score: null,
@@ -257,7 +257,7 @@ describe("buildResultsData", () => {
 			{
 				gradeTargetId: 1,
 				criterionId: "r-ordinal",
-				type: "ordinal",
+				kind: "options",
 				passed: null,
 				selectedLabel: null,
 				score: null,
@@ -265,7 +265,7 @@ describe("buildResultsData", () => {
 			{
 				gradeTargetId: 1,
 				criterionId: "r-numerical",
-				type: "numerical",
+				kind: "number",
 				passed: null,
 				selectedLabel: null,
 				score: null,
@@ -294,7 +294,7 @@ describe("buildResultsData", () => {
 			{
 				gradeTargetId: 1,
 				criterionId: "unknown-criterion",
-				type: "boolean",
+				kind: "check",
 				passed: true,
 				selectedLabel: null,
 				score: null,
@@ -302,7 +302,7 @@ describe("buildResultsData", () => {
 			{
 				gradeTargetId: 999,
 				criterionId: "r-boolean",
-				type: "boolean",
+				kind: "check",
 				passed: true,
 				selectedLabel: null,
 				score: null,

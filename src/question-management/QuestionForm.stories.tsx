@@ -15,7 +15,7 @@ const meta = {
 		initialValue: {
 			id: "q1",
 			label: "Correctness",
-			rubrics: [{ id: "q1-pass", type: "boolean", marks: 1, falseMarks: 0 }],
+			criteria: [{ id: "q1-pass", kind: "check", marks: 1, falseMarks: 0 }],
 		},
 		onCancel: fn(),
 	},
@@ -33,7 +33,7 @@ export const WithErrors: Story = {
 	args: {
 		actionState: {
 			status: "error",
-			fieldErrors: { rubrics: [{ id: "Rubric ids must be unique." }] },
+			fieldErrors: { criteria: [{ id: "Criterion ids must be unique." }] },
 			formErrors: [],
 		},
 	},

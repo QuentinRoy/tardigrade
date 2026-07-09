@@ -2,7 +2,7 @@ export type CompletionMetric = { completed: number; total: number };
 
 export type AssessmentCompletionInput = {
 	submissionIds: string[];
-	questions: Array<{ id: string; rubricCount: number }>;
+	questions: Array<{ id: string; criterionCount: number }>;
 	assessmentCounts: Array<{
 		submissionId: string;
 		questionId: string;
@@ -46,7 +46,8 @@ export function buildAssessmentCompletion({
 			const assessmentCount =
 				assessmentCountByKey.get(`${submissionId}:${question.id}`) ?? 0;
 			const isComplete =
-				question.rubricCount === 0 || assessmentCount >= question.rubricCount;
+				question.criterionCount === 0 ||
+				assessmentCount >= question.criterionCount;
 
 			if (isComplete) {
 				completedQuestionCount += 1;

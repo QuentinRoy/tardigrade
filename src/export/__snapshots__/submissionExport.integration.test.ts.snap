@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`createCsvSubmissionExport snapshots CSV for mixed rubric types and submission states 1`] = `
+exports[`createCsvSubmissionExport snapshots CSV for mixed criterion types and submission states 1`] = `
 "submission_type,submitter,q-export-test:r-bool-export-test,q-export-test:r-bool-export-test:marks,q-export-test:r-ord-export-test,q-export-test:r-ord-export-test:marks,q-export-test:r-num-export-test,q-export-test:r-num-export-test:marks,q-export-test,grand_total_marks
 individual,student-export-1,true,2,A,4,7.5,3.75,9.75,9.75
 individual,student-export-2,false,0,,,,,,

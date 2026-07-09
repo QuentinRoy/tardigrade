@@ -3,22 +3,22 @@
 import { Group, SegmentedControl, Text } from "@mantine/core";
 import type { ReactElement } from "react";
 
-type OrdinalGradeControlProps = {
+type OptionsGradeControlProps = {
 	value?: string | undefined;
 	marks: Record<string, number>;
 	disabled: boolean;
 	onAssess: (value: string) => void;
 };
 
-export default function OrdinalGradeControl({
+export default function OptionsGradeControl({
 	value,
 	marks,
 	disabled,
 	onAssess,
-}: OrdinalGradeControlProps): ReactElement {
+}: OptionsGradeControlProps): ReactElement {
 	return (
 		<SegmentedControl
-			aria-label="Ordinal rubric assessment"
+			aria-label="Options criterion assessment"
 			value={value ?? ""}
 			onChange={onAssess}
 			disabled={disabled}

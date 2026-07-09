@@ -12,7 +12,7 @@ import {
 import { useForm } from "@mantine/form";
 import { type ReactElement, useMemo } from "react";
 import { useFormStatus } from "react-dom";
-import RubricEditorList from "./RubricEditorList.tsx";
+import CriterionEditorList from "./CriterionEditorList.tsx";
 import type { QuestionsActionState } from "./state.ts";
 import type { QuestionEditorValue } from "./types.ts";
 import { createEmptyQuestionEditorValue } from "./types.ts";
@@ -101,10 +101,10 @@ export default function QuestionForm({
 
 				<TextInput label="Question label" {...form.getInputProps("label")} />
 
-				<RubricEditorList
-					rubrics={form.values.rubrics}
-					onChange={(rubrics) => form.setFieldValue("rubrics", rubrics)}
-					fieldErrors={actionState.fieldErrors?.rubrics}
+				<CriterionEditorList
+					criteria={form.values.criteria}
+					onChange={(criteria) => form.setFieldValue("criteria", criteria)}
+					fieldErrors={actionState.fieldErrors?.criteria}
 				/>
 
 				<input name="payload" type="hidden" value={JSON.stringify(payload)} />

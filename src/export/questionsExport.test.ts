@@ -3,14 +3,14 @@ import type { Grid } from "#questions/types.ts";
 import { exportQuestionsToYaml } from "./questionsExport.ts";
 
 describe("exportQuestionsToYaml", () => {
-	it("exports a boolean rubric question", () => {
+	it("exports a boolean criterion question", () => {
 		const questions: Grid = {
 			q1: {
 				label: "Question 1",
-				rubrics: [
+				criteria: [
 					{
 						id: "r1",
-						type: "boolean",
+						kind: "check",
 						marks: 2,
 						falseMarks: 0,
 						label: "Correct",
@@ -26,9 +26,9 @@ describe("exportQuestionsToYaml", () => {
       "questions:
         - id: q1
           label: Question 1
-          rubrics:
+          criteria:
             - id: r1
-              type: boolean
+              kind: check
               marks: 2
               falseMarks: 0
               label: Correct
@@ -36,14 +36,14 @@ describe("exportQuestionsToYaml", () => {
     `);
 	});
 
-	it("exports an ordinal rubric question", () => {
+	it("exports an ordinal criterion question", () => {
 		const questions: Grid = {
 			q1: {
 				label: "Question 1",
-				rubrics: [
+				criteria: [
 					{
 						id: "r1",
-						type: "ordinal",
+						kind: "options",
 						marks: { excellent: 2, good: 1, poor: 0 },
 						label: "Style",
 						description: undefined,
@@ -57,9 +57,9 @@ describe("exportQuestionsToYaml", () => {
       "questions:
         - id: q1
           label: Question 1
-          rubrics:
+          criteria:
             - id: r1
-              type: ordinal
+              kind: options
               marks:
                 excellent: 2
                 good: 1
@@ -69,14 +69,14 @@ describe("exportQuestionsToYaml", () => {
     `);
 	});
 
-	it("exports a numerical rubric question", () => {
+	it("exports a numerical criterion question", () => {
 		const questions: Grid = {
 			q1: {
 				label: "Question 1",
-				rubrics: [
+				criteria: [
 					{
 						id: "r1",
-						type: "numerical",
+						kind: "number",
 						minScore: 0,
 						maxScore: 10,
 						minMarks: 0,
@@ -94,9 +94,9 @@ describe("exportQuestionsToYaml", () => {
       "questions:
         - id: q1
           label: Question 1
-          rubrics:
+          criteria:
             - id: r1
-              type: numerical
+              kind: number
               minScore: 0
               maxScore: 10
               minMarks: 0
@@ -107,13 +107,13 @@ describe("exportQuestionsToYaml", () => {
     `);
 	});
 
-	it("exports a numerical rubric with reversed true", () => {
+	it("exports a numerical criterion with reversed true", () => {
 		const questions: Grid = {
 			q1: {
-				rubrics: [
+				criteria: [
 					{
 						id: "r1",
-						type: "numerical",
+						kind: "number",
 						minScore: 0,
 						maxScore: 10,
 						minMarks: 0,
@@ -128,9 +128,9 @@ describe("exportQuestionsToYaml", () => {
 		expect(yaml).toMatchInlineSnapshot(`
       "questions:
         - id: q1
-          rubrics:
+          criteria:
             - id: r1
-              type: numerical
+              kind: number
               minScore: 0
               maxScore: 10
               minMarks: 0
@@ -142,7 +142,7 @@ describe("exportQuestionsToYaml", () => {
 
 	it("omits label when undefined", () => {
 		const questions: Grid = {
-			q1: { rubrics: [{ id: "r1", type: "boolean", marks: 1, falseMarks: 0 }] },
+			q1: { criteria: [{ id: "r1", kind: "check", marks: 1, falseMarks: 0 }] },
 		};
 
 		const yaml = exportQuestionsToYaml(questions);
@@ -150,9 +150,9 @@ describe("exportQuestionsToYaml", () => {
 		expect(yaml).toMatchInlineSnapshot(`
       "questions:
         - id: q1
-          rubrics:
+          criteria:
             - id: r1
-              type: boolean
+              kind: check
               marks: 1
               falseMarks: 0
       "
@@ -163,10 +163,10 @@ describe("exportQuestionsToYaml", () => {
 		const questions: Grid = {
 			q1: {
 				label: "Question 1",
-				rubrics: [
+				criteria: [
 					{
 						id: "r1",
-						type: "boolean",
+						kind: "check",
 						marks: 1,
 						falseMarks: 0,
 						label: "Correct",
@@ -175,8 +175,8 @@ describe("exportQuestionsToYaml", () => {
 			},
 			q2: {
 				label: "Question 2",
-				rubrics: [
-					{ id: "r2", type: "ordinal", marks: { A: 2, B: 1 }, label: "Grade" },
+				criteria: [
+					{ id: "r2", kind: "options", marks: { A: 2, B: 1 }, label: "Grade" },
 				],
 			},
 		};
@@ -186,17 +186,17 @@ describe("exportQuestionsToYaml", () => {
       "questions:
         - id: q1
           label: Question 1
-          rubrics:
+          criteria:
             - id: r1
-              type: boolean
+              kind: check
               marks: 1
               falseMarks: 0
               label: Correct
         - id: q2
           label: Question 2
-          rubrics:
+          criteria:
             - id: r2
-              type: ordinal
+              kind: options
               marks:
                 A: 2
                 B: 1
@@ -208,10 +208,10 @@ describe("exportQuestionsToYaml", () => {
 	it("omits description when undefined", () => {
 		const questions: Grid = {
 			q1: {
-				rubrics: [
+				criteria: [
 					{
 						id: "r1",
-						type: "boolean",
+						kind: "check",
 						marks: 1,
 						falseMarks: 0,
 						description: "Test description",
@@ -224,9 +224,9 @@ describe("exportQuestionsToYaml", () => {
 		expect(yaml).toMatchInlineSnapshot(`
       "questions:
         - id: q1
-          rubrics:
+          criteria:
             - id: r1
-              type: boolean
+              kind: check
               marks: 1
               falseMarks: 0
               description: Test description

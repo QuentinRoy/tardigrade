@@ -3,8 +3,8 @@
 // those fixtures: if a fixture changes, redo the arithmetic below.
 //
 // Marks model (from questions.yaml):
-//   q1:r1 boolean  -> true = 1, false = 0
-//   q2:r2 ordinal  -> excellent = 2, good = 1, poor = 0
+//   q1:r1 check  -> true = 1, false = 0
+//   q2:r2 options  -> excellent = 2, good = 1, poor = 0
 //
 // Submissions come from students.csv: each individual student and each team
 // becomes one submission. So three submissions exist before any grading:
@@ -23,7 +23,7 @@
 //   - questions: a question is complete only once it is fully assessed on every
 //     submission project-wide. Total = question count (2); since jane_smith
 //     leaves both q1 and q2 incomplete, neither question is complete (0).
-//   - rubrics: counts individual (submission, rubric) pairs, not deduplicated
+//   - criteria: counts individual (submission, rubric) pairs, not deduplicated
 //     by question. Total = submissions x rubrics = 3 x 2 = 6; complete = the 4
 //     pairs assessed for john_doe and Team A.
 
@@ -42,16 +42,16 @@ export const EXPECTED_GRAND_TOTAL_MARKS: Record<string, number | null> = {
 export const EXPECTED_COMPLETION = {
 	submissions: { completed: 2, total: 3 },
 	questions: { completed: 0, total: 2 },
-	rubrics: { completed: 4, total: 6 },
+	criteria: { completed: 4, total: 6 },
 };
 
 // CriterionAnalyticsTable aggregates each criterion across grade targets (see
 // `src/results/resultsBuilder.ts`): average = mean marks over *assessed*
 // grade targets only (jane_smith's unassessed cells don't count), formatted
 // as `<average> / <maxMarks>`; completion = assessed / total grade targets.
-//   r1 (q1, boolean, max 1): assessed marks = john_doe 1, Team A 0
+//   r1 (q1, check, max 1): assessed marks = john_doe 1, Team A 0
 //                            -> average = (1 + 0) / 2 = 0.5
-//   r2 (q2, ordinal, max 2): assessed marks = john_doe 1, Team A 2
+//   r2 (q2, options, max 2): assessed marks = john_doe 1, Team A 2
 //                            -> average = (1 + 2) / 2 = 1.5
 export const EXPECTED_CRITERION_ANALYTICS = [
 	{

@@ -2,8 +2,11 @@
 
 import { produce } from "immer";
 import { startTransition, useOptimistic, useReducer } from "react";
-import { attachAssessment } from "#rubrics/rubric.ts";
-import type { AssessedRubric, AssessmentRubricValue } from "#rubrics/types.ts";
+import { attachAssessment } from "#criteria/criterion.ts";
+import type {
+	AssessedCriterion,
+	AssessmentCriterionValue,
+} from "#criteria/types.ts";
 import type { Submission } from "#submissions/types.ts";
 import { useBeforeUnloadGuard } from "#utils/useBeforeUnloadGuard.ts";
 import { getSubmissionNavigation } from "./submissionNavigation.ts";
@@ -13,12 +16,12 @@ export type SaveResult<TError> =
 	| { success: false; error: TError };
 
 export type UseAssessmentSessionConfig<TError> = {
-	initialRubrics: AssessedRubric[];
+	initialCriteria: AssessedCriterion[];
 	submissions: Submission[];
 	currentSubmissionId: string;
 	saveAssessment: (
-		rubric: AssessedRubric,
-		assessment: AssessmentRubricValue,
+		criterion: AssessedCriterion,
+		assessment: AssessmentCriterionValue,
 	) => Promise<SaveResult<TError>>;
 	onError: (error: TError) => void;
 };
@@ -28,31 +31,35 @@ export type UseAssessmentSessionResult = {
 	currentSubmission: Submission | undefined;
 	previousSubmission: Submission | undefined;
 	nextSubmission: Submission | undefined;
-	savedRubrics: AssessedRubric[];
-	optimisticRubrics: AssessedRubric[];
+	savedCriteria: AssessedCriterion[];
+	optimisticCriteria: AssessedCriterion[];
 	pendingByIndex: Record<number, number>;
-	assess: (index: number, assessment: AssessmentRubricValue) => void;
+	assess: (index: number, assessment: AssessmentCriterionValue) => void;
 };
 
 type State = {
-	savedRubrics: AssessedRubric[];
+	savedCriteria: AssessedCriterion[];
 	pendingByIndex: Record<number, number>;
 };
 
 type Action =
-	| { type: "save-start"; index: number }
-	| { type: "save-success"; index: number; assessment: AssessmentRubricValue }
-	| { type: "save-failure"; index: number };
+	| { kind: "save-start"; index: number }
+	| {
+			kind: "save-success";
+			index: number;
+			assessment: AssessmentCriterionValue;
+	  }
+	| { kind: "save-failure"; index: number };
 
 export function useAssessmentSession<TError>({
-	initialRubrics,
+	initialCriteria,
 	submissions,
 	currentSubmissionId,
 	saveAssessment,
 	onError,
 }: UseAssessmentSessionConfig<TError>): UseAssessmentSessionResult {
-	const [{ savedRubrics, pendingByIndex }, dispatch] = useReducer(reducer, {
-		savedRubrics: initialRubrics,
+	const [{ savedCriteria, pendingByIndex }, dispatch] = useReducer(reducer, {
+		savedCriteria: initialCriteria,
 		pendingByIndex: {},
 	});
 
@@ -62,17 +69,17 @@ export function useAssessmentSession<TError>({
 	);
 	useBeforeUnloadGuard(pendingCount > 0);
 
-	const [optimisticRubrics, addOptimisticUpdate] = useOptimistic(
-		savedRubrics,
+	const [optimisticCriteria, addOptimisticUpdate] = useOptimistic(
+		savedCriteria,
 		(
 			current,
 			{
 				index,
 				assessment,
-			}: { index: number; assessment: AssessmentRubricValue },
+			}: { index: number; assessment: AssessmentCriterionValue },
 		) =>
-			current.map((rubric, i) =>
-				i === index ? attachAssessment(rubric, assessment) : rubric,
+			current.map((criterion, i) =>
+				i === index ? attachAssessment(criterion, assessment) : criterion,
 			),
 	);
 
@@ -83,26 +90,26 @@ export function useAssessmentSession<TError>({
 		nextSubmission,
 	} = getSubmissionNavigation(submissions, currentSubmissionId);
 
-	function assess(index: number, assessment: AssessmentRubricValue) {
-		const rubric = savedRubrics[index];
+	function assess(index: number, assessment: AssessmentCriterionValue) {
+		const criterion = savedCriteria[index];
 
-		if (rubric == null || isSameAssessment(rubric, assessment)) {
+		if (criterion == null || isSameAssessment(criterion, assessment)) {
 			return;
 		}
 
-		dispatch({ type: "save-start", index });
+		dispatch({ kind: "save-start", index });
 
 		startTransition(async () => {
 			addOptimisticUpdate({ index, assessment });
 
-			const result = await saveAssessment(rubric, assessment);
+			const result = await saveAssessment(criterion, assessment);
 
 			if (result.success) {
-				dispatch({ type: "save-success", index, assessment });
+				dispatch({ kind: "save-success", index, assessment });
 				return;
 			}
 
-			dispatch({ type: "save-failure", index });
+			dispatch({ kind: "save-failure", index });
 			onError(result.error);
 		});
 	}
@@ -112,8 +119,8 @@ export function useAssessmentSession<TError>({
 		currentSubmission,
 		previousSubmission,
 		nextSubmission,
-		savedRubrics,
-		optimisticRubrics,
+		savedCriteria,
+		optimisticCriteria,
 		pendingByIndex,
 		assess,
 	};
@@ -121,7 +128,7 @@ export function useAssessmentSession<TError>({
 
 function reducer(state: State, action: Action): State {
 	return produce(state, (draft) => {
-		switch (action.type) {
+		switch (action.kind) {
 			case "save-start": {
 				draft.pendingByIndex[action.index] =
 					(draft.pendingByIndex[action.index] ?? 0) + 1;
@@ -132,12 +139,12 @@ function reducer(state: State, action: Action): State {
 					0,
 					(draft.pendingByIndex[action.index] ?? 0) - 1,
 				);
-				const savedRubric = draft.savedRubrics[action.index];
-				if (savedRubric == null) {
+				const savedCriterion = draft.savedCriteria[action.index];
+				if (savedCriterion == null) {
 					break;
 				}
-				draft.savedRubrics[action.index] = attachAssessment(
-					savedRubric,
+				draft.savedCriteria[action.index] = attachAssessment(
+					savedCriterion,
 					action.assessment,
 				);
 				break;
@@ -156,27 +163,27 @@ function reducer(state: State, action: Action): State {
 }
 
 function isSameAssessment(
-	rubric: AssessedRubric,
-	assessment: AssessmentRubricValue,
+	criterion: AssessedCriterion,
+	assessment: AssessmentCriterionValue,
 ): boolean {
 	if (
-		rubric.assessment == null ||
-		assessment.rubricId !== rubric.id ||
-		assessment.type !== rubric.type
+		criterion.assessment == null ||
+		assessment.criterionId !== criterion.id ||
+		assessment.kind !== criterion.kind
 	) {
 		return false;
 	}
 
-	if (rubric.type === "boolean" && assessment.type === "boolean") {
-		return rubric.assessment.passed === assessment.passed;
+	if (criterion.kind === "check" && assessment.kind === "check") {
+		return criterion.assessment.passed === assessment.passed;
 	}
 
-	if (rubric.type === "ordinal" && assessment.type === "ordinal") {
-		return rubric.assessment.selectedLabel === assessment.selectedLabel;
+	if (criterion.kind === "options" && assessment.kind === "options") {
+		return criterion.assessment.selectedLabel === assessment.selectedLabel;
 	}
 
-	if (rubric.type === "numerical" && assessment.type === "numerical") {
-		return rubric.assessment.score === assessment.score;
+	if (criterion.kind === "number" && assessment.kind === "number") {
+		return criterion.assessment.score === assessment.score;
 	}
 
 	return false;

@@ -2,35 +2,35 @@ import { describe, expect, it } from "vitest";
 import { questionDefinitionSchema } from "./schemas.ts";
 
 function buildQuestion(marks: Record<string, number>) {
-	return { id: "q1", rubrics: [{ id: "r1", type: "ordinal", marks }] };
+	return { id: "q1", criteria: [{ id: "r1", kind: "options", marks }] };
 }
 
 describe("questionDefinitionSchema ordinal marks", () => {
-	it("rejects an ordinal rubric with 0 mark entries", () => {
+	it("rejects an ordinal criterion with 0 mark entries", () => {
 		const result = questionDefinitionSchema.safeParse(buildQuestion({}));
 
 		expect(result.success).toBe(false);
 		const issue = result.error?.issues.find(
-			(issue) => issue.path.join(".") === "rubrics.0.marks",
+			(issue) => issue.path.join(".") === "criteria.0.marks",
 		);
 		expect(issue?.message).toBe(
-			"Ordinal rubric must have at least 2 mark entries",
+			"Options criterion must have at least 2 mark entries",
 		);
 	});
 
-	it("rejects an ordinal rubric with 1 mark entry", () => {
+	it("rejects an ordinal criterion with 1 mark entry", () => {
 		const result = questionDefinitionSchema.safeParse(buildQuestion({ A: 1 }));
 
 		expect(result.success).toBe(false);
 		const issue = result.error?.issues.find(
-			(issue) => issue.path.join(".") === "rubrics.0.marks",
+			(issue) => issue.path.join(".") === "criteria.0.marks",
 		);
 		expect(issue?.message).toBe(
-			"Ordinal rubric must have at least 2 mark entries",
+			"Options criterion must have at least 2 mark entries",
 		);
 	});
 
-	it("accepts an ordinal rubric with 2 mark entries", () => {
+	it("accepts an ordinal criterion with 2 mark entries", () => {
 		const result = questionDefinitionSchema.safeParse(
 			buildQuestion({ A: 2, B: 1 }),
 		);
@@ -39,31 +39,31 @@ describe("questionDefinitionSchema ordinal marks", () => {
 	});
 });
 
-describe("questionDefinitionSchema numeric rubric fields", () => {
+describe("questionDefinitionSchema numeric criterion fields", () => {
 	// An emptied numeric field reports NaN, which serializes to null in the
 	// submitted payload; these assert the resulting messages and paths.
-	it("rejects a boolean rubric whose marks are not a number", () => {
+	it("rejects a boolean criterion whose marks are not a number", () => {
 		const result = questionDefinitionSchema.safeParse({
 			id: "q1",
-			rubrics: [{ id: "r1", type: "boolean", marks: null }],
+			criteria: [{ id: "r1", kind: "check", marks: null }],
 		});
 
 		expect(result.success).toBe(false);
 		const issue = result.error?.issues.find(
-			(issue) => issue.path.join(".") === "rubrics.0.marks",
+			(issue) => issue.path.join(".") === "criteria.0.marks",
 		);
 		expect(issue?.message).toBe("Marks must be a valid number");
 	});
 
-	it("rejects a boolean rubric whose false marks are not a number", () => {
+	it("rejects a boolean criterion whose false marks are not a number", () => {
 		const result = questionDefinitionSchema.safeParse({
 			id: "q1",
-			rubrics: [{ id: "r1", type: "boolean", marks: 1, falseMarks: null }],
+			criteria: [{ id: "r1", kind: "check", marks: 1, falseMarks: null }],
 		});
 
 		expect(result.success).toBe(false);
 		const issue = result.error?.issues.find(
-			(issue) => issue.path.join(".") === "rubrics.0.falseMarks",
+			(issue) => issue.path.join(".") === "criteria.0.falseMarks",
 		);
 		expect(issue?.message).toBe("False marks must be a valid number");
 	});
@@ -71,10 +71,10 @@ describe("questionDefinitionSchema numeric rubric fields", () => {
 	it("reports each invalid numerical field with its own message", () => {
 		const result = questionDefinitionSchema.safeParse({
 			id: "q1",
-			rubrics: [
+			criteria: [
 				{
 					id: "r1",
-					type: "numerical",
+					kind: "number",
 					minScore: null,
 					maxScore: null,
 					minMarks: null,
@@ -91,16 +91,16 @@ describe("questionDefinitionSchema numeric rubric fields", () => {
 				issue.message,
 			]),
 		);
-		expect(messageByPath.get("rubrics.0.minScore")).toBe(
+		expect(messageByPath.get("criteria.0.minScore")).toBe(
 			"Min score must be a valid number",
 		);
-		expect(messageByPath.get("rubrics.0.maxScore")).toBe(
+		expect(messageByPath.get("criteria.0.maxScore")).toBe(
 			"Max score must be a valid number",
 		);
-		expect(messageByPath.get("rubrics.0.minMarks")).toBe(
+		expect(messageByPath.get("criteria.0.minMarks")).toBe(
 			"Min marks must be a valid number",
 		);
-		expect(messageByPath.get("rubrics.0.maxMarks")).toBe(
+		expect(messageByPath.get("criteria.0.maxMarks")).toBe(
 			"Max marks must be a valid number",
 		);
 	});
@@ -114,12 +114,12 @@ function buildNumericalQuestion(overrides: {
 }) {
 	return {
 		id: "q1",
-		rubrics: [{ id: "r1", type: "numerical", reversed: false, ...overrides }],
+		criteria: [{ id: "r1", kind: "number", reversed: false, ...overrides }],
 	};
 }
 
-describe("questionDefinitionSchema numerical rubric bounds", () => {
-	it("rejects a numerical rubric with minScore === maxScore", () => {
+describe("questionDefinitionSchema numerical criterion bounds", () => {
+	it("rejects a numerical criterion with minScore === maxScore", () => {
 		const result = questionDefinitionSchema.safeParse(
 			buildNumericalQuestion({
 				minScore: 5,
@@ -131,12 +131,12 @@ describe("questionDefinitionSchema numerical rubric bounds", () => {
 
 		expect(result.success).toBe(false);
 		const issue = result.error?.issues.find(
-			(issue) => issue.path.join(".") === "rubrics.0.maxScore",
+			(issue) => issue.path.join(".") === "criteria.0.maxScore",
 		);
 		expect(issue?.message).toBe("Max score must be greater than min score");
 	});
 
-	it("rejects a numerical rubric with minScore > maxScore", () => {
+	it("rejects a numerical criterion with minScore > maxScore", () => {
 		const result = questionDefinitionSchema.safeParse(
 			buildNumericalQuestion({
 				minScore: 10,
@@ -148,12 +148,12 @@ describe("questionDefinitionSchema numerical rubric bounds", () => {
 
 		expect(result.success).toBe(false);
 		const issue = result.error?.issues.find(
-			(issue) => issue.path.join(".") === "rubrics.0.maxScore",
+			(issue) => issue.path.join(".") === "criteria.0.maxScore",
 		);
 		expect(issue?.message).toBe("Max score must be greater than min score");
 	});
 
-	it("accepts a numerical rubric with minScore < maxScore", () => {
+	it("accepts a numerical criterion with minScore < maxScore", () => {
 		const result = questionDefinitionSchema.safeParse(
 			buildNumericalQuestion({
 				minScore: 0,
@@ -166,7 +166,7 @@ describe("questionDefinitionSchema numerical rubric bounds", () => {
 		expect(result.success).toBe(true);
 	});
 
-	it("rejects a numerical rubric with minMarks > maxMarks", () => {
+	it("rejects a numerical criterion with minMarks > maxMarks", () => {
 		const result = questionDefinitionSchema.safeParse(
 			buildNumericalQuestion({
 				minScore: 0,
@@ -178,14 +178,14 @@ describe("questionDefinitionSchema numerical rubric bounds", () => {
 
 		expect(result.success).toBe(false);
 		const issue = result.error?.issues.find(
-			(issue) => issue.path.join(".") === "rubrics.0.maxMarks",
+			(issue) => issue.path.join(".") === "criteria.0.maxMarks",
 		);
 		expect(issue?.message).toBe(
 			"Max marks must be greater than or equal to min marks",
 		);
 	});
 
-	it("accepts a numerical rubric with minMarks === maxMarks", () => {
+	it("accepts a numerical criterion with minMarks === maxMarks", () => {
 		const result = questionDefinitionSchema.safeParse(
 			buildNumericalQuestion({
 				minScore: 0,
@@ -198,7 +198,7 @@ describe("questionDefinitionSchema numerical rubric bounds", () => {
 		expect(result.success).toBe(true);
 	});
 
-	it("accepts a numerical rubric with minMarks < maxMarks", () => {
+	it("accepts a numerical criterion with minMarks < maxMarks", () => {
 		const result = questionDefinitionSchema.safeParse(
 			buildNumericalQuestion({
 				minScore: 0,

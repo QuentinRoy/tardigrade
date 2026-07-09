@@ -3,37 +3,37 @@ import { z } from "zod";
 const idSchema = z.string().trim().min(1, "Id is required");
 const previousIdSchema = idSchema.optional();
 
-const booleanRubricDefinitionSchema = z.object({
+const checkCriterionDefinitionSchema = z.object({
 	previousId: previousIdSchema,
 	id: idSchema,
 	description: z.string().trim().optional(),
 	label: z.string().trim().optional(),
-	type: z.literal("boolean"),
+	kind: z.literal("check"),
 	marks: z.number({ error: "Marks must be a valid number" }),
 	falseMarks: z
 		.number({ error: "False marks must be a valid number" })
 		.optional(),
 });
 
-const ordinalRubricDefinitionSchema = z.object({
+const optionsCriterionDefinitionSchema = z.object({
 	previousId: previousIdSchema,
 	id: idSchema,
 	description: z.string().trim().optional(),
 	label: z.string().trim().optional(),
-	type: z.literal("ordinal"),
+	kind: z.literal("options"),
 	marks: z
 		.record(z.string(), z.number())
 		.refine((marks) => Object.keys(marks).length >= 2, {
-			message: "Ordinal rubric must have at least 2 mark entries",
+			message: "Options criterion must have at least 2 mark entries",
 		}),
 });
 
-const numericalRubricDefinitionSchema = z.object({
+const numberCriterionDefinitionSchema = z.object({
 	previousId: previousIdSchema,
 	id: idSchema,
 	description: z.string().trim().optional(),
 	label: z.string().trim().optional(),
-	type: z.literal("numerical"),
+	kind: z.literal("number"),
 	minScore: z.number({ error: "Min score must be a valid number" }),
 	maxScore: z.number({ error: "Max score must be a valid number" }),
 	minMarks: z.number({ error: "Min marks must be a valid number" }),
@@ -41,10 +41,10 @@ const numericalRubricDefinitionSchema = z.object({
 	reversed: z.boolean(),
 });
 
-const rubricDefinitionSchema = z.discriminatedUnion("type", [
-	booleanRubricDefinitionSchema,
-	ordinalRubricDefinitionSchema,
-	numericalRubricDefinitionSchema,
+const criterionDefinitionSchema = z.discriminatedUnion("kind", [
+	checkCriterionDefinitionSchema,
+	optionsCriterionDefinitionSchema,
+	numberCriterionDefinitionSchema,
 ]);
 
 export const questionDefinitionSchema = z
@@ -52,20 +52,20 @@ export const questionDefinitionSchema = z
 		originalId: idSchema.optional(),
 		id: idSchema,
 		label: z.string().trim().optional(),
-		rubrics: z.array(rubricDefinitionSchema),
+		criteria: z.array(criterionDefinitionSchema),
 	})
 	.superRefine((question, ctx) => {
-		const rubricIds = new Map<string, number[]>();
+		const criterionIds = new Map<string, number[]>();
 		const sourceIds = new Map<string, number[]>();
 
-		question.rubrics.forEach((rubric, index) => {
-			const rubricId = rubric.id.trim();
-			const sourceId = rubric.previousId?.trim() || rubricId;
+		question.criteria.forEach((criterion, index) => {
+			const criterionId = criterion.id.trim();
+			const sourceId = criterion.previousId?.trim() || criterionId;
 
-			if (rubricId.length > 0) {
-				const indexes = rubricIds.get(rubricId) ?? [];
+			if (criterionId.length > 0) {
+				const indexes = criterionIds.get(criterionId) ?? [];
 				indexes.push(index);
-				rubricIds.set(rubricId, indexes);
+				criterionIds.set(criterionId, indexes);
 			}
 
 			if (sourceId.length > 0) {
@@ -75,13 +75,13 @@ export const questionDefinitionSchema = z
 			}
 		});
 
-		for (const indexes of rubricIds.values()) {
+		for (const indexes of criterionIds.values()) {
 			if (indexes.length > 1) {
 				for (const index of indexes) {
 					ctx.addIssue({
 						code: "custom",
-						message: "Rubric ids must be unique.",
-						path: ["rubrics", index, "id"],
+						message: "Criterion ids must be unique.",
+						path: ["criteria", index, "id"],
 					});
 				}
 			}
@@ -92,31 +92,31 @@ export const questionDefinitionSchema = z
 				for (const index of indexes) {
 					ctx.addIssue({
 						code: "custom",
-						message: "Rubric source ids must be unique.",
-						path: ["rubrics", index, "id"],
+						message: "Criterion source ids must be unique.",
+						path: ["criteria", index, "id"],
 					});
 				}
 			}
 		}
 
-		question.rubrics.forEach((rubric, index) => {
-			if (rubric.type !== "numerical") {
+		question.criteria.forEach((criterion, index) => {
+			if (criterion.kind !== "number") {
 				return;
 			}
 
-			if (rubric.minScore >= rubric.maxScore) {
+			if (criterion.minScore >= criterion.maxScore) {
 				ctx.addIssue({
 					code: "custom",
 					message: "Max score must be greater than min score",
-					path: ["rubrics", index, "maxScore"],
+					path: ["criteria", index, "maxScore"],
 				});
 			}
 
-			if (rubric.minMarks > rubric.maxMarks) {
+			if (criterion.minMarks > criterion.maxMarks) {
 				ctx.addIssue({
 					code: "custom",
 					message: "Max marks must be greater than or equal to min marks",
-					path: ["rubrics", index, "maxMarks"],
+					path: ["criteria", index, "maxMarks"],
 				});
 			}
 		});

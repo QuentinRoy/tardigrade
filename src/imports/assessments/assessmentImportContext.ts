@@ -4,43 +4,47 @@ import type { DB } from "#db/generated/db.ts";
 import type { ImportedAssessmentRow } from "#imports/types.ts";
 import {
 	type AssessmentImportContext,
-	type AssessmentImportRubric,
-	assessedRubricKey,
+	type AssessmentImportCriterion,
+	assessedCriterionKey,
 	submissionLookupKey,
 } from "./prepareAssessmentImport.ts";
 
-async function loadRubricsByColumn(
+async function loadCriteriaByColumn(
 	db: Kysely<DB>,
 	projectRowId: number,
-): Promise<Map<string, AssessmentImportRubric>> {
-	const rubricRows = await db
-		.selectFrom("rubric")
-		.innerJoin("question", "question.rowId", "rubric.questionId")
-		.leftJoin("ordinalRubric", "ordinalRubric.rubricId", "rubric.rowId")
+): Promise<Map<string, AssessmentImportCriterion>> {
+	const criterionRows = await db
+		.selectFrom("criterion")
+		.innerJoin("question", "question.rowId", "criterion.questionId")
 		.leftJoin(
-			"ordinalRubricValue",
-			"ordinalRubricValue.ordinalRubricId",
-			"ordinalRubric.id",
+			"optionsCriterion",
+			"optionsCriterion.criterionId",
+			"criterion.rowId",
 		)
-		.where("rubric.projectId", "=", projectRowId)
+		.leftJoin(
+			"optionsCriterionMark",
+			"optionsCriterionMark.optionsCriterionId",
+			"optionsCriterion.id",
+		)
+		.where("criterion.projectId", "=", projectRowId)
 		.select([
-			"rubric.id",
-			"rubric.type",
+			"criterion.id",
+			"criterion.kind",
 			"question.id as questionId",
-			"ordinalRubricValue.label",
+			"optionsCriterionMark.label",
 		])
 		.execute();
 
-	const rubricsByColumn = new Map<string, AssessmentImportRubric>();
+	const criteriaByColumn = new Map<string, AssessmentImportCriterion>();
 
-	for (const row of rubricRows) {
+	for (const row of criterionRows) {
 		const column = `${row.questionId}:${row.id}`;
-		const existing = rubricsByColumn.get(column);
+		const existing = criteriaByColumn.get(column);
 
 		if (existing == null) {
-			rubricsByColumn.set(column, {
+			criteriaByColumn.set(column, {
 				id: row.id,
-				type: row.type,
+				kind: row.kind,
 				questionId: row.questionId,
 				ordinalLabels: row.label == null ? [] : [row.label],
 			});
@@ -52,7 +56,7 @@ async function loadRubricsByColumn(
 		}
 	}
 
-	return rubricsByColumn;
+	return criteriaByColumn;
 }
 
 async function loadQuestionIds(
@@ -143,23 +147,31 @@ async function loadSubmissionIdsByLookup(
 	return submissionIdsByLookup;
 }
 
-async function loadAssessedRubricKeys(
+async function loadAssessedCriterionKeys(
 	db: Kysely<DB>,
 	projectRowId: number,
 ): Promise<Set<string>> {
 	const assessedPairs = await db
-		.selectFrom("rubricAssessment")
-		.innerJoin("assessment", "assessment.id", "rubricAssessment.assessmentId")
-		.innerJoin("rubric", "rubric.rowId", "rubricAssessment.rubricId")
+		.selectFrom("criterionAssessment")
+		.innerJoin(
+			"assessment",
+			"assessment.id",
+			"criterionAssessment.assessmentId",
+		)
+		.innerJoin(
+			"criterion",
+			"criterion.rowId",
+			"criterionAssessment.criterionId",
+		)
 		.where("assessment.projectId", "=", projectRowId)
-		.select(["assessment.submissionId", "rubric.id as rubricId"])
+		.select(["assessment.submissionId", "criterion.id as criterionId"])
 		.execute();
 
 	return new Set(
 		assessedPairs.map((pair) =>
-			assessedRubricKey({
+			assessedCriterionKey({
 				submissionId: String(pair.submissionId),
-				rubricId: pair.rubricId,
+				criterionId: pair.criterionId,
 			}),
 		),
 	);
@@ -179,21 +191,21 @@ export async function loadAssessmentImportContextFromDb(
 	const projectRowId = project.rowId;
 
 	const [
-		rubricsByColumn,
+		criteriaByColumn,
 		questionIds,
 		submissionIdsByLookup,
-		assessedRubricKeys,
+		assessedCriterionKeys,
 	] = await Promise.all([
-		loadRubricsByColumn(db, projectRowId),
+		loadCriteriaByColumn(db, projectRowId),
 		loadQuestionIds(db, projectRowId),
 		loadSubmissionIdsByLookup(db, { rows, projectRowId }),
-		loadAssessedRubricKeys(db, projectRowId),
+		loadAssessedCriterionKeys(db, projectRowId),
 	]);
 
 	return {
-		rubricsByColumn,
+		criteriaByColumn,
 		questionIds,
 		submissionIdsByLookup,
-		assessedRubricKeys,
+		assessedCriterionKeys,
 	};
 }

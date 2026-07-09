@@ -15,8 +15,8 @@ const criteria = [
 		details: {
 			label: "Correctness",
 			description: "Checks final correctness",
-			type: "boolean" as const,
-			properties: { type: "boolean" as const, trueMarks: 5, falseMarks: 0 },
+			kind: "check" as const,
+			properties: { kind: "check" as const, trueMarks: 5, falseMarks: 0 },
 		},
 	},
 	{
@@ -32,9 +32,9 @@ const criteria = [
 		details: {
 			label: "Explanation quality",
 			description: "Quality and structure of explanation",
-			type: "ordinal" as const,
+			kind: "options" as const,
 			properties: {
-				type: "ordinal" as const,
+				kind: "options" as const,
 				marksByLabel: [
 					{ label: "Excellent", marks: 4 },
 					{ label: "Good", marks: 3 },

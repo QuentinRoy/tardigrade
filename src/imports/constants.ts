@@ -1,19 +1,19 @@
 export const QUESTIONS_YAML_PLACEHOLDER = `questions:
   - id: q1
     label: Question 1
-    rubrics:
+    criteria:
       - id: r1
-        label: Rubric 1
+        label: Criterion 1
         description: Optional description shown under the label.
-        type: boolean
+        kind: check
         marks: 1
         falseMarks: 0
   - id: q2
     label: Question 2
-    rubrics:
+    criteria:
       - id: r2
         label: Good
-        type: ordinal
+        kind: options
         marks:
           excellent: 2
           good: 1

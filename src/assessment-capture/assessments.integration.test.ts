@@ -35,7 +35,7 @@ test("loadQuestionAssessmentFromDb returns an empty list when no assessment exis
 	expect(result).toEqual([]);
 });
 
-test("loadQuestionAssessmentFromDb returns the stored rubric values for a submission/question", async () => {
+test("loadQuestionAssessmentFromDb returns the stored criterion values for a submission/question", async () => {
 	await using db = await createTestDb();
 	await using project = await createProject(db, "Assessment Read Project");
 	const fixture = await createAssessmentFixture(db, project.id);
@@ -44,8 +44,8 @@ test("loadQuestionAssessmentFromDb returns the stored rubric values for a submis
 		submissionId: fixture.submissionId,
 		questionId: fixture.questionId,
 		assessment: {
-			rubricId: fixture.rubricIds.boolean,
-			type: "boolean",
+			criterionId: fixture.criterionIds.boolean,
+			kind: "check",
 			passed: true,
 		},
 	});
@@ -53,8 +53,8 @@ test("loadQuestionAssessmentFromDb returns the stored rubric values for a submis
 		submissionId: fixture.submissionId,
 		questionId: fixture.questionId,
 		assessment: {
-			rubricId: fixture.rubricIds.ordinal,
-			type: "ordinal",
+			criterionId: fixture.criterionIds.ordinal,
+			kind: "options",
 			selectedLabel: "B",
 		},
 	});
@@ -62,8 +62,8 @@ test("loadQuestionAssessmentFromDb returns the stored rubric values for a submis
 		submissionId: fixture.submissionId,
 		questionId: fixture.questionId,
 		assessment: {
-			rubricId: fixture.rubricIds.numerical,
-			type: "numerical",
+			criterionId: fixture.criterionIds.numerical,
+			kind: "number",
 			score: 7.5,
 		},
 	});
@@ -74,21 +74,23 @@ test("loadQuestionAssessmentFromDb returns the stored rubric values for a submis
 		questionId: fixture.questionId,
 	});
 
-	const byRubricId = new Map(loaded.map((value) => [value.rubricId, value]));
+	const byCriterionId = new Map(
+		loaded.map((value) => [value.criterionId, value]),
+	);
 
-	expect(byRubricId.get(fixture.rubricIds.boolean)).toEqual({
-		rubricId: fixture.rubricIds.boolean,
-		type: "boolean",
+	expect(byCriterionId.get(fixture.criterionIds.boolean)).toEqual({
+		criterionId: fixture.criterionIds.boolean,
+		kind: "check",
 		passed: true,
 	});
-	expect(byRubricId.get(fixture.rubricIds.ordinal)).toEqual({
-		rubricId: fixture.rubricIds.ordinal,
-		type: "ordinal",
+	expect(byCriterionId.get(fixture.criterionIds.ordinal)).toEqual({
+		criterionId: fixture.criterionIds.ordinal,
+		kind: "options",
 		selectedLabel: "B",
 	});
-	expect(byRubricId.get(fixture.rubricIds.numerical)).toEqual({
-		rubricId: fixture.rubricIds.numerical,
-		type: "numerical",
+	expect(byCriterionId.get(fixture.criterionIds.numerical)).toEqual({
+		criterionId: fixture.criterionIds.numerical,
+		kind: "number",
 		score: 7.5,
 	});
 });
@@ -107,8 +109,8 @@ test("loadQuestionAssessment wrapper delegates to its primitive and declares its
 		submissionId: fixture.submissionId,
 		questionId: fixture.questionId,
 		assessment: {
-			rubricId: fixture.rubricIds.boolean,
-			type: "boolean",
+			criterionId: fixture.criterionIds.boolean,
+			kind: "check",
 			passed: true,
 		},
 	});
@@ -123,7 +125,7 @@ test("loadQuestionAssessment wrapper delegates to its primitive and declares its
 	);
 
 	expect(loaded).toEqual([
-		{ rubricId: fixture.rubricIds.boolean, type: "boolean", passed: true },
+		{ criterionId: fixture.criterionIds.boolean, kind: "check", passed: true },
 	]);
 
 	const declaredTags = vi.mocked(cacheTag).mock.calls.map((call) => call[0]);
@@ -133,7 +135,7 @@ test("loadQuestionAssessment wrapper delegates to its primitive and declares its
 	);
 });
 
-test("loadSubmissionAssessmentsFromDb groups a submission's rubric values by question", async () => {
+test("loadSubmissionAssessmentsFromDb groups a submission's criterion values by question", async () => {
 	await using db = await createTestDb();
 	await using project = await createProject(
 		db,
@@ -152,8 +154,8 @@ test("loadSubmissionAssessmentsFromDb groups a submission's rubric values by que
 		submissionId: fixture.submissionId,
 		questionId: fixture.questionId,
 		assessment: {
-			rubricId: fixture.rubricIds.boolean,
-			type: "boolean",
+			criterionId: fixture.criterionIds.boolean,
+			kind: "check",
 			passed: true,
 		},
 	});
@@ -161,8 +163,8 @@ test("loadSubmissionAssessmentsFromDb groups a submission's rubric values by que
 		submissionId: fixture.submissionId,
 		questionId: fixture.questionId,
 		assessment: {
-			rubricId: fixture.rubricIds.numerical,
-			type: "numerical",
+			criterionId: fixture.criterionIds.numerical,
+			kind: "number",
 			score: 7.5,
 		},
 	});
@@ -170,8 +172,8 @@ test("loadSubmissionAssessmentsFromDb groups a submission's rubric values by que
 		submissionId: fixture.submissionId,
 		questionId: secondQuestion.questionId,
 		assessment: {
-			rubricId: secondQuestion.rubricId,
-			type: "boolean",
+			criterionId: secondQuestion.criterionId,
+			kind: "check",
 			passed: false,
 		},
 	});
@@ -186,12 +188,20 @@ test("loadSubmissionAssessmentsFromDb groups a submission's rubric values by que
 	);
 	expect(byQuestionId[fixture.questionId]).toEqual(
 		expect.arrayContaining([
-			{ rubricId: fixture.rubricIds.boolean, type: "boolean", passed: true },
-			{ rubricId: fixture.rubricIds.numerical, type: "numerical", score: 7.5 },
+			{
+				criterionId: fixture.criterionIds.boolean,
+				kind: "check",
+				passed: true,
+			},
+			{
+				criterionId: fixture.criterionIds.numerical,
+				kind: "number",
+				score: 7.5,
+			},
 		]),
 	);
 	expect(byQuestionId[secondQuestion.questionId]).toEqual([
-		{ rubricId: secondQuestion.rubricId, type: "boolean", passed: false },
+		{ criterionId: secondQuestion.criterionId, kind: "check", passed: false },
 	]);
 });
 
@@ -210,8 +220,8 @@ test("loadSubmissionAssessments wrapper delegates to its primitive and declares 
 		submissionId: fixture.submissionId,
 		questionId: fixture.questionId,
 		assessment: {
-			rubricId: fixture.rubricIds.boolean,
-			type: "boolean",
+			criterionId: fixture.criterionIds.boolean,
+			kind: "check",
 			passed: true,
 		},
 	});
@@ -223,7 +233,11 @@ test("loadSubmissionAssessments wrapper delegates to its primitive and declares 
 
 	expect(loaded).toEqual({
 		[fixture.questionId]: [
-			{ rubricId: fixture.rubricIds.boolean, type: "boolean", passed: true },
+			{
+				criterionId: fixture.criterionIds.boolean,
+				kind: "check",
+				passed: true,
+			},
 		],
 	});
 
@@ -244,8 +258,8 @@ test("assessment reads return nothing when the Project ID does not match the sub
 		submissionId: fixture.submissionId,
 		questionId: fixture.questionId,
 		assessment: {
-			rubricId: fixture.rubricIds.boolean,
-			type: "boolean",
+			criterionId: fixture.criterionIds.boolean,
+			kind: "check",
 			passed: true,
 		},
 	});

@@ -9,11 +9,11 @@ export type AssessedBooleanFixture = BooleanQuestionFixture & {
 export type BooleanQuestionFixture = {
 	questionId: string;
 	questionRowId: number;
-	rubricId: string;
-	rubricRowId: number;
+	criterionId: string;
+	criterionRowId: number;
 };
 
-// Creates a question carrying a single boolean rubric, without any submission
+// Creates a question carrying a single boolean criterion, without any submission
 // or assessment.
 export async function createBooleanQuestionFixture(
 	db: Kysely<DB>,
@@ -21,7 +21,7 @@ export async function createBooleanQuestionFixture(
 	position = 0,
 ): Promise<BooleanQuestionFixture> {
 	const questionId = buildTestId("question");
-	const rubricId = buildTestId("rubric-boolean");
+	const criterionId = buildTestId("criterion-boolean");
 
 	const question = await db
 		.insertInto("question")
@@ -29,13 +29,13 @@ export async function createBooleanQuestionFixture(
 		.returning("rowId")
 		.executeTakeFirstOrThrow();
 
-	const rubric = await db
-		.insertInto("rubric")
+	const criterion = await db
+		.insertInto("criterion")
 		.values({
 			projectId,
-			id: rubricId,
+			id: criterionId,
 			questionId: question.rowId,
-			type: "boolean",
+			kind: "check",
 			position: 0,
 			label: "Correct",
 		})
@@ -43,15 +43,15 @@ export async function createBooleanQuestionFixture(
 		.executeTakeFirstOrThrow();
 
 	await db
-		.insertInto("booleanRubric")
-		.values({ rubricId: rubric.rowId, marks: 2, falseMarks: 0 })
+		.insertInto("checkCriterion")
+		.values({ criterionId: criterion.rowId, marks: 2, falseMarks: 0 })
 		.execute();
 
 	return {
 		questionId,
 		questionRowId: question.rowId,
-		rubricId,
-		rubricRowId: rubric.rowId,
+		criterionId,
+		criterionRowId: criterion.rowId,
 	};
 }
 
@@ -89,19 +89,19 @@ export async function createAssessedBooleanQuestionFixture(
 		.returning("id")
 		.executeTakeFirstOrThrow();
 
-	const rubricAssessment = await db
-		.insertInto("rubricAssessment")
+	const criterionAssessment = await db
+		.insertInto("criterionAssessment")
 		.values({
 			assessmentId: assessment.id,
-			rubricId: question.rubricRowId,
-			type: "boolean",
+			criterionId: question.criterionRowId,
+			kind: "check",
 		})
 		.returning("id")
 		.executeTakeFirstOrThrow();
 
 	await db
-		.insertInto("booleanRubricAssessment")
-		.values({ rubricAssessmentId: rubricAssessment.id, passed: true })
+		.insertInto("checkCriterionAssessment")
+		.values({ criterionAssessmentId: criterionAssessment.id, passed: true })
 		.execute();
 
 	return { ...question, assessmentId: assessment.id };
@@ -139,9 +139,9 @@ export async function getQuestionPositions(
 export async function createOrdinalQuestionFixture(
 	db: Kysely<DB>,
 	projectId: number,
-): Promise<{ questionId: string; rubricId: string }> {
+): Promise<{ questionId: string; criterionId: string }> {
 	const questionId = buildTestId("question-ordinal");
-	const rubricId = buildTestId("rubric-ordinal");
+	const criterionId = buildTestId("criterion-ordinal");
 
 	const question = await db
 		.insertInto("question")
@@ -154,32 +154,32 @@ export async function createOrdinalQuestionFixture(
 		.returning("rowId")
 		.executeTakeFirstOrThrow();
 
-	const rubric = await db
-		.insertInto("rubric")
+	const criterion = await db
+		.insertInto("criterion")
 		.values({
 			projectId,
-			id: rubricId,
+			id: criterionId,
 			questionId: question.rowId,
-			type: "ordinal",
+			kind: "options",
 			position: 0,
 			label: "Ordinal",
 		})
 		.returning("rowId")
 		.executeTakeFirstOrThrow();
 
-	const ordinalRubric = await db
-		.insertInto("ordinalRubric")
-		.values({ rubricId: rubric.rowId })
+	const optionsCriterion = await db
+		.insertInto("optionsCriterion")
+		.values({ criterionId: criterion.rowId })
 		.returning("id")
 		.executeTakeFirstOrThrow();
 
 	await db
-		.insertInto("ordinalRubricValue")
+		.insertInto("optionsCriterionMark")
 		.values([
-			{ ordinalRubricId: ordinalRubric.id, label: "A", marks: 4 },
-			{ ordinalRubricId: ordinalRubric.id, label: "B", marks: 2 },
+			{ optionsCriterionId: optionsCriterion.id, label: "A", marks: 4 },
+			{ optionsCriterionId: optionsCriterion.id, label: "B", marks: 2 },
 		])
 		.execute();
 
-	return { questionId, rubricId };
+	return { questionId, criterionId };
 }
