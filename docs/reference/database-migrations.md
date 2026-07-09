@@ -167,26 +167,34 @@ changes: each `ALTER TABLE`/`ALTER TYPE` takes a heavy lock, so running them
 concurrently only makes them contend (and risk deadlocks) for no benefit — a
 migration is a one-time operation, not a hot path.
 
-### CamelCasePlugin and constraint/index names
+### No CamelCasePlugin on migration runners
 
-Every Kysely client in the codebase — both migration runners (`src/db/migrate.ts`
-and `createDisposableMigrationDb` in `src/test/dbIntegration.ts`) and both query
-clients (`src/db/kysely.ts`, `startTestDatabase`) — is built **with**
-`CamelCasePlugin`. Keep them consistent: the plugin `snake_case`s the identifier
-strings passed to the schema builder, so enabling it on some clients but not
-others would make builder-created object names diverge between environments.
+The two migration runners (`src/db/migrate.ts` and `createDisposableMigrationDb`
+in `src/test/dbIntegration.ts`) build Kysely **without** plugins. The two query
+clients (`src/db/kysely.ts`, `startTestDatabase`) keep `CamelCasePlugin` — that
+is what maps camelCase TypeScript properties to snake_case columns and is
+unrelated to migrations.
 
-The catch is that the plugin only rewrites identifiers passed to the **schema
-builder**, never identifiers written inside a raw `sql` template. Earlier
-migrations were inconsistent: some constraints were created via the builder
-(stored `snake_case`d, e.g. `rubric_project_id_fkey`) and others re-created via
-raw SQL (stored verbatim, e.g. `Rubric_projectId_id_key`). Because of that mix,
-`alterTable(t).renameConstraint(old, new)` cannot rename them all — the plugin
-would `snake_case` `old`, matching only the builder-created ones. To rename such
-a constraint robustly, use raw SQL that looks the object up by any of its
-candidate spellings (a `DO` block over `pg_constraint`), which never goes through
-the plugin and so is immune to the mismatch. Tables, columns, and enum types have
-no such legacy inconsistency, so rename those with the builder as usual.
+Never add a name-transforming plugin to a migration runner. Migrations are
+immutable history, but a plugin on the runner retroactively changes what the
+committed chain produces: the plugin rewrites identifier strings passed to the
+schema builder (never raw `sql`), so the same migration file creates
+differently named objects depending on the runner configuration in effect when
+it ran. This happened once — the runners briefly carried `CamelCasePlugin`,
+which forked builder-created constraint names between databases migrated before
+and after (e.g. `Student_projectId_id_key` vs `student_project_id_id_key`) and
+broke `down` paths that referenced the original names through the builder.
+
+With plugin-less runners, migrations receive their identifier strings verbatim,
+so object names are deterministic and identical on every database. Write all
+identifiers in migrations exactly as they exist in Postgres.
+
+Constraint and index names are snake_case since
+`20260710000000_snake_case_constraint_and_index_names.ts`, which case-folded the
+remaining Prisma-era PascalCase names. Later migrations rename constraints with
+plain `alterTable(t).renameConstraint(old, new)` calls — the candidate-spelling
+`DO` block in `20260707000000_rename_rubric_to_criterion.ts` was a workaround
+for the plugin fork and is not a pattern to copy.
 
 ## Running migrations
 
