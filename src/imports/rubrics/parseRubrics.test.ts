@@ -82,8 +82,9 @@ describe("parseRubricsYaml", () => {
 
 	// Terminology sweep stage 2b: the top-level key changed from `questions:` to
 	// `rubrics:` with a hard cutover. An old-format file must be rejected loudly,
-	// naming the stale key, rather than silently importing nothing.
-	it("rejects the old top-level `questions:` key by name", () => {
+	// naming the stale key and the exact fix, rather than silently importing
+	// nothing.
+	it("rejects the old top-level `questions:` key with an actionable message", () => {
 		expect(() =>
 			parseRubricsYaml(`questions:
   - id: q1
@@ -91,6 +92,17 @@ describe("parseRubricsYaml", () => {
       - id: r1
         kind: check
         marks: 1`),
-		).toThrow(/questions/);
+		).toThrow(/rename the top-level.*questions.*to.*rubrics/is);
+	});
+
+	it("names an unknown top-level key and points to `rubrics:`", () => {
+		expect(() =>
+			parseRubricsYaml(`rubric:
+  - id: r1
+    criteria:
+      - id: c1
+        kind: check
+        marks: 1`),
+		).toThrow(/unexpected top-level entry.*rubric.*rubrics/is);
 	});
 });
