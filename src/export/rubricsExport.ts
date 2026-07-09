@@ -1,4 +1,4 @@
-import yaml from "js-yaml";
+import { dump } from "js-yaml";
 import type { Criterion } from "#criteria/types.ts";
 import type { RubricsById } from "#rubrics/types.ts";
 
@@ -15,9 +15,9 @@ export function exportRubricsToYaml(rubrics: RubricsById): string {
 		})),
 	};
 
-	return yaml.dump(exportData, {
+	return dump(exportData, {
 		lineWidth: -1,
-		quotingType: '"',
+		quoteStyle: "double",
 		noRefs: true,
 	});
 }
