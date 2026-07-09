@@ -1,7 +1,5 @@
 import { type Kysely, sql } from "kysely";
 
-// INTENTIONAL TEST EDIT: verifies the CI immutability guard actually fails
-// on a real modified migration. Reverted in the next commit.
 export async function up(db: Kysely<unknown>): Promise<void> {
 	await sql`
     CREATE TYPE "rubric_type" AS ENUM ('boolean', 'ordinal', 'numerical');
