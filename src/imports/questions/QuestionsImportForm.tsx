@@ -38,17 +38,19 @@ export default function QuestionsImportForm({
 						A top-level <code>questions</code> array of question objects. Each
 						question requires a stable <code>id</code>, has an optional{" "}
 						<code>label</code>, and a <code>criteria</code> array. Each
-						criterion requires a stable <code>id</code>, and accepts an optional{" "}
-						<code>description</code> and <code>label</code>. Boolean criteria
-						use <code>marks</code> and optional <code>falseMarks</code>, ordinal
-						criteria use <code>marks</code>, and numerical criteria use{" "}
-						<code>minScore</code>/<code>maxScore</code> and/or{" "}
-						<code>minMarks</code>/<code>maxMarks</code>. Numerical criteria can
-						also set <code>reversed: true</code> to map the highest score to the
-						lowest mark.
+						criterion requires a stable <code>id</code> and a <code>kind</code>{" "}
+						(<code>check</code>, <code>options</code>, or <code>number</code>),
+						and accepts an optional <code>description</code> and{" "}
+						<code>label</code>. Check criteria use <code>marks</code> and
+						optional <code>falseMarks</code>, options criteria use{" "}
+						<code>marks</code>, and number criteria use <code>minScore</code>/
+						<code>maxScore</code> and/or <code>minMarks</code>/
+						<code>maxMarks</code>. Number criteria can also set{" "}
+						<code>reversed: true</code> to map the highest score to the lowest
+						mark.
 					</Text>
 					<Text size="sm" c="dimmed">
-						Numerical defaults and rules: <code>minScore</code> defaults to{" "}
+						Number defaults and rules: <code>minScore</code> defaults to{" "}
 						<code>0</code>, <code>maxScore</code> defaults to <code>1</code>. If{" "}
 						<code>minScore</code> is provided, <code>maxScore</code> must be
 						provided too. <code>minMarks</code> defaults to <code>0</code> when

@@ -53,7 +53,7 @@ export default function OptionsCriterionEditorPaper({
 			fieldErrors={fieldErrors}
 		>
 			<Textarea
-				label="Ordinal marks"
+				label="Options marks"
 				description={
 					fieldErrors?.marks == null
 						? "One entry per line using label=marks"
