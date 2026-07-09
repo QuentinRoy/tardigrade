@@ -31,10 +31,7 @@ export type ExportCriterionPlan =
 	| ExportOptionsCriterionPlan
 	| ExportNumberCriterionPlan;
 
-export type ExportQuestionPlan = {
-	id: string;
-	criteria: ExportCriterionPlan[];
-};
+export type ExportRubricPlan = { id: string; criteria: ExportCriterionPlan[] };
 
 export type SubmissionExportAssessmentValue = string | number | boolean;
 
@@ -44,14 +41,14 @@ export type SubmissionExportCriterionData = {
 	marks?: number;
 };
 
-export type SubmissionExportQuestionData = {
-	questionId: string;
+export type SubmissionExportRubricData = {
+	rubricId: string;
 	criteria: SubmissionExportCriterionData[];
 };
 
 export type SubmissionExportDataRow = {
 	submission: SubmissionSubmitter;
-	questions: SubmissionExportQuestionData[];
+	rubrics: SubmissionExportRubricData[];
 };
 
 export type SubmissionExportValue =
@@ -66,10 +63,10 @@ export type SubmissionExportRecord = {
 };
 
 export function buildAssessmentKey(
-	questionId: string,
+	rubricId: string,
 	criterionId: string,
 ): string {
-	return `${questionId}::${criterionId}`;
+	return `${rubricId}::${criterionId}`;
 }
 
 export function getSubmissionExportIdentifier(
@@ -95,38 +92,38 @@ export function getSubmissionExportIdentifier(
 
 const COLUMN_PART_SEPARATOR = ":";
 
-function getCriterionKey(questionId: string, criterionId: string): string {
-	return `${questionId}${COLUMN_PART_SEPARATOR}${criterionId}`;
+function getCriterionKey(rubricId: string, criterionId: string): string {
+	return `${rubricId}${COLUMN_PART_SEPARATOR}${criterionId}`;
 }
 
 function getAssessmentColumnName(
-	questionId: string,
+	rubricId: string,
 	criterionId: string,
 ): string {
-	return `${getCriterionKey(questionId, criterionId)}`;
+	return `${getCriterionKey(rubricId, criterionId)}`;
 }
 
-function getMarksColumnName(questionId: string, criterionId: string): string {
-	return `${getCriterionKey(questionId, criterionId)}${COLUMN_PART_SEPARATOR}marks`;
+function getMarksColumnName(rubricId: string, criterionId: string): string {
+	return `${getCriterionKey(rubricId, criterionId)}${COLUMN_PART_SEPARATOR}marks`;
 }
 
 export function buildSubmissionExportHeaders(
-	questions: ExportQuestionPlan[],
+	rubrics: ExportRubricPlan[],
 	options: ExportOptions,
 ): string[] {
 	const headers = ["submission_type", "submitter"];
 
-	for (const question of questions) {
-		for (const criterion of question.criteria) {
+	for (const rubric of rubrics) {
+		for (const criterion of rubric.criteria) {
 			if (options.includeCriterionAssessment) {
-				headers.push(getAssessmentColumnName(question.id, criterion.id));
+				headers.push(getAssessmentColumnName(rubric.id, criterion.id));
 			}
 			if (options.includeCriterionMarks) {
-				headers.push(getMarksColumnName(question.id, criterion.id));
+				headers.push(getMarksColumnName(rubric.id, criterion.id));
 			}
 		}
 
-		headers.push(question.id);
+		headers.push(rubric.id);
 	}
 
 	headers.push("grand_total_marks");
@@ -138,7 +135,7 @@ export function buildSubmissionExportRecord(params: {
 	options: ExportOptions;
 }): SubmissionExportRecord {
 	const {
-		row: { submission, questions },
+		row: { submission, rubrics },
 		options,
 	} = params;
 	const row: SubmissionExportRecord = {
@@ -149,39 +146,38 @@ export function buildSubmissionExportRecord(params: {
 	let grandTotalMarks = 0;
 	let hasMissingAssessment = false;
 
-	for (const question of questions) {
-		let questionTotalMarks = 0;
-		let isQuestionFullyAssessed = true;
+	for (const rubric of rubrics) {
+		let rubricTotalMarks = 0;
+		let isRubricFullyAssessed = true;
 
-		for (const criterion of question.criteria) {
+		for (const criterion of rubric.criteria) {
 			if (criterion.assessment == null) {
-				isQuestionFullyAssessed = false;
+				isRubricFullyAssessed = false;
 			}
 
 			if (options.includeCriterionAssessment) {
 				const assessmentValue = criterion.assessment;
 				if (assessmentValue != null) {
-					row[
-						getAssessmentColumnName(question.questionId, criterion.criterionId)
-					] = assessmentValue;
+					row[getAssessmentColumnName(rubric.rubricId, criterion.criterionId)] =
+						assessmentValue;
 				}
 			}
 
 			if (options.includeCriterionMarks) {
 				if (criterion.marks != null) {
-					row[getMarksColumnName(question.questionId, criterion.criterionId)] =
+					row[getMarksColumnName(rubric.rubricId, criterion.criterionId)] =
 						criterion.marks;
 				}
 			}
 
 			if (criterion.marks != null) {
-				questionTotalMarks += criterion.marks;
+				rubricTotalMarks += criterion.marks;
 			}
 		}
 
-		if (isQuestionFullyAssessed) {
-			grandTotalMarks += questionTotalMarks;
-			row[question.questionId] = questionTotalMarks;
+		if (isRubricFullyAssessed) {
+			grandTotalMarks += rubricTotalMarks;
+			row[rubric.rubricId] = rubricTotalMarks;
 			continue;
 		}
 

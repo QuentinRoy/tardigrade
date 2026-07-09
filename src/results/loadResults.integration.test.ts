@@ -41,48 +41,48 @@ async function createSubmission(
 	return submission.id;
 }
 
-async function createQuestion(
+async function createRubric(
 	db: Kysely<DB>,
 	projectRowId: number,
-	questionId: string,
+	rubricId: string,
 ): Promise<number> {
 	await db
-		.insertInto("question")
+		.insertInto("rubric")
 		.values({
 			projectId: projectRowId,
-			id: questionId,
+			id: rubricId,
 			label: "Overview Q",
 			position: 0,
 		})
 		.execute();
 
-	const question = await db
-		.selectFrom("question")
+	const rubric = await db
+		.selectFrom("rubric")
 		.select("rowId")
 		.where("projectId", "=", projectRowId)
-		.where("id", "=", questionId)
+		.where("id", "=", rubricId)
 		.executeTakeFirstOrThrow();
 
-	return question.rowId;
+	return rubric.rowId;
 }
 
-async function createBooleanRubric(
+async function createCheckCriterion(
 	db: Kysely<DB>,
 	{
 		projectRowId,
-		questionRowId,
+		rubricRowId,
 		criterionId,
-	}: { projectRowId: number; questionRowId: number; criterionId: string },
+	}: { projectRowId: number; rubricRowId: number; criterionId: string },
 ): Promise<number> {
 	const rubric = await db
 		.insertInto("criterion")
 		.values({
 			id: criterionId,
 			projectId: projectRowId,
-			questionId: questionRowId,
+			rubricId: rubricRowId,
 			kind: "check",
 			position: 0,
-			label: "Boolean Rubric",
+			label: "Check Criterion",
 		})
 		.returning("rowId")
 		.executeTakeFirstOrThrow();
@@ -95,23 +95,23 @@ async function createBooleanRubric(
 	return rubric.rowId;
 }
 
-async function createOrdinalRubric(
+async function createOptionsCriterion(
 	db: Kysely<DB>,
 	{
 		projectRowId,
-		questionRowId,
+		rubricRowId,
 		criterionId,
-	}: { projectRowId: number; questionRowId: number; criterionId: string },
+	}: { projectRowId: number; rubricRowId: number; criterionId: string },
 ): Promise<number> {
 	const rubric = await db
 		.insertInto("criterion")
 		.values({
 			id: criterionId,
 			projectId: projectRowId,
-			questionId: questionRowId,
+			rubricId: rubricRowId,
 			kind: "options",
 			position: 1,
-			label: "Ordinal Rubric",
+			label: "Options Criterion",
 		})
 		.returning("rowId")
 		.executeTakeFirstOrThrow();
@@ -133,23 +133,23 @@ async function createOrdinalRubric(
 	return rubric.rowId;
 }
 
-async function createNumericalRubric(
+async function createNumberCriterion(
 	db: Kysely<DB>,
 	{
 		projectRowId,
-		questionRowId,
+		rubricRowId,
 		criterionId,
-	}: { projectRowId: number; questionRowId: number; criterionId: string },
+	}: { projectRowId: number; rubricRowId: number; criterionId: string },
 ): Promise<number> {
 	const rubric = await db
 		.insertInto("criterion")
 		.values({
 			id: criterionId,
 			projectId: projectRowId,
-			questionId: questionRowId,
+			rubricId: rubricRowId,
 			kind: "number",
 			position: 2,
-			label: "Numerical Rubric",
+			label: "Number Criterion",
 		})
 		.returning("rowId")
 		.executeTakeFirstOrThrow();
@@ -168,40 +168,36 @@ async function createNumericalRubric(
 	return rubric.rowId;
 }
 
-// `Assessment` is unique per (submissionId, questionId): multiple rubrics on the
-// same question share one assessment row, each with its own `criterionAssessment`.
+// `Assessment` is unique per (submissionId, rubricId): multiple criteria on the
+// same rubric share one assessment row, each with its own `criterionAssessment`.
 async function createAssessment(
 	db: Kysely<DB>,
 	{
 		projectRowId,
 		submissionId,
-		questionRowId,
-	}: { projectRowId: number; submissionId: number; questionRowId: number },
+		rubricRowId,
+	}: { projectRowId: number; submissionId: number; rubricRowId: number },
 ): Promise<number> {
 	const assessment = await db
 		.insertInto("assessment")
-		.values({
-			projectId: projectRowId,
-			submissionId,
-			questionId: questionRowId,
-		})
+		.values({ projectId: projectRowId, submissionId, rubricId: rubricRowId })
 		.returning("id")
 		.executeTakeFirstOrThrow();
 
 	return assessment.id;
 }
 
-async function addBooleanAssessment(
+async function addCheckAssessment(
 	db: Kysely<DB>,
 	{
 		assessmentId,
-		rubricRowId,
+		criterionRowId,
 		passed,
-	}: { assessmentId: number; rubricRowId: number; passed: boolean },
+	}: { assessmentId: number; criterionRowId: number; passed: boolean },
 ): Promise<void> {
 	const criterionAssessment = await db
 		.insertInto("criterionAssessment")
-		.values({ assessmentId, criterionId: rubricRowId, kind: "check" })
+		.values({ assessmentId, criterionId: criterionRowId, kind: "check" })
 		.returning("id")
 		.executeTakeFirstOrThrow();
 
@@ -211,17 +207,17 @@ async function addBooleanAssessment(
 		.execute();
 }
 
-async function addOrdinalAssessment(
+async function addOptionsAssessment(
 	db: Kysely<DB>,
 	{
 		assessmentId,
-		rubricRowId,
+		criterionRowId,
 		selectedLabel,
-	}: { assessmentId: number; rubricRowId: number; selectedLabel: string },
+	}: { assessmentId: number; criterionRowId: number; selectedLabel: string },
 ): Promise<void> {
 	const criterionAssessment = await db
 		.insertInto("criterionAssessment")
-		.values({ assessmentId, criterionId: rubricRowId, kind: "options" })
+		.values({ assessmentId, criterionId: criterionRowId, kind: "options" })
 		.returning("id")
 		.executeTakeFirstOrThrow();
 
@@ -231,17 +227,17 @@ async function addOrdinalAssessment(
 		.execute();
 }
 
-async function addNumericalAssessment(
+async function addNumberAssessment(
 	db: Kysely<DB>,
 	{
 		assessmentId,
-		rubricRowId,
+		criterionRowId,
 		score,
-	}: { assessmentId: number; rubricRowId: number; score: number },
+	}: { assessmentId: number; criterionRowId: number; score: number },
 ): Promise<void> {
 	const criterionAssessment = await db
 		.insertInto("criterionAssessment")
-		.values({ assessmentId, criterionId: rubricRowId, kind: "number" })
+		.values({ assessmentId, criterionId: criterionRowId, kind: "number" })
 		.returning("id")
 		.executeTakeFirstOrThrow();
 
@@ -256,50 +252,50 @@ test("loadCriterionAssessmentRecordsFromDb maps the per-type value column for bo
 	await using project = await createProject(db, "Rubric Overview Types");
 
 	const submissionId = await createSubmission(db, project.rowId);
-	const questionRowId = await createQuestion(
+	const rubricRowId = await createRubric(
 		db,
 		project.rowId,
-		buildTestId("question"),
+		buildTestId("rubric"),
 	);
 
 	const booleanRubricId = buildTestId("rubric-boolean");
 	const optionsCriterionId = buildTestId("rubric-ordinal");
 	const numericalRubricId = buildTestId("rubric-numerical");
 
-	const booleanRubricRowId = await createBooleanRubric(db, {
+	const checkCriterionRowId = await createCheckCriterion(db, {
 		projectRowId: project.rowId,
-		questionRowId,
+		rubricRowId,
 		criterionId: booleanRubricId,
 	});
-	const ordinalRubricRowId = await createOrdinalRubric(db, {
+	const optionsCriterionRowId = await createOptionsCriterion(db, {
 		projectRowId: project.rowId,
-		questionRowId,
+		rubricRowId,
 		criterionId: optionsCriterionId,
 	});
-	const numericalRubricRowId = await createNumericalRubric(db, {
+	const numberCriterionRowId = await createNumberCriterion(db, {
 		projectRowId: project.rowId,
-		questionRowId,
+		rubricRowId,
 		criterionId: numericalRubricId,
 	});
 
 	const assessmentId = await createAssessment(db, {
 		projectRowId: project.rowId,
 		submissionId,
-		questionRowId,
+		rubricRowId,
 	});
-	await addBooleanAssessment(db, {
+	await addCheckAssessment(db, {
 		assessmentId,
-		rubricRowId: booleanRubricRowId,
+		criterionRowId: checkCriterionRowId,
 		passed: true,
 	});
-	await addOrdinalAssessment(db, {
+	await addOptionsAssessment(db, {
 		assessmentId,
-		rubricRowId: ordinalRubricRowId,
+		criterionRowId: optionsCriterionRowId,
 		selectedLabel: "high",
 	});
-	await addNumericalAssessment(db, {
+	await addNumberAssessment(db, {
 		assessmentId,
-		rubricRowId: numericalRubricRowId,
+		criterionRowId: numberCriterionRowId,
 		score: 7,
 	});
 
@@ -347,49 +343,49 @@ test("loadCriterionAssessmentRecordsFromDb excludes assessment records from othe
 	const submissionA = await createSubmission(db, projectA.rowId);
 	const submissionB = await createSubmission(db, projectB.rowId);
 
-	const questionRowIdA = await createQuestion(
+	const rubricRowIdA = await createRubric(
 		db,
 		projectA.rowId,
-		buildTestId("question-a"),
+		buildTestId("criterion-a"),
 	);
-	const questionRowIdB = await createQuestion(
+	const rubricRowIdB = await createRubric(
 		db,
 		projectB.rowId,
-		buildTestId("question-b"),
+		buildTestId("criterion-b"),
 	);
 
-	const rubricIdA = buildTestId("rubric-a");
-	const rubricIdB = buildTestId("rubric-b");
+	const criterionIdA = buildTestId("criterion-a");
+	const criterionIdB = buildTestId("criterion-b");
 
-	const rubricRowIdA = await createBooleanRubric(db, {
+	const criterionRowIdA = await createCheckCriterion(db, {
 		projectRowId: projectA.rowId,
-		questionRowId: questionRowIdA,
-		criterionId: rubricIdA,
+		rubricRowId: rubricRowIdA,
+		criterionId: criterionIdA,
 	});
-	const rubricRowIdB = await createBooleanRubric(db, {
+	const criterionRowIdB = await createCheckCriterion(db, {
 		projectRowId: projectB.rowId,
-		questionRowId: questionRowIdB,
-		criterionId: rubricIdB,
+		rubricRowId: rubricRowIdB,
+		criterionId: criterionIdB,
 	});
 
 	const assessmentIdA = await createAssessment(db, {
 		projectRowId: projectA.rowId,
 		submissionId: submissionA,
-		questionRowId: questionRowIdA,
+		rubricRowId: rubricRowIdA,
 	});
 	const assessmentIdB = await createAssessment(db, {
 		projectRowId: projectB.rowId,
 		submissionId: submissionB,
-		questionRowId: questionRowIdB,
+		rubricRowId: rubricRowIdB,
 	});
-	await addBooleanAssessment(db, {
+	await addCheckAssessment(db, {
 		assessmentId: assessmentIdA,
-		rubricRowId: rubricRowIdA,
+		criterionRowId: criterionRowIdA,
 		passed: true,
 	});
-	await addBooleanAssessment(db, {
+	await addCheckAssessment(db, {
 		assessmentId: assessmentIdB,
-		rubricRowId: rubricRowIdB,
+		criterionRowId: criterionRowIdB,
 		passed: false,
 	});
 
@@ -403,7 +399,7 @@ test("loadCriterionAssessmentRecordsFromDb excludes assessment records from othe
 	expect(recordsA).toEqual([
 		{
 			gradeTargetId: submissionA,
-			criterionId: rubricIdA,
+			criterionId: criterionIdA,
 			kind: "check",
 			passed: true,
 			selectedLabel: null,
@@ -413,7 +409,7 @@ test("loadCriterionAssessmentRecordsFromDb excludes assessment records from othe
 	expect(recordsB).toEqual([
 		{
 			gradeTargetId: submissionB,
-			criterionId: rubricIdB,
+			criterionId: criterionIdB,
 			kind: "check",
 			passed: false,
 			selectedLabel: null,

@@ -12,7 +12,7 @@ type LogScope =
 	| "export"
 	| "import"
 	| "projects"
-	| "questions"
+	| "rubrics"
 	| "criteria"
 	| "submissions";
 

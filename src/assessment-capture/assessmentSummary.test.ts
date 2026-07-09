@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { AssessedCriterion } from "#criteria/types.ts";
 import {
 	summarizeCriteria,
-	summarizeQuestionSections,
+	summarizeRubricSections,
 } from "./assessmentSummary.ts";
 
 const assessedCheckCriterion: AssessedCriterion<"check"> = {
@@ -37,9 +37,9 @@ describe("summarizeCriteria", () => {
 	});
 });
 
-describe("summarizeQuestionSections", () => {
-	it("accumulates marks and maxMarks across questions", () => {
-		const summary = summarizeQuestionSections([
+describe("summarizeRubricSections", () => {
+	it("accumulates marks and maxMarks across rubrics", () => {
+		const summary = summarizeRubricSections([
 			{ criteria: [assessedCheckCriterion] },
 			{ criteria: [unassessedCheckCriterion] },
 		]);
@@ -50,28 +50,28 @@ describe("summarizeQuestionSections", () => {
 		expect(summary.totalCriteria).toBe(2);
 	});
 
-	it("counts a fully assessed question toward completedQuestions", () => {
-		const summary = summarizeQuestionSections([
+	it("counts a fully assessed rubric toward completedRubrics", () => {
+		const summary = summarizeRubricSections([
 			{ criteria: [assessedCheckCriterion] },
 		]);
 
-		expect(summary.completedQuestions).toBe(1);
-		expect(summary.totalQuestions).toBe(1);
+		expect(summary.completedRubrics).toBe(1);
+		expect(summary.totalRubrics).toBe(1);
 	});
 
-	it("does not count a partially assessed question toward completedQuestions", () => {
-		const summary = summarizeQuestionSections([
+	it("does not count a partially assessed rubric toward completedRubrics", () => {
+		const summary = summarizeRubricSections([
 			{ criteria: [assessedCheckCriterion, unassessedCheckCriterion] },
 		]);
 
-		expect(summary.completedQuestions).toBe(0);
-		expect(summary.totalQuestions).toBe(1);
+		expect(summary.completedRubrics).toBe(0);
+		expect(summary.totalRubrics).toBe(1);
 	});
 
-	it("counts a zero-criterion question toward completedQuestions", () => {
-		const summary = summarizeQuestionSections([{ criteria: [] }]);
+	it("counts a zero-criterion rubric toward completedRubrics", () => {
+		const summary = summarizeRubricSections([{ criteria: [] }]);
 
-		expect(summary.completedQuestions).toBe(1);
-		expect(summary.totalQuestions).toBe(1);
+		expect(summary.completedRubrics).toBe(1);
+		expect(summary.totalRubrics).toBe(1);
 	});
 });

@@ -2,7 +2,7 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
-import { CamelCasePlugin, Kysely, PostgresDialect } from "kysely";
+import { Kysely, PostgresDialect } from "kysely";
 import { FileMigrationProvider, Migrator } from "kysely/migration";
 import { Pool } from "pg";
 import type { DB } from "./generated/db.ts";
@@ -17,9 +17,13 @@ function createDb() {
 		throw new Error("DATABASE_URL is required to run migrations");
 	}
 
+	// No CamelCasePlugin here, unlike the query clients: migrations must receive
+	// the identifier strings they were written with, verbatim and forever. A
+	// name-transforming plugin makes a committed migration's output depend on
+	// runner configuration, which forks object names between databases migrated
+	// at different times. See docs/reference/database-migrations.md.
 	return new Kysely<DB>({
 		dialect: new PostgresDialect({ pool: new Pool({ connectionString }) }),
-		plugins: [new CamelCasePlugin()],
 	});
 }
 

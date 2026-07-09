@@ -2,9 +2,7 @@ type ProjectRef = { projectId: string; projectSlug: string };
 
 type ProjectSubmissionRef = ProjectRef & { submissionId: string };
 
-type ProjectSubmissionQuestionRef = ProjectSubmissionRef & {
-	questionId: string;
-};
+type ProjectSubmissionRubricRef = ProjectSubmissionRef & { rubricId: string };
 
 export function projectBasePath({
 	projectId,
@@ -36,19 +34,19 @@ export function projectAssessmentSubmissionPath({
 	return `${projectAssessmentsPath(project)}/submissions/${submissionId}`;
 }
 
-export function projectAssessmentSubmissionQuestionPath({
-	questionId,
+export function projectAssessmentSubmissionRubricPath({
+	rubricId,
 	...submission
-}: ProjectSubmissionQuestionRef): string {
-	return `${projectAssessmentSubmissionPath(submission)}/questions/${questionId}`;
+}: ProjectSubmissionRubricRef): string {
+	return `${projectAssessmentSubmissionPath(submission)}/rubrics/${rubricId}`;
 }
 
-export function projectQuestionsPath(project: ProjectRef): string {
-	return `${projectBasePath(project)}/questions`;
+export function projectRubricsPath(project: ProjectRef): string {
+	return `${projectBasePath(project)}/rubrics`;
 }
 
-export function projectImportQuestionsPath(project: ProjectRef): string {
-	return `${projectBasePath(project)}/import/questions`;
+export function projectImportRubricsPath(project: ProjectRef): string {
+	return `${projectBasePath(project)}/import/rubrics`;
 }
 
 export function projectImportStudentsPath(project: ProjectRef): string {
@@ -63,6 +61,6 @@ export function projectExportSubmissionsPath(project: ProjectRef): string {
 	return `${projectBasePath(project)}/export/submissions`;
 }
 
-export function projectExportQuestionsPath(project: ProjectRef): string {
-	return `${projectBasePath(project)}/export/questions`;
+export function projectExportRubricsPath(project: ProjectRef): string {
+	return `${projectBasePath(project)}/export/rubrics`;
 }

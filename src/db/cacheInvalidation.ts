@@ -2,12 +2,12 @@ import { revalidateTag, updateTag } from "next/cache";
 import {
 	assessmentAggregateCacheTag,
 	assessmentForSubmissionCacheTag,
-	assessmentForSubmissionQuestionCacheTag,
+	assessmentForSubmissionRubricCacheTag,
 	assessmentImportCacheTag,
-	assessmentProgressForQuestionCacheTag,
+	assessmentProgressForRubricCacheTag,
 	projectCacheTag,
 	projectListCacheTag,
-	questionListCacheTag,
+	rubricListCacheTag,
 	submissionListCacheTag,
 } from "./cacheTags.ts";
 
@@ -34,62 +34,60 @@ function revalidate(tag: string): void {
 
 // Interactive single-assessment save. Read-your-own-writes for the exact pair and
 // the submission's assessments (the grader must see the value just saved);
-// stale-while-revalidate for the coarse aggregate and the question progress
+// stale-while-revalidate for the coarse aggregate and the rubric progress
 // projection, so navigating to the next submission never blocks on recomputing
 // project-wide completion.
 export function invalidateAssessmentSave({
 	submissionId,
-	questionId,
+	rubricId,
 }: {
 	submissionId: string;
-	questionId: string;
+	rubricId: string;
 }): void {
-	updateTag(
-		assessmentForSubmissionQuestionCacheTag({ submissionId, questionId }),
-	);
+	updateTag(assessmentForSubmissionRubricCacheTag({ submissionId, rubricId }));
 	updateTag(assessmentForSubmissionCacheTag(submissionId));
 	revalidate(assessmentAggregateCacheTag());
-	revalidate(assessmentProgressForQuestionCacheTag(questionId));
+	revalidate(assessmentProgressForRubricCacheTag(rubricId));
 }
 
-// Interactive question-definition save. Read-your-own-writes for the question
+// Interactive rubric-definition save. Read-your-own-writes for the rubric
 // list (the author must see the edited definition); stale-while-revalidate for the
-// assessment aggregates and the question progress projection. When the question's
+// assessment aggregates and the rubric progress projection. When the rubric's
 // public id changed, the previous id's progress projection is refreshed too.
-export function invalidateQuestionDefinitionSave({
-	questionId,
-	previousQuestionId,
+export function invalidateRubricDefinitionSave({
+	rubricId,
+	previousRubricId,
 }: {
-	questionId: string;
-	previousQuestionId?: string | undefined;
+	rubricId: string;
+	previousRubricId?: string | undefined;
 }): void {
-	updateTag(questionListCacheTag());
+	updateTag(rubricListCacheTag());
 	revalidate(assessmentAggregateCacheTag());
 	revalidate(assessmentImportCacheTag());
-	revalidate(assessmentProgressForQuestionCacheTag(questionId));
-	if (previousQuestionId != null && previousQuestionId !== questionId) {
-		revalidate(assessmentProgressForQuestionCacheTag(previousQuestionId));
+	revalidate(assessmentProgressForRubricCacheTag(rubricId));
+	if (previousRubricId != null && previousRubricId !== rubricId) {
+		revalidate(assessmentProgressForRubricCacheTag(previousRubricId));
 	}
 }
 
-// Interactive question-definition delete. Read-your-own-writes for the question
+// Interactive rubric-definition delete. Read-your-own-writes for the rubric
 // list (the author must see the deletion); stale-while-revalidate for the
-// assessment aggregates and the question progress projection.
-export function invalidateQuestionDefinitionDelete({
-	questionId,
+// assessment aggregates and the rubric progress projection.
+export function invalidateRubricDefinitionDelete({
+	rubricId,
 }: {
-	questionId: string;
+	rubricId: string;
 }): void {
-	updateTag(questionListCacheTag());
+	updateTag(rubricListCacheTag());
 	revalidate(assessmentAggregateCacheTag());
 	revalidate(assessmentImportCacheTag());
-	revalidate(assessmentProgressForQuestionCacheTag(questionId));
+	revalidate(assessmentProgressForRubricCacheTag(rubricId));
 }
 
-// Interactive question reorder. Read-your-own-writes for the question list so the
+// Interactive rubric reorder. Read-your-own-writes for the rubric list so the
 // author sees the new order immediately.
-export function invalidateQuestionReorder(): void {
-	updateTag(questionListCacheTag());
+export function invalidateRubricReorder(): void {
+	updateTag(rubricListCacheTag());
 }
 
 // Project creation. Stale-while-revalidate for the project list and the new
@@ -111,10 +109,10 @@ export function invalidateAssessmentImport(): void {
 	revalidate(assessmentImportCacheTag());
 }
 
-// Bulk question import. Stale-while-revalidate for the question list and the
-// assessment aggregates the imported questions affect.
-export function invalidateQuestionImport(): void {
-	revalidate(questionListCacheTag());
+// Bulk rubric import. Stale-while-revalidate for the rubric list and the
+// assessment aggregates the imported rubrics affect.
+export function invalidateRubricImport(): void {
+	revalidate(rubricListCacheTag());
 	revalidate(assessmentAggregateCacheTag());
 	revalidate(assessmentImportCacheTag());
 }

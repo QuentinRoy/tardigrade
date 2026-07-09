@@ -6,7 +6,7 @@ export type SubmissionRow = {
 	submissionType: "team" | "individual" | null;
 	teamName: string | null;
 	studentId: string | null;
-	questionId: string | null;
+	rubricId: string | null;
 	criterionId: string | null;
 	booleanPassed: boolean | null;
 	ordinalSelectedLabel: string | null;
@@ -64,9 +64,9 @@ export async function* groupSubmissionRows(
 		currentTeamName = row.teamName;
 		currentStudentId = row.studentId;
 
-		if (row.questionId == null || row.criterionId == null) continue;
+		if (row.rubricId == null || row.criterionId == null) continue;
 
-		const key = buildAssessmentKey(row.questionId, row.criterionId);
+		const key = buildAssessmentKey(row.rubricId, row.criterionId);
 
 		if (row.booleanPassed != null) {
 			currentValuesByKey.set(key, {

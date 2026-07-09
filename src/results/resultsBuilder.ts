@@ -8,7 +8,7 @@ import type {
 	Criterion,
 	CriterionKind,
 } from "#criteria/types.ts";
-import type { Grid } from "#questions/types.ts";
+import type { RubricsById } from "#rubrics/types.ts";
 import { getSubmissionLabel } from "#submissions/getSubmissionLabel.ts";
 import type { Submission } from "#submissions/types.ts";
 
@@ -164,23 +164,23 @@ function toCriterionDetails(criterion: Criterion): CriterionDetails {
 
 export function buildResultsData({
 	submissions,
-	questionGrid,
+	rubricsById,
 	assessmentRecords,
 }: {
 	submissions: Submission[];
-	questionGrid: Grid;
+	rubricsById: RubricsById;
 	assessmentRecords: ResultsAssessmentRecord[];
 }): ResultsData {
 	const orderedCriteria: OrderedCriterion[] = [];
 
-	for (const [questionId, question] of Object.entries(questionGrid)) {
-		const questionLabel = question.label ?? questionId;
-		for (const criterion of question.criteria) {
+	for (const [rubricId, rubric] of Object.entries(rubricsById)) {
+		const rubricLabel = rubric.label ?? rubricId;
+		for (const criterion of rubric.criteria) {
 			orderedCriteria.push({
 				criterion,
 				criterionId: criterion.id,
-				rubricId: questionId,
-				rubricLabel: questionLabel,
+				rubricId: rubricId,
+				rubricLabel: rubricLabel,
 				maxMarks: getCriterionMaxMarks(criterion),
 			});
 		}

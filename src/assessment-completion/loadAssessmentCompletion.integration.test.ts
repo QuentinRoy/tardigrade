@@ -60,31 +60,31 @@ async function createSubmission(
 	return submission.id;
 }
 
-async function createQuestion(
+async function createRubric(
 	db: Kysely<DB>,
 	projectRowId: number,
-	questionId: string,
+	rubricId: string,
 	{ criterionId }: { criterionId?: string } = {},
-): Promise<{ questionRowId: number; criterionRowId: number | null }> {
+): Promise<{ rubricRowId: number; criterionRowId: number | null }> {
 	await db
-		.insertInto("question")
+		.insertInto("rubric")
 		.values({
 			projectId: projectRowId,
-			id: questionId,
+			id: rubricId,
 			label: "Shared Q",
 			position: 0,
 		})
 		.execute();
 
-	const question = await db
-		.selectFrom("question")
+	const rubric = await db
+		.selectFrom("rubric")
 		.select(["rowId"])
 		.where("projectId", "=", projectRowId)
-		.where("id", "=", questionId)
+		.where("id", "=", rubricId)
 		.executeTakeFirstOrThrow();
 
 	if (criterionId == null) {
-		return { questionRowId: question.rowId, criterionRowId: null };
+		return { rubricRowId: rubric.rowId, criterionRowId: null };
 	}
 
 	const criterionRows = await db
@@ -92,7 +92,7 @@ async function createQuestion(
 		.values({
 			id: criterionId,
 			projectId: projectRowId,
-			questionId: question.rowId,
+			rubricId: rubric.rowId,
 			kind: "check",
 			position: 0,
 			label: "Correct",
@@ -108,7 +108,7 @@ async function createQuestion(
 		.values({ criterionId: criterion.rowId, marks: 1, falseMarks: 0 })
 		.execute();
 
-	return { questionRowId: question.rowId, criterionRowId: criterion.rowId };
+	return { rubricRowId: rubric.rowId, criterionRowId: criterion.rowId };
 }
 
 async function addAssessment(
@@ -116,22 +116,18 @@ async function addAssessment(
 	{
 		projectRowId,
 		submissionId,
-		questionRowId,
+		rubricRowId,
 		criterionRowId,
 	}: {
 		projectRowId: number;
 		submissionId: number;
-		questionRowId: number;
+		rubricRowId: number;
 		criterionRowId?: number;
 	},
 ): Promise<void> {
 	const assessment = await db
 		.insertInto("assessment")
-		.values({
-			projectId: projectRowId,
-			submissionId,
-			questionId: questionRowId,
-		})
+		.values({ projectId: projectRowId, submissionId, rubricId: rubricRowId })
 		.returning("id")
 		.executeTakeFirstOrThrow();
 
@@ -161,21 +157,21 @@ async function addAssessment(
 		.execute();
 }
 
-test("loadAssessedCriterionCountsBySubmissionFromDb counts only assessments within the requested project when question ids collide across projects", async () => {
+test("loadAssessedCriterionCountsBySubmissionFromDb counts only assessments within the requested project when rubric ids collide across projects", async () => {
 	await using db = await createTestDb();
 	await using projectA = await createProject(db, "Progress Isolation A");
 	await using projectB = await createProject(db, "Progress Isolation B");
 
-	const sharedQuestionId = "shared-q-progress-iso";
+	const sharedRubricId = "shared-q-progress-iso";
 	const sharedCriterionId = "shared-criterion-progress-iso";
 
 	const submissionA = await createSubmission(db, projectA.rowId);
 	const submissionB = await createSubmission(db, projectB.rowId);
-	await createQuestion(db, projectA.rowId, sharedQuestionId, {
+	await createRubric(db, projectA.rowId, sharedRubricId, {
 		criterionId: sharedCriterionId,
 	});
-	const { questionRowId: questionBRowId, criterionRowId: criterionBRowId } =
-		await createQuestion(db, projectB.rowId, sharedQuestionId, {
+	const { rubricRowId: rubricBRowId, criterionRowId: criterionBRowId } =
+		await createRubric(db, projectB.rowId, sharedRubricId, {
 			criterionId: sharedCriterionId,
 		});
 
@@ -184,16 +180,16 @@ test("loadAssessedCriterionCountsBySubmissionFromDb counts only assessments with
 	await addAssessment(db, {
 		projectRowId: projectB.rowId,
 		submissionId: submissionB,
-		questionRowId: questionBRowId,
+		rubricRowId: rubricBRowId,
 		criterionRowId: criterionBRowId,
 	});
 
 	const progressA = await loadAssessedCriterionCountsBySubmissionFromDb(db, {
-		questionId: sharedQuestionId,
+		rubricId: sharedRubricId,
 		projectId: projectA.id,
 	});
 	const progressB = await loadAssessedCriterionCountsBySubmissionFromDb(db, {
-		questionId: sharedQuestionId,
+		rubricId: sharedRubricId,
 		projectId: projectB.id,
 	});
 
@@ -213,7 +209,7 @@ test("loadAssessedCriterionCountsBySubmissionFromDb counts only assessments with
 	expect(progressB[submissionAId]).toBeUndefined();
 });
 
-test("loadAssessmentCompletionBySubmissionFromDb counts only questions and assessments within the requested project when question ids collide across projects", async () => {
+test("loadAssessmentCompletionBySubmissionFromDb counts only rubrics and assessments within the requested project when rubric ids collide across projects", async () => {
 	await using db = await createTestDb();
 	await using projectA = await createProject(
 		db,
@@ -224,16 +220,16 @@ test("loadAssessmentCompletionBySubmissionFromDb counts only questions and asses
 		"Overview Progress Isolation B",
 	);
 
-	const sharedQuestionId = "shared-q-overview-iso";
+	const sharedRubricId = "shared-q-overview-iso";
 	const sharedCriterionId = "shared-criterion-overview-iso";
 
 	const submissionA = await createSubmission(db, projectA.rowId);
 	const submissionB = await createSubmission(db, projectB.rowId);
-	await createQuestion(db, projectA.rowId, sharedQuestionId, {
+	await createRubric(db, projectA.rowId, sharedRubricId, {
 		criterionId: sharedCriterionId,
 	});
-	const { questionRowId: questionBRowId, criterionRowId: criterionBRowId } =
-		await createQuestion(db, projectB.rowId, sharedQuestionId, {
+	const { rubricRowId: rubricBRowId, criterionRowId: criterionBRowId } =
+		await createRubric(db, projectB.rowId, sharedRubricId, {
 			criterionId: sharedCriterionId,
 		});
 
@@ -242,7 +238,7 @@ test("loadAssessmentCompletionBySubmissionFromDb counts only questions and asses
 	await addAssessment(db, {
 		projectRowId: projectB.rowId,
 		submissionId: submissionB,
-		questionRowId: questionBRowId,
+		rubricRowId: rubricBRowId,
 		criterionRowId: criterionBRowId,
 	});
 
@@ -256,10 +252,10 @@ test("loadAssessmentCompletionBySubmissionFromDb counts only questions and asses
 	const submissionAId = String(submissionA);
 	const submissionBId = String(submissionB);
 
-	// Project A has 1 question, 0 completed for its submission
+	// Project A has 1 rubric, 0 completed for its submission
 	expect(overviewA[submissionAId]).toEqual({ completed: 0, total: 1 });
 
-	// Project B has 1 question, 1 completed for its submission
+	// Project B has 1 rubric, 1 completed for its submission
 	expect(overviewB[submissionBId]).toEqual({ completed: 1, total: 1 });
 
 	// Results must not bleed across projects
@@ -269,15 +265,15 @@ test("loadAssessmentCompletionBySubmissionFromDb counts only questions and asses
 
 test("loadAssessedCriterionCountsBySubmission wrapper delegates to its primitive and declares its cache tags", async () => {
 	await using db = await createTestDb();
-	await using project = await createProject(db, "Question Progress Wrapper");
-	const sharedQuestionId = buildTestId("question");
+	await using project = await createProject(db, "Rubric Progress Wrapper");
+	const sharedRubricId = buildTestId("rubric");
 	const submissionId = await createSubmission(db, project.rowId);
-	await createQuestion(db, project.rowId, sharedQuestionId, {
+	await createRubric(db, project.rowId, sharedRubricId, {
 		criterionId: buildTestId("criterion"),
 	});
 
 	const progress = await loadAssessedCriterionCountsBySubmission(
-		{ questionId: sharedQuestionId, projectId: project.id },
+		{ rubricId: sharedRubricId, projectId: project.id },
 		{ db },
 	);
 
@@ -285,28 +281,28 @@ test("loadAssessedCriterionCountsBySubmission wrapper delegates to its primitive
 
 	const declaredTags = vi.mocked(cacheTag).mock.calls.map((call) => call[0]);
 	expect(declaredTags).toEqual(
-		assessedCriterionCountsBySubmissionCacheTags(sharedQuestionId),
+		assessedCriterionCountsBySubmissionCacheTags(sharedRubricId),
 	);
 });
 
 test("loadAssessedCriterionCounts plus buildAssessedCriterionCountsBySubmission matches the combined primitive, given the same submission ids", async () => {
 	await using db = await createTestDb();
-	await using project = await createProject(db, "Question Progress Split");
-	const questionId = buildTestId("question");
+	await using project = await createProject(db, "Rubric Progress Split");
+	const rubricId = buildTestId("rubric");
 	const submissionId = await createSubmission(db, project.rowId);
-	await createQuestion(db, project.rowId, questionId, {
+	await createRubric(db, project.rowId, rubricId, {
 		criterionId: buildTestId("criterion"),
 	});
 
 	const combined = await loadAssessedCriterionCountsBySubmissionFromDb(db, {
-		questionId,
+		rubricId,
 		projectId: project.id,
 	});
 
 	// Reuses an already-loaded submission id instead of letting the counts
 	// primitive query submissions itself (Finding 7).
 	const counts = await loadAssessedCriterionCounts(
-		{ questionId, projectId: project.id },
+		{ rubricId, projectId: project.id },
 		{ db },
 	);
 	const split = buildAssessedCriterionCountsBySubmission(
@@ -321,7 +317,7 @@ test("loadAssessmentCompletionBySubmission is a plain deriver that shares loadAs
 	await using db = await createTestDb();
 	await using project = await createProject(db, "Overview Progress Wrapper");
 	const submissionId = await createSubmission(db, project.rowId);
-	await createQuestion(db, project.rowId, buildTestId("question"), {
+	await createRubric(db, project.rowId, buildTestId("rubric"), {
 		criterionId: buildTestId("criterion"),
 	});
 
@@ -338,12 +334,12 @@ test("loadAssessmentCompletionBySubmission is a plain deriver that shares loadAs
 	expect(declaredTags).toEqual(assessmentCompletionRowsCacheTags());
 });
 
-test("a zero-criterion question counts as complete per submission and consistently with the summary", async () => {
+test("a zero-criterion rubric counts as complete per submission and consistently with the summary", async () => {
 	await using db = await createTestDb();
-	await using project = await createProject(db, "Zero Criterion Question");
+	await using project = await createProject(db, "Zero Criterion Rubric");
 
 	const submissionId = await createSubmission(db, project.rowId);
-	await createQuestion(db, project.rowId, buildTestId("question"));
+	await createRubric(db, project.rowId, buildTestId("rubric"));
 
 	const bySubmission = await loadAssessmentCompletionBySubmissionFromDb(db, {
 		projectId: project.id,
@@ -356,21 +352,21 @@ test("a zero-criterion question counts as complete per submission and consistent
 		completed: 1,
 		total: 1,
 	});
-	expect(summary.questions).toEqual({ completed: 1, total: 1 });
+	expect(summary.rubrics).toEqual({ completed: 1, total: 1 });
 	expect(summary.submissions).toEqual({ completed: 1, total: 1 });
 });
 
-test("loadAssessmentCompletionSummaryFromDb characterizes mixed completion across submissions and questions", async () => {
+test("loadAssessmentCompletionSummaryFromDb characterizes mixed completion across submissions and rubrics", async () => {
 	await using db = await createTestDb();
 	await using project = await createProject(db, "Mixed Completion Summary");
 
 	const submissionDone = await createSubmission(db, project.rowId);
 	await createSubmission(db, project.rowId);
 
-	const { questionRowId, criterionRowId } = await createQuestion(
+	const { rubricRowId, criterionRowId } = await createRubric(
 		db,
 		project.rowId,
-		buildTestId("question"),
+		buildTestId("rubric"),
 		{ criterionId: buildTestId("criterion") },
 	);
 	if (criterionRowId == null) throw new Error("Expected criterion row");
@@ -378,7 +374,7 @@ test("loadAssessmentCompletionSummaryFromDb characterizes mixed completion acros
 	await addAssessment(db, {
 		projectRowId: project.rowId,
 		submissionId: submissionDone,
-		questionRowId,
+		rubricRowId,
 		criterionRowId,
 	});
 
@@ -388,7 +384,7 @@ test("loadAssessmentCompletionSummaryFromDb characterizes mixed completion acros
 
 	expect(summary).toEqual({
 		submissions: { completed: 1, total: 2 },
-		questions: { completed: 0, total: 1 },
+		rubrics: { completed: 0, total: 1 },
 		criteria: { completed: 1, total: 2 },
 	});
 });
@@ -403,7 +399,7 @@ test("loadAssessmentCompletionSummaryFromDb returns vacuous aggregates for an em
 
 	expect(summary).toEqual({
 		submissions: { completed: 0, total: 0 },
-		questions: { completed: 0, total: 0 },
+		rubrics: { completed: 0, total: 0 },
 		criteria: { completed: 0, total: 0 },
 	});
 });
@@ -412,7 +408,7 @@ test("loadAssessmentCompletionSummary is a plain deriver that shares loadAssessm
 	await using db = await createTestDb();
 	await using project = await createProject(db, "Summary Wrapper");
 	await createSubmission(db, project.rowId);
-	await createQuestion(db, project.rowId, buildTestId("question"), {
+	await createRubric(db, project.rowId, buildTestId("rubric"), {
 		criterionId: buildTestId("criterion"),
 	});
 
@@ -423,7 +419,7 @@ test("loadAssessmentCompletionSummary is a plain deriver that shares loadAssessm
 
 	expect(summary).toEqual({
 		submissions: { completed: 0, total: 1 },
-		questions: { completed: 0, total: 1 },
+		rubrics: { completed: 0, total: 1 },
 		criteria: { completed: 0, total: 1 },
 	});
 

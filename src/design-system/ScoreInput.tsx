@@ -20,7 +20,7 @@ type ScoreInputProps = {
  * empty or not-yet-numeric draft, so the submitted payload reflects exactly
  * what is in the field — an empty field must not silently fall back to the
  * last valid value. `NaN` serializes to `null` in the submitted JSON, which
- * the question schema rejects with a field-level error; pass that error back
+ * the rubric schema rejects with a field-level error; pass that error back
  * in via `error` to display it.
  */
 export default function ScoreInput({

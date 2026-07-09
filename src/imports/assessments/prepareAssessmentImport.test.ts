@@ -12,7 +12,7 @@ function buildContext(
 ): AssessmentImportContext {
 	return {
 		criteriaByColumn: new Map(),
-		questionIds: new Set(),
+		rubricIds: new Set(),
 		submissionIdsByLookup: new Map(),
 		assessedCriterionKeys: new Set(),
 		...overrides,
@@ -24,18 +24,18 @@ test("prepareAssessmentImport plans one write per non-empty criterion cell of a 
 		criteriaByColumn: new Map([
 			[
 				"q1:r-bool",
-				{ id: "r-bool", kind: "check", questionId: "q1", ordinalLabels: [] },
+				{ id: "r-bool", kind: "check", rubricId: "q1", ordinalLabels: [] },
 			],
 			[
 				"q1:r-num",
-				{ id: "r-num", kind: "number", questionId: "q1", ordinalLabels: [] },
+				{ id: "r-num", kind: "number", rubricId: "q1", ordinalLabels: [] },
 			],
 			[
 				"q2:r-ord",
 				{
 					id: "r-ord",
 					kind: "options",
-					questionId: "q2",
+					rubricId: "q2",
 					ordinalLabels: ["good", "bad"],
 				},
 			],
@@ -66,12 +66,12 @@ test("prepareAssessmentImport plans one write per non-empty criterion cell of a 
 	expect(plan.writes).toEqual([
 		{
 			submissionId: "42",
-			questionId: "q1",
+			rubricId: "q1",
 			assessment: { criterionId: "r-bool", kind: "check", passed: true },
 		},
 		{
 			submissionId: "42",
-			questionId: "q1",
+			rubricId: "q1",
 			assessment: { criterionId: "r-num", kind: "number", score: 7.5 },
 		},
 	]);
@@ -82,7 +82,7 @@ test("prepareAssessmentImport reports an unmatched submission as a blocking diag
 		criteriaByColumn: new Map([
 			[
 				"q1:r-bool",
-				{ id: "r-bool", kind: "check", questionId: "q1", ordinalLabels: [] },
+				{ id: "r-bool", kind: "check", rubricId: "q1", ordinalLabels: [] },
 			],
 		]),
 	});
@@ -113,7 +113,7 @@ test("prepareAssessmentImport reports an ambiguous submission as a blocking diag
 		criteriaByColumn: new Map([
 			[
 				"q1:r-bool",
-				{ id: "r-bool", kind: "check", questionId: "q1", ordinalLabels: [] },
+				{ id: "r-bool", kind: "check", rubricId: "q1", ordinalLabels: [] },
 			],
 		]),
 		submissionIdsByLookup: new Map([
@@ -146,7 +146,7 @@ test("prepareAssessmentImport reports an invalid cell value as a blocking diagno
 		criteriaByColumn: new Map([
 			[
 				"q1:r-bool",
-				{ id: "r-bool", kind: "check", questionId: "q1", ordinalLabels: [] },
+				{ id: "r-bool", kind: "check", rubricId: "q1", ordinalLabels: [] },
 			],
 		]),
 		submissionIdsByLookup: new Map([
@@ -187,7 +187,7 @@ test("prepareAssessmentImport reports an unknown column as a blocking diagnostic
 		criteriaByColumn: new Map([
 			[
 				"q1:r-bool",
-				{ id: "r-bool", kind: "check", questionId: "q1", ordinalLabels: [] },
+				{ id: "r-bool", kind: "check", rubricId: "q1", ordinalLabels: [] },
 			],
 		]),
 		submissionIdsByLookup: new Map([
@@ -222,10 +222,10 @@ test("prepareAssessmentImport reports derived export columns as ignored, never b
 		criteriaByColumn: new Map([
 			[
 				"q1:r-bool",
-				{ id: "r-bool", kind: "check", questionId: "q1", ordinalLabels: [] },
+				{ id: "r-bool", kind: "check", rubricId: "q1", ordinalLabels: [] },
 			],
 		]),
-		questionIds: new Set(["q1"]),
+		rubricIds: new Set(["q1"]),
 		submissionIdsByLookup: new Map([
 			[
 				submissionLookupKey({
@@ -264,11 +264,11 @@ test("prepareAssessmentImport lists existing values of targeted pairs as overwri
 		criteriaByColumn: new Map([
 			[
 				"q1:r-bool",
-				{ id: "r-bool", kind: "check", questionId: "q1", ordinalLabels: [] },
+				{ id: "r-bool", kind: "check", rubricId: "q1", ordinalLabels: [] },
 			],
 			[
 				"q1:r-num",
-				{ id: "r-num", kind: "number", questionId: "q1", ordinalLabels: [] },
+				{ id: "r-num", kind: "number", rubricId: "q1", ordinalLabels: [] },
 			],
 		]),
 		submissionIdsByLookup: new Map([
@@ -307,10 +307,10 @@ test("prepareAssessmentImport blocks with no-assessment-columns when the header 
 		criteriaByColumn: new Map([
 			[
 				"q1:r-bool",
-				{ id: "r-bool", kind: "check", questionId: "q1", ordinalLabels: [] },
+				{ id: "r-bool", kind: "check", rubricId: "q1", ordinalLabels: [] },
 			],
 		]),
-		questionIds: new Set(["q1"]),
+		rubricIds: new Set(["q1"]),
 		submissionIdsByLookup: new Map([
 			[
 				submissionLookupKey({
@@ -343,7 +343,7 @@ test("prepareAssessmentImport blocks with no-assessment-columns on an empty CSV"
 		criteriaByColumn: new Map([
 			[
 				"q1:r-bool",
-				{ id: "r-bool", kind: "check", questionId: "q1", ordinalLabels: [] },
+				{ id: "r-bool", kind: "check", rubricId: "q1", ordinalLabels: [] },
 			],
 		]),
 	});
@@ -359,7 +359,7 @@ test("prepareAssessmentImport does not block when the header has an assessment c
 		criteriaByColumn: new Map([
 			[
 				"q1:r-bool",
-				{ id: "r-bool", kind: "check", questionId: "q1", ordinalLabels: [] },
+				{ id: "r-bool", kind: "check", rubricId: "q1", ordinalLabels: [] },
 			],
 		]),
 		submissionIdsByLookup: new Map([

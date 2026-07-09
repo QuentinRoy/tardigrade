@@ -7,13 +7,13 @@ import { type ReactNode, useMemo } from "react";
 import {
 	changeProjectPath,
 	projectAssessmentsPath,
-	projectExportQuestionsPath,
+	projectExportRubricsPath,
 	projectExportSubmissionsPath,
 	projectImportAssessmentsPath,
-	projectImportQuestionsPath,
+	projectImportRubricsPath,
 	projectImportStudentsPath,
-	projectQuestionsPath,
 	projectResultsPath,
+	projectRubricsPath,
 } from "#projects/projectPaths.ts";
 import { useLocalStorage } from "#utils/useLocalStorage.ts";
 import { getProjectRouteContext } from "./AppShell.shared.ts";
@@ -138,16 +138,13 @@ export default function AppShellDrawerContent({
 	];
 
 	const managementItems: NavigationItem[] = [
-		{
-			label: "Manage Questions",
-			href: projectQuestionsPath(projectRouteContext),
-		},
+		{ label: "Manage Rubrics", href: projectRubricsPath(projectRouteContext) },
 	];
 
 	const importItems: NavigationItem[] = [
 		{
-			label: "Import Questions",
-			href: projectImportQuestionsPath(projectRouteContext),
+			label: "Import Rubrics",
+			href: projectImportRubricsPath(projectRouteContext),
 		},
 		{
 			label: "Import Students",
@@ -236,16 +233,16 @@ export default function AppShellDrawerContent({
 
 			<Stack gap="xs" px="md" py="sm">
 				<Text size="xs" tt="uppercase" c="dimmed" fw={600}>
-					Export Questions
+					Export Rubrics
 				</Text>
 				<Button
 					component={NextLink}
-					href={projectExportQuestionsPath(projectRouteContext)}
+					href={projectExportRubricsPath(projectRouteContext)}
 					variant="outline"
 					fullWidth
 					{...(onDismiss && { onClick: onDismiss })}
 				>
-					Download Questions
+					Download Rubrics
 				</Button>
 			</Stack>
 		</Stack>

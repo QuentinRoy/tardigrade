@@ -43,8 +43,8 @@ const meta = {
 	args: {
 		projectId: "project-1",
 		projectSlug: "project-slug",
-		questionId: "question-1",
-		questionLabel: "Question 1",
+		rubricId: "rubric-1",
+		rubricLabel: "Rubric 1",
 		criteria,
 		submissions,
 		progressPromise: Promise.resolve({}),

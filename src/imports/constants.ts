@@ -1,6 +1,6 @@
-export const QUESTIONS_YAML_PLACEHOLDER = `questions:
+export const RUBRICS_YAML_PLACEHOLDER = `rubrics:
   - id: q1
-    label: Question 1
+    label: Rubric 1
     criteria:
       - id: r1
         label: Criterion 1
@@ -9,7 +9,7 @@ export const QUESTIONS_YAML_PLACEHOLDER = `questions:
         marks: 1
         falseMarks: 0
   - id: q2
-    label: Question 2
+    label: Rubric 2
     criteria:
       - id: r2
         label: Good

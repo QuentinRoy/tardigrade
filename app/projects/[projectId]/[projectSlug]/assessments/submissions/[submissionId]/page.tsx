@@ -12,7 +12,7 @@ import AppPage from "#design-system/AppPage.tsx";
 import PageHeader from "#design-system/PageHeader.tsx";
 import { projectAssessmentsPath } from "#projects/projectPaths.ts";
 import { loadProjectByPublicId } from "#projects/projects.ts";
-import { loadQuestionGrid } from "#questions/questions.ts";
+import { loadRubricsById } from "#rubrics/rubrics.ts";
 import { getSubmissionLabel } from "#submissions/getSubmissionLabel.ts";
 import { loadSubmissions } from "#submissions/submissions.ts";
 import type { Submission } from "#submissions/types.ts";
@@ -74,7 +74,7 @@ async function ProjectSubmissionPageContent({ params }: SubmissionPageProps) {
 }
 
 // No "use cache" here: a Suspense boundary inside a `"use cache"` scope fully
-// resolves before being cached, so it can't stream — see `loadQuestionGrid`'s
+// resolves before being cached, so it can't stream — see `loadRubricsById`'s
 // own cache and `progressPromise` below for why caching still works.
 async function SubmissionGradingSection({
 	projectId,
@@ -87,24 +87,24 @@ async function SubmissionGradingSection({
 	submissionId: string;
 	submissions: Submission[];
 }) {
-	// Doesn't depend on `questionGrid`/`assessmentsByQuestionId`, so it's started
+	// Doesn't depend on `rubricsById`/`assessmentsByRubricId`, so it's started
 	// alongside the Promise.all below rather than after it. Not awaited here:
 	// only the on-demand submission lookup dialog needs it, so a save-then-
 	// navigate never blocks on recomputing project-wide completion (Finding 19).
 	const progressPromise = loadAssessmentCompletionBySubmission({ projectId });
 	progressPromise.catch(() => {});
 
-	const [questionGrid, assessmentsByQuestionId] = await Promise.all([
-		loadQuestionGrid({ projectId }),
+	const [rubricsById, assessmentsByRubricId] = await Promise.all([
+		loadRubricsById({ projectId }),
 		loadSubmissionAssessments({ submissionId, projectId }),
 	]);
 
-	const gradedQuestions = Object.entries(questionGrid).map(
-		([questionId, question]) => ({
-			questionId,
-			questionLabel: question.label ?? questionId,
-			criteria: question.criteria.map((criterion) =>
-				attachAssessment(criterion, assessmentsByQuestionId[questionId]),
+	const gradedRubrics = Object.entries(rubricsById).map(
+		([rubricId, rubric]) => ({
+			rubricId,
+			rubricLabel: rubric.label ?? rubricId,
+			criteria: rubric.criteria.map((criterion) =>
+				attachAssessment(criterion, assessmentsByRubricId[rubricId]),
 			),
 		}),
 	);
@@ -116,7 +116,7 @@ async function SubmissionGradingSection({
 			currentSubmissionId={submissionId}
 			submissions={submissions}
 			progressPromise={progressPromise}
-			questions={gradedQuestions}
+			rubrics={gradedRubrics}
 			saveAssessment={saveAssessment}
 		/>
 	);

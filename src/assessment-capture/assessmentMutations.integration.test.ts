@@ -6,7 +6,7 @@ import { runForcedInterleaving } from "#test/concurrency.ts";
 import { buildTestId, createTestDb } from "#test/dbIntegration.ts";
 import { createProject } from "#test/projects.ts";
 import { saveAssessment } from "./assessmentMutations.ts";
-import { loadQuestionAssessmentFromDb } from "./assessments.ts";
+import { loadRubricAssessmentFromDb } from "./assessments.ts";
 
 vi.mock("next/cache", () => ({
 	cacheTag: vi.fn(),
@@ -30,7 +30,7 @@ test("saveAssessmentInDb round-trips boolean, ordinal and numerical assessments"
 	const results = await Promise.all([
 		saveAssessmentInDb(db, {
 			submissionId: fixture.submissionId,
-			questionId: fixture.questionId,
+			rubricId: fixture.rubricId,
 			assessment: {
 				criterionId: fixture.criterionIds.boolean,
 				kind: "check",
@@ -39,7 +39,7 @@ test("saveAssessmentInDb round-trips boolean, ordinal and numerical assessments"
 		}),
 		saveAssessmentInDb(db, {
 			submissionId: fixture.submissionId,
-			questionId: fixture.questionId,
+			rubricId: fixture.rubricId,
 			assessment: {
 				criterionId: fixture.criterionIds.ordinal,
 				kind: "options",
@@ -48,7 +48,7 @@ test("saveAssessmentInDb round-trips boolean, ordinal and numerical assessments"
 		}),
 		saveAssessmentInDb(db, {
 			submissionId: fixture.submissionId,
-			questionId: fixture.questionId,
+			rubricId: fixture.rubricId,
 			assessment: {
 				criterionId: fixture.criterionIds.numerical,
 				kind: "number",
@@ -63,10 +63,10 @@ test("saveAssessmentInDb round-trips boolean, ordinal and numerical assessments"
 		{ success: true },
 	]);
 
-	const loaded = await loadQuestionAssessmentFromDb(db, {
+	const loaded = await loadRubricAssessmentFromDb(db, {
 		submissionId: fixture.submissionId,
 		projectId: fixture.projectId,
-		questionId: fixture.questionId,
+		rubricId: fixture.rubricId,
 	});
 	const byCriterionId = new Map(
 		loaded.map((value) => [value.criterionId, value]),
@@ -99,7 +99,7 @@ test("saveAssessmentInDb returns a validation error for an invalid ordinal label
 
 	const result = await saveAssessmentInDb(db, {
 		submissionId: fixture.submissionId,
-		questionId: fixture.questionId,
+		rubricId: fixture.rubricId,
 		assessment: {
 			criterionId: fixture.criterionIds.ordinal,
 			kind: "options",
@@ -124,7 +124,7 @@ test("saveAssessmentInDb returns a validation error for an out-of-range numerica
 
 	const result = await saveAssessmentInDb(db, {
 		submissionId: fixture.submissionId,
-		questionId: fixture.questionId,
+		rubricId: fixture.rubricId,
 		assessment: {
 			criterionId: fixture.criterionIds.numerical,
 			kind: "number",
@@ -138,7 +138,7 @@ test("saveAssessmentInDb returns a validation error for an out-of-range numerica
 	});
 });
 
-test("saveAssessmentInDb saves in the correct project when question and criterion ids collide", async () => {
+test("saveAssessmentInDb saves in the correct project when rubric and criterion ids collide", async () => {
 	await using db = await createTestDb();
 	await using projectA = await createProject(
 		db,
@@ -149,7 +149,7 @@ test("saveAssessmentInDb saves in the correct project when question and criterio
 		"Assessment Collision Project B",
 	);
 
-	const sharedQuestionId = buildTestId("shared-question");
+	const sharedRubricId = buildTestId("shared-rubric");
 	const sharedCriterionIds = {
 		boolean: buildTestId("shared-criterion-boolean"),
 		ordinal: buildTestId("shared-criterion-ordinal"),
@@ -157,17 +157,17 @@ test("saveAssessmentInDb saves in the correct project when question and criterio
 	};
 
 	const fixtureA = await createAssessmentFixture(db, projectA.id, {
-		questionId: sharedQuestionId,
+		rubricId: sharedRubricId,
 		criterionIds: sharedCriterionIds,
 	});
 	const fixtureB = await createAssessmentFixture(db, projectB.id, {
-		questionId: sharedQuestionId,
+		rubricId: sharedRubricId,
 		criterionIds: sharedCriterionIds,
 	});
 
 	const result = await saveAssessmentInDb(db, {
 		submissionId: fixtureB.submissionId,
-		questionId: fixtureB.questionId,
+		rubricId: fixtureB.rubricId,
 		assessment: {
 			criterionId: fixtureB.criterionIds.boolean,
 			kind: "check",
@@ -177,24 +177,24 @@ test("saveAssessmentInDb saves in the correct project when question and criterio
 
 	expect(result).toEqual({ success: true });
 
-	const projectBAssessment = await loadQuestionAssessmentFromDb(db, {
+	const projectBAssessment = await loadRubricAssessmentFromDb(db, {
 		submissionId: fixtureB.submissionId,
 		projectId: fixtureB.projectId,
-		questionId: fixtureB.questionId,
+		rubricId: fixtureB.rubricId,
 	});
 	expect(projectBAssessment).toEqual([
 		{ criterionId: fixtureB.criterionIds.boolean, kind: "check", passed: true },
 	]);
 
-	const projectAAssessment = await loadQuestionAssessmentFromDb(db, {
+	const projectAAssessment = await loadRubricAssessmentFromDb(db, {
 		submissionId: fixtureA.submissionId,
 		projectId: fixtureA.projectId,
-		questionId: fixtureA.questionId,
+		rubricId: fixtureA.rubricId,
 	});
 	expect(projectAAssessment).toEqual([]);
 });
 
-test("saveAssessmentInDb rejects cross-project submission and question combinations", async () => {
+test("saveAssessmentInDb rejects cross-project submission and rubric combinations", async () => {
 	await using db = await createTestDb();
 	await using projectA = await createProject(
 		db,
@@ -210,7 +210,7 @@ test("saveAssessmentInDb rejects cross-project submission and question combinati
 
 	const result = await saveAssessmentInDb(db, {
 		submissionId: fixtureA.submissionId,
-		questionId: fixtureB.questionId,
+		rubricId: fixtureB.rubricId,
 		assessment: {
 			criterionId: fixtureB.criterionIds.boolean,
 			kind: "check",
@@ -236,7 +236,7 @@ test("saveAssessment wrapper updates the edited tags read-your-writes and revali
 	const result = await saveAssessment(
 		{
 			submissionId: fixture.submissionId,
-			questionId: fixture.questionId,
+			rubricId: fixture.rubricId,
 			assessment: {
 				criterionId: fixture.criterionIds.boolean,
 				kind: "check",
@@ -250,7 +250,7 @@ test("saveAssessment wrapper updates the edited tags read-your-writes and revali
 
 	const updatedTags = vi.mocked(updateTag).mock.calls.map((call) => call[0]);
 	expect(updatedTags).toEqual([
-		`assessments:${fixture.submissionId}:${fixture.questionId}`,
+		`assessments:${fixture.submissionId}:${fixture.rubricId}`,
 		`assessments:${fixture.submissionId}`,
 	]);
 
@@ -259,7 +259,7 @@ test("saveAssessment wrapper updates the edited tags read-your-writes and revali
 		.mock.calls.map((call) => call[0]);
 	expect(revalidatedTags).toEqual([
 		"assessments",
-		`assessments:question:${fixture.questionId}`,
+		`assessments:rubric:${fixture.rubricId}`,
 	]);
 });
 
@@ -274,7 +274,7 @@ test("saveAssessment wrapper does not invalidate when the save fails validation"
 	const result = await saveAssessment(
 		{
 			submissionId: fixture.submissionId,
-			questionId: fixture.questionId,
+			rubricId: fixture.rubricId,
 			assessment: {
 				criterionId: fixture.criterionIds.ordinal,
 				kind: "options",
@@ -289,7 +289,7 @@ test("saveAssessment wrapper does not invalidate when the save fails validation"
 	expect(revalidateTag).not.toHaveBeenCalled();
 });
 
-// Scenario A: two writers target the same (submission, question, criterion).
+// Scenario A: two writers target the same (submission, rubric, criterion).
 // Required invariant: exactly one value survives, untorn and unblended. The
 // grouping row's `INSERT ... ON CONFLICT DO NOTHING` makes the second writer
 // block on the first writer's uncommitted unique tuple, which is the lock
@@ -306,7 +306,7 @@ test("saveAssessmentInDb keeps a single untorn value when two writers race the s
 		first: (tx) =>
 			saveAssessmentInDb(tx, {
 				submissionId: fixture.submissionId,
-				questionId: fixture.questionId,
+				rubricId: fixture.rubricId,
 				assessment: {
 					criterionId: fixture.criterionIds.boolean,
 					kind: "check",
@@ -316,7 +316,7 @@ test("saveAssessmentInDb keeps a single untorn value when two writers race the s
 		second: (tx) =>
 			saveAssessmentInDb(tx, {
 				submissionId: fixture.submissionId,
-				questionId: fixture.questionId,
+				rubricId: fixture.rubricId,
 				assessment: {
 					criterionId: fixture.criterionIds.boolean,
 					kind: "check",
@@ -373,11 +373,11 @@ test("saveAssessmentInDb keeps a single untorn value when two writers race the s
 	expect(booleanRows[0]?.passed).toBe(false);
 });
 
-// Scenario B: two writers target the same (submission, question) but different
+// Scenario B: two writers target the same (submission, rubric) but different
 // criteria — the common real race from optimistic-UI saves of several criteria
-// on one question. Required invariant: both criterion assessments coexist; only
+// on one rubric. Required invariant: both criterion assessments coexist; only
 // the parent `assessment` grouping row is shared.
-test("saveAssessmentInDb keeps both criterion assessments when two writers race different criteria on the same question", async () => {
+test("saveAssessmentInDb keeps both criterion assessments when two writers race different criteria on the same rubric", async () => {
 	await using db = await createTestDb();
 	await using project = await createProject(
 		db,
@@ -389,7 +389,7 @@ test("saveAssessmentInDb keeps both criterion assessments when two writers race 
 		first: (tx) =>
 			saveAssessmentInDb(tx, {
 				submissionId: fixture.submissionId,
-				questionId: fixture.questionId,
+				rubricId: fixture.rubricId,
 				assessment: {
 					criterionId: fixture.criterionIds.boolean,
 					kind: "check",
@@ -399,7 +399,7 @@ test("saveAssessmentInDb keeps both criterion assessments when two writers race 
 		second: (tx) =>
 			saveAssessmentInDb(tx, {
 				submissionId: fixture.submissionId,
-				questionId: fixture.questionId,
+				rubricId: fixture.rubricId,
 				assessment: {
 					criterionId: fixture.criterionIds.ordinal,
 					kind: "options",
@@ -418,10 +418,10 @@ test("saveAssessmentInDb keeps both criterion assessments when two writers race 
 		.execute();
 	expect(assessmentRows).toHaveLength(1);
 
-	const loaded = await loadQuestionAssessmentFromDb(db, {
+	const loaded = await loadRubricAssessmentFromDb(db, {
 		submissionId: fixture.submissionId,
 		projectId: fixture.projectId,
-		questionId: fixture.questionId,
+		rubricId: fixture.rubricId,
 	});
 	const byCriterionId = new Map(
 		loaded.map((value) => [value.criterionId, value]),
@@ -452,7 +452,7 @@ test("saveAssessment wrapper does not error under naive parallel saves", async (
 		saveAssessment(
 			{
 				submissionId: fixture.submissionId,
-				questionId: fixture.questionId,
+				rubricId: fixture.rubricId,
 				assessment: {
 					criterionId: fixture.criterionIds.boolean,
 					kind: "check",
@@ -464,7 +464,7 @@ test("saveAssessment wrapper does not error under naive parallel saves", async (
 		saveAssessment(
 			{
 				submissionId: fixture.submissionId,
-				questionId: fixture.questionId,
+				rubricId: fixture.rubricId,
 				assessment: {
 					criterionId: fixture.criterionIds.ordinal,
 					kind: "options",
@@ -476,7 +476,7 @@ test("saveAssessment wrapper does not error under naive parallel saves", async (
 		saveAssessment(
 			{
 				submissionId: fixture.submissionId,
-				questionId: fixture.questionId,
+				rubricId: fixture.rubricId,
 				assessment: {
 					criterionId: fixture.criterionIds.numerical,
 					kind: "number",

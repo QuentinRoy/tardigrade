@@ -8,7 +8,7 @@ import {
 import {
 	addFullAssessmentFixture,
 	createIndividualSubmissionFixtures,
-	createMixedCriterionQuestionFixtureProject,
+	createMixedCriterionRubricFixtureProject,
 	createStudentFixtures,
 } from "#test/mixedCriterionAssessmentFixture.ts";
 import { loadAssessmentImportContextFromDb } from "./assessmentImportContext.ts";
@@ -31,14 +31,16 @@ async function readStream(stream: ReadableStream<Uint8Array>): Promise<string> {
 }
 
 async function createRoundtripFixtureProject(db: DisposableTestDatabase) {
-	const { project, question } =
-		await createMixedCriterionQuestionFixtureProject(db, {
+	const { project, rubric } = await createMixedCriterionRubricFixtureProject(
+		db,
+		{
 			projectName: "Roundtrip Integration Project",
-			questionId: "q-roundtrip-test",
+			rubricId: "q-roundtrip-test",
 			checkCriterionId: "r-bool-roundtrip-test",
 			optionsCriterionId: "r-ord-roundtrip-test",
 			numberCriterionId: "r-num-roundtrip-test",
-		});
+		},
+	);
 
 	const criterionRowIds = await db
 		.selectFrom("criterion")
@@ -56,17 +58,17 @@ async function createRoundtripFixtureProject(db: DisposableTestDatabase) {
 	await addFullAssessmentFixture(db, {
 		projectRowId: project.rowId,
 		submissionId: submission.id,
-		questionRowId: question.rowId,
-		checkCriterionRowId: criterionRowId.get(question.criteria.booleanId)!,
-		optionsCriterionRowId: criterionRowId.get(question.criteria.ordinalId)!,
-		numberCriterionRowId: criterionRowId.get(question.criteria.numericalId)!,
+		rubricRowId: rubric.rowId,
+		checkCriterionRowId: criterionRowId.get(rubric.criteria.booleanId)!,
+		optionsCriterionRowId: criterionRowId.get(rubric.criteria.ordinalId)!,
+		numberCriterionRowId: criterionRowId.get(rubric.criteria.numericalId)!,
 	});
 
 	return {
 		project,
 		submissionId: String(submission.id),
-		questionId: question.id,
-		criterionIds: question.criteria,
+		rubricId: rubric.id,
+		criterionIds: rubric.criteria,
 	};
 }
 
@@ -116,7 +118,7 @@ describe.each<{ name: string; options: ExportOptions }>([
 			expect.arrayContaining([
 				{
 					submissionId: fixture.submissionId,
-					questionId: fixture.questionId,
+					rubricId: fixture.rubricId,
 					assessment: {
 						criterionId: fixture.criterionIds.booleanId,
 						kind: "check",
@@ -125,7 +127,7 @@ describe.each<{ name: string; options: ExportOptions }>([
 				},
 				{
 					submissionId: fixture.submissionId,
-					questionId: fixture.questionId,
+					rubricId: fixture.rubricId,
 					assessment: {
 						criterionId: fixture.criterionIds.ordinalId,
 						kind: "options",
@@ -134,7 +136,7 @@ describe.each<{ name: string; options: ExportOptions }>([
 				},
 				{
 					submissionId: fixture.submissionId,
-					questionId: fixture.questionId,
+					rubricId: fixture.rubricId,
 					assessment: {
 						criterionId: fixture.criterionIds.numericalId,
 						kind: "number",

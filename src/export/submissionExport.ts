@@ -9,7 +9,7 @@ import type {
 } from "#criteria/types.ts";
 import type { DB } from "#db/generated/db.ts";
 import { db as defaultDb } from "#db/kysely.ts";
-import { loadQuestionRowsFromDb, toCriterion } from "#questions/questions.ts";
+import { loadRubricRowsFromDb, toCriterion } from "#rubrics/rubrics.ts";
 import type { SubmissionSubmitter } from "#submissions/types.ts";
 import { assertNever } from "#utils/utils.ts";
 import {
@@ -17,12 +17,12 @@ import {
 	buildSubmissionExportHeaders,
 	buildSubmissionExportRecord,
 	type ExportOptions,
-	type ExportQuestionPlan,
+	type ExportRubricPlan,
 	type SubmissionExportAssessmentValue,
 	type SubmissionExportCriterionData,
 	type SubmissionExportDataRow,
-	type SubmissionExportQuestionData,
 	type SubmissionExportRecord,
+	type SubmissionExportRubricData,
 } from "./submissionExportCsv.ts";
 import {
 	groupSubmissionRows,
@@ -98,7 +98,7 @@ function streamSubmissionExportRowsFromDb(
 		.leftJoin("team", "team.id", "submission.teamId")
 		.leftJoin("student", "student.rowId", "submission.studentId")
 		.leftJoin("assessment", "assessment.submissionId", "submission.id")
-		.leftJoin("question", "question.rowId", "assessment.questionId")
+		.leftJoin("rubric", "rubric.rowId", "assessment.rubricId")
 		.leftJoin(
 			"criterionAssessment",
 			"criterionAssessment.assessmentId",
@@ -125,7 +125,7 @@ function streamSubmissionExportRowsFromDb(
 			"submission.type as submissionType",
 			"team.name as teamName",
 			"student.id as studentId",
-			"question.id as questionId",
+			"rubric.id as rubricId",
 			"criterion.id as criterionId",
 			"checkCriterionAssessment.passed as booleanPassed",
 			"optionsCriterionAssessment.selectedLabel as ordinalSelectedLabel",
@@ -141,13 +141,13 @@ export async function createSubmissionExport(
 	projectId: string,
 	{ db = defaultDb }: { db?: Kysely<DB> } = {},
 ): Promise<{
-	questions: ExportQuestionPlan[];
+	rubrics: ExportRubricPlan[];
 	rows: AsyncGenerator<SubmissionExportDataRow>;
 }> {
 	await assertSubmissionInvariantsFromDb(db, { projectId });
 
-	const questionRows = await loadQuestionRowsFromDb(db, { projectId });
-	const questions: ExportQuestionPlan[] = questionRows.map((row) => ({
+	const rubricRows = await loadRubricRowsFromDb(db, { projectId });
+	const rubrics: ExportRubricPlan[] = rubricRows.map((row) => ({
 		id: row.id,
 		criteria: row.criteria.map(toCriterion),
 	}));
@@ -175,15 +175,15 @@ export async function createSubmissionExport(
 		}
 	}
 
-	function buildQuestionData(
+	function buildRubricData(
 		valuesByKey: Map<string, AssessmentCriterionValue>,
-	): SubmissionExportQuestionData[] {
-		return questions.map((question) => ({
-			questionId: question.id,
-			criteria: question.criteria.map((criterion) => {
+	): SubmissionExportRubricData[] {
+		return rubrics.map((rubric) => ({
+			rubricId: rubric.id,
+			criteria: rubric.criteria.map((criterion) => {
 				const assessedCriterion = attachAssessment(
 					criterion,
-					valuesByKey.get(buildAssessmentKey(question.id, criterion.id)),
+					valuesByKey.get(buildAssessmentKey(rubric.id, criterion.id)),
 				);
 
 				const rowCriterion: SubmissionExportCriterionData = {
@@ -214,7 +214,7 @@ export async function createSubmissionExport(
 				teamName: group.teamName,
 				studentId: group.studentId,
 			}),
-			questions: buildQuestionData(group.valuesByKey),
+			rubrics: buildRubricData(group.valuesByKey),
 		};
 	}
 
@@ -225,7 +225,7 @@ export async function createSubmissionExport(
 		}
 	}
 
-	return { questions, rows: rows() };
+	return { rubrics, rows: rows() };
 }
 
 async function* toSubmissionExportRecords(params: {
@@ -238,14 +238,11 @@ async function* toSubmissionExportRecords(params: {
 }
 
 export function createCsvSubmissionExportDataStream(params: {
-	questions: ExportQuestionPlan[];
+	rubrics: ExportRubricPlan[];
 	rows: AsyncIterable<SubmissionExportDataRow>;
 	options: ExportOptions;
 }): ReadableStream<Uint8Array> {
-	const headers = buildSubmissionExportHeaders(
-		params.questions,
-		params.options,
-	);
+	const headers = buildSubmissionExportHeaders(params.rubrics, params.options);
 
 	return createCsvSubmissionExportStream({
 		headers,
@@ -313,7 +310,7 @@ export async function createCsvSubmissionExport(
 ): Promise<ReadableStream<Uint8Array>> {
 	const exportData = await createSubmissionExport(projectId, { db });
 	return createCsvSubmissionExportDataStream({
-		questions: exportData.questions,
+		rubrics: exportData.rubrics,
 		rows: exportData.rows,
 		options,
 	});

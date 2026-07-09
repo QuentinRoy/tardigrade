@@ -4,12 +4,12 @@ import { cacheLife } from "next/cache";
 import {
 	assessmentAggregateCacheTag,
 	cacheTags,
-	questionListCacheTag,
+	rubricListCacheTag,
 	submissionListCacheTag,
 } from "#db/cacheTags.ts";
 import type { DB } from "#db/generated/db.ts";
 import { db as defaultDb } from "#db/kysely.ts";
-import { loadQuestionGrid } from "#questions/questions.ts";
+import { loadRubricsById } from "#rubrics/rubrics.ts";
 import { loadSubmissions } from "#submissions/submissions.ts";
 import {
 	buildResultsData,
@@ -19,7 +19,7 @@ import {
 
 export function resultsCacheTags(): string[] {
 	return [
-		questionListCacheTag(),
+		rubricListCacheTag(),
 		submissionListCacheTag(),
 		assessmentAggregateCacheTag(),
 	];
@@ -75,7 +75,7 @@ export async function loadCriterionAssessmentRecordsFromDb(
 		.execute();
 }
 
-// Composes the cached `loadSubmissions`/`loadQuestionGrid` wrappers (Design B:
+// Composes the cached `loadSubmissions`/`loadRubricsById` wrappers (Design B:
 // only the assessment-record query above is results-specific) so their cache
 // entries stay shared rather than duplicated here (ADR 0008 rule 5).
 // `options` is forwarded unchanged (ADR 0007 rule 14): never resolve a default
@@ -88,13 +88,13 @@ export async function loadResultsData(
 	cacheTags(...resultsCacheTags());
 	cacheLife("projection");
 
-	const [submissions, questionGrid, assessmentRecords] = await Promise.all([
+	const [submissions, rubricsById, assessmentRecords] = await Promise.all([
 		loadSubmissions({ projectId }, options),
-		loadQuestionGrid({ projectId }, options),
+		loadRubricsById({ projectId }, options),
 		loadCriterionAssessmentRecordsFromDb(options?.db ?? defaultDb, {
 			projectId,
 		}),
 	]);
 
-	return buildResultsData({ submissions, questionGrid, assessmentRecords });
+	return buildResultsData({ submissions, rubricsById, assessmentRecords });
 }

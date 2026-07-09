@@ -31,7 +31,7 @@ const baseRow: SubmissionRow = {
 	submissionType: "individual",
 	teamName: null,
 	studentId: "student-1",
-	questionId: null,
+	rubricId: null,
 	criterionId: null,
 	booleanPassed: null,
 	ordinalSelectedLabel: null,
@@ -84,7 +84,7 @@ describe("groupSubmissionRows", () => {
 		const rows: SubmissionRow[] = [
 			{
 				...baseRow,
-				questionId: "q1",
+				rubricId: "q1",
 				criterionId: "r-bool",
 				booleanPassed: true,
 				ordinalSelectedLabel: null,
@@ -92,7 +92,7 @@ describe("groupSubmissionRows", () => {
 			},
 			{
 				...baseRow,
-				questionId: "q1",
+				rubricId: "q1",
 				criterionId: "r-ord",
 				booleanPassed: null,
 				ordinalSelectedLabel: "A",
@@ -100,7 +100,7 @@ describe("groupSubmissionRows", () => {
 			},
 			{
 				...baseRow,
-				questionId: "q1",
+				rubricId: "q1",
 				criterionId: "r-num",
 				booleanPassed: null,
 				ordinalSelectedLabel: null,
@@ -128,12 +128,12 @@ describe("groupSubmissionRows", () => {
 		});
 	});
 
-	it("handles sparse assessments — rows with null questionId/criterionId contribute no values", async () => {
+	it("handles sparse assessments — rows with null rubricId/criterionId contribute no values", async () => {
 		const rows: SubmissionRow[] = [
-			{ ...baseRow, questionId: null, criterionId: null },
+			{ ...baseRow, rubricId: null, criterionId: null },
 			{
 				...baseRow,
-				questionId: "q1",
+				rubricId: "q1",
 				criterionId: "r-bool",
 				booleanPassed: false,
 			},
@@ -148,7 +148,7 @@ describe("groupSubmissionRows", () => {
 		const rows: SubmissionRow[] = [
 			{
 				...baseRow,
-				questionId: "q1",
+				rubricId: "q1",
 				criterionId: "r-num",
 				numericalScore: "3.75",
 			},
