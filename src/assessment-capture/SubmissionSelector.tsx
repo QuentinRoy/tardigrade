@@ -112,7 +112,7 @@ function SubmissionSelectorContent({
 						id={searchInputId}
 						value={query}
 						onChange={(event) => setQuery(event.currentTarget.value)}
-						placeholder="Search by team or student name"
+						placeholder="Search by group or student name"
 						data-autofocus
 					/>
 				</Combobox.EventsTarget>
@@ -172,7 +172,7 @@ function SubmissionResultsList({
 		return (
 			<Combobox.Empty>
 				{query.length === 0
-					? "Type to search by team or student name (supports partial matches)"
+					? "Type to search by group or student name (supports partial matches)"
 					: "No matching submissions found. Try a different search term."}
 			</Combobox.Empty>
 		);

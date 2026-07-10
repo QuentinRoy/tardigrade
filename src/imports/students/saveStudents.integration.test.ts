@@ -16,7 +16,7 @@ beforeEach(() => {
 
 function makeSubmissions(
 	sharedStudentId: string,
-	sharedTeamName: string,
+	sharedGroupName: string,
 ): NormalizedImportedSubmission[] {
 	return [
 		{
@@ -27,13 +27,13 @@ function makeSubmissions(
 			],
 		},
 		{
-			id: `submission-${sharedTeamName}`,
-			type: "team",
-			team: sharedTeamName,
+			id: `submission-${sharedGroupName}`,
+			type: "group",
+			group: sharedGroupName,
 			students: [
 				{
-					id: `${sharedTeamName}-member`,
-					lastName: "Team",
+					id: `${sharedGroupName}-member`,
+					lastName: "Group",
 					firstName: "Member",
 				},
 			],
@@ -41,24 +41,24 @@ function makeSubmissions(
 	];
 }
 
-test("saveStudents keeps imported student ids and team names isolated per project", async () => {
+test("saveStudents keeps imported student ids and group names isolated per project", async () => {
 	await using db = await createTestDb();
 	await using projectA = await createProject(db, "Project A");
 	await using projectB = await createProject(db, "Project B");
 
 	const sharedStudentId = "shared-student";
-	const sharedTeamName = "Shared Team";
+	const sharedGroupName = "Shared Group";
 
 	const resultA = await saveStudents(
 		{
-			submissions: makeSubmissions(sharedStudentId, sharedTeamName),
+			submissions: makeSubmissions(sharedStudentId, sharedGroupName),
 			projectId: projectA.id,
 		},
 		{ db },
 	);
 	const resultB = await saveStudents(
 		{
-			submissions: makeSubmissions(sharedStudentId, sharedTeamName),
+			submissions: makeSubmissions(sharedStudentId, sharedGroupName),
 			projectId: projectB.id,
 		},
 		{ db },
@@ -80,7 +80,7 @@ test("saveStudents keeps imported student ids and team names isolated per projec
 	const studentRows = await db
 		.selectFrom("student")
 		.select(["id", "rowId", "projectId"])
-		.where("id", "in", [sharedStudentId, `${sharedTeamName}-member`])
+		.where("id", "in", [sharedStudentId, `${sharedGroupName}-member`])
 		.orderBy("projectId", "asc")
 		.orderBy("id", "asc")
 		.execute();
@@ -99,15 +99,15 @@ test("saveStudents keeps imported student ids and team names isolated per projec
 		).size,
 	).toBe(2);
 
-	const teamRows = await db
-		.selectFrom("team")
+	const groupRows = await db
+		.selectFrom("group")
 		.select(["id", "name", "projectId"])
-		.where("name", "=", sharedTeamName)
+		.where("name", "=", sharedGroupName)
 		.orderBy("projectId", "asc")
 		.execute();
 
-	expect(teamRows).toHaveLength(2);
-	expect(new Set(teamRows.map((row) => row.projectId)).size).toBe(2);
+	expect(groupRows).toHaveLength(2);
+	expect(new Set(groupRows.map((row) => row.projectId)).size).toBe(2);
 
 	const individualSubmissions = await db
 		.selectFrom("submission")
@@ -136,7 +136,7 @@ test("saveStudents classifies re-imported students and submissions as updated", 
 	await using db = await createTestDb();
 	await using project = await createProject(db, "Re-import Project");
 
-	const submissions = makeSubmissions("returning-student", "Returning Team");
+	const submissions = makeSubmissions("returning-student", "Returning Group");
 
 	await saveStudents({ submissions, projectId: project.id }, { db });
 	const result = await saveStudents(
@@ -161,7 +161,7 @@ test("saveStudents wrapper invalidates submission and assessment tags after the 
 
 	await saveStudents(
 		{
-			submissions: makeSubmissions("student-cache", "Team Cache"),
+			submissions: makeSubmissions("student-cache", "Group Cache"),
 			projectId: project.id,
 		},
 		{ db },
@@ -177,10 +177,10 @@ test("saveStudents wrapper invalidates submission and assessment tags after the 
 // Lighter, overlap-invariant coverage (per the plan): assert the row-level
 // contract only (no corruption, no thrown error, last-write-wins), not
 // reported counts, which are allowed to drift under concurrent imports.
-// Targets the `studentToTeam` delete-then-reinsert path
+// Targets the `studentToGroup` delete-then-reinsert path
 // (`saveStudents.ts:150`), the spot most plausible to misbehave under
 // overlapping writes since it spans a delete and an insert on the same row.
-test("saveStudentImportPlanInDb keeps a single team membership when two imports race the same student onto different teams", async () => {
+test("saveStudentImportPlanInDb keeps a single group membership when two imports race the same student onto different groups", async () => {
 	await using db = await createTestDb();
 	await using project = await createProject(
 		db,
@@ -189,12 +189,12 @@ test("saveStudentImportPlanInDb keeps a single team membership when two imports 
 
 	const sharedStudentId = "shared-student";
 
-	function makeMoveToTeam(teamName: string): NormalizedImportedSubmission[] {
+	function makeMoveToGroup(groupName: string): NormalizedImportedSubmission[] {
 		return [
 			{
-				id: `submission-${teamName}`,
-				type: "team",
-				team: teamName,
+				id: `submission-${groupName}`,
+				type: "group",
+				group: groupName,
 				students: [
 					{ id: sharedStudentId, lastName: "Shared", firstName: "Student" },
 				],
@@ -202,26 +202,26 @@ test("saveStudentImportPlanInDb keeps a single team membership when two imports 
 		];
 	}
 
-	const submissionsToTeamB = makeMoveToTeam("Team B");
-	const submissionsToTeamC = makeMoveToTeam("Team C");
+	const submissionsToGroupB = makeMoveToGroup("Group B");
+	const submissionsToGroupC = makeMoveToGroup("Group C");
 
 	const [contextB, contextC] = await Promise.all([
 		loadStudentImportContextFromDb(db, {
-			submissions: submissionsToTeamB,
+			submissions: submissionsToGroupB,
 			projectId: project.id,
 		}),
 		loadStudentImportContextFromDb(db, {
-			submissions: submissionsToTeamC,
+			submissions: submissionsToGroupC,
 			projectId: project.id,
 		}),
 	]);
 
 	const planB = prepareStudentImport({
-		submissions: submissionsToTeamB,
+		submissions: submissionsToGroupB,
 		context: contextB,
 	});
 	const planC = prepareStudentImport({
-		submissions: submissionsToTeamC,
+		submissions: submissionsToGroupC,
 		context: contextC,
 	});
 
@@ -241,17 +241,17 @@ test("saveStudentImportPlanInDb keeps a single team membership when two imports 
 	expect(studentRows).toHaveLength(1);
 	const studentRowId = studentRows[0]?.rowId;
 
-	const teamMemberships = await db
-		.selectFrom("studentToTeam")
-		.innerJoin("team", "team.id", "studentToTeam.teamId")
-		.select("team.name")
-		.where("studentToTeam.studentId", "=", studentRowId ?? -1)
+	const groupMemberships = await db
+		.selectFrom("studentToGroup")
+		.innerJoin("group", "group.id", "studentToGroup.groupId")
+		.select("group.name")
+		.where("studentToGroup.studentId", "=", studentRowId ?? -1)
 		.execute();
 
-	expect(teamMemberships).toHaveLength(1);
-	expect(["Team B", "Team C"]).toContain(teamMemberships[0]?.name);
+	expect(groupMemberships).toHaveLength(1);
+	expect(["Group B", "Group C"]).toContain(groupMemberships[0]?.name);
 
 	// Documents current behavior, not a committed policy: the writer that
 	// commits last (the second writer, here) wins.
-	expect(teamMemberships[0]?.name).toBe("Team C");
+	expect(groupMemberships[0]?.name).toBe("Group C");
 });

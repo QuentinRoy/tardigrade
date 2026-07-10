@@ -24,7 +24,7 @@ export async function loadSubmissionsFromDb(
 	{ projectId }: { projectId?: string | undefined } = {},
 ) {
 	let submissionsQuery = db.selectFrom("submission");
-	let teamMemberQuery = db.selectFrom("submission");
+	let groupMemberQuery = db.selectFrom("submission");
 
 	if (projectId != null) {
 		const projectRowIdQuery = db
@@ -37,30 +37,34 @@ export async function loadSubmissionsFromDb(
 			"in",
 			projectRowIdQuery,
 		);
-		teamMemberQuery = teamMemberQuery.where(
+		groupMemberQuery = groupMemberQuery.where(
 			"submission.projectId",
 			"in",
 			projectRowIdQuery,
 		);
 	}
 
-	const [submissions, teamMemberRows] = await Promise.all([
+	const [submissions, groupMemberRows] = await Promise.all([
 		submissionsQuery
 			.leftJoin("student", "student.rowId", "submission.studentId")
-			.leftJoin("team", "team.id", "submission.teamId")
+			.leftJoin("group", "group.id", "submission.groupId")
 			.select([
 				"submission.id as id",
 				"submission.type as type",
 				"student.lastName as studentLastName",
 				"student.firstName as studentFirstName",
-				"team.name as teamName",
+				"group.name as groupName",
 			])
 			.orderBy("submission.id", "asc")
 			.execute(),
-		teamMemberQuery
-			.innerJoin("studentToTeam", "studentToTeam.teamId", "submission.teamId")
-			.innerJoin("student", "student.rowId", "studentToTeam.studentId")
-			.where("submission.type", "=", "team")
+		groupMemberQuery
+			.innerJoin(
+				"studentToGroup",
+				"studentToGroup.groupId",
+				"submission.groupId",
+			)
+			.innerJoin("student", "student.rowId", "studentToGroup.studentId")
+			.where("submission.type", "=", "group")
 			.select([
 				"submission.id as submissionId",
 				"student.lastName as studentLastName",
@@ -72,9 +76,9 @@ export async function loadSubmissionsFromDb(
 			.execute(),
 	]);
 
-	const teamMembersBySubmissionId = new Map<string, string[]>();
+	const groupMembersBySubmissionId = new Map<string, string[]>();
 
-	for (const row of teamMemberRows) {
+	for (const row of groupMemberRows) {
 		if (row.studentLastName == null || row.studentFirstName == null) {
 			continue;
 		}
@@ -87,12 +91,12 @@ export async function loadSubmissionsFromDb(
 		if (formattedName.length === 0) {
 			continue;
 		}
-		const names = teamMembersBySubmissionId.get(submissionId) ?? [];
+		const names = groupMembersBySubmissionId.get(submissionId) ?? [];
 		names.push(formattedName);
-		teamMembersBySubmissionId.set(submissionId, names);
+		groupMembersBySubmissionId.set(submissionId, names);
 	}
 
-	return { submissions, teamMembersBySubmissionId };
+	return { submissions, groupMembersBySubmissionId };
 }
 
 // `db` is a test seam only (ADR 0007 rules 13–14): never pass a handle at runtime —
@@ -105,14 +109,14 @@ export async function loadSubmissions(
 	cacheTags(...submissionsCacheTags());
 	cacheLife("roster");
 
-	const { submissions, teamMembersBySubmissionId } =
+	const { submissions, groupMembersBySubmissionId } =
 		await loadSubmissionsFromDb(db, { projectId });
 
 	return submissions.map((submission) => {
-		if (submission.type === "team") {
-			const displayLabel = submission.teamName ?? String(submission.id);
+		if (submission.type === "group") {
+			const displayLabel = submission.groupName ?? String(submission.id);
 			const memberNames =
-				teamMembersBySubmissionId.get(String(submission.id)) ?? [];
+				groupMembersBySubmissionId.get(String(submission.id)) ?? [];
 			const searchKeys = Array.from(
 				new Set(
 					[displayLabel, ...memberNames]
@@ -123,8 +127,8 @@ export async function loadSubmissions(
 
 			return {
 				id: String(submission.id),
-				type: "team",
-				teamName: displayLabel,
+				type: "group",
+				groupName: displayLabel,
 				displayLabel,
 				memberNames,
 				searchKeys,

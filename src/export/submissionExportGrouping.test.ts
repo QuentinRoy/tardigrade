@@ -29,7 +29,7 @@ async function collectGroups(
 const baseRow: SubmissionRow = {
 	submissionId: 1,
 	submissionType: "individual",
-	teamName: null,
+	groupName: null,
 	studentId: "student-1",
 	rubricId: null,
 	criterionId: null,
@@ -47,7 +47,7 @@ describe("groupSubmissionRows", () => {
 			submissionId: 1,
 			submissionType: "individual",
 			studentId: "student-1",
-			teamName: null,
+			groupName: null,
 		});
 		expect(groups[0]!.valuesByKey.size).toBe(0);
 	});

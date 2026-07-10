@@ -6,35 +6,35 @@
 //   q1:r1 check  -> true = 1, false = 0
 //   q2:r2 options  -> excellent = 2, good = 1, poor = 0
 //
-// Submissions come from students.csv: each individual student and each team
+// Submissions come from students.csv: each individual student and each group
 // becomes one submission. So three submissions exist before any grading:
-//   john_doe (individual), jane_smith (individual), Team A (bob_johnson).
+//   john_doe (individual), jane_smith (individual), Group A (bob_johnson).
 //
-// assessments.csv grades only john_doe and Team A; jane_smith is left
+// assessments.csv grades only john_doe and Group A; jane_smith is left
 // unassessed on purpose, so completion is a real partial 2 / 3.
 //
 //   john_doe: q1 = true = 1, q2 = good = 1        -> grand_total_marks = 2
-//   Team A:   q1 = false = 0, q2 = excellent = 2  -> grand_total_marks = 2
+//   Group A:  q1 = false = 0, q2 = excellent = 2  -> grand_total_marks = 2
 //   jane_smith: unassessed                        -> grand_total_marks blank
 //
 // Dashboard completion semantics (see `src/assessments/assessmentCompletion.ts`):
 //   - submissions: a submission is complete once every rubric on it is fully
-//     assessed. Total = submission count (3); complete = john_doe, Team A (2).
+//     assessed. Total = submission count (3); complete = john_doe, Group A (2).
 //   - rubrics: a rubric is complete only once it is fully assessed on every
 //     submission project-wide. Total = rubric count (2); since jane_smith
 //     leaves both q1 and q2 incomplete, neither rubric is complete (0).
 //   - criteria: counts individual (submission, rubric) pairs, not deduplicated
 //     by rubric. Total = submissions x rubrics = 3 x 2 = 6; complete = the 4
-//     pairs assessed for john_doe and Team A.
+//     pairs assessed for john_doe and Group A.
 
 export const PROJECT_NAME = "E2E Smoke Project";
 
 // `grand_total_marks` in the submissions export, keyed by the export submitter
-// identifier (student id for individuals, team name for teams). `null` means the
-// submission is not fully assessed, so the export leaves the cell blank.
+// identifier (student id for individuals, group name for groups). `null` means
+// the submission is not fully assessed, so the export leaves the cell blank.
 export const EXPECTED_GRAND_TOTAL_MARKS: Record<string, number | null> = {
 	john_doe: 2,
-	"Team A": 2,
+	"Group A": 2,
 	jane_smith: null,
 };
 
@@ -49,9 +49,9 @@ export const EXPECTED_COMPLETION = {
 // `src/results/resultsBuilder.ts`): average = mean marks over *assessed*
 // grade targets only (jane_smith's unassessed cells don't count), formatted
 // as `<average> / <maxMarks>`; completion = assessed / total grade targets.
-//   r1 (q1, check, max 1): assessed marks = john_doe 1, Team A 0
+//   r1 (q1, check, max 1): assessed marks = john_doe 1, Group A 0
 //                            -> average = (1 + 0) / 2 = 0.5
-//   r2 (q2, options, max 2): assessed marks = john_doe 1, Team A 2
+//   r2 (q2, options, max 2): assessed marks = john_doe 1, Group A 2
 //                            -> average = (1 + 2) / 2 = 1.5
 export const EXPECTED_CRITERION_ANALYTICS = [
 	{
@@ -71,8 +71,8 @@ export const EXPECTED_CRITERION_ANALYTICS = [
 // GradeMatrix shows one row per grade target with one cell per criterion
 // ("<marks> / <maxMarks>", or empty if the criterion is unassessed), then a
 // per-row total and criterion-completion count. Grade target labels come
-// from `getSubmissionLabel`: individuals as "<last_name> <first_name>", teams
-// as the team name.
+// from `getSubmissionLabel`: individuals as "<last_name> <first_name>", groups
+// as the group name.
 export const EXPECTED_GRADE_MATRIX = [
 	{
 		label: "Doe John",
@@ -87,7 +87,7 @@ export const EXPECTED_GRADE_MATRIX = [
 		completion: { completed: 0, total: 2 },
 	},
 	{
-		label: "Team A",
+		label: "Group A",
 		cells: { r1: "0 / 1", r2: "2 / 2" },
 		total: "2 / 3",
 		completion: { completed: 2, total: 2 },

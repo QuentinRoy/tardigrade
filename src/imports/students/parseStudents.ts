@@ -20,7 +20,9 @@ export function groupStudentsIntoSubmissions(
 
 	for (const student of students) {
 		const key =
-			student.team == null ? `student:${student.id}` : `team:${student.team}`;
+			student.group == null
+				? `student:${student.id}`
+				: `group:${student.group}`;
 		let currentStudents = groupedByPaper.get(key);
 		if (currentStudents == null) {
 			currentStudents = [student];
@@ -35,19 +37,19 @@ export function groupStudentsIntoSubmissions(
 	return Array.from(groupedByPaper.values(), (groupedStudents) => {
 		const firstStudent = groupedStudents[0];
 
-		if (firstStudent.team != null) {
-			let id = `team-${toSlug(firstStudent.team) || "unknown"}`;
+		if (firstStudent.group != null) {
+			let id = `group-${toSlug(firstStudent.group) || "unknown"}`;
 			let suffix = 1;
 			while (usedIds.has(id)) {
 				suffix += 1;
-				id = `team-${toSlug(firstStudent.team) || "unknown"}-${suffix}`;
+				id = `group-${toSlug(firstStudent.group) || "unknown"}-${suffix}`;
 			}
 			usedIds.add(id);
 
 			return {
 				id,
-				type: "team",
-				team: firstStudent.team,
+				type: "group",
+				group: firstStudent.group,
 				students: groupedStudents,
 			};
 		}

@@ -24,30 +24,34 @@ export async function loadStudentImportContextFromDb(
 		submission.students.map((student) => student.id),
 	);
 
-	const teamNames = Array.from(
+	const groupNames = Array.from(
 		new Set(
 			submissions.flatMap((submission) =>
-				submission.type === "team" && submission.team != null
-					? [submission.team]
+				submission.type === "group" && submission.group != null
+					? [submission.group]
 					: [],
 			),
 		),
 	);
 
-	const [studentRows, individualSubmissionRows, teamRows] = await Promise.all([
+	const [studentRows, individualSubmissionRows, groupRows] = await Promise.all([
 		studentIds.length === 0
 			? []
 			: db
 					.selectFrom("student")
-					.leftJoin("studentToTeam", "studentToTeam.studentId", "student.rowId")
-					.leftJoin("team", "team.id", "studentToTeam.teamId")
+					.leftJoin(
+						"studentToGroup",
+						"studentToGroup.studentId",
+						"student.rowId",
+					)
+					.leftJoin("group", "group.id", "studentToGroup.groupId")
 					.where("student.projectId", "=", projectRowId)
 					.where("student.id", "in", studentIds)
 					.select([
 						"student.id as id",
 						"student.lastName as lastName",
 						"student.firstName as firstName",
-						"team.name as teamName",
+						"group.name as groupName",
 					])
 					.execute(),
 		studentIds.length === 0
@@ -60,14 +64,14 @@ export async function loadStudentImportContextFromDb(
 					.where("student.id", "in", studentIds)
 					.select("student.id as studentId")
 					.execute(),
-		teamNames.length === 0
+		groupNames.length === 0
 			? []
 			: db
-					.selectFrom("team")
-					.innerJoin("submission", "submission.teamId", "team.id")
-					.where("team.projectId", "=", projectRowId)
-					.where("team.name", "in", teamNames)
-					.select("team.name as name")
+					.selectFrom("group")
+					.innerJoin("submission", "submission.groupId", "group.id")
+					.where("group.projectId", "=", projectRowId)
+					.where("group.name", "in", groupNames)
+					.select("group.name as name")
 					.execute(),
 	]);
 
@@ -78,7 +82,7 @@ export async function loadStudentImportContextFromDb(
 				{
 					lastName: row.lastName,
 					firstName: row.firstName,
-					teamName: row.teamName ?? undefined,
+					groupName: row.groupName ?? undefined,
 				},
 			]),
 		);
@@ -86,12 +90,12 @@ export async function loadStudentImportContextFromDb(
 	const existingIndividualSubmissionStudentIds: StudentImportContext["existingIndividualSubmissionStudentIds"] =
 		new Set(individualSubmissionRows.map((row) => row.studentId));
 
-	const existingTeamSubmissionTeamNames: StudentImportContext["existingTeamSubmissionTeamNames"] =
-		new Set(teamRows.map((row) => row.name));
+	const existingGroupSubmissionGroupNames: StudentImportContext["existingGroupSubmissionGroupNames"] =
+		new Set(groupRows.map((row) => row.name));
 
 	return {
 		existingStudentsById,
 		existingIndividualSubmissionStudentIds,
-		existingTeamSubmissionTeamNames,
+		existingGroupSubmissionGroupNames,
 	};
 }

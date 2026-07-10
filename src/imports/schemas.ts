@@ -116,7 +116,7 @@ export const studentRowSchema = z
 		last_name: nonEmptyString,
 		first_name: nonEmptyString,
 		id: nonEmptyString,
-		team: z
+		group: z
 			.string()
 			.trim()
 			.optional()
@@ -126,14 +126,14 @@ export const studentRowSchema = z
 		lastName: row.last_name,
 		firstName: row.first_name,
 		id: row.id,
-		...("team" in row && row.team != null ? { team: row.team } : {}),
+		...("group" in row && row.group != null ? { group: row.group } : {}),
 	}));
 
 export const studentRowsSchema = z.array(studentRowSchema);
 
 export const assessmentRowSchema = z
 	.object({
-		submission_type: z.enum(["individual", "team"]),
+		submission_type: z.enum(["individual", "group"]),
 		submitter: nonEmptyString,
 	})
 	.catchall(z.string());

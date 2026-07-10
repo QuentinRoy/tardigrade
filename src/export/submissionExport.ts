@@ -32,18 +32,18 @@ import {
 
 function toSubmissionSubmitter(params: {
 	id: string;
-	type: "team" | "individual";
-	teamName: string | null;
+	type: "group" | "individual";
+	groupName: string | null;
 	studentId: string | null;
 }): SubmissionSubmitter {
-	if (params.type === "team") {
-		if (params.teamName == null || params.teamName.length === 0) {
+	if (params.type === "group") {
+		if (params.groupName == null || params.groupName.length === 0) {
 			throw new Error(
-				`Submission ${params.id} has type team but no team is linked.`,
+				`Submission ${params.id} has type group but no group is linked.`,
 			);
 		}
 
-		return { id: params.id, type: "team", teamName: params.teamName };
+		return { id: params.id, type: "group", groupName: params.groupName };
 	}
 
 	if (params.studentId == null || params.studentId.length === 0) {
@@ -67,8 +67,8 @@ async function assertSubmissionInvariantsFromDb(
 		.where((expressionBuilder) =>
 			expressionBuilder.or([
 				expressionBuilder.and([
-					expressionBuilder("type", "=", "team"),
-					expressionBuilder("teamId", "is", null),
+					expressionBuilder("type", "=", "group"),
+					expressionBuilder("groupId", "is", null),
 				]),
 				expressionBuilder.and([
 					expressionBuilder("type", "=", "individual"),
@@ -95,7 +95,7 @@ function streamSubmissionExportRowsFromDb(
 		.selectFrom("project")
 		.where("project.id", "=", projectId)
 		.leftJoin("submission", "project.rowId", "submission.projectId")
-		.leftJoin("team", "team.id", "submission.teamId")
+		.leftJoin("group", "group.id", "submission.groupId")
 		.leftJoin("student", "student.rowId", "submission.studentId")
 		.leftJoin("assessment", "assessment.submissionId", "submission.id")
 		.leftJoin("rubric", "rubric.rowId", "assessment.rubricId")
@@ -123,7 +123,7 @@ function streamSubmissionExportRowsFromDb(
 		.select([
 			"submission.id as submissionId",
 			"submission.type as submissionType",
-			"team.name as teamName",
+			"group.name as groupName",
 			"student.id as studentId",
 			"rubric.id as rubricId",
 			"criterion.id as criterionId",
@@ -211,7 +211,7 @@ export async function createSubmissionExport(
 			submission: toSubmissionSubmitter({
 				id: String(group.submissionId),
 				type: group.submissionType,
-				teamName: group.teamName,
+				groupName: group.groupName,
 				studentId: group.studentId,
 			}),
 			rubrics: buildRubricData(group.valuesByKey),

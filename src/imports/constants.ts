@@ -19,12 +19,12 @@ export const RUBRICS_YAML_PLACEHOLDER = `rubrics:
           good: 1
           poor: 0`;
 
-export const STUDENTS_CSV_PLACEHOLDER = `last_name,first_name,id,team
+export const STUDENTS_CSV_PLACEHOLDER = `last_name,first_name,id,group
 Doe,John,john_doe,
 Smith,Jane,jane_smith,
-Johnson,Bob,bob_johnson,Team A`;
+Johnson,Bob,bob_johnson,Group A`;
 
 export const ASSESSMENTS_CSV_PLACEHOLDER = `submission_type,submitter,q1:r1,q2:r2
 individual,jane_smith,,
 individual,john_doe,true,good
-team,Team A,false,excellent`;
+group,Group A,false,excellent`;

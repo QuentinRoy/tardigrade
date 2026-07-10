@@ -23,7 +23,7 @@ export default function StudentsImportForm({
 			action={action}
 			defaultValue={defaultStudentsCsv}
 			title="Import Students"
-			description="Load student or team data into the database."
+			description="Load student or group data into the database."
 			fieldLabel="Students CSV"
 			fieldName="studentsCsv"
 			placeholder={STUDENTS_CSV_PLACEHOLDER}
@@ -36,8 +36,8 @@ export default function StudentsImportForm({
 					<Text fw={600}>Students CSV</Text>
 					<Text size="sm" c="dimmed">
 						Required columns: <code>last_name</code>, <code>first_name</code>,{" "}
-						<code>id</code>. Optional: <code>team</code> (students sharing a
-						team get grouped into the same submission).
+						<code>id</code>. Optional: <code>group</code> (students sharing a
+						group get grouped into the same submission).
 					</Text>
 					<Code block>{STUDENTS_CSV_PLACEHOLDER}</Code>
 				</Stack>

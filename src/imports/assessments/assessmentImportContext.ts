@@ -79,26 +79,26 @@ async function loadSubmissionIdsByLookup(
 		projectRowId,
 	}: { rows: ImportedAssessmentRow[]; projectRowId: number },
 ): Promise<Map<string, string[]>> {
-	const teamSubmitters = new Set<string>();
+	const groupSubmitters = new Set<string>();
 	const individualSubmitters = new Set<string>();
 
 	for (const row of rows) {
-		if (row.submission_type === "team") {
-			teamSubmitters.add(row.submitter);
+		if (row.submission_type === "group") {
+			groupSubmitters.add(row.submitter);
 		} else {
 			individualSubmitters.add(row.submitter);
 		}
 	}
 
-	const [teamSubmissions, individualSubmissions] = await Promise.all([
-		teamSubmitters.size > 0
+	const [groupSubmissions, individualSubmissions] = await Promise.all([
+		groupSubmitters.size > 0
 			? db
 					.selectFrom("submission")
-					.innerJoin("team", "team.id", "submission.teamId")
-					.where("submission.type", "=", "team")
+					.innerJoin("group", "group.id", "submission.groupId")
+					.where("submission.type", "=", "group")
 					.where("submission.projectId", "=", projectRowId)
-					.where("team.name", "in", Array.from(teamSubmitters))
-					.select(["team.name as submitter", "submission.id as submissionId"])
+					.where("group.name", "in", Array.from(groupSubmitters))
+					.select(["group.name as submitter", "submission.id as submissionId"])
 					.execute()
 			: Promise.resolve([]),
 		individualSubmitters.size > 0
@@ -124,10 +124,10 @@ async function loadSubmissionIdsByLookup(
 		}
 	}
 
-	for (const submission of teamSubmissions) {
+	for (const submission of groupSubmissions) {
 		addSubmission(
 			submissionLookupKey({
-				submissionType: "team",
+				submissionType: "group",
 				submitter: submission.submitter,
 			}),
 			String(submission.submissionId),

@@ -66,24 +66,24 @@ async function createStudentAndSubmission(
 	return String(submission.id);
 }
 
-async function createTeamAndSubmission(
+async function createGroupAndSubmission(
 	db: Kysely<DB>,
 	projectId: string,
-	teamName: string,
+	groupName: string,
 	memberStudentId: string,
 ): Promise<string> {
 	const projectRowId = await loadProjectPublicId(db, projectId);
 
 	await db
-		.insertInto("team")
-		.values({ projectId: projectRowId, name: teamName })
+		.insertInto("group")
+		.values({ projectId: projectRowId, name: groupName })
 		.execute();
 
-	const team = await db
-		.selectFrom("team")
+	const group = await db
+		.selectFrom("group")
 		.select("id")
 		.where("projectId", "=", projectRowId)
-		.where("name", "=", teamName)
+		.where("name", "=", groupName)
 		.executeTakeFirstOrThrow();
 
 	await db
@@ -91,7 +91,7 @@ async function createTeamAndSubmission(
 		.values({
 			projectId: projectRowId,
 			id: memberStudentId,
-			lastName: "Team",
+			lastName: "Group",
 			firstName: "Member",
 		})
 		.execute();
@@ -104,13 +104,13 @@ async function createTeamAndSubmission(
 		.executeTakeFirstOrThrow();
 
 	await db
-		.insertInto("studentToTeam")
-		.values({ studentId: studentRow.rowId, teamId: team.id })
+		.insertInto("studentToGroup")
+		.values({ studentId: studentRow.rowId, groupId: group.id })
 		.execute();
 
 	const submission = await db
 		.insertInto("submission")
-		.values({ projectId: projectRowId, type: "team", teamId: team.id })
+		.values({ projectId: projectRowId, type: "group", groupId: group.id })
 		.returning("id")
 		.executeTakeFirstOrThrow();
 
@@ -155,24 +155,24 @@ test("loadSubmissionsFromDb returns only individual submissions for the requeste
 	expect(subA.id).not.toBe(subB.id);
 });
 
-test("loadSubmissions returns only team submissions for the requested project when team names collide across projects", async () => {
+test("loadSubmissions returns only group submissions for the requested project when group names collide across projects", async () => {
 	await using db = await createTestDb();
-	await using projectA = await createProject(db, "Team Isolation A");
-	await using projectB = await createProject(db, "Team Isolation B");
+	await using projectA = await createProject(db, "Group Isolation A");
+	await using projectB = await createProject(db, "Group Isolation B");
 
-	const sharedTeamName = "Shared Team Iso";
+	const sharedGroupName = "Shared Group Iso";
 
-	const submissionAId = await createTeamAndSubmission(
+	const submissionAId = await createGroupAndSubmission(
 		db,
 		projectA.id,
-		sharedTeamName,
-		"team-member-proj-a",
+		sharedGroupName,
+		"group-member-proj-a",
 	);
-	const submissionBId = await createTeamAndSubmission(
+	const submissionBId = await createGroupAndSubmission(
 		db,
 		projectB.id,
-		sharedTeamName,
-		"team-member-proj-b",
+		sharedGroupName,
+		"group-member-proj-b",
 	);
 
 	const { submissions: submissionsA } = await loadSubmissionsFromDb(db, {
@@ -190,9 +190,9 @@ test("loadSubmissions returns only team submissions for the requested project wh
 
 	if (subA == null || subB == null) throw new Error("Expected submissions");
 
-	expect(subA.type).toBe("team");
+	expect(subA.type).toBe("group");
 	expect(String(subA.id)).toBe(submissionAId);
-	expect(subB.type).toBe("team");
+	expect(subB.type).toBe("group");
 	expect(String(subB.id)).toBe(submissionBId);
 	expect(subA.id).not.toBe(subB.id);
 });

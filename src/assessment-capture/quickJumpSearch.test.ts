@@ -9,11 +9,11 @@ describe("quick jump submission search", () => {
 	const submissions: Submission[] = [
 		{
 			id: "101",
-			type: "team",
-			teamName: "Alpha Team",
-			displayLabel: "Alpha Team",
+			type: "group",
+			groupName: "Alpha Group",
+			displayLabel: "Alpha Group",
 			memberNames: ["Alice Martin", "Bob Lee"],
-			searchKeys: ["alpha team", "alice martin", "bob lee"],
+			searchKeys: ["alpha group", "alice martin", "bob lee"],
 		},
 		{
 			id: "102",
@@ -25,7 +25,7 @@ describe("quick jump submission search", () => {
 		},
 	];
 
-	it("finds a team by one of its members", () => {
+	it("finds a group by one of its members", () => {
 		const search = createSubmissionSearch(
 			buildSubmissionSearchTargets(submissions),
 		);
@@ -33,7 +33,7 @@ describe("quick jump submission search", () => {
 		const results = search("alice");
 
 		expect(results[0]?.submissionId).toBe("101");
-		expect(results[0]?.displayLabel).toBe("Alpha Team");
+		expect(results[0]?.displayLabel).toBe("Alpha Group");
 	});
 
 	it("supports typo tolerance", () => {
@@ -71,8 +71,8 @@ describe("quick jump submission search", () => {
 			buildSubmissionSearchTargets(submissions),
 		);
 
-		const resultsForTeam = search("alpha");
-		expect(resultsForTeam[0]?.matchReason).toContain("team");
+		const resultsForGroup = search("alpha");
+		expect(resultsForGroup[0]?.matchReason).toContain("group");
 
 		const resultsForMember = search("alice");
 		expect(resultsForMember[0]?.matchReason).toContain("student");
@@ -139,7 +139,7 @@ describe("quick jump submission search", () => {
 		expect(targets).toEqual([
 			{
 				submissionId: "101",
-				displayLabel: "Alpha Team",
+				displayLabel: "Alpha Group",
 				memberNames: ["Alice Martin", "Bob Lee"],
 				progress: { completed: 1, total: 3 },
 				isCompleted: false,

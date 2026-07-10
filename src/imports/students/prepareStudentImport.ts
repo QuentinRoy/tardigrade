@@ -3,7 +3,7 @@ import type { NormalizedImportedSubmission } from "#imports/types.ts";
 export type ExistingStudentImportRecord = {
 	lastName: string;
 	firstName: string;
-	teamName?: string | undefined;
+	groupName?: string | undefined;
 };
 
 export type StudentImportContext = {
@@ -11,14 +11,14 @@ export type StudentImportContext = {
 	existingStudentsById: Map<string, ExistingStudentImportRecord>;
 	// Student ids that already have an individual submission.
 	existingIndividualSubmissionStudentIds: Set<string>;
-	// Team names that already have a submission.
-	existingTeamSubmissionTeamNames: Set<string>;
+	// Group names that already have a submission.
+	existingGroupSubmissionGroupNames: Set<string>;
 };
 
-export type StudentImportTeamMembershipChange = {
+export type StudentImportGroupMembershipChange = {
 	studentId: string;
-	fromTeam?: string | undefined;
-	toTeam?: string | undefined;
+	fromGroup?: string | undefined;
+	toGroup?: string | undefined;
 };
 
 export type StudentImportPlan = {
@@ -27,7 +27,7 @@ export type StudentImportPlan = {
 	updatedStudentIds: string[];
 	createdSubmissionIds: string[];
 	updatedSubmissionIds: string[];
-	teamMembershipChanges: StudentImportTeamMembershipChange[];
+	groupMembershipChanges: StudentImportGroupMembershipChange[];
 };
 
 export function prepareStudentImport(params: {
@@ -40,11 +40,11 @@ export function prepareStudentImport(params: {
 	const updatedStudentIds: string[] = [];
 	const createdSubmissionIds: string[] = [];
 	const updatedSubmissionIds: string[] = [];
-	const teamMembershipChanges: StudentImportTeamMembershipChange[] = [];
+	const groupMembershipChanges: StudentImportGroupMembershipChange[] = [];
 
 	for (const submission of submissions) {
-		const newTeamName =
-			submission.type === "team" ? submission.team : undefined;
+		const newGroupName =
+			submission.type === "group" ? submission.group : undefined;
 
 		for (const student of submission.students) {
 			const existing = context.existingStudentsById.get(student.id);
@@ -54,20 +54,20 @@ export function prepareStudentImport(params: {
 			} else {
 				updatedStudentIds.push(student.id);
 
-				if (existing.teamName !== newTeamName) {
-					teamMembershipChanges.push({
+				if (existing.groupName !== newGroupName) {
+					groupMembershipChanges.push({
 						studentId: student.id,
-						fromTeam: existing.teamName,
-						toTeam: newTeamName,
+						fromGroup: existing.groupName,
+						toGroup: newGroupName,
 					});
 				}
 			}
 		}
 
-		if (submission.type === "team") {
+		if (submission.type === "group") {
 			if (
-				newTeamName != null &&
-				context.existingTeamSubmissionTeamNames.has(newTeamName)
+				newGroupName != null &&
+				context.existingGroupSubmissionGroupNames.has(newGroupName)
 			) {
 				updatedSubmissionIds.push(submission.id);
 			} else {
@@ -92,6 +92,6 @@ export function prepareStudentImport(params: {
 		updatedStudentIds,
 		createdSubmissionIds,
 		updatedSubmissionIds,
-		teamMembershipChanges,
+		groupMembershipChanges,
 	};
 }

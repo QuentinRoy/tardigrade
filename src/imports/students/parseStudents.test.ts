@@ -5,35 +5,35 @@ import {
 } from "./parseStudents.ts";
 
 describe("parseStudentsCsv", () => {
-	it("parses required columns and optional team", () => {
-		const students = parseStudentsCsv(`last_name,first_name,id,team
+	it("parses required columns and optional group", () => {
+		const students = parseStudentsCsv(`last_name,first_name,id,group
 Smith,Alice,s1,
-Jones,Bob,s2,Team A`);
+Jones,Bob,s2,Group A`);
 
 		expect(students).toEqual([
 			{ lastName: "Smith", firstName: "Alice", id: "s1" },
-			{ lastName: "Jones", firstName: "Bob", id: "s2", team: "Team A" },
+			{ lastName: "Jones", firstName: "Bob", id: "s2", group: "Group A" },
 		]);
 	});
 });
 
 describe("groupStudentsIntoSubmissions", () => {
-	it("groups team students and creates individual submissions", () => {
+	it("groups group students and creates individual submissions", () => {
 		const students = [
 			{ lastName: "Smith", firstName: "Alice", id: "s1" },
-			{ lastName: "Jones", firstName: "Bob", id: "s2", team: "Team A" },
-			{ lastName: "Ray", firstName: "Cora", id: "s3", team: "Team A" },
+			{ lastName: "Jones", firstName: "Bob", id: "s2", group: "Group A" },
+			{ lastName: "Ray", firstName: "Cora", id: "s3", group: "Group A" },
 		];
 
 		const submissions = groupStudentsIntoSubmissions(students);
 
 		expect(submissions).toHaveLength(2);
 
-		const teamSubmission = submissions.find(
-			(submission) => submission.type === "team",
+		const groupSubmission = submissions.find(
+			(submission) => submission.type === "group",
 		);
-		expect(teamSubmission).toBeDefined();
-		expect(teamSubmission?.students).toHaveLength(2);
+		expect(groupSubmission).toBeDefined();
+		expect(groupSubmission?.students).toHaveLength(2);
 
 		const individualSubmission = submissions.find(
 			(submission) => submission.type === "individual",
@@ -42,18 +42,18 @@ describe("groupStudentsIntoSubmissions", () => {
 		expect(individualSubmission?.students[0]?.id).toBe("s1");
 	});
 
-	it("generates unique submission ids when team slugs collide", () => {
+	it("generates unique submission ids when group slugs collide", () => {
 		const students = [
-			{ lastName: "One", firstName: "Alpha", id: "s1", team: "Team A" },
-			{ lastName: "Two", firstName: "Beta", id: "s2", team: "Team-A" },
+			{ lastName: "One", firstName: "Alpha", id: "s1", group: "Group A" },
+			{ lastName: "Two", firstName: "Beta", id: "s2", group: "Group-A" },
 		];
 
 		const submissions = groupStudentsIntoSubmissions(students);
-		const teamIds = submissions
-			.filter((submission) => submission.type === "team")
+		const groupIds = submissions
+			.filter((submission) => submission.type === "group")
 			.map((submission) => submission.id)
 			.sort((a, b) => a.localeCompare(b));
 
-		expect(teamIds).toEqual(["team-team-a", "team-team-a-2"]);
+		expect(groupIds).toEqual(["group-group-a", "group-group-a-2"]);
 	});
 });
