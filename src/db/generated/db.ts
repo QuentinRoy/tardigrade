@@ -14,7 +14,7 @@ export type Generated<T> =
 
 export type Numeric = ColumnType<number, number | string, number | string>;
 
-export type SubmissionType = "individual" | "team";
+export type SubmissionType = "group" | "individual";
 
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
 
@@ -59,6 +59,14 @@ export interface CriterionAssessment {
 	criterionId: number;
 	id: Generated<number>;
 	kind: CriterionKind;
+	updatedAt: Generated<Timestamp>;
+}
+
+export interface Group {
+	createdAt: Generated<Timestamp>;
+	id: Generated<number>;
+	name: string;
+	projectId: number;
 	updatedAt: Generated<Timestamp>;
 }
 
@@ -124,26 +132,18 @@ export interface Student {
 	updatedAt: Generated<Timestamp>;
 }
 
-export interface StudentToTeam {
+export interface StudentToGroup {
+	groupId: number;
 	studentId: number;
-	teamId: number;
 }
 
 export interface Submission {
 	createdAt: Generated<Timestamp>;
+	groupId: number | null;
 	id: Generated<number>;
 	projectId: number;
 	studentId: number | null;
-	teamId: number | null;
 	type: Generated<SubmissionType>;
-	updatedAt: Generated<Timestamp>;
-}
-
-export interface Team {
-	createdAt: Generated<Timestamp>;
-	id: Generated<number>;
-	name: string;
-	projectId: number;
 	updatedAt: Generated<Timestamp>;
 }
 
@@ -153,6 +153,7 @@ export interface DB {
 	checkCriterionAssessment: CheckCriterionAssessment;
 	criterion: Criterion;
 	criterionAssessment: CriterionAssessment;
+	group: Group;
 	numberCriterion: NumberCriterion;
 	numberCriterionAssessment: NumberCriterionAssessment;
 	optionsCriterion: OptionsCriterion;
@@ -161,7 +162,6 @@ export interface DB {
 	project: Project;
 	rubric: Rubric;
 	student: Student;
-	studentToTeam: StudentToTeam;
+	studentToGroup: StudentToGroup;
 	submission: Submission;
-	team: Team;
 }

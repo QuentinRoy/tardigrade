@@ -196,6 +196,26 @@ plain `alterTable(t).renameConstraint(old, new)` calls — the candidate-spellin
 `DO` block in `20260707000000_rename_rubric_to_criterion.ts` was a workaround
 for the plugin fork and is not a pattern to copy.
 
+### Reserved-word table and column names
+
+A table or column can be named after a SQL reserved word (for example
+`group`). The Kysely schema and query builders quote identifiers
+automatically, so ordinary builder usage is unaffected. Raw `sql` tagged
+templates do not: quote the identifier explicitly (`"group"`, or
+`sql.id("group")`) wherever one appears in raw SQL, including index renames
+and trigger/function bodies.
+
+### Enum value and column renames update dependent CHECK constraints automatically
+
+Postgres tracks a `CHECK` constraint's compiled expression by column attribute
+number and, for enum comparisons, by the enum value's OID — not by the
+identifier spelling. Renaming a column (`alterTable(t).renameColumn(...)`) or
+an enum value (`alterType(t).renameValue(...)`) updates every dependent CHECK
+constraint's displayed body automatically; no drop/recreate is needed. This
+does **not** extend to trigger or function bodies, which store their old/new
+identifiers as plain text and must be rewritten explicitly (see
+`CREATE OR REPLACE FUNCTION` usage in `20260707000000_rename_rubric_to_criterion.ts`).
+
 ## Running migrations
 
 Use project scripts rather than direct commands:

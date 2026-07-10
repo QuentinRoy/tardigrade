@@ -6,11 +6,11 @@ import SubmissionSelector from "./SubmissionSelector.tsx";
 const submissions: Submission[] = [
 	{
 		id: "101",
-		type: "team",
-		teamName: "Alpha Team",
-		displayLabel: "Alpha Team",
+		type: "group",
+		groupName: "Alpha Group",
+		displayLabel: "Alpha Group",
 		memberNames: ["Alice Martin", "Bob Lee"],
-		searchKeys: ["alpha team", "alice martin", "bob lee"],
+		searchKeys: ["alpha group", "alice martin", "bob lee"],
 	},
 	{
 		id: "102",
@@ -50,13 +50,13 @@ type Story = StoryObj<typeof meta>;
 export const FiltersAndSelectsViaKeyboard: Story = {
 	play: async ({ args }) => {
 		const search = screen.getByPlaceholderText(
-			"Search by team or student name",
+			"Search by group or student name",
 		);
 		await waitFor(() => expect(search).toHaveFocus());
 
 		await userEvent.type(search, "alice");
 
-		await waitFor(() => expect(screen.getByText("Alpha Team")).toBeVisible());
+		await waitFor(() => expect(screen.getByText("Alpha Group")).toBeVisible());
 		expect(screen.queryByText("Charlie Brown")).toBeNull();
 
 		await userEvent.keyboard("{Enter}");
@@ -79,7 +79,7 @@ export const SelectsViaClick: Story = {
 export const ClosesOnEscape: Story = {
 	play: async ({ args }) => {
 		const search = await screen.findByPlaceholderText(
-			"Search by team or student name",
+			"Search by group or student name",
 		);
 		await userEvent.type(search, "{Escape}");
 

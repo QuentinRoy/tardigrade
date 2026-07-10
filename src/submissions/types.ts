@@ -22,15 +22,15 @@ export type Submission =
 				SubmissionBase & {
 					type: "individual";
 					studentName: string;
-					teamName?: undefined;
+					groupName?: undefined;
 				}
 	  >
 	| Simplify<
 			SubmissionDisplay &
 				SubmissionBase & {
-					type: "team";
+					type: "group";
 					studentName?: undefined;
-					teamName: string;
+					groupName: string;
 				}
 	  >;
 
@@ -39,9 +39,13 @@ export type SubmissionSubmitter =
 			SubmissionBase & {
 				type: "individual";
 				studentId: string;
-				teamName?: undefined;
+				groupName?: undefined;
 			}
 	  >
 	| Simplify<
-			SubmissionBase & { type: "team"; studentId?: undefined; teamName: string }
+			SubmissionBase & {
+				type: "group";
+				studentId?: undefined;
+				groupName: string;
+			}
 	  >;

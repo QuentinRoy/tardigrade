@@ -480,9 +480,9 @@ test("submission owner/type check rejects invalid rows and rolls back transactio
 		.where("id", "=", studentId)
 		.executeTakeFirstOrThrow();
 
-	const team = await db
-		.insertInto("team")
-		.values({ projectId: project.rowId, name: buildTestId("team") })
+	const group = await db
+		.insertInto("group")
+		.values({ projectId: project.rowId, name: buildTestId("group") })
 		.returning("id")
 		.executeTakeFirstOrThrow();
 
@@ -499,7 +499,7 @@ test("submission owner/type check rejects invalid rows and rolls back transactio
 		db.transaction().execute(async (trx) => {
 			await trx
 				.insertInto("submission")
-				.values({ projectId: project.rowId, type: "team", teamId: team.id })
+				.values({ projectId: project.rowId, type: "group", groupId: group.id })
 				.execute();
 
 			await trx
@@ -507,7 +507,7 @@ test("submission owner/type check rejects invalid rows and rolls back transactio
 				.values({
 					projectId: project.rowId,
 					type: "individual",
-					teamId: team.id,
+					groupId: group.id,
 				})
 				.execute();
 		}),
@@ -515,7 +515,7 @@ test("submission owner/type check rejects invalid rows and rolls back transactio
 
 	const persisted = await db
 		.selectFrom("submission")
-		.select(["id", "type", "studentId", "teamId"])
+		.select(["id", "type", "studentId", "groupId"])
 		.where("projectId", "=", project.rowId)
 		.execute();
 
@@ -529,7 +529,7 @@ test("submission owner/type check rejects invalid rows and rolls back transactio
 
 	expect(onlySubmission.type).toBe("individual");
 	expect(onlySubmission.studentId).toBe(student.rowId);
-	expect(onlySubmission.teamId).toBeNull();
+	expect(onlySubmission.groupId).toBeNull();
 });
 
 test("criterion subtype triggers reject mismatched subtype rows and roll back transactional writes", async () => {

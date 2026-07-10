@@ -41,7 +41,7 @@ export async function saveStudentImportPlanInDb(
 			studentId = firstStudent.id;
 		}
 
-		return { type: submission.type, teamName: submission.team, studentId };
+		return { type: submission.type, groupName: submission.group, studentId };
 	});
 
 	const studentsToUpsert = submissions.flatMap((submission) =>
@@ -49,7 +49,7 @@ export async function saveStudentImportPlanInDb(
 			id: student.id,
 			lastName: student.lastName,
 			firstName: student.firstName,
-			teamName: submission.type === "team" ? submission.team : undefined,
+			groupName: submission.type === "group" ? submission.group : undefined,
 		})),
 	);
 
@@ -60,21 +60,21 @@ export async function saveStudentImportPlanInDb(
 		.executeTakeFirstOrThrow();
 	const projectRowId = projectRow.rowId;
 
-	const teamNames = new Set(
+	const groupNames = new Set(
 		submissionsByOwner.flatMap((s) =>
-			s.type === "team" && s.teamName ? [s.teamName] : [],
+			s.type === "group" && s.groupName ? [s.groupName] : [],
 		),
 	);
 
-	const teamsByName = new Map<string, number>();
+	const groupsByName = new Map<string, number>();
 	const studentRowIdsByImportedId = new Map<string, number>();
 
-	if (teamNames.size > 0) {
+	if (groupNames.size > 0) {
 		await db
-			.insertInto("team")
+			.insertInto("group")
 			.values(
-				Array.from(teamNames).map((teamName) => ({
-					name: teamName,
+				Array.from(groupNames).map((groupName) => ({
+					name: groupName,
 					projectId: projectRowId,
 				})),
 			)
@@ -83,15 +83,15 @@ export async function saveStudentImportPlanInDb(
 			)
 			.execute();
 
-		const teamResults = await db
-			.selectFrom("team")
+		const groupResults = await db
+			.selectFrom("group")
 			.select(["id", "name"])
-			.where("name", "in", Array.from(teamNames))
+			.where("name", "in", Array.from(groupNames))
 			.where("projectId", "=", projectRowId)
 			.execute();
 
-		for (const team of teamResults) {
-			teamsByName.set(team.name, team.id);
+		for (const group of groupResults) {
+			groupsByName.set(group.name, group.id);
 		}
 	}
 
@@ -148,21 +148,21 @@ export async function saveStudentImportPlanInDb(
 
 		if (affectedStudentRowIds.length > 0) {
 			await db
-				.deleteFrom("studentToTeam")
+				.deleteFrom("studentToGroup")
 				.where("studentId", "in", affectedStudentRowIds)
 				.execute();
 		}
 
-		const studentTeamLinks = studentsToUpsert.flatMap((student) => {
-			if (student.teamName == null) {
+		const studentGroupLinks = studentsToUpsert.flatMap((student) => {
+			if (student.groupName == null) {
 				return [];
 			}
 
-			const teamId = teamsByName.get(student.teamName);
+			const groupId = groupsByName.get(student.groupName);
 
-			if (teamId == null) {
+			if (groupId == null) {
 				throw new Error(
-					`Team assignment is missing a mapped team for "${student.teamName}".`,
+					`Group assignment is missing a mapped group for "${student.groupName}".`,
 				);
 			}
 
@@ -172,61 +172,61 @@ export async function saveStudentImportPlanInDb(
 				throw new Error(`Failed to resolve student row for ${student.id}.`);
 			}
 
-			return [{ studentId: rowId, teamId }];
+			return [{ studentId: rowId, groupId }];
 		});
 
-		if (studentTeamLinks.length > 0) {
+		if (studentGroupLinks.length > 0) {
 			await db
-				.insertInto("studentToTeam")
-				.values(studentTeamLinks)
+				.insertInto("studentToGroup")
+				.values(studentGroupLinks)
 				.onConflict((conflict) =>
-					conflict.columns(["studentId", "teamId"]).doNothing(),
+					conflict.columns(["studentId", "groupId"]).doNothing(),
 				)
 				.execute();
 		}
 	}
 
-	const teamSubmissions = submissionsByOwner.flatMap((submission) => {
-		if (submission.type !== "team") {
+	const groupSubmissions = submissionsByOwner.flatMap((submission) => {
+		if (submission.type !== "group") {
 			return [];
 		}
 
-		const teamId =
-			submission.teamName != null
-				? teamsByName.get(submission.teamName)
+		const groupId =
+			submission.groupName != null
+				? groupsByName.get(submission.groupName)
 				: undefined;
 
-		if (teamId == null) {
+		if (groupId == null) {
 			throw new Error(
-				`Team submission is missing a mapped team for "${
-					submission.teamName ?? "unknown"
+				`Group submission is missing a mapped group for "${
+					submission.groupName ?? "unknown"
 				}".`,
 			);
 		}
 
 		return [
 			{
-				type: "team" as const,
+				type: "group" as const,
 				projectId: projectRowId,
-				teamId,
+				groupId,
 				studentId: null,
 			},
 		];
 	});
 
-	if (teamSubmissions.length > 0) {
+	if (groupSubmissions.length > 0) {
 		await db
 			.insertInto("submission")
-			.values(teamSubmissions)
+			.values(groupSubmissions)
 			.onConflict((conflict) =>
 				conflict
-					.column("teamId")
+					.column("groupId")
 					.doUpdateSet({
-						type: "team",
+						type: "group",
 						projectId: (expressionBuilder) =>
 							expressionBuilder.ref("excluded.projectId"),
-						teamId: (expressionBuilder) =>
-							expressionBuilder.ref("excluded.teamId"),
+						groupId: (expressionBuilder) =>
+							expressionBuilder.ref("excluded.groupId"),
 						studentId: null,
 					}),
 			)
@@ -247,7 +247,7 @@ export async function saveStudentImportPlanInDb(
 				type: "individual" as const,
 				projectId: projectRowId,
 				studentId: studentRowIdsByImportedId.get(submission.studentId) ?? null,
-				teamId: null,
+				groupId: null,
 			},
 		];
 	});
@@ -265,7 +265,7 @@ export async function saveStudentImportPlanInDb(
 							expressionBuilder.ref("excluded.projectId"),
 						studentId: (expressionBuilder) =>
 							expressionBuilder.ref("excluded.studentId"),
-						teamId: null,
+						groupId: null,
 					}),
 			)
 			.execute();

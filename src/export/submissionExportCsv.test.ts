@@ -139,7 +139,7 @@ describe("submission CSV ordering", () => {
 		expect(() =>
 			buildSubmissionExportRecord({
 				row: {
-					submission: { id: "sub-team", type: "team", teamName: "" },
+					submission: { id: "sub-group", type: "group", groupName: "" },
 					rubrics: unassessedRubrics,
 				},
 				options: {
@@ -147,13 +147,13 @@ describe("submission CSV ordering", () => {
 					includeCriterionMarks: false,
 				},
 			}),
-		).toThrow("Submission sub-team has type team but no team is linked.");
+		).toThrow("Submission sub-group has type group but no group is linked.");
 	});
 
-	it("uses team name as submitter for team submissions", () => {
+	it("uses group name as submitter for group submissions", () => {
 		const row = buildSubmissionExportRecord({
 			row: {
-				submission: { id: "sub-team-1", type: "team", teamName: "Team A" },
+				submission: { id: "sub-group-1", type: "group", groupName: "Group A" },
 				rubrics: unassessedRubrics,
 			},
 			options: {
@@ -164,8 +164,8 @@ describe("submission CSV ordering", () => {
 
 		expect(row).toMatchInlineSnapshot(`
       {
-        "submission_type": "team",
-        "submitter": "Team A",
+        "submission_type": "group",
+        "submitter": "Group A",
       }
     `);
 	});

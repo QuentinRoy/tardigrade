@@ -66,18 +66,18 @@ function getMatchReason(
 	}
 
 	const normalizedLabel = normalizeForCompare(target.displayLabel);
-	const isTeam = target.memberNames.length > 0;
+	const isGroup = target.memberNames.length > 0;
 
 	if (normalizedLabel === normalizedQuery) {
-		const label = isTeam ? "team" : "student";
+		const label = isGroup ? "group" : "student";
 		return `matched ${label}: "${target.displayLabel}"`;
 	}
 	if (normalizedLabel.startsWith(normalizedQuery)) {
-		const label = isTeam ? "team" : "student";
+		const label = isGroup ? "group" : "student";
 		return `matched ${label}: "${target.displayLabel}"`;
 	}
 
-	// Check if any member name matched (only for teams)
+	// Check if any member name matched (only for groups)
 	for (const memberName of target.memberNames) {
 		const normalizedMember = normalizeForCompare(memberName);
 		if (normalizedMember === normalizedQuery) {
@@ -95,7 +95,7 @@ function getMatchReason(
 			return "";
 		}
 		if (match.key === "displayLabel") {
-			const label = isTeam ? "team" : "student";
+			const label = isGroup ? "group" : "student";
 			return `matched ${label}: "${target.displayLabel}"`;
 		}
 		if (match.key === "memberNames") {

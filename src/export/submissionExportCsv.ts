@@ -72,13 +72,13 @@ export function buildAssessmentKey(
 export function getSubmissionExportIdentifier(
 	submission: SubmissionSubmitter,
 ): string {
-	if (submission.type === "team") {
-		if (submission.teamName == null || submission.teamName.length === 0) {
+	if (submission.type === "group") {
+		if (submission.groupName == null || submission.groupName.length === 0) {
 			throw new Error(
-				`Submission ${submission.id} has type team but no team is linked.`,
+				`Submission ${submission.id} has type group but no group is linked.`,
 			);
 		}
-		return submission.teamName;
+		return submission.groupName;
 	}
 
 	if (submission.studentId == null || submission.studentId.length === 0) {

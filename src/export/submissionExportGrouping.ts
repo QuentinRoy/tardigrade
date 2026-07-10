@@ -3,8 +3,8 @@ import { buildAssessmentKey } from "./submissionExportCsv.ts";
 
 export type SubmissionRow = {
 	submissionId: number | null;
-	submissionType: "team" | "individual" | null;
-	teamName: string | null;
+	submissionType: "group" | "individual" | null;
+	groupName: string | null;
 	studentId: string | null;
 	rubricId: string | null;
 	criterionId: string | null;
@@ -15,8 +15,8 @@ export type SubmissionRow = {
 
 export type SubmissionGroup = {
 	submissionId: number;
-	submissionType: "team" | "individual";
-	teamName: string | null;
+	submissionType: "group" | "individual";
+	groupName: string | null;
 	studentId: string | null;
 	valuesByKey: Map<string, AssessmentCriterionValue>;
 };
@@ -30,8 +30,8 @@ export async function* groupSubmissionRows(
 	rows: AsyncIterable<SubmissionRow>,
 ): AsyncGenerator<SubmissionGroup> {
 	let currentSubmissionId: number | null = null;
-	let currentSubmissionType: "team" | "individual" | null = null;
-	let currentTeamName: string | null = null;
+	let currentSubmissionType: "group" | "individual" | null = null;
+	let currentGroupName: string | null = null;
 	let currentStudentId: string | null = null;
 	let currentValuesByKey = new Map<string, AssessmentCriterionValue>();
 
@@ -42,7 +42,7 @@ export async function* groupSubmissionRows(
 		return {
 			submissionId: currentSubmissionId,
 			submissionType: currentSubmissionType,
-			teamName: currentTeamName,
+			groupName: currentGroupName,
 			studentId: currentStudentId,
 			valuesByKey: currentValuesByKey,
 		};
@@ -61,7 +61,7 @@ export async function* groupSubmissionRows(
 
 		currentSubmissionId = row.submissionId;
 		currentSubmissionType = row.submissionType;
-		currentTeamName = row.teamName;
+		currentGroupName = row.groupName;
 		currentStudentId = row.studentId;
 
 		if (row.rubricId == null || row.criterionId == null) continue;

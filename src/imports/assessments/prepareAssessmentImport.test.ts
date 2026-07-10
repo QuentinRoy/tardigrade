@@ -118,14 +118,14 @@ test("prepareAssessmentImport reports an ambiguous submission as a blocking diag
 		]),
 		submissionIdsByLookup: new Map([
 			[
-				submissionLookupKey({ submissionType: "team", submitter: "Team A" }),
+				submissionLookupKey({ submissionType: "group", submitter: "Group A" }),
 				["7", "8"],
 			],
 		]),
 	});
 
 	const rows: ImportedAssessmentRow[] = [
-		{ submission_type: "team", submitter: "Team A", "q1:r-bool": "true" },
+		{ submission_type: "group", submitter: "Group A", "q1:r-bool": "true" },
 	];
 
 	const plan = prepareAssessmentImport({ rows, context });
@@ -135,8 +135,8 @@ test("prepareAssessmentImport reports an ambiguous submission as a blocking diag
 		{
 			type: "ambiguous-submission",
 			row: 2,
-			submissionType: "team",
-			submitter: "Team A",
+			submissionType: "group",
+			submitter: "Group A",
 		},
 	]);
 });

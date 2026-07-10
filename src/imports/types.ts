@@ -20,6 +20,6 @@ export type ImportedAssessmentRow = z.output<typeof assessmentRowSchema>;
 export type NormalizedImportedSubmission = {
 	id: string;
 	type: SubmissionType;
-	team?: string;
+	group?: string;
 	students: ImportedStudent[];
 };
