@@ -2,14 +2,15 @@ import type {
 	AssessmentCriterionValue,
 	CriterionKind,
 } from "#criteria/types.ts";
+import type { GradeTargetKind } from "#grade-targets/types.ts";
 import type { ImportedAssessmentRow } from "#imports/types.ts";
-import type { SubmissionType } from "#submissions/types.ts";
 
-// Column names match the snake_case headers produced by the assessment export.
-const SUBMISSION_TYPE_COLUMN = "submission_type";
-const SUBMITTER_COLUMN = "submitter";
-const GRAND_TOTAL_MARKS_COLUMN = "grand_total_marks";
+// Column names match the snake_case headers produced by the grades export.
+const KIND_COLUMN = "kind";
+const NAME_COLUMN = "name";
+const FINAL_TOTAL_COLUMN = "final_total";
 const MARKS_COLUMN_SUFFIX = ":marks";
+const TOTAL_COLUMN_SUFFIX = ":total";
 
 export type AssessmentImportCriterion = {
 	id: string;
@@ -21,18 +22,18 @@ export type AssessmentImportCriterion = {
 export type AssessmentImportContext = {
 	// Criterion value columns keyed `${rubricId}:${criterionId}`.
 	criteriaByColumn: Map<string, AssessmentImportCriterion>;
-	// Rubric ids of the project; bare rubric columns are derived export
+	// Rubric ids of the project; bare rubric total columns are derived export
 	// output and are ignored on import.
 	rubricIds: Set<string>;
-	// Candidate submission ids keyed by submissionLookupKey().
-	submissionIdsByLookup: Map<string, string[]>;
-	// (submission, criterion) pairs that already hold a value, keyed by
+	// Candidate grade target ids keyed by targetLookupKey().
+	targetIdsByLookup: Map<string, string[]>;
+	// (target, criterion) pairs that already hold a value, keyed by
 	// assessedCriterionKey(). Used to report overwrites.
 	assessedCriterionKeys: Set<string>;
 };
 
 export type AssessmentImportWrite = {
-	submissionId: string;
+	targetId: string;
 	rubricId: string;
 	assessment: AssessmentCriterionValue;
 };
@@ -40,21 +41,21 @@ export type AssessmentImportWrite = {
 // `row` is the 1-based CSV line number; the header is line 1, data starts at 2.
 export type AssessmentImportBlockingDiagnostic =
 	| {
-			type: "unmatched-submission";
+			type: "unmatched-target";
 			row: number;
-			submissionType: SubmissionType;
-			submitter: string;
+			targetKind: GradeTargetKind;
+			name: string;
 	  }
 	| {
-			type: "ambiguous-submission";
+			type: "ambiguous-target";
 			row: number;
-			submissionType: SubmissionType;
-			submitter: string;
+			targetKind: GradeTargetKind;
+			name: string;
 	  }
 	| {
 			type: "invalid-value";
 			row: number;
-			submitter: string;
+			name: string;
 			column: string;
 			message: string;
 	  }
@@ -62,7 +63,7 @@ export type AssessmentImportBlockingDiagnostic =
 	| { type: "no-assessment-columns" };
 
 export type AssessmentImportOverwrite = {
-	submissionId: string;
+	targetId: string;
 	criterionId: string;
 };
 
@@ -75,18 +76,18 @@ export type AssessmentImportPlan = {
 	overwrites: AssessmentImportOverwrite[];
 };
 
-export function submissionLookupKey(params: {
-	submissionType: SubmissionType;
-	submitter: string;
+export function targetLookupKey(params: {
+	targetKind: GradeTargetKind;
+	name: string;
 }): string {
-	return `${params.submissionType}:${params.submitter}`;
+	return `${params.targetKind}:${params.name}`;
 }
 
 export function assessedCriterionKey(params: {
-	submissionId: string;
+	targetId: string;
 	criterionId: string;
 }): string {
-	return `${params.submissionId}:${params.criterionId}`;
+	return `${params.targetId}:${params.criterionId}`;
 }
 
 function parseAssessmentValue(params: {
@@ -148,8 +149,8 @@ export function prepareAssessmentImport(params: {
 	const headerColumns = Object.keys(rows.at(0) ?? {});
 	for (const column of headerColumns) {
 		if (
-			column === SUBMISSION_TYPE_COLUMN ||
-			column === SUBMITTER_COLUMN ||
+			column === KIND_COLUMN ||
+			column === NAME_COLUMN ||
 			context.criteriaByColumn.has(column)
 		) {
 			continue;
@@ -160,9 +161,12 @@ export function prepareAssessmentImport(params: {
 			context.criteriaByColumn.has(
 				column.slice(0, -MARKS_COLUMN_SUFFIX.length),
 			);
+		const isDerivedTotalColumn =
+			column.endsWith(TOTAL_COLUMN_SUFFIX) &&
+			context.rubricIds.has(column.slice(0, -TOTAL_COLUMN_SUFFIX.length));
 		if (
-			column === GRAND_TOTAL_MARKS_COLUMN ||
-			context.rubricIds.has(column) ||
+			column === FINAL_TOTAL_COLUMN ||
+			isDerivedTotalColumn ||
 			isDerivedMarksColumn
 		) {
 			ignoredColumns.push(column);
@@ -178,31 +182,28 @@ export function prepareAssessmentImport(params: {
 
 	for (const [rowIndex, row] of rows.entries()) {
 		const csvLine = rowIndex + 2;
-		const submissionIds =
-			context.submissionIdsByLookup.get(
-				submissionLookupKey({
-					submissionType: row.submission_type,
-					submitter: row.submitter,
-				}),
+		const targetIds =
+			context.targetIdsByLookup.get(
+				targetLookupKey({ targetKind: row.kind, name: row.name }),
 			) ?? [];
-		const submissionId = submissionIds[0];
+		const targetId = targetIds[0];
 
-		if (submissionId == null) {
+		if (targetId == null) {
 			blockingDiagnostics.push({
-				type: "unmatched-submission",
+				type: "unmatched-target",
 				row: csvLine,
-				submissionType: row.submission_type,
-				submitter: row.submitter,
+				targetKind: row.kind,
+				name: row.name,
 			});
 			continue;
 		}
 
-		if (submissionIds.length > 1) {
+		if (targetIds.length > 1) {
 			blockingDiagnostics.push({
-				type: "ambiguous-submission",
+				type: "ambiguous-target",
 				row: csvLine,
-				submissionType: row.submission_type,
-				submitter: row.submitter,
+				targetKind: row.kind,
+				name: row.name,
 			});
 			continue;
 		}
@@ -221,21 +222,21 @@ export function prepareAssessmentImport(params: {
 				blockingDiagnostics.push({
 					type: "invalid-value",
 					row: csvLine,
-					submitter: row.submitter,
+					name: row.name,
 					column,
 					message: error instanceof Error ? error.message : String(error),
 				});
 				continue;
 			}
 
-			writes.push({ submissionId, rubricId: criterion.rubricId, assessment });
+			writes.push({ targetId, rubricId: criterion.rubricId, assessment });
 
 			if (
 				context.assessedCriterionKeys.has(
-					assessedCriterionKey({ submissionId, criterionId: criterion.id }),
+					assessedCriterionKey({ targetId, criterionId: criterion.id }),
 				)
 			) {
-				overwrites.push({ submissionId, criterionId: criterion.id });
+				overwrites.push({ targetId, criterionId: criterion.id });
 			}
 		}
 	}

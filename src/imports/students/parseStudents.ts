@@ -3,7 +3,7 @@ import { toSlug } from "#imports/saveUtils.ts";
 import { studentRowsSchema } from "#imports/schemas.ts";
 import type {
 	ImportedStudent,
-	NormalizedImportedSubmission,
+	NormalizedImportedGradeTarget,
 } from "#imports/types.ts";
 import type { NonEmptyArray } from "#utils/utils.ts";
 
@@ -13,9 +13,9 @@ export function parseStudentsCsv(content: string): ImportedStudent[] {
 	return studentRowsSchema.parse(rows);
 }
 
-export function groupStudentsIntoSubmissions(
+export function groupStudentsIntoGradeTargets(
 	students: ImportedStudent[],
-): NormalizedImportedSubmission[] {
+): NormalizedImportedGradeTarget[] {
 	const groupedByPaper = new Map<string, NonEmptyArray<ImportedStudent>>();
 
 	for (const student of students) {
@@ -48,20 +48,20 @@ export function groupStudentsIntoSubmissions(
 
 			return {
 				id,
-				type: "group",
+				kind: "group",
 				group: firstStudent.group,
 				students: groupedStudents,
 			};
 		}
 
-		let id = `submission-${toSlug(firstStudent.id) || "unknown"}`;
+		let id = `target-${toSlug(firstStudent.id) || "unknown"}`;
 		let suffix = 1;
 		while (usedIds.has(id)) {
 			suffix += 1;
-			id = `submission-${toSlug(firstStudent.id) || "unknown"}-${suffix}`;
+			id = `target-${toSlug(firstStudent.id) || "unknown"}-${suffix}`;
 		}
 		usedIds.add(id);
 
-		return { id, type: "individual", students: groupedStudents };
+		return { id, kind: "individual", students: groupedStudents };
 	});
 }

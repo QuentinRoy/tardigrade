@@ -1,8 +1,11 @@
 type ProjectRef = { projectId: string; projectSlug: string };
 
-type ProjectSubmissionRef = ProjectRef & { submissionId: string };
+type ProjectGradeTargetRef = ProjectRef & {
+	targetId: string;
+	targetSlug: string;
+};
 
-type ProjectSubmissionRubricRef = ProjectSubmissionRef & { rubricId: string };
+type ProjectGradeTargetRubricRef = ProjectGradeTargetRef & { rubricId: string };
 
 export function projectBasePath({
 	projectId,
@@ -19,26 +22,27 @@ export function changeProjectPath(): string {
 	return "/projects";
 }
 
-export function projectAssessmentsPath(project: ProjectRef): string {
-	return `${projectBasePath(project)}/assessments`;
+export function projectGradesPath(project: ProjectRef): string {
+	return `${projectBasePath(project)}/grades`;
 }
 
 export function projectResultsPath(project: ProjectRef): string {
-	return `${projectAssessmentsPath(project)}/results`;
+	return `${projectBasePath(project)}/results`;
 }
 
-export function projectAssessmentSubmissionPath({
-	submissionId,
+export function projectGradeTargetPath({
+	targetId,
+	targetSlug,
 	...project
-}: ProjectSubmissionRef): string {
-	return `${projectAssessmentsPath(project)}/submissions/${submissionId}`;
+}: ProjectGradeTargetRef): string {
+	return `${projectGradesPath(project)}/${targetId}/${targetSlug}`;
 }
 
-export function projectAssessmentSubmissionRubricPath({
+export function projectGradeTargetRubricPath({
 	rubricId,
-	...submission
-}: ProjectSubmissionRubricRef): string {
-	return `${projectAssessmentSubmissionPath(submission)}/rubrics/${rubricId}`;
+	...target
+}: ProjectGradeTargetRubricRef): string {
+	return `${projectGradeTargetPath(target)}/rubrics/${rubricId}`;
 }
 
 export function projectRubricsPath(project: ProjectRef): string {
@@ -57,8 +61,8 @@ export function projectImportAssessmentsPath(project: ProjectRef): string {
 	return `${projectBasePath(project)}/import/assessments`;
 }
 
-export function projectExportSubmissionsPath(project: ProjectRef): string {
-	return `${projectBasePath(project)}/export/submissions`;
+export function projectExportGradesPath(project: ProjectRef): string {
+	return `${projectBasePath(project)}/export/grades`;
 }
 
 export function projectExportRubricsPath(project: ProjectRef): string {

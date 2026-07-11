@@ -1,14 +1,14 @@
 import { revalidateTag, updateTag } from "next/cache";
 import {
 	assessmentAggregateCacheTag,
-	assessmentForSubmissionCacheTag,
-	assessmentForSubmissionRubricCacheTag,
+	assessmentForGradeTargetCacheTag,
+	assessmentForGradeTargetRubricCacheTag,
 	assessmentImportCacheTag,
 	assessmentProgressForRubricCacheTag,
+	gradeTargetListCacheTag,
 	projectCacheTag,
 	projectListCacheTag,
 	rubricListCacheTag,
-	submissionListCacheTag,
 } from "./cacheTags.ts";
 
 // Semantic cache-invalidation helpers, one per mutation (ADR 0008 rule 6). Each
@@ -33,19 +33,19 @@ function revalidate(tag: string): void {
 }
 
 // Interactive single-assessment save. Read-your-own-writes for the exact pair and
-// the submission's assessments (the grader must see the value just saved);
+// the grade target's assessments (the grader must see the value just saved);
 // stale-while-revalidate for the coarse aggregate and the rubric progress
-// projection, so navigating to the next submission never blocks on recomputing
+// projection, so navigating to the next grade target never blocks on recomputing
 // project-wide completion.
 export function invalidateAssessmentSave({
-	submissionId,
+	targetId,
 	rubricId,
 }: {
-	submissionId: string;
+	targetId: string;
 	rubricId: string;
 }): void {
-	updateTag(assessmentForSubmissionRubricCacheTag({ submissionId, rubricId }));
-	updateTag(assessmentForSubmissionCacheTag(submissionId));
+	updateTag(assessmentForGradeTargetRubricCacheTag({ targetId, rubricId }));
+	updateTag(assessmentForGradeTargetCacheTag(targetId));
 	revalidate(assessmentAggregateCacheTag());
 	revalidate(assessmentProgressForRubricCacheTag(rubricId));
 }
@@ -117,10 +117,10 @@ export function invalidateRubricImport(): void {
 	revalidate(assessmentImportCacheTag());
 }
 
-// Bulk student (roster) import. Stale-while-revalidate for the submission list and
-// the assessment aggregates the new roster affects.
+// Bulk student (roster) import. Stale-while-revalidate for the grade-target list
+// and the assessment aggregates the new roster affects.
 export function invalidateStudentImport(): void {
-	revalidate(submissionListCacheTag());
+	revalidate(gradeTargetListCacheTag());
 	revalidate(assessmentAggregateCacheTag());
 	revalidate(assessmentImportCacheTag());
 }

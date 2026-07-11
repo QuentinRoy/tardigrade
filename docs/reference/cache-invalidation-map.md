@@ -11,12 +11,12 @@ See `docs/adr/0008-cache-tags-lifetimes-and-invalidation.md` for the rules that 
 | `projectListCacheTag()` | `projects` | All projects |
 | `projectCacheTag(id)` | `projects:{id}` | One project, by public Project ID |
 | `rubricListCacheTag()` | `rubrics` | All rubrics in scope |
-| `submissionListCacheTag()` | `submissions` | All submissions in scope |
+| `gradeTargetListCacheTag()` | `grade-targets` | All grade targets in scope |
 | `assessmentAggregateCacheTag()` | `assessments` | All assessments in scope (busted by every save) |
 | `assessmentImportCacheTag()` | `assessments:all` | Import-level aggregate (busted by imports and definition changes, not individual saves) |
-| `assessmentForSubmissionCacheTag(sub)` | `assessments:{sub}` | All rubrics for one submission |
-| `assessmentForSubmissionRubricCacheTag({sub, rubric})` | `assessments:{sub}:{rubric}` | Exact submission/rubric pair |
-| `assessmentProgressForRubricCacheTag(rubric)` | `assessments:rubric:{rubric}` | One rubric's progress across all submissions |
+| `assessmentForGradeTargetCacheTag(target)` | `assessments:{target}` | All rubrics for one grade target |
+| `assessmentForGradeTargetRubricCacheTag({target, rubric})` | `assessments:{target}:{rubric}` | Exact grade-target/rubric pair |
+| `assessmentProgressForRubricCacheTag(rubric)` | `assessments:rubric:{rubric}` | One rubric's progress across all grade targets |
 
 ## Mutations → tags invalidated
 
@@ -24,14 +24,14 @@ Each mutation calls exactly one semantic helper from `src/db/cacheInvalidation.t
 
 | Mutation | Helper | `updateTag` (read-your-writes) | `revalidateTag` (stale-while-revalidate) | Source |
 |---|---|---|---|---|
-| `saveAssessment` | `invalidateAssessmentSave` | `assessments:{sub}:{rubric}`, `assessments:{sub}` | `assessments`, `assessments:rubric:{rubric}` | `src/assessment-capture/assessmentMutations.ts` |
+| `saveAssessment` | `invalidateAssessmentSave` | `assessments:{target}:{rubric}`, `assessments:{target}` | `assessments`, `assessments:rubric:{rubric}` | `src/assessment-capture/assessmentMutations.ts` |
 | `saveRubricDefinition` | `invalidateRubricDefinitionSave` | `rubrics` | `assessments`, `assessments:all`, `assessments:rubric:{id}` (+ `assessments:rubric:{previousId}` when id changes) | `src/rubric-management/rubricDefinitionMutations.ts` |
 | `deleteRubricDefinition` | `invalidateRubricDefinitionDelete` | `rubrics` | `assessments`, `assessments:all`, `assessments:rubric:{id}` | `src/rubric-management/rubricDefinitionMutations.ts` |
 | `reorderRubrics` | `invalidateRubricReorder` | `rubrics` | (none) | `src/rubric-management/rubricDefinitionMutations.ts` |
 | `createProject` | `invalidateProjectCreate` | (none) | `projects`, `projects:{id}` | `src/projects/projects.ts` |
 | `saveAssessments` (import) | `invalidateAssessmentImport` | (none) | `assessments`, `assessments:all` | `src/imports/assessments/saveAssessments.ts` |
 | `saveRubrics` (import) | `invalidateRubricImport` | (none) | `rubrics`, `assessments`, `assessments:all` | `src/imports/rubrics/saveRubrics.ts` |
-| `saveStudents` (import) | `invalidateStudentImport` | (none) | `submissions`, `assessments`, `assessments:all` | `src/imports/students/saveStudents.ts` |
+| `saveStudents` (import) | `invalidateStudentImport` | (none) | `grade-targets`, `assessments`, `assessments:all` | `src/imports/students/saveStudents.ts` |
 
 Import helpers and `invalidateProjectCreate` run from request-scoped actions (import actions, the create-project action). `revalidateTag` throws outside request scope, so these helpers must not be called from background jobs.
 
@@ -45,16 +45,16 @@ Page-level sections inherit `cacheLife` from inner cached functions; the lifetim
 | `loadProjectByPublicId` | `projects`, `projects:{id}` | 60 s | `src/projects/projects.ts` |
 | `loadRubricRows` (shared by `loadRubricsById`, `loadRubric`, which derive from it) | `rubrics` | 1 h (`definitions`) | `src/rubrics/rubrics.ts` |
 | `loadRubricDefinitions` (composes `loadRubricRows` + assessment counts) | `rubrics`, `assessments` | 60 s (`projection`; counts track the coarse aggregate) | `src/rubric-management/rubricDefinitions.ts` |
-| `loadSubmissions` | `submissions` | 1 h (`roster`) | `src/submissions/submissions.ts` |
-| `loadRubricAssessment` | `assessments:{sub}:{rubric}`, `assessments:all` | 5 min (`values`) | `src/assessment-capture/assessments.ts` |
-| `loadSubmissionAssessments` | `assessments:{sub}`, `assessments:all` | 5 min (`values`) | `src/assessment-capture/assessments.ts` |
-| `loadAssessmentCompletionRows` (shared by `loadAssessmentCompletionBySubmission` and `loadAssessmentCompletionSummary`, plain derivers that compose it) | `submissions`, `rubrics`, `assessments` | 60 s | `src/assessment-completion/loadAssessmentCompletion.ts` |
+| `loadGradeTargets` | `grade-targets` | 1 h (`roster`) | `src/grade-targets/gradeTargets.ts` |
+| `loadRubricAssessment` | `assessments:{target}:{rubric}`, `assessments:all` | 5 min (`values`) | `src/assessment-capture/assessments.ts` |
+| `loadGradeTargetAssessments` | `assessments:{target}`, `assessments:all` | 5 min (`values`) | `src/assessment-capture/assessments.ts` |
+| `loadAssessmentCompletionRows` (shared by `loadAssessmentCompletionByTarget` and `loadAssessmentCompletionSummary`, plain derivers that compose it) | `grade-targets`, `rubrics`, `assessments` | 60 s | `src/assessment-completion/loadAssessmentCompletion.ts` |
 | `loadCriterionAssessmentsCount` (composed by `loadAssessmentCompletionSummary` alongside `loadAssessmentCompletionRows`) | `assessments` | 60 s | `src/assessment-completion/loadAssessmentCompletion.ts` |
-| `loadAssessedCriterionCountsBySubmission` | `submissions`, `rubrics`, `assessments:rubric:{rubric}`, `assessments:all` | 60 s | `src/assessment-completion/loadAssessmentCompletion.ts` |
-| `loadResultsData` | `rubrics`, `submissions`, `assessments` | 60 s (`projection`) | `src/results/loadResults.ts` |
+| `loadAssessedCriterionCountsByTarget` | `grade-targets`, `rubrics`, `assessments:rubric:{rubric}`, `assessments:all` | 60 s | `src/assessment-completion/loadAssessmentCompletion.ts` |
+| `loadResultsData` | `rubrics`, `grade-targets`, `assessments` | 60 s (`projection`) | `src/results/loadResults.ts` |
 | `RubricHeaderSection` (page) | `projects:{id}`, `rubrics` | inherits | `app/.../rubrics/[rubricId]/page.tsx` |
 
-`SubmissionCriterionSection` and `ProjectAssessmentPageContent` have no page-level `"use cache"` wrapper: each calls already-cached loaders directly. The per-submission progress used by the on-demand lookup dialog (or, on the assessments index, the inline progress badges) still comes from those cached loaders (`loadAssessedCriterionCounts`, `loadAssessmentCompletionBySubmission` — both deriving from the cached entries in the table above) — only the page-level `await` is removed, so the *page render* doesn't block on it; it streams in under Suspense instead of blocking navigation on a project-wide completion recompute (Finding 19, PR10).
+`GradeTargetCriterionSection` and `ProjectGradesPageContent` have no page-level `"use cache"` wrapper: each calls already-cached loaders directly. The per-target progress used by the on-demand lookup dialog (or, on the grades index, the inline progress badges) still comes from those cached loaders (`loadAssessedCriterionCounts`, `loadAssessmentCompletionByTarget` — both deriving from the cached entries in the table above) — only the page-level `await` is removed, so the *page render* doesn't block on it; it streams in under Suspense instead of blocking navigation on a project-wide completion recompute (Finding 19, PR10).
 
 ## Maintenance rule
 

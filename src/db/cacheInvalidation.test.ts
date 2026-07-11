@@ -26,9 +26,9 @@ function revalidatedTags(): string[] {
 }
 
 test("invalidateAssessmentSave updates the edited tags and revalidates the derived tags", () => {
-	invalidateAssessmentSave({ submissionId: "s-1", rubricId: "q-1" });
+	invalidateAssessmentSave({ targetId: "t-1", rubricId: "q-1" });
 
-	expect(updatedTags()).toEqual(["assessments:s-1:q-1", "assessments:s-1"]);
+	expect(updatedTags()).toEqual(["assessments:t-1:q-1", "assessments:t-1"]);
 	expect(revalidatedTags()).toEqual(["assessments", "assessments:rubric:q-1"]);
 });
 
@@ -108,12 +108,12 @@ test("invalidateRubricImport revalidates the rubric list and assessment aggregat
 	]);
 });
 
-test("invalidateStudentImport revalidates the submission list and assessment aggregates", () => {
+test("invalidateStudentImport revalidates the grade-target list and assessment aggregates", () => {
 	invalidateStudentImport();
 
 	expect(updateTag).not.toHaveBeenCalled();
 	expect(revalidatedTags()).toEqual([
-		"submissions",
+		"grade-targets",
 		"assessments",
 		"assessments:all",
 	]);

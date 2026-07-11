@@ -3,7 +3,7 @@
 import { toImportErrorState } from "#imports/actionUtils.ts";
 import type { ActionState } from "#utils/actionState.ts";
 import {
-	groupStudentsIntoSubmissions,
+	groupStudentsIntoGradeTargets,
 	parseStudentsCsv,
 } from "./parseStudents.ts";
 import { saveStudents } from "./saveStudents.ts";
@@ -17,12 +17,12 @@ export async function studentsImportAction(
 
 	try {
 		const students = parseStudentsCsv(studentsCsv);
-		const submissions = groupStudentsIntoSubmissions(students);
-		const result = await saveStudents({ submissions, projectId });
+		const targets = groupStudentsIntoGradeTargets(students);
+		const result = await saveStudents({ targets, projectId });
 
 		return {
 			status: "success",
-			message: `Imported ${result.createdSubmissionCount} new and updated ${result.updatedSubmissionCount} existing submissions; imported ${result.createdStudentCount} new and updated ${result.updatedStudentCount} existing students.`,
+			message: `Imported ${result.createdGradeTargetCount} new and updated ${result.updatedGradeTargetCount} existing students and groups; imported ${result.createdStudentCount} new and updated ${result.updatedStudentCount} existing students.`,
 		};
 	} catch (error) {
 		return toImportErrorState(error);

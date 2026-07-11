@@ -6,7 +6,7 @@ import {
 	type AssessmentImportContext,
 	type AssessmentImportCriterion,
 	assessedCriterionKey,
-	submissionLookupKey,
+	targetLookupKey,
 } from "./prepareAssessmentImport.ts";
 
 async function loadCriteriaByColumn(
@@ -72,79 +72,73 @@ async function loadRubricIds(
 	return new Set(rubrics.map((rubric) => rubric.id));
 }
 
-async function loadSubmissionIdsByLookup(
+async function loadTargetIdsByLookup(
 	db: Kysely<DB>,
 	{
 		rows,
 		projectRowId,
 	}: { rows: ImportedAssessmentRow[]; projectRowId: number },
 ): Promise<Map<string, string[]>> {
-	const groupSubmitters = new Set<string>();
-	const individualSubmitters = new Set<string>();
+	const groupNames = new Set<string>();
+	const individualStudentIds = new Set<string>();
 
 	for (const row of rows) {
-		if (row.submission_type === "group") {
-			groupSubmitters.add(row.submitter);
+		if (row.kind === "group") {
+			groupNames.add(row.name);
 		} else {
-			individualSubmitters.add(row.submitter);
+			individualStudentIds.add(row.name);
 		}
 	}
 
-	const [groupSubmissions, individualSubmissions] = await Promise.all([
-		groupSubmitters.size > 0
+	const [groupTargets, individualTargets] = await Promise.all([
+		groupNames.size > 0
 			? db
-					.selectFrom("submission")
-					.innerJoin("group", "group.id", "submission.groupId")
-					.where("submission.type", "=", "group")
-					.where("submission.projectId", "=", projectRowId)
-					.where("group.name", "in", Array.from(groupSubmitters))
-					.select(["group.name as submitter", "submission.id as submissionId"])
+					.selectFrom("gradeTarget")
+					.innerJoin("group", "group.id", "gradeTarget.groupRowId")
+					.where("gradeTarget.kind", "=", "group")
+					.where("gradeTarget.projectId", "=", projectRowId)
+					.where("group.name", "in", Array.from(groupNames))
+					.select(["group.name as name", "gradeTarget.id as targetId"])
 					.execute()
 			: Promise.resolve([]),
-		individualSubmitters.size > 0
+		individualStudentIds.size > 0
 			? db
-					.selectFrom("submission")
-					.innerJoin("student", "student.rowId", "submission.studentId")
-					.where("submission.type", "=", "individual")
-					.where("submission.projectId", "=", projectRowId)
-					.where("student.id", "in", Array.from(individualSubmitters))
-					.select(["student.id as submitter", "submission.id as submissionId"])
+					.selectFrom("gradeTarget")
+					.innerJoin("student", "student.rowId", "gradeTarget.studentRowId")
+					.where("gradeTarget.kind", "=", "individual")
+					.where("gradeTarget.projectId", "=", projectRowId)
+					.where("student.id", "in", Array.from(individualStudentIds))
+					.select(["student.id as name", "gradeTarget.id as targetId"])
 					.execute()
 			: Promise.resolve([]),
 	]);
 
-	const submissionIdsByLookup = new Map<string, string[]>();
+	const targetIdsByLookup = new Map<string, string[]>();
 
-	function addSubmission(key: string, submissionId: string): void {
-		const existing = submissionIdsByLookup.get(key);
+	function addTarget(key: string, targetId: string): void {
+		const existing = targetIdsByLookup.get(key);
 		if (existing) {
-			existing.push(submissionId);
+			existing.push(targetId);
 		} else {
-			submissionIdsByLookup.set(key, [submissionId]);
+			targetIdsByLookup.set(key, [targetId]);
 		}
 	}
 
-	for (const submission of groupSubmissions) {
-		addSubmission(
-			submissionLookupKey({
-				submissionType: "group",
-				submitter: submission.submitter,
-			}),
-			String(submission.submissionId),
+	for (const target of groupTargets) {
+		addTarget(
+			targetLookupKey({ targetKind: "group", name: target.name }),
+			target.targetId,
 		);
 	}
 
-	for (const submission of individualSubmissions) {
-		addSubmission(
-			submissionLookupKey({
-				submissionType: "individual",
-				submitter: submission.submitter,
-			}),
-			String(submission.submissionId),
+	for (const target of individualTargets) {
+		addTarget(
+			targetLookupKey({ targetKind: "individual", name: target.name }),
+			target.targetId,
 		);
 	}
 
-	return submissionIdsByLookup;
+	return targetIdsByLookup;
 }
 
 async function loadAssessedCriterionKeys(
@@ -159,18 +153,23 @@ async function loadAssessedCriterionKeys(
 			"criterionAssessment.assessmentId",
 		)
 		.innerJoin(
+			"gradeTarget",
+			"gradeTarget.rowId",
+			"assessment.gradeTargetRowId",
+		)
+		.innerJoin(
 			"criterion",
 			"criterion.rowId",
 			"criterionAssessment.criterionId",
 		)
 		.where("assessment.projectId", "=", projectRowId)
-		.select(["assessment.submissionId", "criterion.id as criterionId"])
+		.select(["gradeTarget.id as targetId", "criterion.id as criterionId"])
 		.execute();
 
 	return new Set(
 		assessedPairs.map((pair) =>
 			assessedCriterionKey({
-				submissionId: String(pair.submissionId),
+				targetId: pair.targetId,
 				criterionId: pair.criterionId,
 			}),
 		),
@@ -193,19 +192,19 @@ export async function loadAssessmentImportContextFromDb(
 	const [
 		criteriaByColumn,
 		rubricIds,
-		submissionIdsByLookup,
+		targetIdsByLookup,
 		assessedCriterionKeys,
 	] = await Promise.all([
 		loadCriteriaByColumn(db, projectRowId),
 		loadRubricIds(db, projectRowId),
-		loadSubmissionIdsByLookup(db, { rows, projectRowId }),
+		loadTargetIdsByLookup(db, { rows, projectRowId }),
 		loadAssessedCriterionKeys(db, projectRowId),
 	]);
 
 	return {
 		criteriaByColumn,
 		rubricIds,
-		submissionIdsByLookup,
+		targetIdsByLookup,
 		assessedCriterionKeys,
 	};
 }

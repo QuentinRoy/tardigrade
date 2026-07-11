@@ -1,13 +1,13 @@
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { createCsvSubmissionExport } from "#export/submissionExport.ts";
-import type { ExportOptions } from "#export/submissionExportCsv.ts";
+import { createCsvGradeTargetExport } from "#export/gradeTargetExport.ts";
+import type { ExportOptions } from "#export/gradeTargetExportCsv.ts";
 import {
 	createTestDb,
 	type DisposableTestDatabase,
 } from "#test/dbIntegration.ts";
 import {
 	addFullAssessmentFixture,
-	createIndividualSubmissionFixtures,
+	createIndividualGradeTargetFixtures,
 	createMixedCriterionRubricFixtureProject,
 	createStudentFixtures,
 } from "#test/mixedCriterionAssessmentFixture.ts";
@@ -52,21 +52,27 @@ async function createRoundtripFixtureProject(db: DisposableTestDatabase) {
 	const [student] = await createStudentFixtures(db, [
 		{ projectRowId: project.rowId, id: "student-roundtrip-1" },
 	]);
-	const [submission] = await createIndividualSubmissionFixtures(db, [
+	const [target] = await createIndividualGradeTargetFixtures(db, [
 		{ projectRowId: project.rowId, studentRowId: student.rowId },
 	]);
 	await addFullAssessmentFixture(db, {
 		projectRowId: project.rowId,
-		submissionId: submission.id,
+		gradeTargetRowId: target.rowId,
 		rubricRowId: rubric.rowId,
 		checkCriterionRowId: criterionRowId.get(rubric.criteria.booleanId)!,
 		optionsCriterionRowId: criterionRowId.get(rubric.criteria.ordinalId)!,
 		numberCriterionRowId: criterionRowId.get(rubric.criteria.numericalId)!,
 	});
 
+	const targetRow = await db
+		.selectFrom("gradeTarget")
+		.select("id")
+		.where("rowId", "=", target.rowId)
+		.executeTakeFirstOrThrow();
+
 	return {
 		project,
-		submissionId: String(submission.id),
+		targetId: targetRow.id,
 		rubricId: rubric.id,
 		criterionIds: rubric.criteria,
 	};
@@ -99,7 +105,7 @@ describe.each<{ name: string; options: ExportOptions }>([
 	test("plan reproduces the seeded assessment values exactly", async () => {
 		const fixture = await createRoundtripFixtureProject(db);
 
-		const stream = await createCsvSubmissionExport(
+		const stream = await createCsvGradeTargetExport(
 			options,
 			fixture.project.id,
 			{ db },
@@ -117,7 +123,7 @@ describe.each<{ name: string; options: ExportOptions }>([
 		expect(plan.writes).toEqual(
 			expect.arrayContaining([
 				{
-					submissionId: fixture.submissionId,
+					targetId: fixture.targetId,
 					rubricId: fixture.rubricId,
 					assessment: {
 						criterionId: fixture.criterionIds.booleanId,
@@ -126,7 +132,7 @@ describe.each<{ name: string; options: ExportOptions }>([
 					},
 				},
 				{
-					submissionId: fixture.submissionId,
+					targetId: fixture.targetId,
 					rubricId: fixture.rubricId,
 					assessment: {
 						criterionId: fixture.criterionIds.ordinalId,
@@ -135,7 +141,7 @@ describe.each<{ name: string; options: ExportOptions }>([
 					},
 				},
 				{
-					submissionId: fixture.submissionId,
+					targetId: fixture.targetId,
 					rubricId: fixture.rubricId,
 					assessment: {
 						criterionId: fixture.criterionIds.numericalId,
@@ -153,7 +159,7 @@ describe.each<{ name: string; options: ExportOptions }>([
 test("marks-only export re-import is blocked with no-assessment-columns", async () => {
 	const fixture = await createRoundtripFixtureProject(db);
 
-	const stream = await createCsvSubmissionExport(
+	const stream = await createCsvGradeTargetExport(
 		{ includeCriterionAssessment: false, includeCriterionMarks: true },
 		fixture.project.id,
 		{ db },

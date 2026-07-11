@@ -6,7 +6,7 @@ export type AssessmentFixture = {
 	projectId: string;
 	rubricId: string;
 	studentId: string;
-	submissionId: string;
+	gradeTargetId: string;
 	criterionIds: { boolean: string; ordinal: string; numerical: string };
 };
 
@@ -15,7 +15,7 @@ export type AssessmentFixtureOptions = {
 	criterionIds?: { boolean: string; ordinal: string; numerical: string };
 };
 
-// Creates a submission with a rubric carrying one criterion of each type, ready for
+// Creates a grade target with a rubric carrying one criterion of each type, ready for
 // assessment round-trips. Exposes the Project ID (public identifier); the Project
 // Row ID stays internal to the fixture plumbing. Cleanup is handled by disposing
 // the owning project (cascade), so no separate teardown helper is needed.
@@ -58,14 +58,15 @@ export async function createAssessmentFixture(
 		.where("id", "=", studentId)
 		.executeTakeFirstOrThrow();
 
-	const submission = await db
-		.insertInto("submission")
+	const target = await db
+		.insertInto("gradeTarget")
 		.values({
 			projectId: projectRowId,
-			type: "individual",
-			studentId: studentRow.rowId,
+			id: buildTestId("target"),
+			kind: "individual",
+			studentRowId: studentRow.rowId,
 		})
-		.returning("id")
+		.returning(["id", "rowId"])
 		.executeTakeFirstOrThrow();
 
 	await db
@@ -166,7 +167,7 @@ export async function createAssessmentFixture(
 		projectId,
 		rubricId,
 		studentId,
-		submissionId: String(submission.id),
+		gradeTargetId: target.id,
 		criterionIds: {
 			boolean: checkCriterionId,
 			ordinal: optionsCriterionId,

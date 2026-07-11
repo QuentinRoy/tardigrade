@@ -4,13 +4,13 @@ import { cacheLife } from "next/cache";
 import {
 	assessmentAggregateCacheTag,
 	cacheTags,
+	gradeTargetListCacheTag,
 	rubricListCacheTag,
-	submissionListCacheTag,
 } from "#db/cacheTags.ts";
 import type { DB } from "#db/generated/db.ts";
 import { db as defaultDb } from "#db/kysely.ts";
+import { loadGradeTargets } from "#grade-targets/gradeTargets.ts";
 import { loadRubricsById } from "#rubrics/rubrics.ts";
-import { loadSubmissions } from "#submissions/submissions.ts";
 import {
 	buildResultsData,
 	type ResultsAssessmentRecord,
@@ -20,7 +20,7 @@ import {
 export function resultsCacheTags(): string[] {
 	return [
 		rubricListCacheTag(),
-		submissionListCacheTag(),
+		gradeTargetListCacheTag(),
 		assessmentAggregateCacheTag(),
 	];
 }
@@ -44,6 +44,11 @@ export async function loadCriterionAssessmentRecordsFromDb(
 			"criterion.rowId",
 			"criterionAssessment.criterionId",
 		)
+		.innerJoin(
+			"gradeTarget",
+			"gradeTarget.rowId",
+			"assessment.gradeTargetRowId",
+		)
 		.where(
 			"assessment.projectId",
 			"in",
@@ -65,7 +70,7 @@ export async function loadCriterionAssessmentRecordsFromDb(
 			"criterionAssessment.id",
 		)
 		.select([
-			"assessment.submissionId as gradeTargetId",
+			"gradeTarget.id as gradeTargetId",
 			"criterion.id as criterionId",
 			"criterionAssessment.kind as kind",
 			"checkCriterionAssessment.passed as passed",
@@ -75,7 +80,7 @@ export async function loadCriterionAssessmentRecordsFromDb(
 		.execute();
 }
 
-// Composes the cached `loadSubmissions`/`loadRubricsById` wrappers (Design B:
+// Composes the cached `loadGradeTargets`/`loadRubricsById` wrappers (Design B:
 // only the assessment-record query above is results-specific) so their cache
 // entries stay shared rather than duplicated here (ADR 0008 rule 5).
 // `options` is forwarded unchanged (ADR 0007 rule 14): never resolve a default
@@ -88,13 +93,13 @@ export async function loadResultsData(
 	cacheTags(...resultsCacheTags());
 	cacheLife("projection");
 
-	const [submissions, rubricsById, assessmentRecords] = await Promise.all([
-		loadSubmissions({ projectId }, options),
+	const [targets, rubricsById, assessmentRecords] = await Promise.all([
+		loadGradeTargets({ projectId }, options),
 		loadRubricsById({ projectId }, options),
 		loadCriterionAssessmentRecordsFromDb(options?.db ?? defaultDb, {
 			projectId,
 		}),
 	]);
 
-	return buildResultsData({ submissions, rubricsById, assessmentRecords });
+	return buildResultsData({ targets, rubricsById, assessmentRecords });
 }

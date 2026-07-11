@@ -4,7 +4,8 @@ import { saveCriterionAssessment } from "./saveCriterionAssessment.ts";
 const errorContext = {
 	projectId: "project-1",
 	projectSlug: "project-slug",
-	submissionId: "submission-1",
+	targetId: "target-1",
+	targetSlug: "target-slug",
 	rubricId: "rubric-1",
 };
 
@@ -14,7 +15,8 @@ describe("saveCriterionAssessment", () => {
 
 		const result = await saveCriterionAssessment({
 			saveAssessment,
-			submissionId: "submission-1",
+			projectId: "project-1",
+			targetId: "target-1",
 			rubricId: "rubric-1",
 			assessment: { criterionId: "criterion-1", kind: "check", passed: true },
 			errorContext,
@@ -30,7 +32,8 @@ describe("saveCriterionAssessment", () => {
 
 		const result = await saveCriterionAssessment({
 			saveAssessment,
-			submissionId: "submission-1",
+			projectId: "project-1",
+			targetId: "target-1",
 			rubricId: "rubric-1",
 			assessment: { criterionId: "criterion-1", kind: "check", passed: true },
 			errorContext,
@@ -49,7 +52,8 @@ describe("saveCriterionAssessment", () => {
 
 		const result = await saveCriterionAssessment({
 			saveAssessment,
-			submissionId: "submission-1",
+			projectId: "project-1",
+			targetId: "target-1",
 			rubricId: "rubric-1",
 			assessment: { criterionId: "criterion-1", kind: "check", passed: true },
 			errorContext,

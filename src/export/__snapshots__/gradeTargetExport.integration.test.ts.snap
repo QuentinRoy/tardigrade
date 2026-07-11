@@ -1,0 +1,9 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`createCsvGradeTargetExport snapshots CSV for mixed criterion types and grade target states 1`] = `
+"kind,name,q-export-test:r-bool-export-test,q-export-test:r-bool-export-test:marks,q-export-test:r-ord-export-test,q-export-test:r-ord-export-test:marks,q-export-test:r-num-export-test,q-export-test:r-num-export-test:marks,q-export-test:total,final_total
+individual,student-export-1,true,2,A,4,7.5,3.75,9.75,9.75
+individual,student-export-2,false,0,,,,,,
+individual,student-export-3,,,,,,,,
+"
+`;

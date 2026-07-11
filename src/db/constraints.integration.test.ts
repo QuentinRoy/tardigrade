@@ -1,5 +1,6 @@
 import type { Kysely } from "kysely";
 import { expect, test } from "vitest";
+import { nextGradeTargetIds } from "#grade-targets/gradeTargets.ts";
 import { buildTestId, createTestDb } from "#test/dbIntegration.ts";
 import { createProject } from "#test/projects.ts";
 import type { DB } from "./generated/db.ts";
@@ -127,27 +128,38 @@ async function createAssessmentConstraintFixture(
 		throw new Error("Expected student rows to be created.");
 	}
 
-	const insertedSubmissions = await db
-		.insertInto("submission")
+	const gradeTargetIds = await nextGradeTargetIds(db, {
+		projectRowId,
+		count: 2,
+	});
+	const [primaryTargetId, secondaryTargetId] = gradeTargetIds;
+	if (primaryTargetId == null || secondaryTargetId == null) {
+		throw new Error("Expected generated grade target ids.");
+	}
+
+	const insertedTargets = await db
+		.insertInto("gradeTarget")
 		.values([
 			{
 				projectId: projectRowId,
-				type: "individual",
-				studentId: studentA.rowId,
+				id: primaryTargetId,
+				kind: "individual",
+				studentRowId: studentA.rowId,
 			},
 			{
 				projectId: projectRowId,
-				type: "individual",
-				studentId: studentB.rowId,
+				id: secondaryTargetId,
+				kind: "individual",
+				studentRowId: studentB.rowId,
 			},
 		])
-		.returning("id")
+		.returning("rowId")
 		.execute();
 
-	const [primarySubmission, secondarySubmission] = insertedSubmissions;
+	const [primaryTarget, secondaryTarget] = insertedTargets;
 
-	if (primarySubmission == null || secondarySubmission == null) {
-		throw new Error("Expected submission rows to be created.");
+	if (primaryTarget == null || secondaryTarget == null) {
+		throw new Error("Expected grade target rows to be created.");
 	}
 
 	const insertedAssessments = await db
@@ -155,12 +167,12 @@ async function createAssessmentConstraintFixture(
 		.values([
 			{
 				projectId: projectRowId,
-				submissionId: primarySubmission.id,
+				gradeTargetRowId: primaryTarget.rowId,
 				rubricId: rubric.rowId,
 			},
 			{
 				projectId: projectRowId,
-				submissionId: secondarySubmission.id,
+				gradeTargetRowId: secondaryTarget.rowId,
 				rubricId: rubric.rowId,
 			},
 		])
@@ -454,11 +466,11 @@ test("numerical criterion assessments enforce score bounds and roll back failed 
 	]);
 });
 
-test("submission owner/type check rejects invalid rows and rolls back transactional writes", async () => {
+test("grade target owner/kind check rejects invalid rows and rolls back transactional writes", async () => {
 	await using db = await createTestDb();
 	await using project = await createProject(
 		db,
-		"Constraint Submission Project",
+		"Constraint Grade Target Project",
 	);
 
 	const studentId = buildTestId("student");
@@ -486,50 +498,67 @@ test("submission owner/type check rejects invalid rows and rolls back transactio
 		.returning("id")
 		.executeTakeFirstOrThrow();
 
+	const [firstTargetId, secondTargetId, thirdTargetId] =
+		await nextGradeTargetIds(db, { projectRowId: project.rowId, count: 3 });
+	if (
+		firstTargetId == null ||
+		secondTargetId == null ||
+		thirdTargetId == null
+	) {
+		throw new Error("Expected generated grade target ids.");
+	}
+
 	await db
-		.insertInto("submission")
+		.insertInto("gradeTarget")
 		.values({
 			projectId: project.rowId,
-			type: "individual",
-			studentId: student.rowId,
+			id: firstTargetId,
+			kind: "individual",
+			studentRowId: student.rowId,
 		})
 		.execute();
 
 	await expect(
 		db.transaction().execute(async (trx) => {
 			await trx
-				.insertInto("submission")
-				.values({ projectId: project.rowId, type: "group", groupId: group.id })
+				.insertInto("gradeTarget")
+				.values({
+					projectId: project.rowId,
+					id: secondTargetId,
+					kind: "group",
+					groupRowId: group.id,
+				})
 				.execute();
 
 			await trx
-				.insertInto("submission")
+				.insertInto("gradeTarget")
 				.values({
 					projectId: project.rowId,
-					type: "individual",
-					groupId: group.id,
+					id: thirdTargetId,
+					kind: "individual",
+					groupRowId: group.id,
 				})
 				.execute();
 		}),
-	).rejects.toThrow("submission_type_participant_check");
+	).rejects.toThrow("grade_target_kind_participant_check");
 
 	const persisted = await db
-		.selectFrom("submission")
-		.select(["id", "type", "studentId", "groupId"])
+		.selectFrom("gradeTarget")
+		.select(["id", "kind", "studentRowId", "groupRowId"])
 		.where("projectId", "=", project.rowId)
 		.execute();
 
 	expect(persisted).toHaveLength(1);
 
-	const onlySubmission = persisted[0];
+	const onlyTarget = persisted[0];
 
-	if (onlySubmission == null) {
-		throw new Error("Expected one persisted submission after rollback.");
+	if (onlyTarget == null) {
+		throw new Error("Expected one persisted grade target after rollback.");
 	}
 
-	expect(onlySubmission.type).toBe("individual");
-	expect(onlySubmission.studentId).toBe(student.rowId);
-	expect(onlySubmission.groupId).toBeNull();
+	expect(onlyTarget.kind).toBe("individual");
+	expect(onlyTarget.studentRowId).toBe(student.rowId);
+	expect(onlyTarget.groupRowId).toBeNull();
 });
 
 test("criterion subtype triggers reject mismatched subtype rows and roll back transactional writes", async () => {

@@ -1,6 +1,7 @@
 import type { Kysely } from "kysely";
 import type { DB } from "#db/generated/db.ts";
 import type { Simplify, Writable } from "#utils/utils.ts";
+import { buildTestId } from "./dbIntegration.ts";
 import { createProjectRecord } from "./projects.ts";
 
 function mustGet<TKey, TValue>(map: Map<TKey, TValue>, key: TKey): TValue {
@@ -186,13 +187,13 @@ export async function createStudentFixtures<
 	})) as StudentFixtureTuple<TFixtures>;
 }
 
-type SubmissionFixtureTuple<
+type GradeTargetFixtureTuple<
 	TFixtures extends readonly { studentRowId: number }[],
-> = FixtureTuple<{ id: number }, TFixtures, "studentRowId">;
+> = FixtureTuple<{ rowId: number }, TFixtures, "studentRowId">;
 
-// Inserts one or more individual submissions in a single request, one per
+// Inserts one or more individual grade targets in a single request, one per
 // given student.
-export async function createIndividualSubmissionFixtures<
+export async function createIndividualGradeTargetFixtures<
 	const TFixtures extends readonly {
 		projectRowId: number;
 		studentRowId: number;
@@ -200,25 +201,28 @@ export async function createIndividualSubmissionFixtures<
 >(
 	db: Kysely<DB>,
 	fixtures: TFixtures,
-): Promise<SubmissionFixtureTuple<TFixtures>> {
+): Promise<GradeTargetFixtureTuple<TFixtures>> {
 	const rows = await db
-		.insertInto("submission")
+		.insertInto("gradeTarget")
 		.values(
 			fixtures.map(({ projectRowId, studentRowId }) => ({
 				projectId: projectRowId,
-				type: "individual" as const,
-				studentId: studentRowId,
+				id: buildTestId("target"),
+				kind: "individual" as const,
+				studentRowId,
 			})),
 		)
-		.returning(["id", "studentId"])
+		.returning(["rowId", "studentRowId"])
 		.execute();
 
-	const idByStudentRowId = new Map(rows.map((row) => [row.studentId, row.id]));
+	const rowIdByStudentRowId = new Map(
+		rows.map((row) => [row.studentRowId, row.rowId]),
+	);
 	// biome-ignore lint/plugin/no-type-assertion: `.map()` preserves array length.
 	return fixtures.map(({ studentRowId }) => ({
 		studentRowId,
-		id: mustGet(idByStudentRowId, studentRowId),
-	})) as SubmissionFixtureTuple<TFixtures>;
+		rowId: mustGet(rowIdByStudentRowId, studentRowId),
+	})) as GradeTargetFixtureTuple<TFixtures>;
 }
 
 // Inserts one assessment with all three criterion types filled in: boolean
@@ -227,7 +231,7 @@ export async function addFullAssessmentFixture(
 	db: Kysely<DB>,
 	params: {
 		projectRowId: number;
-		submissionId: number;
+		gradeTargetRowId: number;
 		rubricRowId: number;
 		checkCriterionRowId: number;
 		optionsCriterionRowId: number;
@@ -238,7 +242,7 @@ export async function addFullAssessmentFixture(
 		.insertInto("assessment")
 		.values({
 			projectId: params.projectRowId,
-			submissionId: params.submissionId,
+			gradeTargetRowId: params.gradeTargetRowId,
 			rubricId: params.rubricRowId,
 		})
 		.returning("id")

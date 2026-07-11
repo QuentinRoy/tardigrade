@@ -14,7 +14,7 @@ type LogScope =
 	| "projects"
 	| "rubrics"
 	| "criteria"
-	| "submissions";
+	| "grade-targets";
 
 const rootLogger = pino();
 

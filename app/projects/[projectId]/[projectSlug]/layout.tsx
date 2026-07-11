@@ -18,7 +18,11 @@ export default async function ProjectScopedLayout({
 	if (project == null) notFound();
 	return (
 		<AppShell showNavigation projectName={project.name}>
-			<CosmeticSlugReplacement id={project.id} slug={project.slug} />
+			<CosmeticSlugReplacement
+				idIndex={2}
+				id={project.id}
+				slug={project.slug}
+			/>
 			{children}
 		</AppShell>
 	);

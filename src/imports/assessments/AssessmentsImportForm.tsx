@@ -35,21 +35,20 @@ export default function AssessmentsImportForm({
 				<Stack gap="sm">
 					<Text fw={600}>Assessments CSV</Text>
 					<Text size="sm" c="dimmed">
-						Required columns: <code>submission_type</code>,{" "}
-						<code>submitter</code>.
+						Required columns: <code>kind</code>, <code>name</code>.
 					</Text>
 					<Text size="sm" c="dimmed">
 						Assessment columns use the format <code>rubricId:criterionId</code>.
 						For export/import round-trip, the exported CSV must include these
 						assessment columns; marks-only columns are not importable assessment
-						values. Values depend on criterion type: boolean uses{" "}
-						<code>true</code>/<code>false</code>, ordinal uses a label value,
-						and numerical uses a numeric score.
+						values. Values depend on criterion kind: check uses{" "}
+						<code>true</code>/<code>false</code>, options uses a label value,
+						and number uses a numeric value.
 					</Text>
 					<Text size="sm" c="dimmed">
-						Empty assessment cells are ignored. Missing submissions are silently
-						skipped. Columns for rubric totals, marks, and grand total marks are
-						ignored.
+						Empty assessment cells are ignored. Rows for a student or group not
+						found in this grid block the whole import. Columns for rubric
+						totals, marks, and the final total are ignored.
 					</Text>
 					<Code block>{ASSESSMENTS_CSV_PLACEHOLDER}</Code>
 				</Stack>

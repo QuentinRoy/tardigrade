@@ -5,7 +5,7 @@ import PageHeader from "./PageHeader.tsx";
 const meta = {
 	title: "Shared/PageHeader",
 	component: PageHeader,
-	args: { title: "Submission 12" },
+	args: { title: "Alice Smith" },
 } satisfies Meta<typeof PageHeader>;
 
 export default meta;
@@ -17,10 +17,10 @@ export const Default: Story = {};
 export const WithBreadcrumbs: Story = {
 	args: {
 		breadcrumbs: [
-			<AppLink key="assessments" href="#">
-				Assessments
+			<AppLink key="grades" href="#">
+				Grades
 			</AppLink>,
-			"Submission 12",
+			"Alice Smith",
 		],
 	},
 };

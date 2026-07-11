@@ -1,17 +1,17 @@
 import "server-only";
 import type { Kysely } from "kysely";
 import type { DB } from "#db/generated/db.ts";
-import type { NormalizedImportedSubmission } from "#imports/types.ts";
+import type { NormalizedImportedGradeTarget } from "#imports/types.ts";
 import type { StudentImportContext } from "./prepareStudentImport.ts";
 
 // `db` may be the global client or a caller-supplied transaction. Fetches
-// everything prepareStudentImport() needs, driven by the parsed submissions.
+// everything prepareStudentImport() needs, driven by the parsed grade targets.
 export async function loadStudentImportContextFromDb(
 	db: Kysely<DB>,
 	{
-		submissions,
+		targets,
 		projectId,
-	}: { submissions: NormalizedImportedSubmission[]; projectId: string },
+	}: { targets: NormalizedImportedGradeTarget[]; projectId: string },
 ): Promise<StudentImportContext> {
 	const project = await db
 		.selectFrom("project")
@@ -20,21 +20,19 @@ export async function loadStudentImportContextFromDb(
 		.executeTakeFirstOrThrow();
 	const projectRowId = project.rowId;
 
-	const studentIds = submissions.flatMap((submission) =>
-		submission.students.map((student) => student.id),
+	const studentIds = targets.flatMap((target) =>
+		target.students.map((student) => student.id),
 	);
 
 	const groupNames = Array.from(
 		new Set(
-			submissions.flatMap((submission) =>
-				submission.type === "group" && submission.group != null
-					? [submission.group]
-					: [],
+			targets.flatMap((target) =>
+				target.kind === "group" && target.group != null ? [target.group] : [],
 			),
 		),
 	);
 
-	const [studentRows, individualSubmissionRows, groupRows] = await Promise.all([
+	const [studentRows, individualTargetRows, groupRows] = await Promise.all([
 		studentIds.length === 0
 			? []
 			: db
@@ -57,9 +55,9 @@ export async function loadStudentImportContextFromDb(
 		studentIds.length === 0
 			? []
 			: db
-					.selectFrom("submission")
-					.innerJoin("student", "student.rowId", "submission.studentId")
-					.where("submission.type", "=", "individual")
+					.selectFrom("gradeTarget")
+					.innerJoin("student", "student.rowId", "gradeTarget.studentRowId")
+					.where("gradeTarget.kind", "=", "individual")
 					.where("student.projectId", "=", projectRowId)
 					.where("student.id", "in", studentIds)
 					.select("student.id as studentId")
@@ -68,7 +66,7 @@ export async function loadStudentImportContextFromDb(
 			? []
 			: db
 					.selectFrom("group")
-					.innerJoin("submission", "submission.groupId", "group.id")
+					.innerJoin("gradeTarget", "gradeTarget.groupRowId", "group.id")
 					.where("group.projectId", "=", projectRowId)
 					.where("group.name", "in", groupNames)
 					.select("group.name as name")
@@ -87,15 +85,15 @@ export async function loadStudentImportContextFromDb(
 			]),
 		);
 
-	const existingIndividualSubmissionStudentIds: StudentImportContext["existingIndividualSubmissionStudentIds"] =
-		new Set(individualSubmissionRows.map((row) => row.studentId));
+	const existingIndividualGradeTargetStudentIds: StudentImportContext["existingIndividualGradeTargetStudentIds"] =
+		new Set(individualTargetRows.map((row) => row.studentId));
 
-	const existingGroupSubmissionGroupNames: StudentImportContext["existingGroupSubmissionGroupNames"] =
+	const existingGroupGradeTargetGroupNames: StudentImportContext["existingGroupGradeTargetGroupNames"] =
 		new Set(groupRows.map((row) => row.name));
 
 	return {
 		existingStudentsById,
-		existingIndividualSubmissionStudentIds,
-		existingGroupSubmissionGroupNames,
+		existingIndividualGradeTargetStudentIds,
+		existingGroupGradeTargetGroupNames,
 	};
 }

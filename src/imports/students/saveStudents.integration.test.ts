@@ -1,6 +1,6 @@
 import { revalidateTag } from "next/cache";
 import { beforeEach, expect, test, vi } from "vitest";
-import type { NormalizedImportedSubmission } from "#imports/types.ts";
+import type { NormalizedImportedGradeTarget } from "#imports/types.ts";
 import { runForcedInterleaving } from "#test/concurrency.ts";
 import { createTestDb } from "#test/dbIntegration.ts";
 import { createProject } from "#test/projects.ts";
@@ -14,21 +14,21 @@ beforeEach(() => {
 	vi.clearAllMocks();
 });
 
-function makeSubmissions(
+function makeTargets(
 	sharedStudentId: string,
 	sharedGroupName: string,
-): NormalizedImportedSubmission[] {
+): NormalizedImportedGradeTarget[] {
 	return [
 		{
-			id: `submission-${sharedStudentId}`,
-			type: "individual",
+			id: `target-${sharedStudentId}`,
+			kind: "individual",
 			students: [
 				{ id: sharedStudentId, lastName: "Shared", firstName: "Student" },
 			],
 		},
 		{
-			id: `submission-${sharedGroupName}`,
-			type: "group",
+			id: `target-${sharedGroupName}`,
+			kind: "group",
 			group: sharedGroupName,
 			students: [
 				{
@@ -51,14 +51,14 @@ test("saveStudents keeps imported student ids and group names isolated per proje
 
 	const resultA = await saveStudents(
 		{
-			submissions: makeSubmissions(sharedStudentId, sharedGroupName),
+			targets: makeTargets(sharedStudentId, sharedGroupName),
 			projectId: projectA.id,
 		},
 		{ db },
 	);
 	const resultB = await saveStudents(
 		{
-			submissions: makeSubmissions(sharedStudentId, sharedGroupName),
+			targets: makeTargets(sharedStudentId, sharedGroupName),
 			projectId: projectB.id,
 		},
 		{ db },
@@ -67,14 +67,14 @@ test("saveStudents keeps imported student ids and group names isolated per proje
 	expect(resultA).toEqual({
 		createdStudentCount: 2,
 		updatedStudentCount: 0,
-		createdSubmissionCount: 2,
-		updatedSubmissionCount: 0,
+		createdGradeTargetCount: 2,
+		updatedGradeTargetCount: 0,
 	});
 	expect(resultB).toEqual({
 		createdStudentCount: 2,
 		updatedStudentCount: 0,
-		createdSubmissionCount: 2,
-		updatedSubmissionCount: 0,
+		createdGradeTargetCount: 2,
+		updatedGradeTargetCount: 0,
 	});
 
 	const studentRows = await db
@@ -109,50 +109,47 @@ test("saveStudents keeps imported student ids and group names isolated per proje
 	expect(groupRows).toHaveLength(2);
 	expect(new Set(groupRows.map((row) => row.projectId)).size).toBe(2);
 
-	const individualSubmissions = await db
-		.selectFrom("submission")
-		.innerJoin("student", "student.rowId", "submission.studentId")
+	const individualTargets = await db
+		.selectFrom("gradeTarget")
+		.innerJoin("student", "student.rowId", "gradeTarget.studentRowId")
 		.select([
-			"submission.id as submissionId",
-			"submission.projectId as projectId",
+			"gradeTarget.id as targetId",
+			"gradeTarget.projectId as projectId",
 			"student.id as studentId",
 			"student.rowId as studentRowId",
 		])
-		.where("submission.type", "=", "individual")
-		.orderBy("submission.projectId", "asc")
+		.where("gradeTarget.kind", "=", "individual")
+		.orderBy("gradeTarget.projectId", "asc")
 		.execute();
 
-	expect(individualSubmissions).toHaveLength(2);
-	expect(individualSubmissions.map((row) => row.studentId)).toEqual([
+	expect(individualTargets).toHaveLength(2);
+	expect(individualTargets.map((row) => row.studentId)).toEqual([
 		sharedStudentId,
 		sharedStudentId,
 	]);
-	expect(
-		new Set(individualSubmissions.map((row) => row.studentRowId)).size,
-	).toBe(2);
+	expect(new Set(individualTargets.map((row) => row.studentRowId)).size).toBe(
+		2,
+	);
 });
 
-test("saveStudents classifies re-imported students and submissions as updated", async () => {
+test("saveStudents classifies re-imported students and grade targets as updated", async () => {
 	await using db = await createTestDb();
 	await using project = await createProject(db, "Re-import Project");
 
-	const submissions = makeSubmissions("returning-student", "Returning Group");
+	const targets = makeTargets("returning-student", "Returning Group");
 
-	await saveStudents({ submissions, projectId: project.id }, { db });
-	const result = await saveStudents(
-		{ submissions, projectId: project.id },
-		{ db },
-	);
+	await saveStudents({ targets, projectId: project.id }, { db });
+	const result = await saveStudents({ targets, projectId: project.id }, { db });
 
 	expect(result).toEqual({
 		createdStudentCount: 0,
 		updatedStudentCount: 2,
-		createdSubmissionCount: 0,
-		updatedSubmissionCount: 2,
+		createdGradeTargetCount: 0,
+		updatedGradeTargetCount: 2,
 	});
 });
 
-test("saveStudents wrapper invalidates submission and assessment tags after the import commits", async () => {
+test("saveStudents wrapper invalidates grade-target and assessment tags after the import commits", async () => {
 	await using db = await createTestDb();
 	await using project = await createProject(
 		db,
@@ -161,14 +158,14 @@ test("saveStudents wrapper invalidates submission and assessment tags after the 
 
 	await saveStudents(
 		{
-			submissions: makeSubmissions("student-cache", "Group Cache"),
+			targets: makeTargets("student-cache", "Group Cache"),
 			projectId: project.id,
 		},
 		{ db },
 	);
 
 	expect(vi.mocked(revalidateTag).mock.calls).toEqual([
-		["submissions", "max"],
+		["grade-targets", "max"],
 		["assessments", "max"],
 		["assessments:all", "max"],
 	]);
@@ -189,11 +186,11 @@ test("saveStudentImportPlanInDb keeps a single group membership when two imports
 
 	const sharedStudentId = "shared-student";
 
-	function makeMoveToGroup(groupName: string): NormalizedImportedSubmission[] {
+	function makeMoveToGroup(groupName: string): NormalizedImportedGradeTarget[] {
 		return [
 			{
-				id: `submission-${groupName}`,
-				type: "group",
+				id: `target-${groupName}`,
+				kind: "group",
 				group: groupName,
 				students: [
 					{ id: sharedStudentId, lastName: "Shared", firstName: "Student" },
@@ -202,26 +199,26 @@ test("saveStudentImportPlanInDb keeps a single group membership when two imports
 		];
 	}
 
-	const submissionsToGroupB = makeMoveToGroup("Group B");
-	const submissionsToGroupC = makeMoveToGroup("Group C");
+	const targetsToGroupB = makeMoveToGroup("Group B");
+	const targetsToGroupC = makeMoveToGroup("Group C");
 
 	const [contextB, contextC] = await Promise.all([
 		loadStudentImportContextFromDb(db, {
-			submissions: submissionsToGroupB,
+			targets: targetsToGroupB,
 			projectId: project.id,
 		}),
 		loadStudentImportContextFromDb(db, {
-			submissions: submissionsToGroupC,
+			targets: targetsToGroupC,
 			projectId: project.id,
 		}),
 	]);
 
 	const planB = prepareStudentImport({
-		submissions: submissionsToGroupB,
+		targets: targetsToGroupB,
 		context: contextB,
 	});
 	const planC = prepareStudentImport({
-		submissions: submissionsToGroupC,
+		targets: targetsToGroupC,
 		context: contextC,
 	});
 

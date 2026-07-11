@@ -1,16 +1,16 @@
 import Fuse, { type FuseResultMatch } from "fuse.js";
-import { getSubmissionLabel } from "#submissions/getSubmissionLabel.ts";
-import type { Submission } from "#submissions/types.ts";
+import { getGradeTargetLabel } from "#grade-targets/getGradeTargetLabel.ts";
+import type { GradeTarget } from "#grade-targets/types.ts";
 
-export type SubmissionSearchTarget = {
-	submissionId: string;
+export type GradeTargetSearchTarget = {
+	targetId: string;
 	displayLabel: string;
 	memberNames: string[];
 	progress: { completed: number; total: number };
 	isCompleted: boolean;
 };
 
-export type SubmissionSearchResult = SubmissionSearchTarget & {
+export type GradeTargetSearchResult = GradeTargetSearchTarget & {
 	combinedScore: number;
 	matchReason: string;
 };
@@ -26,7 +26,7 @@ function normalizeForCompare(value: string): string {
 }
 
 function getBusinessBoost(
-	target: SubmissionSearchTarget,
+	target: GradeTargetSearchTarget,
 	query: string,
 ): number {
 	const normalizedQuery = normalizeForCompare(query);
@@ -56,7 +56,7 @@ function getBusinessBoost(
 }
 
 function getMatchReason(
-	target: SubmissionSearchTarget,
+	target: GradeTargetSearchTarget,
 	query: string,
 	matches: readonly FuseResultMatch[] | undefined,
 ): string {
@@ -113,34 +113,31 @@ function getMatchReason(
 	return "";
 }
 
-export function buildSubmissionSearchTargets(
-	submissions: Submission[],
-	progressBySubmissionId: Record<
-		string,
-		{ completed: number; total: number }
-	> = {},
-): SubmissionSearchTarget[] {
-	return submissions.map((submission) => {
-		const progress = progressBySubmissionId[submission.id] ?? {
+export function buildGradeTargetSearchTargets(
+	targets: GradeTarget[],
+	progressByTargetId: Record<string, { completed: number; total: number }> = {},
+): GradeTargetSearchTarget[] {
+	return targets.map((target) => {
+		const progress = progressByTargetId[target.id] ?? {
 			completed: 0,
 			total: 0,
 		};
 
 		return {
-			submissionId: submission.id,
-			displayLabel: getSubmissionLabel(submission),
-			memberNames: submission.memberNames ?? [],
+			targetId: target.id,
+			displayLabel: getGradeTargetLabel(target),
+			memberNames: target.memberNames ?? [],
 			progress,
 			isCompleted: progress.total > 0 && progress.completed >= progress.total,
 		};
 	});
 }
 
-export function createSubmissionSearch(
-	targets: SubmissionSearchTarget[],
-): (query: string) => SubmissionSearchResult[] {
-	const orderBySubmissionId = new Map(
-		targets.map((target, index) => [target.submissionId, index]),
+export function createGradeTargetSearch(
+	targets: GradeTargetSearchTarget[],
+): (query: string) => GradeTargetSearchResult[] {
+	const orderByTargetId = new Map(
+		targets.map((target, index) => [target.targetId, index]),
 	);
 
 	const fuse = new Fuse(targets, {
@@ -179,9 +176,8 @@ export function createSubmissionSearch(
 			.sort(
 				(a, b) =>
 					b.combinedScore - a.combinedScore ||
-					(orderBySubmissionId.get(a.submissionId) ?? Number.MAX_SAFE_INTEGER) -
-						(orderBySubmissionId.get(b.submissionId) ??
-							Number.MAX_SAFE_INTEGER),
+					(orderByTargetId.get(a.targetId) ?? Number.MAX_SAFE_INTEGER) -
+						(orderByTargetId.get(b.targetId) ?? Number.MAX_SAFE_INTEGER),
 			);
 	};
 }

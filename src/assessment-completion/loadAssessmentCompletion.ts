@@ -6,8 +6,8 @@ import {
 	assessmentImportCacheTag,
 	assessmentProgressForRubricCacheTag,
 	cacheTags,
+	gradeTargetListCacheTag,
 	rubricListCacheTag,
-	submissionListCacheTag,
 } from "#db/cacheTags.ts";
 import type { DB } from "#db/generated/db.ts";
 import { db as defaultDb } from "#db/kysely.ts";
@@ -22,11 +22,11 @@ import type { AssessmentCompletionSummary } from "./types.ts";
 // `assessments:rubric:Q` (and the coarse aggregate), so progress for Q
 // refreshes without busting other rubrics; the import tag covers bulk imports,
 // and the list tags cover roster and definition changes.
-export function assessedCriterionCountsBySubmissionCacheTags(
+export function assessedCriterionCountsByTargetCacheTags(
 	rubricId: string,
 ): string[] {
 	return [
-		submissionListCacheTag(),
+		gradeTargetListCacheTag(),
 		rubricListCacheTag(),
 		assessmentProgressForRubricCacheTag(rubricId),
 		assessmentImportCacheTag(),
@@ -35,7 +35,7 @@ export function assessedCriterionCountsBySubmissionCacheTags(
 
 export function assessmentCompletionRowsCacheTags(): string[] {
 	return [
-		submissionListCacheTag(),
+		gradeTargetListCacheTag(),
 		rubricListCacheTag(),
 		assessmentAggregateCacheTag(),
 	];
@@ -52,10 +52,10 @@ export async function loadAssessmentCompletionRowsFromDb(
 		.select("rowId")
 		.where("id", "=", projectId);
 
-	const [submissions, rubrics, assessmentCounts] = await Promise.all([
+	const [targets, rubrics, assessmentCounts] = await Promise.all([
 		db
-			.selectFrom("submission")
-			.where("submission.projectId", "in", projectRowIdQuery)
+			.selectFrom("gradeTarget")
+			.where("gradeTarget.projectId", "in", projectRowIdQuery)
 			.select("id")
 			.execute(),
 		db
@@ -77,41 +77,45 @@ export async function loadAssessmentCompletionRowsFromDb(
 				"criterionAssessment.assessmentId",
 				"assessment.id",
 			)
+			.innerJoin(
+				"gradeTarget",
+				"gradeTarget.rowId",
+				"assessment.gradeTargetRowId",
+			)
 			.select((eb) => [
-				"assessment.submissionId as submissionId",
+				"gradeTarget.id as targetId",
 				"rubric.id as rubricId",
 				eb.fn.count<number>("criterionAssessment.id").as("assessmentCount"),
 			])
-			.groupBy(["assessment.submissionId", "rubric.id"])
+			.groupBy(["gradeTarget.id", "rubric.id"])
 			.execute(),
 	]);
 
 	return {
-		submissionIds: submissions.map((submission) => String(submission.id)),
+		targetIds: targets.map((target) => target.id),
 		rubrics: rubrics.map((rubric) => ({
 			id: rubric.id,
 			criterionCount: Number(rubric.criterionCount),
 		})),
 		assessmentCounts: assessmentCounts.map((row) => ({
-			submissionId: String(row.submissionId),
+			targetId: row.targetId,
 			rubricId: row.rubricId,
 			assessmentCount: Number(row.assessmentCount),
 		})),
 	};
 }
 
-// Pure builder: per-submission completed/total counts from shared completion rows.
-function buildCompletionBySubmission(
+// Pure builder: per-target completed/total counts from shared completion rows.
+function buildCompletionByTarget(
 	rows: AssessmentCompletionInput,
 ): Record<string, CompletionMetric> {
 	const completion = buildAssessmentCompletion(rows);
 
 	return Object.fromEntries(
-		rows.submissionIds.map((submissionId) => [
-			submissionId,
+		rows.targetIds.map((targetId) => [
+			targetId,
 			{
-				completed:
-					completion.completedRubricCountBySubmissionId.get(submissionId) ?? 0,
+				completed: completion.completedRubricCountByTargetId.get(targetId) ?? 0,
 				total: completion.totalRubrics,
 			},
 		]),
@@ -119,16 +123,16 @@ function buildCompletionBySubmission(
 }
 
 // `db` may be the global client or a caller-supplied transaction.
-export async function loadAssessmentCompletionBySubmissionFromDb(
+export async function loadAssessmentCompletionByTargetFromDb(
 	db: Kysely<DB>,
 	{ projectId }: { projectId: string },
 ): Promise<Record<string, CompletionMetric>> {
 	const rows = await loadAssessmentCompletionRowsFromDb(db, { projectId });
-	return buildCompletionBySubmission(rows);
+	return buildCompletionByTarget(rows);
 }
 
 // Canonical cached source for project-wide completion rows (Finding 8). Shared by
-// `loadAssessmentCompletionBySubmission` and `loadAssessmentCompletionSummary`, so
+// `loadAssessmentCompletionByTarget` and `loadAssessmentCompletionSummary`, so
 // both projections compose one cache entry instead of each querying
 // independently.
 //
@@ -151,24 +155,24 @@ export async function loadAssessmentCompletionRows(
 // rule 5). `options` is forwarded unchanged (ADR 0007 rule 14): never resolve a
 // default here before forwarding, so an omitted `db` stays `undefined` and the
 // call shares that wrapper's own no-argument cache entry.
-export async function loadAssessmentCompletionBySubmission(
+export async function loadAssessmentCompletionByTarget(
 	{ projectId }: { projectId: string },
 	options?: { db?: Kysely<DB> },
 ): Promise<Record<string, CompletionMetric>> {
 	const rows = await loadAssessmentCompletionRows({ projectId }, options);
-	return buildCompletionBySubmission(rows);
+	return buildCompletionByTarget(rows);
 }
 
 export type AssessedCriterionCounts = {
 	totalCriteria: number;
-	completedBySubmissionId: Map<string, number>;
+	completedByTargetId: Map<string, number>;
 };
 
 // `db` may be the global client or a caller-supplied transaction. Counts only —
-// does not load submission ids, so a caller that already has the project's
-// submissions (for example a page that also renders the roster) can build the
-// per-submission result from `buildAssessedCriterionCountsBySubmission` below
-// instead of querying submissions twice (Finding 7).
+// does not load grade target ids, so a caller that already has the project's
+// grade targets (for example a page that also renders the roster) can build the
+// per-target result from `buildAssessedCriterionCountsByTarget` below
+// instead of querying grade targets twice (Finding 7).
 export async function loadAssessedCriterionCountsFromDb(
 	db: Kysely<DB>,
 	{ rubricId, projectId }: { rubricId: string; projectId: string },
@@ -195,22 +199,24 @@ export async function loadAssessedCriterionCountsFromDb(
 				"criterionAssessment.assessmentId",
 				"assessment.id",
 			)
+			.innerJoin(
+				"gradeTarget",
+				"gradeTarget.rowId",
+				"assessment.gradeTargetRowId",
+			)
 			.where("rubric.id", "=", rubricId)
 			.select((eb) => [
-				"assessment.submissionId as submissionId",
+				"gradeTarget.id as targetId",
 				eb.fn.count<number>("criterionAssessment.id").as("completed"),
 			])
-			.groupBy("assessment.submissionId")
+			.groupBy("gradeTarget.id")
 			.execute(),
 	]);
 
 	return {
 		totalCriteria: Number(criterionCountRow.count),
-		completedBySubmissionId: new Map(
-			assessmentCounts.map((row) => [
-				String(row.submissionId),
-				Number(row.completed),
-			]),
+		completedByTargetId: new Map(
+			assessmentCounts.map((row) => [row.targetId, Number(row.completed)]),
 		),
 	};
 }
@@ -224,26 +230,26 @@ export async function loadAssessedCriterionCounts(
 	return loadAssessedCriterionCountsFromDb(db, { rubricId, projectId });
 }
 
-// Pure builder: per-submission completed/total criterion counts for one rubric,
-// from already-loaded submission ids plus the counts above.
-export function buildAssessedCriterionCountsBySubmission(
-	submissionIds: string[],
-	{ totalCriteria, completedBySubmissionId }: AssessedCriterionCounts,
+// Pure builder: per-target completed/total criterion counts for one rubric,
+// from already-loaded grade target ids plus the counts above.
+export function buildAssessedCriterionCountsByTarget(
+	targetIds: string[],
+	{ totalCriteria, completedByTargetId }: AssessedCriterionCounts,
 ): Record<string, CompletionMetric> {
 	return Object.fromEntries(
-		submissionIds.map((submissionId) => {
+		targetIds.map((targetId) => {
 			const completed = Math.min(
-				completedBySubmissionId.get(submissionId) ?? 0,
+				completedByTargetId.get(targetId) ?? 0,
 				totalCriteria,
 			);
 
-			return [submissionId, { completed, total: totalCriteria }];
+			return [targetId, { completed, total: totalCriteria }];
 		}),
 	);
 }
 
 // `db` may be the global client or a caller-supplied transaction.
-export async function loadAssessedCriterionCountsBySubmissionFromDb(
+export async function loadAssessedCriterionCountsByTargetFromDb(
 	db: Kysely<DB>,
 	{ rubricId, projectId }: { rubricId: string; projectId: string },
 ): Promise<Record<string, CompletionMetric>> {
@@ -252,33 +258,30 @@ export async function loadAssessedCriterionCountsBySubmissionFromDb(
 		.select("rowId")
 		.where("id", "=", projectId);
 
-	const [submissions, counts] = await Promise.all([
+	const [targets, counts] = await Promise.all([
 		db
-			.selectFrom("submission")
-			.where("submission.projectId", "in", projectRowIdQuery)
+			.selectFrom("gradeTarget")
+			.where("gradeTarget.projectId", "in", projectRowIdQuery)
 			.select("id")
 			.execute(),
 		loadAssessedCriterionCountsFromDb(db, { rubricId, projectId }),
 	]);
 
-	return buildAssessedCriterionCountsBySubmission(
-		submissions.map((submission) => String(submission.id)),
+	return buildAssessedCriterionCountsByTarget(
+		targets.map((target) => target.id),
 		counts,
 	);
 }
 
-export async function loadAssessedCriterionCountsBySubmission(
+export async function loadAssessedCriterionCountsByTarget(
 	{ rubricId, projectId }: { rubricId: string; projectId: string },
 	{ db = defaultDb }: { db?: Kysely<DB> } = {},
 ): Promise<Record<string, CompletionMetric>> {
 	"use cache";
-	cacheTags(...assessedCriterionCountsBySubmissionCacheTags(rubricId));
+	cacheTags(...assessedCriterionCountsByTargetCacheTags(rubricId));
 	cacheLife("projection");
 
-	return loadAssessedCriterionCountsBySubmissionFromDb(db, {
-		rubricId,
-		projectId,
-	});
+	return loadAssessedCriterionCountsByTargetFromDb(db, { rubricId, projectId });
 }
 
 // `db` may be the global client or a caller-supplied transaction.
@@ -337,12 +340,12 @@ function buildCompletionSummary(
 		0,
 	);
 	const totalExpectedCriterionAssessments =
-		completion.totalSubmissions * totalCriteriaInProject;
+		completion.totalGradeTargets * totalCriteriaInProject;
 
 	return {
-		submissions: {
-			completed: completion.completedSubmissions,
-			total: completion.totalSubmissions,
+		gradeTargets: {
+			completed: completion.completedGradeTargets,
+			total: completion.totalGradeTargets,
 		},
 		rubrics: {
 			completed: completion.completedRubrics,

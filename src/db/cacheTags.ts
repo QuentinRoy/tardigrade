@@ -17,8 +17,8 @@ export function rubricListCacheTag(): string {
 	return "rubrics";
 }
 
-export function submissionListCacheTag(): string {
-	return "submissions";
+export function gradeTargetListCacheTag(): string {
+	return "grade-targets";
 }
 
 // A single project's data, keyed by its public Project ID.
@@ -38,23 +38,23 @@ export function assessmentImportCacheTag(): string {
 	return "assessments:all";
 }
 
-// One submission's assessments across all rubrics.
-export function assessmentForSubmissionCacheTag(submissionId: string): string {
-	return `assessments:${submissionId}`;
+// One grade target's assessments across all rubrics.
+export function assessmentForGradeTargetCacheTag(targetId: string): string {
+	return `assessments:${targetId}`;
 }
 
-// One exact submission/rubric assessment pair.
-export function assessmentForSubmissionRubricCacheTag({
-	submissionId,
+// One exact grade-target/rubric assessment pair.
+export function assessmentForGradeTargetRubricCacheTag({
+	targetId,
 	rubricId,
 }: {
-	submissionId: string;
+	targetId: string;
 	rubricId: string;
 }): string {
-	return `assessments:${submissionId}:${rubricId}`;
+	return `assessments:${targetId}:${rubricId}`;
 }
 
-// One rubric's assessment progress across submissions.
+// One rubric's assessment progress across grade targets.
 export function assessmentProgressForRubricCacheTag(rubricId: string): string {
 	return `assessments:rubric:${rubricId}`;
 }

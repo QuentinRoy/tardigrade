@@ -2,6 +2,7 @@ import type { Kysely } from "kysely";
 import { revalidateTag } from "next/cache";
 import { beforeEach, expect, test, vi } from "vitest";
 import type { DB } from "#db/generated/db.ts";
+import { nextGradeTargetIds } from "#grade-targets/gradeTargets.ts";
 import type { ImportedAssessmentRow } from "#imports/types.ts";
 import { buildTestId, createTestDb } from "#test/dbIntegration.ts";
 import { createProject } from "#test/projects.ts";
@@ -19,7 +20,6 @@ async function createAssessmentFixture(
 ): Promise<{
 	rubricId: string;
 	studentId: string;
-	submissionId: string;
 	criterionId: string;
 	numberCriterionId: string;
 }> {
@@ -45,11 +45,21 @@ async function createAssessmentFixture(
 		.where("id", "=", studentId)
 		.executeTakeFirstOrThrow();
 
-	const submission = await db
-		.insertInto("submission")
-		.values({ projectId, type: "individual", studentId: studentRow.rowId })
-		.returning("id")
-		.executeTakeFirstOrThrow();
+	const [targetId] = await nextGradeTargetIds(db, {
+		projectRowId: projectId,
+		count: 1,
+	});
+	if (targetId == null) throw new Error("Expected a generated id");
+
+	await db
+		.insertInto("gradeTarget")
+		.values({
+			projectId,
+			id: targetId,
+			kind: "individual",
+			studentRowId: studentRow.rowId,
+		})
+		.execute();
 
 	await db
 		.insertInto("rubric")
@@ -111,13 +121,7 @@ async function createAssessmentFixture(
 		})
 		.execute();
 
-	return {
-		rubricId,
-		studentId,
-		submissionId: String(submission.id),
-		criterionId,
-		numberCriterionId,
-	};
+	return { rubricId, studentId, criterionId, numberCriterionId };
 }
 
 test("saveAssessments does not persist valid rows when a later row fails validation", async () => {
@@ -128,13 +132,13 @@ test("saveAssessments does not persist valid rows when a later row fails validat
 
 	const rows: ImportedAssessmentRow[] = [
 		{
-			submission_type: "individual",
-			submitter: fixture.studentId,
+			kind: "individual",
+			name: fixture.studentId,
 			[`${fixture.rubricId}:${fixture.criterionId}`]: "true",
 		},
 		{
-			submission_type: "individual",
-			submitter: fixture.studentId,
+			kind: "individual",
+			name: fixture.studentId,
 			[`${fixture.rubricId}:${fixture.criterionId}`]: "not-a-boolean",
 		},
 	];
@@ -160,8 +164,8 @@ test("saveAssessments rejects unknown columns before writing any assessment", as
 
 	const rows: ImportedAssessmentRow[] = [
 		{
-			submission_type: "individual",
-			submitter: fixture.studentId,
+			kind: "individual",
+			name: fixture.studentId,
 			unknown_column: "oops",
 			[`${fixture.rubricId}:${fixture.criterionId}`]: "true",
 		},
@@ -180,22 +184,22 @@ test("saveAssessments rejects unknown columns before writing any assessment", as
 	expect(persistedAssessments).toHaveLength(0);
 });
 
-test("saveAssessments blocks the import when a row has no matching submission", async () => {
+test("saveAssessments blocks the import when a row has no matching student or group", async () => {
 	await using db = await createTestDb();
-	await using project = await createProject(db, "Missing Submitter Project");
+	await using project = await createProject(db, "Missing Name Project");
 	const projectPublicId = project.id;
 	const fixture = await createAssessmentFixture(db, project.rowId);
 	const missingStudentId = buildTestId("missing-student");
 
 	const rows: ImportedAssessmentRow[] = [
 		{
-			submission_type: "individual",
-			submitter: fixture.studentId,
+			kind: "individual",
+			name: fixture.studentId,
 			[`${fixture.rubricId}:${fixture.criterionId}`]: "true",
 		},
 		{
-			submission_type: "individual",
-			submitter: missingStudentId,
+			kind: "individual",
+			name: missingStudentId,
 			[`${fixture.rubricId}:${fixture.criterionId}`]: "true",
 		},
 	];
@@ -203,7 +207,7 @@ test("saveAssessments blocks the import when a row has no matching submission", 
 	await expect(
 		saveAssessments({ rows, projectId: projectPublicId }, { db }),
 	).rejects.toThrow(
-		`No matching individual submission for "${missingStudentId}"`,
+		`No matching individual student or group for "${missingStudentId}"`,
 	);
 
 	const persistedAssessments = await db
@@ -223,8 +227,8 @@ test("saveAssessments returns imported and overwritten counts", async () => {
 
 	const firstImport: ImportedAssessmentRow[] = [
 		{
-			submission_type: "individual",
-			submitter: fixture.studentId,
+			kind: "individual",
+			name: fixture.studentId,
 			[`${fixture.rubricId}:${fixture.criterionId}`]: "true",
 		},
 	];
@@ -235,8 +239,8 @@ test("saveAssessments returns imported and overwritten counts", async () => {
 
 	const secondImport: ImportedAssessmentRow[] = [
 		{
-			submission_type: "individual",
-			submitter: fixture.studentId,
+			kind: "individual",
+			name: fixture.studentId,
 			[`${fixture.rubricId}:${fixture.criterionId}`]: "false",
 			[`${fixture.rubricId}:${fixture.numberCriterionId}`]: "5",
 		},
@@ -263,13 +267,13 @@ test("saveAssessments rolls back all writes if a later transactional write fails
 	// transaction. A genuine in-transaction failure, no primitive mock required.
 	const rows: ImportedAssessmentRow[] = [
 		{
-			submission_type: "individual",
-			submitter: fixture.studentId,
+			kind: "individual",
+			name: fixture.studentId,
 			[`${fixture.rubricId}:${fixture.criterionId}`]: "true",
 		},
 		{
-			submission_type: "individual",
-			submitter: fixture.studentId,
+			kind: "individual",
+			name: fixture.studentId,
 			[`${fixture.rubricId}:${fixture.numberCriterionId}`]: "999",
 		},
 	];
@@ -319,9 +323,20 @@ test("saveAssessments links assessments only to the target project even when the
 			.where("id", "=", sharedStudentId)
 			.executeTakeFirstOrThrow();
 
+		const [targetId] = await nextGradeTargetIds(db, {
+			projectRowId: projectId,
+			count: 1,
+		});
+		if (targetId == null) throw new Error("Expected a generated id");
+
 		await db
-			.insertInto("submission")
-			.values({ projectId, type: "individual", studentId: studentRow.rowId })
+			.insertInto("gradeTarget")
+			.values({
+				projectId,
+				id: targetId,
+				kind: "individual",
+				studentRowId: studentRow.rowId,
+			})
 			.execute();
 
 		await db
@@ -368,8 +383,8 @@ test("saveAssessments links assessments only to the target project even when the
 	// Import assessments targeting project B only using project B's criterion column
 	const rows: ImportedAssessmentRow[] = [
 		{
-			submission_type: "individual",
-			submitter: sharedStudentId,
+			kind: "individual",
+			name: sharedStudentId,
 			[`${rubricBId}:${criterionBId}`]: "true",
 		},
 	];
@@ -402,8 +417,8 @@ test("saveAssessments invalidates the assessment tags after the import commits",
 
 	const rows: ImportedAssessmentRow[] = [
 		{
-			submission_type: "individual",
-			submitter: fixture.studentId,
+			kind: "individual",
+			name: fixture.studentId,
 			[`${fixture.rubricId}:${fixture.criterionId}`]: "true",
 		},
 	];
@@ -423,8 +438,8 @@ test("saveAssessments does not invalidate when the import fails", async () => {
 
 	const rows: ImportedAssessmentRow[] = [
 		{
-			submission_type: "individual",
-			submitter: fixture.studentId,
+			kind: "individual",
+			name: fixture.studentId,
 			[`${fixture.rubricId}:${fixture.criterionId}`]: "not-a-boolean",
 		},
 	];

@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import type { NormalizedImportedSubmission } from "#imports/types.ts";
+import type { NormalizedImportedGradeTarget } from "#imports/types.ts";
 import {
 	prepareStudentImport,
 	type StudentImportContext,
@@ -10,22 +10,22 @@ function buildContext(
 ): StudentImportContext {
 	return {
 		existingStudentsById: new Map(),
-		existingIndividualSubmissionStudentIds: new Set(),
-		existingGroupSubmissionGroupNames: new Set(),
+		existingIndividualGradeTargetStudentIds: new Set(),
+		existingGroupGradeTargetGroupNames: new Set(),
 		...overrides,
 	};
 }
 
-test("prepareStudentImport classifies existing students and submissions as updated", () => {
-	const submissions: NormalizedImportedSubmission[] = [
+test("prepareStudentImport classifies existing students and grade targets as updated", () => {
+	const targets: NormalizedImportedGradeTarget[] = [
 		{
-			id: "submission-s1",
-			type: "individual",
+			id: "target-s1",
+			kind: "individual",
 			students: [{ id: "s1", lastName: "Doe", firstName: "Jane" }],
 		},
 		{
 			id: "group-alpha",
-			type: "group",
+			kind: "group",
 			group: "Alpha",
 			students: [{ id: "s2", lastName: "Roe", firstName: "Sam" }],
 		},
@@ -35,34 +35,34 @@ test("prepareStudentImport classifies existing students and submissions as updat
 		existingStudentsById: new Map([
 			["s1", { lastName: "Doe", firstName: "Jane" }],
 		]),
-		existingIndividualSubmissionStudentIds: new Set(["s1"]),
-		existingGroupSubmissionGroupNames: new Set(["Alpha"]),
+		existingIndividualGradeTargetStudentIds: new Set(["s1"]),
+		existingGroupGradeTargetGroupNames: new Set(["Alpha"]),
 	});
 
-	const plan = prepareStudentImport({ submissions, context });
+	const plan = prepareStudentImport({ targets, context });
 
 	expect(plan.createdStudentIds).toEqual(["s2"]);
 	expect(plan.updatedStudentIds).toEqual(["s1"]);
-	expect(plan.createdSubmissionIds).toEqual([]);
-	expect(plan.updatedSubmissionIds).toEqual(["submission-s1", "group-alpha"]);
+	expect(plan.createdGradeTargetIds).toEqual([]);
+	expect(plan.updatedGradeTargetIds).toEqual(["target-s1", "group-alpha"]);
 });
 
 test("prepareStudentImport reports group membership changes for existing students", () => {
-	const submissions: NormalizedImportedSubmission[] = [
+	const targets: NormalizedImportedGradeTarget[] = [
 		{
 			id: "group-beta",
-			type: "group",
+			kind: "group",
 			group: "Beta",
 			students: [{ id: "s1", lastName: "Doe", firstName: "Jane" }],
 		},
 		{
-			id: "submission-s2",
-			type: "individual",
+			id: "target-s2",
+			kind: "individual",
 			students: [{ id: "s2", lastName: "Roe", firstName: "Sam" }],
 		},
 		{
 			id: "group-gamma",
-			type: "group",
+			kind: "group",
 			group: "Gamma",
 			students: [{ id: "s3", lastName: "Lee", firstName: "Kim" }],
 		},
@@ -76,7 +76,7 @@ test("prepareStudentImport reports group membership changes for existing student
 		]),
 	});
 
-	const plan = prepareStudentImport({ submissions, context });
+	const plan = prepareStudentImport({ targets, context });
 
 	expect(plan.groupMembershipChanges).toEqual([
 		{ studentId: "s1", fromGroup: "Alpha", toGroup: "Beta" },
@@ -84,21 +84,21 @@ test("prepareStudentImport reports group membership changes for existing student
 	]);
 });
 
-test("prepareStudentImport plans student and submission upserts from parsed submissions", () => {
-	const submissions: NormalizedImportedSubmission[] = [
+test("prepareStudentImport plans student and grade-target upserts from parsed targets", () => {
+	const targets: NormalizedImportedGradeTarget[] = [
 		{
-			id: "submission-s1",
-			type: "individual",
+			id: "target-s1",
+			kind: "individual",
 			students: [{ id: "s1", lastName: "Doe", firstName: "Jane" }],
 		},
 	];
 
-	const plan = prepareStudentImport({ submissions, context: buildContext() });
+	const plan = prepareStudentImport({ targets, context: buildContext() });
 
-	expect(plan.writes).toEqual(submissions);
+	expect(plan.writes).toEqual(targets);
 	expect(plan.createdStudentIds).toEqual(["s1"]);
 	expect(plan.updatedStudentIds).toEqual([]);
-	expect(plan.createdSubmissionIds).toEqual(["submission-s1"]);
-	expect(plan.updatedSubmissionIds).toEqual([]);
+	expect(plan.createdGradeTargetIds).toEqual(["target-s1"]);
+	expect(plan.updatedGradeTargetIds).toEqual([]);
 	expect(plan.groupMembershipChanges).toEqual([]);
 });

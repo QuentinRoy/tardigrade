@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-	groupStudentsIntoSubmissions,
+	groupStudentsIntoGradeTargets,
 	parseStudentsCsv,
 } from "./parseStudents.ts";
 
@@ -17,41 +17,39 @@ Jones,Bob,s2,Group A`);
 	});
 });
 
-describe("groupStudentsIntoSubmissions", () => {
-	it("groups group students and creates individual submissions", () => {
+describe("groupStudentsIntoGradeTargets", () => {
+	it("groups group students and creates individual grade targets", () => {
 		const students = [
 			{ lastName: "Smith", firstName: "Alice", id: "s1" },
 			{ lastName: "Jones", firstName: "Bob", id: "s2", group: "Group A" },
 			{ lastName: "Ray", firstName: "Cora", id: "s3", group: "Group A" },
 		];
 
-		const submissions = groupStudentsIntoSubmissions(students);
+		const targets = groupStudentsIntoGradeTargets(students);
 
-		expect(submissions).toHaveLength(2);
+		expect(targets).toHaveLength(2);
 
-		const groupSubmission = submissions.find(
-			(submission) => submission.type === "group",
+		const groupTarget = targets.find((target) => target.kind === "group");
+		expect(groupTarget).toBeDefined();
+		expect(groupTarget?.students).toHaveLength(2);
+
+		const individualTarget = targets.find(
+			(target) => target.kind === "individual",
 		);
-		expect(groupSubmission).toBeDefined();
-		expect(groupSubmission?.students).toHaveLength(2);
-
-		const individualSubmission = submissions.find(
-			(submission) => submission.type === "individual",
-		);
-		expect(individualSubmission).toBeDefined();
-		expect(individualSubmission?.students[0]?.id).toBe("s1");
+		expect(individualTarget).toBeDefined();
+		expect(individualTarget?.students[0]?.id).toBe("s1");
 	});
 
-	it("generates unique submission ids when group slugs collide", () => {
+	it("generates unique grade target ids when group slugs collide", () => {
 		const students = [
 			{ lastName: "One", firstName: "Alpha", id: "s1", group: "Group A" },
 			{ lastName: "Two", firstName: "Beta", id: "s2", group: "Group-A" },
 		];
 
-		const submissions = groupStudentsIntoSubmissions(students);
-		const groupIds = submissions
-			.filter((submission) => submission.type === "group")
-			.map((submission) => submission.id)
+		const targets = groupStudentsIntoGradeTargets(students);
+		const groupIds = targets
+			.filter((target) => target.kind === "group")
+			.map((target) => target.id)
 			.sort((a, b) => a.localeCompare(b));
 
 		expect(groupIds).toEqual(["group-group-a", "group-group-a-2"]);

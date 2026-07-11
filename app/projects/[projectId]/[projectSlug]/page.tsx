@@ -4,7 +4,7 @@ import { loadAssessmentCompletionSummary } from "#assessment-completion/loadAsse
 import AppButtonLink from "#design-system/AppButtonLink.tsx";
 import AppPage from "#design-system/AppPage.tsx";
 import {
-	projectAssessmentsPath,
+	projectGradesPath,
 	projectImportStudentsPath,
 	projectRubricsPath,
 } from "#projects/projectPaths.ts";
@@ -43,10 +43,10 @@ export default async function ProjectDashboardPage({
 							Add rubrics
 						</AppButtonLink>
 					</Stack>
-				) : progress.submissions.total === 0 ? (
+				) : progress.gradeTargets.total === 0 ? (
 					<Stack gap="sm" align="flex-start">
 						<Text c="dimmed">
-							No submissions yet — import submissions to start assessing.
+							No students or groups yet — import a roster to start assessing.
 						</Text>
 						<AppButtonLink
 							href={projectImportStudentsPath({
@@ -54,19 +54,19 @@ export default async function ProjectDashboardPage({
 								projectSlug: project.slug,
 							})}
 						>
-							Import submissions
+							Import students
 						</AppButtonLink>
 					</Stack>
 				) : (
 					<GlobalAssessmentSummary progress={progress} />
 				)}
 				<AppButtonLink
-					href={projectAssessmentsPath({
+					href={projectGradesPath({
 						projectId: project.id,
 						projectSlug: project.slug,
 					})}
 				>
-					Open assessments
+					Open grades
 				</AppButtonLink>
 			</Stack>
 		</AppPage>
