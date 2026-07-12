@@ -2,8 +2,8 @@
 
 - **Status:** Completed
 - **Created:** 2026-07-12
-- **Resolution:** Option B accepted (2026-07-12) — drop the container in a preliminary PR (stage 4b of `plans/2026-07-06-terminology-sweep.md`) before the assessment → grade rename. Also decided while grilling: **bundle** the partial-commit fix (validate before the first write) and **drop the redundant `criterion_assessment.kind` column** (derivable from the always-joined, immutable `criterion.kind`; no trigger depends on it, only two readers select it and both already join `criterion`).
-- **Related:** #99 (terminology sweep), `plans/2026-07-06-terminology-sweep.md` (stages 4b, 5), `CONTEXT.md` (Grade)
+- **Resolution:** Option B accepted (2026-07-12) — drop the container in a preliminary PR (stage 5b of `plans/2026-07-06-terminology-sweep.md`) before the assessment → grade rename. Also decided while grilling: **bundle** the partial-commit fix (validate before the first write) and **drop the redundant `criterion_assessment.kind` column** (derivable from the always-joined, immutable `criterion.kind`; no trigger depends on it, only two readers select it and both already join `criterion`).
+- **Related:** #99 (terminology sweep), `plans/2026-07-06-terminology-sweep.md` (stages 5b, 5c), `CONTEXT.md` (Grade)
 
 ## Question
 
@@ -89,6 +89,6 @@ Option B. The container answers to no domain concept, guards nothing, and is rea
 
 ## Resolved questions (grilling, 2026-07-12)
 
-- **Partial-commit fix:** bundled into 4b (the drop PR rewrites that exact write path; validate-before-first-write is a statement-order choice in code already being rewritten).
-- **`criterion_assessment.kind` column:** dropped in 4b. No trigger reads it (the `*_kind_match` triggers are on the *criterion* subtype tables; the grade-subtype triggers key on `criterion_assessment_id` + criterion config). Only two readers select it (`loadResults.ts`, `assessment-capture/assessments.ts`), both already join `criterion`, so they switch to `criterion.kind` for free. The save-time guard compares the incoming payload's kind, not the stored column, and stays.
+- **Partial-commit fix:** bundled into 5b (the drop PR rewrites that exact write path; validate-before-first-write is a statement-order choice in code already being rewritten).
+- **`criterion_assessment.kind` column:** dropped in 5b. No trigger reads it (the `*_kind_match` triggers are on the *criterion* subtype tables; the grade-subtype triggers key on `criterion_assessment_id` + criterion config). Only two readers select it (`loadResults.ts`, `assessment-capture/assessments.ts`), both already join `criterion`, so they switch to `criterion.kind` for free. The save-time guard compares the incoming payload's kind, not the stored column, and stays.
 - **Export ordering:** confirmed safe to drop `ORDER BY assessment.id`. `groupGradeTargetRows` only needs rows contiguous per grade target (ordered by `gradeTarget.rowId`); the intra-target order feeds a `Map` keyed by `rubricId:criterionId` and is never consumed.
