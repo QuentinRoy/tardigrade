@@ -7,9 +7,9 @@ import type {
 	AssessedCriterion,
 	AssessmentCriterionValue,
 } from "#criteria/types.ts";
-import type { Submission } from "#submissions/types.ts";
+import type { GradeTarget } from "#grade-targets/types.ts";
 import { useBeforeUnloadGuard } from "#utils/useBeforeUnloadGuard.ts";
-import { getSubmissionNavigation } from "./submissionNavigation.ts";
+import { getGradeTargetNavigation } from "./gradeTargetNavigation.ts";
 
 export type SaveResult<TError> =
 	| { success: true }
@@ -17,8 +17,8 @@ export type SaveResult<TError> =
 
 export type UseAssessmentSessionConfig<TError> = {
 	initialCriteria: AssessedCriterion[];
-	submissions: Submission[];
-	currentSubmissionId: string;
+	targets: GradeTarget[];
+	currentTargetId: string;
 	saveAssessment: (
 		criterion: AssessedCriterion,
 		assessment: AssessmentCriterionValue,
@@ -27,10 +27,10 @@ export type UseAssessmentSessionConfig<TError> = {
 };
 
 export type UseAssessmentSessionResult = {
-	currentSubmissionIndex: number;
-	currentSubmission: Submission | undefined;
-	previousSubmission: Submission | undefined;
-	nextSubmission: Submission | undefined;
+	currentTargetIndex: number;
+	currentTarget: GradeTarget | undefined;
+	previousTarget: GradeTarget | undefined;
+	nextTarget: GradeTarget | undefined;
 	savedCriteria: AssessedCriterion[];
 	optimisticCriteria: AssessedCriterion[];
 	pendingByIndex: Record<number, number>;
@@ -53,8 +53,8 @@ type Action =
 
 export function useAssessmentSession<TError>({
 	initialCriteria,
-	submissions,
-	currentSubmissionId,
+	targets,
+	currentTargetId,
 	saveAssessment,
 	onError,
 }: UseAssessmentSessionConfig<TError>): UseAssessmentSessionResult {
@@ -83,12 +83,8 @@ export function useAssessmentSession<TError>({
 			),
 	);
 
-	const {
-		currentSubmissionIndex,
-		currentSubmission,
-		previousSubmission,
-		nextSubmission,
-	} = getSubmissionNavigation(submissions, currentSubmissionId);
+	const { currentTargetIndex, currentTarget, previousTarget, nextTarget } =
+		getGradeTargetNavigation(targets, currentTargetId);
 
 	function assess(index: number, assessment: AssessmentCriterionValue) {
 		const criterion = savedCriteria[index];
@@ -115,10 +111,10 @@ export function useAssessmentSession<TError>({
 	}
 
 	return {
-		currentSubmissionIndex,
-		currentSubmission,
-		previousSubmission,
-		nextSubmission,
+		currentTargetIndex,
+		currentTarget,
+		previousTarget,
+		nextTarget,
 		savedCriteria,
 		optimisticCriteria,
 		pendingByIndex,

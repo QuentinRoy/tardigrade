@@ -8,9 +8,9 @@ import type {
 	Criterion,
 	CriterionKind,
 } from "#criteria/types.ts";
+import { getGradeTargetLabel } from "#grade-targets/getGradeTargetLabel.ts";
+import type { GradeTarget } from "#grade-targets/types.ts";
 import type { RubricsById } from "#rubrics/types.ts";
-import { getSubmissionLabel } from "#submissions/getSubmissionLabel.ts";
-import type { Submission } from "#submissions/types.ts";
 
 type CriterionPropertyDetails =
 	| { kind: "check"; trueMarks: number; falseMarks: number }
@@ -68,7 +68,7 @@ export type ResultsData = {
 };
 
 export type ResultsAssessmentRecord = {
-	gradeTargetId: number;
+	gradeTargetId: string;
 	criterionId: string;
 	kind: CriterionKind;
 	passed: boolean | null;
@@ -163,11 +163,11 @@ function toCriterionDetails(criterion: Criterion): CriterionDetails {
 }
 
 export function buildResultsData({
-	submissions,
+	targets,
 	rubricsById,
 	assessmentRecords,
 }: {
-	submissions: Submission[];
+	targets: GradeTarget[];
 	rubricsById: RubricsById;
 	assessmentRecords: ResultsAssessmentRecord[];
 }): ResultsData {
@@ -198,7 +198,7 @@ export function buildResultsData({
 	);
 
 	const gradeTargetRowById = new Map(
-		submissions.map((submission) => {
+		targets.map((target) => {
 			const cells: GradeTargetCell[] = orderedCriteria.map((entry) => ({
 				criterionId: entry.criterionId,
 				marks: null,
@@ -207,10 +207,10 @@ export function buildResultsData({
 			}));
 
 			return [
-				submission.id,
+				target.id,
 				{
-					gradeTargetId: submission.id,
-					label: getSubmissionLabel(submission),
+					gradeTargetId: target.id,
+					label: getGradeTargetLabel(target),
 					marks: 0,
 					maxMarks: 0,
 					averagePercent: null,
@@ -242,8 +242,7 @@ export function buildResultsData({
 			assessmentValue,
 		);
 		const marks = markCriterion(assessedCriterion);
-		const gradeTargetId = String(record.gradeTargetId);
-		const gradeTargetRow = gradeTargetRowById.get(gradeTargetId);
+		const gradeTargetRow = gradeTargetRowById.get(record.gradeTargetId);
 		const criterionStat = criterionStats.get(record.criterionId);
 		const cellIndex = cellIndexByCriterionId.get(record.criterionId);
 
@@ -298,9 +297,9 @@ export function buildResultsData({
 			averageMarks,
 			averagePercent,
 			assessedCount,
-			totalCount: submissions.length,
+			totalCount: targets.length,
 			completionPercent:
-				submissions.length > 0 ? (assessedCount / submissions.length) * 100 : 0,
+				targets.length > 0 ? (assessedCount / targets.length) * 100 : 0,
 			details: toCriterionDetails(entry.criterion),
 		};
 	});

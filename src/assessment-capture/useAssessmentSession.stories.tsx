@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { expect, fn, screen, userEvent, waitFor } from "storybook/test";
 import type { AssessedCriterion } from "#criteria/types.ts";
-import type { Submission } from "#submissions/types.ts";
+import type { GradeTarget } from "#grade-targets/types.ts";
 import type { SaveResult } from "./useAssessmentSession.ts";
 import { useAssessmentSession } from "./useAssessmentSession.ts";
 
@@ -39,8 +39,8 @@ const initialCriteria: AssessedCriterion[] = [
 	},
 ];
 
-const submissions: Submission[] = [
-	{ id: "submission-1", type: "individual", studentName: "Ada Lovelace" },
+const targets: GradeTarget[] = [
+	{ id: "target-1", kind: "individual", studentName: "Ada Lovelace" },
 ];
 
 // Calls to the saveAssessment stub are recorded in order, so the play function
@@ -56,8 +56,8 @@ function Harness({
 	const { savedCriteria, optimisticCriteria, pendingByIndex, assess } =
 		useAssessmentSession<string>({
 			initialCriteria,
-			submissions,
-			currentSubmissionId: "submission-1",
+			targets,
+			currentTargetId: "target-1",
 			saveAssessment: async () => {
 				const deferred = Promise.withResolvers<SaveResult<string>>();
 				calls.push(deferred);

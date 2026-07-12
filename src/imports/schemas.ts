@@ -132,10 +132,7 @@ export const studentRowSchema = z
 export const studentRowsSchema = z.array(studentRowSchema);
 
 export const assessmentRowSchema = z
-	.object({
-		submission_type: z.enum(["individual", "group"]),
-		submitter: nonEmptyString,
-	})
+	.object({ kind: z.enum(["individual", "group"]), name: nonEmptyString })
 	.catchall(z.string());
 
 export const assessmentRowsSchema = z.array(assessmentRowSchema);

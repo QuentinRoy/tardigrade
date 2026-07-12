@@ -20,14 +20,14 @@ function formatBlockingDiagnostic(
 		case "unknown-column": {
 			return `Unrecognized column: "${diagnostic.column}"`;
 		}
-		case "unmatched-submission": {
-			return `Row ${diagnostic.row} (${diagnostic.submitter}): No matching ${diagnostic.submissionType} submission for "${diagnostic.submitter}"`;
+		case "unmatched-target": {
+			return `Row ${diagnostic.row} (${diagnostic.name}): No matching ${diagnostic.targetKind} student or group for "${diagnostic.name}"`;
 		}
-		case "ambiguous-submission": {
-			return `Row ${diagnostic.row} (${diagnostic.submitter}): Multiple ${diagnostic.submissionType} submissions match "${diagnostic.submitter}"`;
+		case "ambiguous-target": {
+			return `Row ${diagnostic.row} (${diagnostic.name}): Multiple ${diagnostic.targetKind} students or groups match "${diagnostic.name}"`;
 		}
 		case "invalid-value": {
-			return `Row ${diagnostic.row} (${diagnostic.submitter}): ${diagnostic.message} in column "${diagnostic.column}"`;
+			return `Row ${diagnostic.row} (${diagnostic.name}): ${diagnostic.message} in column "${diagnostic.column}"`;
 		}
 		case "no-assessment-columns": {
 			return "No assessment columns found in this file. Nothing would be imported.";
@@ -50,9 +50,10 @@ function assessmentImportBlockedError(
 export async function saveAssessmentImportPlanInDb(
 	db: Kysely<DB>,
 	plan: AssessmentImportPlan,
+	{ projectId }: { projectId: string },
 ): Promise<void> {
 	for (const write of plan.writes) {
-		const result = await saveAssessmentInDb(db, write);
+		const result = await saveAssessmentInDb(db, { ...write, projectId });
 
 		if (!result.success) {
 			throw new Error(result.error);
@@ -78,7 +79,7 @@ export async function saveAssessments(
 			throw assessmentImportBlockedError(plan.blockingDiagnostics);
 		}
 
-		await saveAssessmentImportPlanInDb(tx, plan);
+		await saveAssessmentImportPlanInDb(tx, plan, { projectId });
 
 		return {
 			assessmentCount: plan.writes.length,

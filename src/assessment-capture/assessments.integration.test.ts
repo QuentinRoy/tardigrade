@@ -6,10 +6,10 @@ import { createTestDb } from "#test/dbIntegration.ts";
 import { createProject } from "#test/projects.ts";
 import { createBooleanRubricFixture } from "#test/rubrics.ts";
 import {
+	loadGradeTargetAssessments,
+	loadGradeTargetAssessmentsFromDb,
 	loadRubricAssessment,
 	loadRubricAssessmentFromDb,
-	loadSubmissionAssessments,
-	loadSubmissionAssessmentsFromDb,
 } from "./assessments.ts";
 
 vi.mock("next/cache", () => ({
@@ -27,7 +27,7 @@ test("loadRubricAssessmentFromDb returns an empty list when no assessment exists
 	const fixture = await createAssessmentFixture(db, project.id);
 
 	const result = await loadRubricAssessmentFromDb(db, {
-		submissionId: fixture.submissionId,
+		targetId: fixture.gradeTargetId,
 		projectId: fixture.projectId,
 		rubricId: fixture.rubricId,
 	});
@@ -35,13 +35,14 @@ test("loadRubricAssessmentFromDb returns an empty list when no assessment exists
 	expect(result).toEqual([]);
 });
 
-test("loadRubricAssessmentFromDb returns the stored criterion values for a submission/rubric", async () => {
+test("loadRubricAssessmentFromDb returns the stored criterion values for a grade target/rubric", async () => {
 	await using db = await createTestDb();
 	await using project = await createProject(db, "Assessment Read Project");
 	const fixture = await createAssessmentFixture(db, project.id);
 
 	await saveAssessmentInDb(db, {
-		submissionId: fixture.submissionId,
+		projectId: fixture.projectId,
+		targetId: fixture.gradeTargetId,
 		rubricId: fixture.rubricId,
 		assessment: {
 			criterionId: fixture.criterionIds.boolean,
@@ -50,7 +51,8 @@ test("loadRubricAssessmentFromDb returns the stored criterion values for a submi
 		},
 	});
 	await saveAssessmentInDb(db, {
-		submissionId: fixture.submissionId,
+		projectId: fixture.projectId,
+		targetId: fixture.gradeTargetId,
 		rubricId: fixture.rubricId,
 		assessment: {
 			criterionId: fixture.criterionIds.ordinal,
@@ -59,7 +61,8 @@ test("loadRubricAssessmentFromDb returns the stored criterion values for a submi
 		},
 	});
 	await saveAssessmentInDb(db, {
-		submissionId: fixture.submissionId,
+		projectId: fixture.projectId,
+		targetId: fixture.gradeTargetId,
 		rubricId: fixture.rubricId,
 		assessment: {
 			criterionId: fixture.criterionIds.numerical,
@@ -69,7 +72,7 @@ test("loadRubricAssessmentFromDb returns the stored criterion values for a submi
 	});
 
 	const loaded = await loadRubricAssessmentFromDb(db, {
-		submissionId: fixture.submissionId,
+		targetId: fixture.gradeTargetId,
 		projectId: fixture.projectId,
 		rubricId: fixture.rubricId,
 	});
@@ -106,7 +109,8 @@ test("loadRubricAssessment wrapper delegates to its primitive and declares its c
 	const fixture = await createAssessmentFixture(db, project.id);
 
 	await saveAssessmentInDb(db, {
-		submissionId: fixture.submissionId,
+		projectId: fixture.projectId,
+		targetId: fixture.gradeTargetId,
 		rubricId: fixture.rubricId,
 		assessment: {
 			criterionId: fixture.criterionIds.boolean,
@@ -117,7 +121,7 @@ test("loadRubricAssessment wrapper delegates to its primitive and declares its c
 
 	const loaded = await loadRubricAssessment(
 		{
-			submissionId: fixture.submissionId,
+			targetId: fixture.gradeTargetId,
 			projectId: fixture.projectId,
 			rubricId: fixture.rubricId,
 		},
@@ -131,23 +135,24 @@ test("loadRubricAssessment wrapper delegates to its primitive and declares its c
 	const declaredTags = vi.mocked(cacheTag).mock.calls.map((call) => call[0]);
 	expect(declaredTags).toContain("assessments:all");
 	expect(declaredTags).toContain(
-		`assessments:${fixture.submissionId}:${fixture.rubricId}`,
+		`assessments:${fixture.gradeTargetId}:${fixture.rubricId}`,
 	);
 });
 
-test("loadSubmissionAssessmentsFromDb groups a submission's criterion values by rubric", async () => {
+test("loadGradeTargetAssessmentsFromDb groups a grade target's criterion values by rubric", async () => {
 	await using db = await createTestDb();
 	await using project = await createProject(
 		db,
-		"Assessment Submission Read Project",
+		"Assessment Grade Target Read Project",
 	);
 	const fixture = await createAssessmentFixture(db, project.id);
-	// Second rubric on the same submission's project, so the grouping across
+	// Second rubric on the same target's project, so the grouping across
 	// rubrics is observable.
 	const secondRubric = await createBooleanRubricFixture(db, project.rowId, 1);
 
 	await saveAssessmentInDb(db, {
-		submissionId: fixture.submissionId,
+		projectId: fixture.projectId,
+		targetId: fixture.gradeTargetId,
 		rubricId: fixture.rubricId,
 		assessment: {
 			criterionId: fixture.criterionIds.boolean,
@@ -156,7 +161,8 @@ test("loadSubmissionAssessmentsFromDb groups a submission's criterion values by 
 		},
 	});
 	await saveAssessmentInDb(db, {
-		submissionId: fixture.submissionId,
+		projectId: fixture.projectId,
+		targetId: fixture.gradeTargetId,
 		rubricId: fixture.rubricId,
 		assessment: {
 			criterionId: fixture.criterionIds.numerical,
@@ -165,7 +171,8 @@ test("loadSubmissionAssessmentsFromDb groups a submission's criterion values by 
 		},
 	});
 	await saveAssessmentInDb(db, {
-		submissionId: fixture.submissionId,
+		projectId: fixture.projectId,
+		targetId: fixture.gradeTargetId,
 		rubricId: secondRubric.rubricId,
 		assessment: {
 			criterionId: secondRubric.criterionId,
@@ -174,8 +181,8 @@ test("loadSubmissionAssessmentsFromDb groups a submission's criterion values by 
 		},
 	});
 
-	const byRubricId = await loadSubmissionAssessmentsFromDb(db, {
-		submissionId: fixture.submissionId,
+	const byRubricId = await loadGradeTargetAssessmentsFromDb(db, {
+		targetId: fixture.gradeTargetId,
 		projectId: fixture.projectId,
 	});
 
@@ -201,19 +208,20 @@ test("loadSubmissionAssessmentsFromDb groups a submission's criterion values by 
 	]);
 });
 
-// Mirrors the loadRubricAssessment wrapper test: the whole-submission read must
-// declare the submission-scoped tag (busted by individual saves) and
+// Mirrors the loadRubricAssessment wrapper test: the whole-target read must
+// declare the target-scoped tag (busted by individual saves) and
 // "assessments:all" (busted by bulk imports) or the overview would serve stale data.
-test("loadSubmissionAssessments wrapper delegates to its primitive and declares its cache tags", async () => {
+test("loadGradeTargetAssessments wrapper delegates to its primitive and declares its cache tags", async () => {
 	await using db = await createTestDb();
 	await using project = await createProject(
 		db,
-		"Assessment Submission Cache Tag Project",
+		"Assessment Grade Target Cache Tag Project",
 	);
 	const fixture = await createAssessmentFixture(db, project.id);
 
 	await saveAssessmentInDb(db, {
-		submissionId: fixture.submissionId,
+		projectId: fixture.projectId,
+		targetId: fixture.gradeTargetId,
 		rubricId: fixture.rubricId,
 		assessment: {
 			criterionId: fixture.criterionIds.boolean,
@@ -222,8 +230,8 @@ test("loadSubmissionAssessments wrapper delegates to its primitive and declares 
 		},
 	});
 
-	const loaded = await loadSubmissionAssessments(
-		{ submissionId: fixture.submissionId, projectId: fixture.projectId },
+	const loaded = await loadGradeTargetAssessments(
+		{ targetId: fixture.gradeTargetId, projectId: fixture.projectId },
 		{ db },
 	);
 
@@ -239,19 +247,20 @@ test("loadSubmissionAssessments wrapper delegates to its primitive and declares 
 
 	const declaredTags = vi.mocked(cacheTag).mock.calls.map((call) => call[0]);
 	expect(declaredTags).toContain("assessments:all");
-	expect(declaredTags).toContain(`assessments:${fixture.submissionId}`);
+	expect(declaredTags).toContain(`assessments:${fixture.gradeTargetId}`);
 });
 
 // The reads scope by Project ID; a mismatched Project ID must not leak another
 // project's data.
-test("assessment reads return nothing when the Project ID does not match the submission", async () => {
+test("assessment reads return nothing when the Project ID does not match the grade target", async () => {
 	await using db = await createTestDb();
 	await using projectA = await createProject(db, "Assessment Scope Project A");
 	await using projectB = await createProject(db, "Assessment Scope Project B");
 	const fixture = await createAssessmentFixture(db, projectA.id);
 
 	await saveAssessmentInDb(db, {
-		submissionId: fixture.submissionId,
+		projectId: fixture.projectId,
+		targetId: fixture.gradeTargetId,
 		rubricId: fixture.rubricId,
 		assessment: {
 			criterionId: fixture.criterionIds.boolean,
@@ -261,15 +270,15 @@ test("assessment reads return nothing when the Project ID does not match the sub
 	});
 
 	const rubricAssessment = await loadRubricAssessmentFromDb(db, {
-		submissionId: fixture.submissionId,
+		targetId: fixture.gradeTargetId,
 		projectId: projectB.id,
 		rubricId: fixture.rubricId,
 	});
 	expect(rubricAssessment).toEqual([]);
 
-	const submissionAssessments = await loadSubmissionAssessmentsFromDb(db, {
-		submissionId: fixture.submissionId,
+	const gradeTargetAssessments = await loadGradeTargetAssessmentsFromDb(db, {
+		targetId: fixture.gradeTargetId,
 		projectId: projectB.id,
 	});
-	expect(submissionAssessments).toEqual({});
+	expect(gradeTargetAssessments).toEqual({});
 });

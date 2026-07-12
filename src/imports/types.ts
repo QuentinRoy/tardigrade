@@ -1,5 +1,5 @@
 import type { z } from "zod";
-import type { SubmissionType } from "#submissions/types.ts";
+import type { GradeTargetKind } from "#grade-targets/types.ts";
 import type {
 	assessmentRowSchema,
 	checkCriterionSchema,
@@ -17,9 +17,9 @@ export type ImportedRubric = z.output<typeof rubricSchema>;
 export type ImportedRubrics = ImportedRubric[];
 export type ImportedStudent = z.output<typeof studentRowSchema>;
 export type ImportedAssessmentRow = z.output<typeof assessmentRowSchema>;
-export type NormalizedImportedSubmission = {
+export type NormalizedImportedGradeTarget = {
 	id: string;
-	type: SubmissionType;
+	kind: GradeTargetKind;
 	group?: string;
 	students: ImportedStudent[];
 };

@@ -13,7 +13,7 @@ export type BooleanRubricFixture = {
 	criterionRowId: number;
 };
 
-// Creates a rubric carrying a single boolean criterion, without any submission
+// Creates a rubric carrying a single boolean criterion, without any grade target
 // or assessment.
 export async function createBooleanRubricFixture(
 	db: Kysely<DB>,
@@ -73,17 +73,22 @@ export async function createAssessedBooleanRubricFixture(
 		.returning("rowId")
 		.executeTakeFirstOrThrow();
 
-	const submission = await db
-		.insertInto("submission")
-		.values({ projectId, type: "individual", studentId: student.rowId })
-		.returning("id")
+	const target = await db
+		.insertInto("gradeTarget")
+		.values({
+			projectId,
+			id: buildTestId("target"),
+			kind: "individual",
+			studentRowId: student.rowId,
+		})
+		.returning("rowId")
 		.executeTakeFirstOrThrow();
 
 	const assessment = await db
 		.insertInto("assessment")
 		.values({
 			projectId,
-			submissionId: submission.id,
+			gradeTargetRowId: target.rowId,
 			rubricId: rubric.rubricRowId,
 		})
 		.returning("id")

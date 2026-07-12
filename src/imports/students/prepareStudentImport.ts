@@ -1,4 +1,4 @@
-import type { NormalizedImportedSubmission } from "#imports/types.ts";
+import type { NormalizedImportedGradeTarget } from "#imports/types.ts";
 
 export type ExistingStudentImportRecord = {
 	lastName: string;
@@ -9,10 +9,10 @@ export type ExistingStudentImportRecord = {
 export type StudentImportContext = {
 	// Existing students keyed by imported student id, scoped to the project.
 	existingStudentsById: Map<string, ExistingStudentImportRecord>;
-	// Student ids that already have an individual submission.
-	existingIndividualSubmissionStudentIds: Set<string>;
-	// Group names that already have a submission.
-	existingGroupSubmissionGroupNames: Set<string>;
+	// Student ids that already have an individual grade target.
+	existingIndividualGradeTargetStudentIds: Set<string>;
+	// Group names that already have a grade target.
+	existingGroupGradeTargetGroupNames: Set<string>;
 };
 
 export type StudentImportGroupMembershipChange = {
@@ -22,31 +22,30 @@ export type StudentImportGroupMembershipChange = {
 };
 
 export type StudentImportPlan = {
-	writes: NormalizedImportedSubmission[];
+	writes: NormalizedImportedGradeTarget[];
 	createdStudentIds: string[];
 	updatedStudentIds: string[];
-	createdSubmissionIds: string[];
-	updatedSubmissionIds: string[];
+	createdGradeTargetIds: string[];
+	updatedGradeTargetIds: string[];
 	groupMembershipChanges: StudentImportGroupMembershipChange[];
 };
 
 export function prepareStudentImport(params: {
-	submissions: NormalizedImportedSubmission[];
+	targets: NormalizedImportedGradeTarget[];
 	context: StudentImportContext;
 }): StudentImportPlan {
-	const { submissions, context } = params;
+	const { targets, context } = params;
 
 	const createdStudentIds: string[] = [];
 	const updatedStudentIds: string[] = [];
-	const createdSubmissionIds: string[] = [];
-	const updatedSubmissionIds: string[] = [];
+	const createdGradeTargetIds: string[] = [];
+	const updatedGradeTargetIds: string[] = [];
 	const groupMembershipChanges: StudentImportGroupMembershipChange[] = [];
 
-	for (const submission of submissions) {
-		const newGroupName =
-			submission.type === "group" ? submission.group : undefined;
+	for (const target of targets) {
+		const newGroupName = target.kind === "group" ? target.group : undefined;
 
-		for (const student of submission.students) {
+		for (const student of target.students) {
 			const existing = context.existingStudentsById.get(student.id);
 
 			if (existing == null) {
@@ -64,34 +63,34 @@ export function prepareStudentImport(params: {
 			}
 		}
 
-		if (submission.type === "group") {
+		if (target.kind === "group") {
 			if (
 				newGroupName != null &&
-				context.existingGroupSubmissionGroupNames.has(newGroupName)
+				context.existingGroupGradeTargetGroupNames.has(newGroupName)
 			) {
-				updatedSubmissionIds.push(submission.id);
+				updatedGradeTargetIds.push(target.id);
 			} else {
-				createdSubmissionIds.push(submission.id);
+				createdGradeTargetIds.push(target.id);
 			}
 		} else {
-			const studentId = submission.students[0]?.id;
+			const studentId = target.students[0]?.id;
 			if (
 				studentId != null &&
-				context.existingIndividualSubmissionStudentIds.has(studentId)
+				context.existingIndividualGradeTargetStudentIds.has(studentId)
 			) {
-				updatedSubmissionIds.push(submission.id);
+				updatedGradeTargetIds.push(target.id);
 			} else {
-				createdSubmissionIds.push(submission.id);
+				createdGradeTargetIds.push(target.id);
 			}
 		}
 	}
 
 	return {
-		writes: submissions,
+		writes: targets,
 		createdStudentIds,
 		updatedStudentIds,
-		createdSubmissionIds,
-		updatedSubmissionIds,
+		createdGradeTargetIds,
+		updatedGradeTargetIds,
 		groupMembershipChanges,
 	};
 }

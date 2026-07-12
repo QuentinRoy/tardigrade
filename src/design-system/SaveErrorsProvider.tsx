@@ -13,9 +13,10 @@ export type SaveError = {
 	projectId: string;
 	projectSlug: string;
 	rubricId: string;
-	submissionId: string;
+	targetId: string;
+	targetSlug: string;
 	rubricLabel?: string | undefined;
-	submissionLabel?: string | undefined;
+	targetLabel?: string | undefined;
 	message: string;
 };
 

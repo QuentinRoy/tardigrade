@@ -6,41 +6,42 @@
 //   q1:r1 check  -> true = 1, false = 0
 //   q2:r2 options  -> excellent = 2, good = 1, poor = 0
 //
-// Submissions come from students.csv: each individual student and each group
-// becomes one submission. So three submissions exist before any grading:
+// Grade targets come from students.csv: each individual student and each group
+// becomes one grade target. So three grade targets exist before any grading:
 //   john_doe (individual), jane_smith (individual), Group A (bob_johnson).
 //
 // assessments.csv grades only john_doe and Group A; jane_smith is left
 // unassessed on purpose, so completion is a real partial 2 / 3.
 //
-//   john_doe: q1 = true = 1, q2 = good = 1        -> grand_total_marks = 2
-//   Group A:  q1 = false = 0, q2 = excellent = 2  -> grand_total_marks = 2
-//   jane_smith: unassessed                        -> grand_total_marks blank
+//   john_doe: q1 = true = 1, q2 = good = 1        -> final_total = 2
+//   Group A:  q1 = false = 0, q2 = excellent = 2  -> final_total = 2
+//   jane_smith: unassessed                        -> final_total blank
 //
-// Dashboard completion semantics (see `src/assessments/assessmentCompletion.ts`):
-//   - submissions: a submission is complete once every rubric on it is fully
-//     assessed. Total = submission count (3); complete = john_doe, Group A (2).
+// Overview completion semantics (see `src/assessment-completion/assessmentCompletion.ts`):
+//   - grade targets: a grade target is complete once every rubric on it is
+//     fully assessed. Total = grade target count (3); complete = john_doe,
+//     Group A (2).
 //   - rubrics: a rubric is complete only once it is fully assessed on every
-//     submission project-wide. Total = rubric count (2); since jane_smith
+//     grade target project-wide. Total = rubric count (2); since jane_smith
 //     leaves both q1 and q2 incomplete, neither rubric is complete (0).
-//   - criteria: counts individual (submission, rubric) pairs, not deduplicated
-//     by rubric. Total = submissions x rubrics = 3 x 2 = 6; complete = the 4
-//     pairs assessed for john_doe and Group A.
+//   - criteria: counts individual (grade target, rubric) pairs, not
+//     deduplicated by rubric. Total = grade targets x rubrics = 3 x 2 = 6;
+//     complete = the 4 pairs assessed for john_doe and Group A.
 
 export const PROJECT_NAME = "E2E Smoke Project";
 
-// `grand_total_marks` in the submissions export, keyed by the export submitter
-// identifier (student id for individuals, group name for groups). `null` means
-// the submission is not fully assessed, so the export leaves the cell blank.
-export const EXPECTED_GRAND_TOTAL_MARKS: Record<string, number | null> = {
+// `final_total` in the grades export, keyed by the export name identifier
+// (student id for individuals, group name for groups). `null` means the
+// grade target is not fully assessed, so the export leaves the cell blank.
+export const EXPECTED_FINAL_TOTAL: Record<string, number | null> = {
 	john_doe: 2,
 	"Group A": 2,
 	jane_smith: null,
 };
 
-// Assessment Completion shown on the dashboard, as `completed / total`.
+// Assessment Completion shown on the grid home, as `completed / total`.
 export const EXPECTED_COMPLETION = {
-	submissions: { completed: 2, total: 3 },
+	gradeTargets: { completed: 2, total: 3 },
 	rubrics: { completed: 0, total: 2 },
 	criteria: { completed: 4, total: 6 },
 };
@@ -71,7 +72,7 @@ export const EXPECTED_CRITERION_ANALYTICS = [
 // GradeMatrix shows one row per grade target with one cell per criterion
 // ("<marks> / <maxMarks>", or empty if the criterion is unassessed), then a
 // per-row total and criterion-completion count. Grade target labels come
-// from `getSubmissionLabel`: individuals as "<last_name> <first_name>", groups
+// from `getGradeTargetLabel`: individuals as "<last_name> <first_name>", groups
 // as the group name.
 export const EXPECTED_GRADE_MATRIX = [
 	{

@@ -1,22 +1,22 @@
 import { expect, test } from "vitest";
 import {
-	assessedCriterionCountsBySubmissionCacheTags,
+	assessedCriterionCountsByTargetCacheTags,
 	assessmentCompletionRowsCacheTags,
 	criterionAssessmentsCountCacheTags,
 } from "./loadAssessmentCompletion.ts";
 
-test("assessedCriterionCountsBySubmissionCacheTags scopes invalidation to the given rubric", () => {
-	expect(assessedCriterionCountsBySubmissionCacheTags("q-1")).toEqual([
-		"submissions",
+test("assessedCriterionCountsByTargetCacheTags scopes invalidation to the given rubric", () => {
+	expect(assessedCriterionCountsByTargetCacheTags("q-1")).toEqual([
+		"grade-targets",
 		"rubrics",
 		"assessments:rubric:q-1",
 		"assessments:all",
 	]);
 });
 
-test("assessmentCompletionRowsCacheTags declares the coarse submission, rubric and assessment tags", () => {
+test("assessmentCompletionRowsCacheTags declares the coarse grade-target, rubric and assessment tags", () => {
 	expect(assessmentCompletionRowsCacheTags()).toEqual([
-		"submissions",
+		"grade-targets",
 		"rubrics",
 		"assessments",
 	]);

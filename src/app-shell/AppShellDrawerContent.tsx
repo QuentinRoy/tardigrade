@@ -6,9 +6,9 @@ import { usePathname } from "next/navigation";
 import { type ReactNode, useMemo } from "react";
 import {
 	changeProjectPath,
-	projectAssessmentsPath,
+	projectExportGradesPath,
 	projectExportRubricsPath,
-	projectExportSubmissionsPath,
+	projectGradesPath,
 	projectImportAssessmentsPath,
 	projectImportRubricsPath,
 	projectImportStudentsPath,
@@ -116,7 +116,7 @@ export default function AppShellDrawerContent({
 		}
 
 		const query = searchParams.toString();
-		const basePath = projectExportSubmissionsPath(projectRouteContext);
+		const basePath = projectExportGradesPath(projectRouteContext);
 
 		return query.length > 0 ? `${basePath}?${query}` : basePath;
 	}, [exportOptions, projectRouteContext]);
@@ -133,7 +133,7 @@ export default function AppShellDrawerContent({
 	}
 
 	const assessmentItems: NavigationItem[] = [
-		{ label: "Assessments", href: projectAssessmentsPath(projectRouteContext) },
+		{ label: "Grades", href: projectGradesPath(projectRouteContext) },
 		{ label: "Results", href: projectResultsPath(projectRouteContext) },
 	];
 
@@ -193,7 +193,7 @@ export default function AppShellDrawerContent({
 
 			<Stack gap="xs" px="md" py="sm">
 				<Text size="xs" tt="uppercase" c="dimmed" fw={600}>
-					Export Submissions
+					Export Grades
 				</Text>
 				<Text size="sm" c="dimmed">
 					Configure columns before download.
@@ -226,7 +226,7 @@ export default function AppShellDrawerContent({
 					fullWidth
 					{...(onDismiss && { onClick: onDismiss })}
 				>
-					Download Submissions
+					Download Grades
 				</Button>
 			</Stack>
 			<Divider />

@@ -3,7 +3,8 @@ import type { Kysely } from "kysely";
 import { invalidateStudentImport } from "#db/cacheInvalidation.ts";
 import type { DB } from "#db/generated/db.ts";
 import { db as defaultDb } from "#db/kysely.ts";
-import type { NormalizedImportedSubmission } from "#imports/types.ts";
+import { nextGradeTargetIds } from "#grade-targets/gradeTargets.ts";
+import type { NormalizedImportedGradeTarget } from "#imports/types.ts";
 import {
 	prepareStudentImport,
 	type StudentImportPlan,
@@ -13,8 +14,8 @@ import { loadStudentImportContextFromDb } from "./studentImportContext.ts";
 export type StudentImportWriteResult = {
 	createdStudentCount: number;
 	updatedStudentCount: number;
-	createdSubmissionCount: number;
-	updatedSubmissionCount: number;
+	createdGradeTargetCount: number;
+	updatedGradeTargetCount: number;
 };
 
 // `db` may be the global client or a caller-supplied transaction. Executes a
@@ -23,33 +24,33 @@ export async function saveStudentImportPlanInDb(
 	db: Kysely<DB>,
 	{ plan, projectId }: { plan: StudentImportPlan; projectId: string },
 ): Promise<StudentImportWriteResult> {
-	const submissions = plan.writes;
-	const submissionsByOwner = submissions.map((submission) => {
-		const firstStudent = submission.students[0];
+	const targets = plan.writes;
+	const targetsByOwner = targets.map((target) => {
+		const firstStudent = target.students[0];
 		let studentId: string | undefined;
 
-		if (submission.type === "individual") {
+		if (target.kind === "individual") {
 			if (firstStudent == null) {
 				throw new Error(
-					`Individual submission ${submission.id} must include at least one student.`,
+					`Individual grade target ${target.id} must include at least one student.`,
 				);
-			} else if (submission.students.length > 1) {
+			} else if (target.students.length > 1) {
 				throw new Error(
-					`Individual submission ${submission.id} cannot include more than one student.`,
+					`Individual grade target ${target.id} cannot include more than one student.`,
 				);
 			}
 			studentId = firstStudent.id;
 		}
 
-		return { type: submission.type, groupName: submission.group, studentId };
+		return { kind: target.kind, groupName: target.group, studentId };
 	});
 
-	const studentsToUpsert = submissions.flatMap((submission) =>
-		submission.students.map((student) => ({
+	const studentsToUpsert = targets.flatMap((target) =>
+		target.students.map((student) => ({
 			id: student.id,
 			lastName: student.lastName,
 			firstName: student.firstName,
-			groupName: submission.type === "group" ? submission.group : undefined,
+			groupName: target.kind === "group" ? target.group : undefined,
 		})),
 	);
 
@@ -61,8 +62,8 @@ export async function saveStudentImportPlanInDb(
 	const projectRowId = projectRow.rowId;
 
 	const groupNames = new Set(
-		submissionsByOwner.flatMap((s) =>
-			s.type === "group" && s.groupName ? [s.groupName] : [],
+		targetsByOwner.flatMap((t) =>
+			t.kind === "group" && t.groupName ? [t.groupName] : [],
 		),
 	);
 
@@ -186,86 +187,108 @@ export async function saveStudentImportPlanInDb(
 		}
 	}
 
-	const groupSubmissions = submissionsByOwner.flatMap((submission) => {
-		if (submission.type !== "group") {
+	const groupTargetOwners = targetsByOwner.flatMap((target) => {
+		if (target.kind !== "group") {
 			return [];
 		}
 
-		const groupId =
-			submission.groupName != null
-				? groupsByName.get(submission.groupName)
-				: undefined;
+		const groupRowId =
+			target.groupName != null ? groupsByName.get(target.groupName) : undefined;
 
-		if (groupId == null) {
+		if (groupRowId == null) {
 			throw new Error(
-				`Group submission is missing a mapped group for "${
-					submission.groupName ?? "unknown"
+				`Group grade target is missing a mapped group for "${
+					target.groupName ?? "unknown"
 				}".`,
 			);
 		}
 
+		return [{ groupRowId }];
+	});
+
+	const individualTargetOwners = targetsByOwner.flatMap((target) => {
+		if (target.kind !== "individual") {
+			return [];
+		}
+
+		if (target.studentId == null) {
+			throw new Error("Individual grade target is missing student id.");
+		}
+
 		return [
-			{
-				type: "group" as const,
-				projectId: projectRowId,
-				groupId,
-				studentId: null,
-			},
+			{ studentRowId: studentRowIdsByImportedId.get(target.studentId) ?? null },
 		];
 	});
 
-	if (groupSubmissions.length > 0) {
+	// One reservation covers both batches: they write into the same table, so
+	// a candidate id must never repeat across the two INSERT statements below.
+	// A candidate that lands on an ON CONFLICT DO UPDATE path (an existing row)
+	// is simply never persisted — `id` is never in that clause's SET list — so
+	// this can leave gaps, never a collision (see nextGradeTargetIds).
+	const generatedIds = await nextGradeTargetIds(db, {
+		projectRowId,
+		count: groupTargetOwners.length + individualTargetOwners.length,
+	});
+	function takeGeneratedId(index: number): string {
+		const id = generatedIds[index];
+
+		if (id == null) {
+			throw new Error(
+				`Failed to resolve a generated grade target id at index ${index}.`,
+			);
+		}
+
+		return id;
+	}
+
+	const groupTargets = groupTargetOwners.map((owner, index) => ({
+		id: takeGeneratedId(index),
+		kind: "group" as const,
+		projectId: projectRowId,
+		groupRowId: owner.groupRowId,
+		studentRowId: null,
+	}));
+	const individualTargets = individualTargetOwners.map((owner, index) => ({
+		id: takeGeneratedId(groupTargetOwners.length + index),
+		kind: "individual" as const,
+		projectId: projectRowId,
+		studentRowId: owner.studentRowId,
+		groupRowId: null,
+	}));
+
+	if (groupTargets.length > 0) {
 		await db
-			.insertInto("submission")
-			.values(groupSubmissions)
+			.insertInto("gradeTarget")
+			.values(groupTargets)
 			.onConflict((conflict) =>
 				conflict
-					.column("groupId")
+					.column("groupRowId")
 					.doUpdateSet({
-						type: "group",
+						kind: "group",
 						projectId: (expressionBuilder) =>
 							expressionBuilder.ref("excluded.projectId"),
-						groupId: (expressionBuilder) =>
-							expressionBuilder.ref("excluded.groupId"),
-						studentId: null,
+						groupRowId: (expressionBuilder) =>
+							expressionBuilder.ref("excluded.groupRowId"),
+						studentRowId: null,
 					}),
 			)
 			.execute();
 	}
 
-	const individualSubmissions = submissionsByOwner.flatMap((submission) => {
-		if (submission.type !== "individual") {
-			return [];
-		}
-
-		if (submission.studentId == null) {
-			throw new Error("Individual submission is missing student id.");
-		}
-
-		return [
-			{
-				type: "individual" as const,
-				projectId: projectRowId,
-				studentId: studentRowIdsByImportedId.get(submission.studentId) ?? null,
-				groupId: null,
-			},
-		];
-	});
-
-	if (individualSubmissions.length > 0) {
+	if (individualTargets.length > 0) {
 		await db
-			.insertInto("submission")
-			.values(individualSubmissions)
+			.insertInto("gradeTarget")
+			.values(individualTargets)
 			.onConflict((conflict) =>
 				conflict
-					.column("studentId")
+					.column("studentRowId")
 					.doUpdateSet({
-						type: "individual",
+						kind: "individual",
 						projectId: (expressionBuilder) =>
 							expressionBuilder.ref("excluded.projectId"),
-						studentId: (expressionBuilder) =>
-							expressionBuilder.ref("excluded.studentId"),
-						groupId: null,
+						studentRowId: (expressionBuilder) =>
+							expressionBuilder.ref("excluded.studentRowId"),
+						groupRowId: null,
 					}),
 			)
 			.execute();
@@ -274,8 +297,8 @@ export async function saveStudentImportPlanInDb(
 	return {
 		createdStudentCount: plan.createdStudentIds.length,
 		updatedStudentCount: plan.updatedStudentIds.length,
-		createdSubmissionCount: plan.createdSubmissionIds.length,
-		updatedSubmissionCount: plan.updatedSubmissionIds.length,
+		createdGradeTargetCount: plan.createdGradeTargetIds.length,
+		updatedGradeTargetCount: plan.updatedGradeTargetIds.length,
 	};
 }
 
@@ -284,17 +307,17 @@ export async function saveStudentImportPlanInDb(
 // transaction — the wrapper opens its own.
 export async function saveStudents(
 	{
-		submissions,
+		targets,
 		projectId,
-	}: { submissions: NormalizedImportedSubmission[]; projectId: string },
+	}: { targets: NormalizedImportedGradeTarget[]; projectId: string },
 	{ db = defaultDb }: { db?: Kysely<DB> } = {},
 ): Promise<StudentImportWriteResult> {
 	const result = await db.transaction().execute(async (tx) => {
 		const context = await loadStudentImportContextFromDb(tx, {
-			submissions,
+			targets,
 			projectId,
 		});
-		const plan = prepareStudentImport({ submissions, context });
+		const plan = prepareStudentImport({ targets, context });
 
 		return saveStudentImportPlanInDb(tx, { plan, projectId });
 	});

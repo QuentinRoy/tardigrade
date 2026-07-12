@@ -1,16 +1,16 @@
 import { describe, expect, it } from "vitest";
+import type { GradeTarget } from "#grade-targets/types.ts";
 import type { RubricsById } from "#rubrics/types.ts";
-import type { Submission } from "#submissions/types.ts";
 import {
 	buildResultsData,
 	type ResultsAssessmentRecord,
 } from "./resultsBuilder.ts";
 
 describe("buildResultsData", () => {
-	const submissions: Submission[] = [
+	const targets: GradeTarget[] = [
 		{
 			id: "1",
-			type: "individual",
+			kind: "individual",
 			studentName: "Alice A",
 			displayLabel: "Alice A",
 			memberNames: [],
@@ -18,7 +18,7 @@ describe("buildResultsData", () => {
 		},
 		{
 			id: "2",
-			type: "individual",
+			kind: "individual",
 			studentName: "Bob B",
 			displayLabel: "Bob B",
 			memberNames: [],
@@ -60,7 +60,7 @@ describe("buildResultsData", () => {
 
 	it("preserves authored criterion order", () => {
 		const data = buildResultsData({
-			submissions,
+			targets,
 			rubricsById,
 			assessmentRecords: [],
 		});
@@ -74,7 +74,7 @@ describe("buildResultsData", () => {
 	it("computes averages and completion for mixed criterion kinds", () => {
 		const records: ResultsAssessmentRecord[] = [
 			{
-				gradeTargetId: 1,
+				gradeTargetId: "1",
 				criterionId: "r-boolean",
 				kind: "check",
 				passed: true,
@@ -82,7 +82,7 @@ describe("buildResultsData", () => {
 				score: null,
 			},
 			{
-				gradeTargetId: 2,
+				gradeTargetId: "2",
 				criterionId: "r-boolean",
 				kind: "check",
 				passed: false,
@@ -90,7 +90,7 @@ describe("buildResultsData", () => {
 				score: null,
 			},
 			{
-				gradeTargetId: 1,
+				gradeTargetId: "1",
 				criterionId: "r-numerical",
 				kind: "number",
 				passed: null,
@@ -100,7 +100,7 @@ describe("buildResultsData", () => {
 		];
 
 		const data = buildResultsData({
-			submissions,
+			targets,
 			rubricsById,
 			assessmentRecords: records,
 		});
@@ -131,7 +131,7 @@ describe("buildResultsData", () => {
 
 	it("maps details with type-specific properties", () => {
 		const data = buildResultsData({
-			submissions,
+			targets,
 			rubricsById,
 			assessmentRecords: [],
 		});
@@ -161,7 +161,7 @@ describe("buildResultsData", () => {
 	it("skips duplicate assessment records for the same grade target/criterion pair (first wins)", () => {
 		const records: ResultsAssessmentRecord[] = [
 			{
-				gradeTargetId: 1,
+				gradeTargetId: "1",
 				criterionId: "r-boolean",
 				kind: "check",
 				passed: true,
@@ -169,7 +169,7 @@ describe("buildResultsData", () => {
 				score: null,
 			},
 			{
-				gradeTargetId: 1,
+				gradeTargetId: "1",
 				criterionId: "r-boolean",
 				kind: "check",
 				passed: false,
@@ -179,7 +179,7 @@ describe("buildResultsData", () => {
 		];
 
 		const data = buildResultsData({
-			submissions,
+			targets,
 			rubricsById,
 			assessmentRecords: records,
 		});
@@ -247,7 +247,7 @@ describe("buildResultsData", () => {
 
 		const records: ResultsAssessmentRecord[] = [
 			{
-				gradeTargetId: 1,
+				gradeTargetId: "1",
 				criterionId: "r-boolean",
 				kind: "check",
 				passed: null,
@@ -255,7 +255,7 @@ describe("buildResultsData", () => {
 				score: null,
 			},
 			{
-				gradeTargetId: 1,
+				gradeTargetId: "1",
 				criterionId: "r-ordinal",
 				kind: "options",
 				passed: null,
@@ -263,7 +263,7 @@ describe("buildResultsData", () => {
 				score: null,
 			},
 			{
-				gradeTargetId: 1,
+				gradeTargetId: "1",
 				criterionId: "r-numerical",
 				kind: "number",
 				passed: null,
@@ -273,7 +273,7 @@ describe("buildResultsData", () => {
 		];
 
 		const data = buildResultsData({
-			submissions,
+			targets,
 			rubricsById: ordinalGrid,
 			assessmentRecords: records,
 		});
@@ -292,7 +292,7 @@ describe("buildResultsData", () => {
 	it("skips records referencing an unknown criterionId or gradeTargetId", () => {
 		const records: ResultsAssessmentRecord[] = [
 			{
-				gradeTargetId: 1,
+				gradeTargetId: "1",
 				criterionId: "unknown-criterion",
 				kind: "check",
 				passed: true,
@@ -300,7 +300,7 @@ describe("buildResultsData", () => {
 				score: null,
 			},
 			{
-				gradeTargetId: 999,
+				gradeTargetId: "999",
 				criterionId: "r-boolean",
 				kind: "check",
 				passed: true,
@@ -310,7 +310,7 @@ describe("buildResultsData", () => {
 		];
 
 		const data = buildResultsData({
-			submissions,
+			targets,
 			rubricsById,
 			assessmentRecords: records,
 		});

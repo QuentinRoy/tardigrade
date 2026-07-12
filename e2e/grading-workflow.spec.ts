@@ -1,14 +1,14 @@
 import { readFileSync } from "node:fs";
 import { expect, type Page, test } from "@playwright/test";
 import {
-	projectExportSubmissionsPath,
+	projectExportGradesPath,
 	projectResultsPath,
 } from "#projects/projectPaths.ts";
 import {
 	EXPECTED_COMPLETION,
 	EXPECTED_CRITERION_ANALYTICS,
+	EXPECTED_FINAL_TOTAL,
 	EXPECTED_GRADE_MATRIX,
-	EXPECTED_GRAND_TOTAL_MARKS,
 	PROJECT_NAME,
 } from "./fixtures/expectations.ts";
 
@@ -59,9 +59,9 @@ async function expectCompletion(
 	).toBeVisible();
 }
 
-// Bulk imports invalidate the dashboard's completion tags with
+// Bulk imports invalidate the grid home's completion tags with
 // stale-while-revalidate, not read-your-own-writes (see
-// `src/db/cacheInvalidation.ts`): the dashboard was already cached at "0 / 0"
+// `src/db/cacheInvalidation.ts`): the grid home was already cached at "0 / 0"
 // from the project-creation redirect, so the very next load can still serve
 // that stale value while a background refresh recomputes it. Poll with reloads
 // until the refreshed value lands, rather than asserting on a single load.
@@ -72,7 +72,11 @@ async function expectCompletionEventually(
 ): Promise<void> {
 	await expect(async () => {
 		await page.goto(dashboardUrl);
-		await expectCompletion(page, "Submissions assessed", expected.submissions);
+		await expectCompletion(
+			page,
+			"Students and groups assessed",
+			expected.gradeTargets,
+		);
 		await expectCompletion(page, "Rubrics assessed", expected.rubrics);
 		await expectCompletion(page, "Criteria assessed", expected.criteria);
 	}).toPass({ timeout: 15_000, intervals: [250, 500, 1000, 2000] });
@@ -193,7 +197,7 @@ test("grading workflow: import, assess, persist, and export a computed total", a
 	}
 
 	// Import in dependency order: rubrics define the rubric model, students
-	// create the submissions, assessments are the grade source.
+	// create the grade targets, assessments are the grade source.
 	await page.goto(`/projects/${projectId}/${projectSlug}/import/rubrics`);
 	await importFixture(page, {
 		fieldLabel: "Rubrics YAML",
@@ -225,8 +229,8 @@ test("grading workflow: import, assess, persist, and export a computed total", a
 	await page.reload();
 	await expectCompletion(
 		page,
-		"Submissions assessed",
-		EXPECTED_COMPLETION.submissions,
+		"Students and groups assessed",
+		EXPECTED_COMPLETION.gradeTargets,
 	);
 
 	// Visit the results page: it renders CriterionAnalyticsTable and
@@ -250,25 +254,23 @@ test("grading workflow: import, assess, persist, and export a computed total", a
 		await expectGradeMatrixRow(page, expected);
 	}
 
-	// Export the submissions CSV via the GET route (request context avoids
-	// browser download flakiness) and assert the computed grand totals. The
-	// dashboard shows completion only, so the numeric total is asserted here.
+	// Export the grades CSV via the GET route (request context avoids
+	// browser download flakiness) and assert the computed final totals. The
+	// grid home shows completion only, so the numeric total is asserted here.
 	const exportResponse = await page.request.get(
-		projectExportSubmissionsPath({ projectId, projectSlug }),
+		projectExportGradesPath({ projectId, projectSlug }),
 	);
 	expect(exportResponse.ok()).toBe(true);
 
 	const records = parseCsv(await exportResponse.text());
-	const grandTotalBySubmitter = new Map(
-		records.map((record) => [record["submitter"], record["grand_total_marks"]]),
+	const finalTotalByName = new Map(
+		records.map((record) => [record["name"], record["final_total"]]),
 	);
 
-	for (const [submitter, expectedMarks] of Object.entries(
-		EXPECTED_GRAND_TOTAL_MARKS,
-	)) {
-		const actual = grandTotalBySubmitter.get(submitter);
+	for (const [name, expectedMarks] of Object.entries(EXPECTED_FINAL_TOTAL)) {
+		const actual = finalTotalByName.get(name);
 		if (expectedMarks == null) {
-			// Not fully assessed: the export leaves grand_total_marks blank.
+			// Not fully assessed: the export leaves final_total blank.
 			expect(actual).toBe("");
 		} else {
 			expect(actual).toBe(String(expectedMarks));

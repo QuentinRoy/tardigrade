@@ -9,7 +9,12 @@ export type SaveAssessmentResult =
 	| { success: false; error: string };
 
 export type SaveAssessmentParams = {
-	submissionId: string;
+	// The grade target's public id is only unique within its project (unlike
+	// the old globally-unique numeric submission id), so the project must be
+	// supplied explicitly rather than resolved from the target id alone
+	// (CONTEXT Grid Resolution Strategy).
+	projectId: string;
+	targetId: string;
 	rubricId: string;
 	assessment: AssessmentCriterionValue;
 };
@@ -34,24 +39,35 @@ export const assessmentErrors = {
 // The db is either the global client or a caller-supplied transaction.
 export async function saveAssessmentInDb(
 	db: Kysely<DB>,
-	{ submissionId, rubricId, assessment }: SaveAssessmentParams,
+	{ projectId, targetId, rubricId, assessment }: SaveAssessmentParams,
 ): Promise<SaveAssessmentResult> {
 	const criterionId = assessment.criterionId;
 
-	const submission = await db
-		.selectFrom("submission")
-		.where("id", "=", Number(submissionId))
-		.select(["id", "projectId"])
+	const project = await db
+		.selectFrom("project")
+		.where("id", "=", projectId)
+		.select("rowId")
 		.executeTakeFirst();
 
-	if (submission == null) {
+	if (project == null) {
+		return { success: false, error: assessmentErrors.contextMissing };
+	}
+
+	const target = await db
+		.selectFrom("gradeTarget")
+		.where("id", "=", targetId)
+		.where("projectId", "=", project.rowId)
+		.select("rowId")
+		.executeTakeFirst();
+
+	if (target == null) {
 		return { success: false, error: assessmentErrors.contextMissing };
 	}
 
 	const rubric = await db
 		.selectFrom("rubric")
 		.where("id", "=", rubricId)
-		.where("projectId", "=", submission.projectId)
+		.where("projectId", "=", project.rowId)
 		.select(["id", "rowId", "projectId"])
 		.executeTakeFirst();
 
@@ -103,17 +119,17 @@ export async function saveAssessmentInDb(
 		.insertInto("assessment")
 		.values({
 			projectId: rubric.projectId,
-			submissionId: submission.id,
+			gradeTargetRowId: target.rowId,
 			rubricId: rubric.rowId,
 		})
 		.onConflict((conflict) =>
-			conflict.columns(["submissionId", "rubricId"]).doNothing(),
+			conflict.columns(["gradeTargetRowId", "rubricId"]).doNothing(),
 		)
 		.execute();
 
 	const existingAssessment = await db
 		.selectFrom("assessment")
-		.where("submissionId", "=", submission.id)
+		.where("gradeTargetRowId", "=", target.rowId)
 		.where("rubricId", "=", rubric.rowId)
 		.select("id")
 		.executeTakeFirstOrThrow();

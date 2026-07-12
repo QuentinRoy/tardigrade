@@ -27,7 +27,7 @@ function MetricCard({
 			flex="1 1 220px"
 			miw={{ base: "100%", sm: 220 }}
 			// Group the metric under its title so it has a single accessible name
-			// (assistive tech and tests can target "Submissions assessed" etc.).
+			// (assistive tech and tests can target "Students and groups assessed" etc.).
 			role="group"
 			aria-label={title}
 		>
@@ -54,21 +54,21 @@ export default function GlobalAssessmentSummary({
 		<Group gap="sm" wrap="wrap" align="stretch">
 			<MetricCard
 				title="Criteria assessed"
-				helper="Saved criterion assessments across all submissions"
+				helper="Saved criterion assessments across all students and groups"
 				completed={progress.criteria.completed}
 				total={progress.criteria.total}
 			/>
 			<MetricCard
 				title="Rubrics assessed"
-				helper="Fully assessed across all submissions"
+				helper="Fully assessed across all students and groups"
 				completed={progress.rubrics.completed}
 				total={progress.rubrics.total}
 			/>
 			<MetricCard
-				title="Submissions assessed"
+				title="Students and groups assessed"
 				helper="Fully assessed across all rubrics"
-				completed={progress.submissions.completed}
-				total={progress.submissions.total}
+				completed={progress.gradeTargets.completed}
+				total={progress.gradeTargets.total}
 			/>
 		</Group>
 	);

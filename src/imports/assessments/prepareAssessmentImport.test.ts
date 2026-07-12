@@ -4,7 +4,7 @@ import {
 	type AssessmentImportContext,
 	assessedCriterionKey,
 	prepareAssessmentImport,
-	submissionLookupKey,
+	targetLookupKey,
 } from "./prepareAssessmentImport.ts";
 
 function buildContext(
@@ -13,13 +13,13 @@ function buildContext(
 	return {
 		criteriaByColumn: new Map(),
 		rubricIds: new Set(),
-		submissionIdsByLookup: new Map(),
+		targetIdsByLookup: new Map(),
 		assessedCriterionKeys: new Set(),
 		...overrides,
 	};
 }
 
-test("prepareAssessmentImport plans one write per non-empty criterion cell of a matched submission", () => {
+test("prepareAssessmentImport plans one write per non-empty criterion cell of a matched target", () => {
 	const context = buildContext({
 		criteriaByColumn: new Map([
 			[
@@ -40,12 +40,9 @@ test("prepareAssessmentImport plans one write per non-empty criterion cell of a 
 				},
 			],
 		]),
-		submissionIdsByLookup: new Map([
+		targetIdsByLookup: new Map([
 			[
-				submissionLookupKey({
-					submissionType: "individual",
-					submitter: "student-1",
-				}),
+				targetLookupKey({ targetKind: "individual", name: "student-1" }),
 				["42"],
 			],
 		]),
@@ -53,8 +50,8 @@ test("prepareAssessmentImport plans one write per non-empty criterion cell of a 
 
 	const rows: ImportedAssessmentRow[] = [
 		{
-			submission_type: "individual",
-			submitter: "student-1",
+			kind: "individual",
+			name: "student-1",
 			"q1:r-bool": "true",
 			"q1:r-num": "7.5",
 			"q2:r-ord": "",
@@ -65,19 +62,19 @@ test("prepareAssessmentImport plans one write per non-empty criterion cell of a 
 
 	expect(plan.writes).toEqual([
 		{
-			submissionId: "42",
+			targetId: "42",
 			rubricId: "q1",
 			assessment: { criterionId: "r-bool", kind: "check", passed: true },
 		},
 		{
-			submissionId: "42",
+			targetId: "42",
 			rubricId: "q1",
 			assessment: { criterionId: "r-num", kind: "number", score: 7.5 },
 		},
 	]);
 });
 
-test("prepareAssessmentImport reports an unmatched submission as a blocking diagnostic", () => {
+test("prepareAssessmentImport reports an unmatched target as a blocking diagnostic", () => {
 	const context = buildContext({
 		criteriaByColumn: new Map([
 			[
@@ -88,11 +85,7 @@ test("prepareAssessmentImport reports an unmatched submission as a blocking diag
 	});
 
 	const rows: ImportedAssessmentRow[] = [
-		{
-			submission_type: "individual",
-			submitter: "ghost-student",
-			"q1:r-bool": "true",
-		},
+		{ kind: "individual", name: "ghost-student", "q1:r-bool": "true" },
 	];
 
 	const plan = prepareAssessmentImport({ rows, context });
@@ -100,15 +93,15 @@ test("prepareAssessmentImport reports an unmatched submission as a blocking diag
 	expect(plan.writes).toEqual([]);
 	expect(plan.blockingDiagnostics).toEqual([
 		{
-			type: "unmatched-submission",
+			type: "unmatched-target",
 			row: 2,
-			submissionType: "individual",
-			submitter: "ghost-student",
+			targetKind: "individual",
+			name: "ghost-student",
 		},
 	]);
 });
 
-test("prepareAssessmentImport reports an ambiguous submission as a blocking diagnostic", () => {
+test("prepareAssessmentImport reports an ambiguous target as a blocking diagnostic", () => {
 	const context = buildContext({
 		criteriaByColumn: new Map([
 			[
@@ -116,28 +109,20 @@ test("prepareAssessmentImport reports an ambiguous submission as a blocking diag
 				{ id: "r-bool", kind: "check", rubricId: "q1", ordinalLabels: [] },
 			],
 		]),
-		submissionIdsByLookup: new Map([
-			[
-				submissionLookupKey({ submissionType: "group", submitter: "Group A" }),
-				["7", "8"],
-			],
+		targetIdsByLookup: new Map([
+			[targetLookupKey({ targetKind: "group", name: "Group A" }), ["7", "8"]],
 		]),
 	});
 
 	const rows: ImportedAssessmentRow[] = [
-		{ submission_type: "group", submitter: "Group A", "q1:r-bool": "true" },
+		{ kind: "group", name: "Group A", "q1:r-bool": "true" },
 	];
 
 	const plan = prepareAssessmentImport({ rows, context });
 
 	expect(plan.writes).toEqual([]);
 	expect(plan.blockingDiagnostics).toEqual([
-		{
-			type: "ambiguous-submission",
-			row: 2,
-			submissionType: "group",
-			submitter: "Group A",
-		},
+		{ type: "ambiguous-target", row: 2, targetKind: "group", name: "Group A" },
 	]);
 });
 
@@ -149,23 +134,16 @@ test("prepareAssessmentImport reports an invalid cell value as a blocking diagno
 				{ id: "r-bool", kind: "check", rubricId: "q1", ordinalLabels: [] },
 			],
 		]),
-		submissionIdsByLookup: new Map([
+		targetIdsByLookup: new Map([
 			[
-				submissionLookupKey({
-					submissionType: "individual",
-					submitter: "student-1",
-				}),
+				targetLookupKey({ targetKind: "individual", name: "student-1" }),
 				["42"],
 			],
 		]),
 	});
 
 	const rows: ImportedAssessmentRow[] = [
-		{
-			submission_type: "individual",
-			submitter: "student-1",
-			"q1:r-bool": "not-a-boolean",
-		},
+		{ kind: "individual", name: "student-1", "q1:r-bool": "not-a-boolean" },
 	];
 
 	const plan = prepareAssessmentImport({ rows, context });
@@ -175,7 +153,7 @@ test("prepareAssessmentImport reports an invalid cell value as a blocking diagno
 		{
 			type: "invalid-value",
 			row: 2,
-			submitter: "student-1",
+			name: "student-1",
 			column: "q1:r-bool",
 			message: 'Invalid check value "not-a-boolean"',
 		},
@@ -190,12 +168,9 @@ test("prepareAssessmentImport reports an unknown column as a blocking diagnostic
 				{ id: "r-bool", kind: "check", rubricId: "q1", ordinalLabels: [] },
 			],
 		]),
-		submissionIdsByLookup: new Map([
+		targetIdsByLookup: new Map([
 			[
-				submissionLookupKey({
-					submissionType: "individual",
-					submitter: "student-1",
-				}),
+				targetLookupKey({ targetKind: "individual", name: "student-1" }),
 				["42"],
 			],
 		]),
@@ -203,8 +178,8 @@ test("prepareAssessmentImport reports an unknown column as a blocking diagnostic
 
 	const rows: ImportedAssessmentRow[] = [
 		{
-			submission_type: "individual",
-			submitter: "student-1",
+			kind: "individual",
+			name: "student-1",
 			"q1:r-bool": "true",
 			mystery_column: "oops",
 		},
@@ -226,12 +201,9 @@ test("prepareAssessmentImport reports derived export columns as ignored, never b
 			],
 		]),
 		rubricIds: new Set(["q1"]),
-		submissionIdsByLookup: new Map([
+		targetIdsByLookup: new Map([
 			[
-				submissionLookupKey({
-					submissionType: "individual",
-					submitter: "student-1",
-				}),
+				targetLookupKey({ targetKind: "individual", name: "student-1" }),
 				["42"],
 			],
 		]),
@@ -239,12 +211,12 @@ test("prepareAssessmentImport reports derived export columns as ignored, never b
 
 	const rows: ImportedAssessmentRow[] = [
 		{
-			submission_type: "individual",
-			submitter: "student-1",
+			kind: "individual",
+			name: "student-1",
 			"q1:r-bool": "true",
 			"q1:r-bool:marks": "2",
-			q1: "2",
-			grand_total_marks: "2",
+			"q1:total": "2",
+			final_total: "2",
 		},
 	];
 
@@ -253,8 +225,8 @@ test("prepareAssessmentImport reports derived export columns as ignored, never b
 	expect(plan.blockingDiagnostics).toEqual([]);
 	expect(plan.ignoredColumns).toEqual([
 		"q1:r-bool:marks",
-		"q1",
-		"grand_total_marks",
+		"q1:total",
+		"final_total",
 	]);
 	expect(plan.writes).toHaveLength(1);
 });
@@ -271,24 +243,21 @@ test("prepareAssessmentImport lists existing values of targeted pairs as overwri
 				{ id: "r-num", kind: "number", rubricId: "q1", ordinalLabels: [] },
 			],
 		]),
-		submissionIdsByLookup: new Map([
+		targetIdsByLookup: new Map([
 			[
-				submissionLookupKey({
-					submissionType: "individual",
-					submitter: "student-1",
-				}),
+				targetLookupKey({ targetKind: "individual", name: "student-1" }),
 				["42"],
 			],
 		]),
 		assessedCriterionKeys: new Set([
-			assessedCriterionKey({ submissionId: "42", criterionId: "r-bool" }),
+			assessedCriterionKey({ targetId: "42", criterionId: "r-bool" }),
 		]),
 	});
 
 	const rows: ImportedAssessmentRow[] = [
 		{
-			submission_type: "individual",
-			submitter: "student-1",
+			kind: "individual",
+			name: "student-1",
 			"q1:r-bool": "true",
 			"q1:r-num": "7.5",
 		},
@@ -297,9 +266,7 @@ test("prepareAssessmentImport lists existing values of targeted pairs as overwri
 	const plan = prepareAssessmentImport({ rows, context });
 
 	expect(plan.writes).toHaveLength(2);
-	expect(plan.overwrites).toEqual([
-		{ submissionId: "42", criterionId: "r-bool" },
-	]);
+	expect(plan.overwrites).toEqual([{ targetId: "42", criterionId: "r-bool" }]);
 });
 
 test("prepareAssessmentImport blocks with no-assessment-columns when the header has only derived export columns", () => {
@@ -311,12 +278,9 @@ test("prepareAssessmentImport blocks with no-assessment-columns when the header 
 			],
 		]),
 		rubricIds: new Set(["q1"]),
-		submissionIdsByLookup: new Map([
+		targetIdsByLookup: new Map([
 			[
-				submissionLookupKey({
-					submissionType: "individual",
-					submitter: "student-1",
-				}),
+				targetLookupKey({ targetKind: "individual", name: "student-1" }),
 				["42"],
 			],
 		]),
@@ -324,11 +288,11 @@ test("prepareAssessmentImport blocks with no-assessment-columns when the header 
 
 	const rows: ImportedAssessmentRow[] = [
 		{
-			submission_type: "individual",
-			submitter: "student-1",
+			kind: "individual",
+			name: "student-1",
 			"q1:r-bool:marks": "2",
-			q1: "2",
-			grand_total_marks: "2",
+			"q1:total": "2",
+			final_total: "2",
 		},
 	];
 
@@ -362,19 +326,16 @@ test("prepareAssessmentImport does not block when the header has an assessment c
 				{ id: "r-bool", kind: "check", rubricId: "q1", ordinalLabels: [] },
 			],
 		]),
-		submissionIdsByLookup: new Map([
+		targetIdsByLookup: new Map([
 			[
-				submissionLookupKey({
-					submissionType: "individual",
-					submitter: "student-1",
-				}),
+				targetLookupKey({ targetKind: "individual", name: "student-1" }),
 				["42"],
 			],
 		]),
 	});
 
 	const rows: ImportedAssessmentRow[] = [
-		{ submission_type: "individual", submitter: "student-1", "q1:r-bool": "" },
+		{ kind: "individual", name: "student-1", "q1:r-bool": "" },
 	];
 
 	const plan = prepareAssessmentImport({ rows, context });

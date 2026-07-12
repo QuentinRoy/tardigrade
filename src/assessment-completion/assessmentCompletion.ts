@@ -1,89 +1,88 @@
 export type CompletionMetric = { completed: number; total: number };
 
 export type AssessmentCompletionInput = {
-	submissionIds: string[];
+	targetIds: string[];
 	rubrics: Array<{ id: string; criterionCount: number }>;
 	assessmentCounts: Array<{
-		submissionId: string;
+		targetId: string;
 		rubricId: string;
 		assessmentCount: number;
 	}>;
 };
 
 export type AssessmentCompletion = {
-	totalSubmissions: number;
+	totalGradeTargets: number;
 	totalRubrics: number;
-	completedRubricCountBySubmissionId: Map<string, number>;
-	completedSubmissionCountByRubricId: Map<string, number>;
-	completedSubmissions: number;
+	completedRubricCountByTargetId: Map<string, number>;
+	completedGradeTargetCountByRubricId: Map<string, number>;
+	completedGradeTargets: number;
 	completedRubrics: number;
 };
 
 export function buildAssessmentCompletion({
-	submissionIds,
+	targetIds,
 	rubrics,
 	assessmentCounts,
 }: AssessmentCompletionInput): AssessmentCompletion {
-	const totalSubmissions = submissionIds.length;
+	const totalGradeTargets = targetIds.length;
 	const totalRubrics = rubrics.length;
 
 	const assessmentCountByKey = new Map<string, number>(
-		assessmentCounts.map(({ submissionId, rubricId, assessmentCount }) => [
-			`${submissionId}:${rubricId}`,
+		assessmentCounts.map(({ targetId, rubricId, assessmentCount }) => [
+			`${targetId}:${rubricId}`,
 			assessmentCount,
 		]),
 	);
 
-	const completedRubricCountBySubmissionId = new Map<string, number>();
-	const completedSubmissionCountByRubricId = new Map<string, number>(
+	const completedRubricCountByTargetId = new Map<string, number>();
+	const completedGradeTargetCountByRubricId = new Map<string, number>(
 		rubrics.map((rubric) => [rubric.id, 0]),
 	);
 
-	for (const submissionId of submissionIds) {
+	for (const targetId of targetIds) {
 		let completedRubricCount = 0;
 
 		for (const rubric of rubrics) {
 			const assessmentCount =
-				assessmentCountByKey.get(`${submissionId}:${rubric.id}`) ?? 0;
+				assessmentCountByKey.get(`${targetId}:${rubric.id}`) ?? 0;
 			const isComplete =
 				rubric.criterionCount === 0 || assessmentCount >= rubric.criterionCount;
 
 			if (isComplete) {
 				completedRubricCount += 1;
-				completedSubmissionCountByRubricId.set(
+				completedGradeTargetCountByRubricId.set(
 					rubric.id,
-					(completedSubmissionCountByRubricId.get(rubric.id) ?? 0) + 1,
+					(completedGradeTargetCountByRubricId.get(rubric.id) ?? 0) + 1,
 				);
 			}
 		}
 
-		completedRubricCountBySubmissionId.set(submissionId, completedRubricCount);
+		completedRubricCountByTargetId.set(targetId, completedRubricCount);
 	}
 
-	const completedSubmissions =
+	const completedGradeTargets =
 		totalRubrics === 0
-			? totalSubmissions
-			: submissionIds.filter(
-					(submissionId) =>
-						completedRubricCountBySubmissionId.get(submissionId) ===
-						totalRubrics,
+			? totalGradeTargets
+			: targetIds.filter(
+					(targetId) =>
+						completedRubricCountByTargetId.get(targetId) === totalRubrics,
 				).length;
 
 	const completedRubrics =
-		totalSubmissions === 0
+		totalGradeTargets === 0
 			? totalRubrics
 			: rubrics.filter(
 					(rubric) =>
-						completedSubmissionCountByRubricId.get(rubric.id) ===
-						totalSubmissions,
+						completedGradeTargetCountByRubricId.get(rubric.id) ===
+						totalGradeTargets,
 				).length;
 
 	return {
-		totalSubmissions,
+		totalGradeTargets,
 		totalRubrics,
-		completedRubricCountBySubmissionId,
-		completedSubmissionCountByRubricId,
-		completedSubmissions,
+		completedRubricCountByTargetId,
+		completedGradeTargetCountByRubricId,
+		completedGradeTargets,
 		completedRubrics,
 	};
 }

@@ -7,7 +7,7 @@ const projectId = "p-abc123";
 const meta = {
 	title: "Shared/CosmeticSlugReplacement",
 	component: CosmeticSlugReplacement,
-	args: { id: projectId, slug: "cs101" },
+	args: { idIndex: 2, id: projectId, slug: "cs101" },
 } satisfies Meta<typeof CosmeticSlugReplacement>;
 
 export default meta;

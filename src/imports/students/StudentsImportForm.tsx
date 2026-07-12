@@ -37,7 +37,7 @@ export default function StudentsImportForm({
 					<Text size="sm" c="dimmed">
 						Required columns: <code>last_name</code>, <code>first_name</code>,{" "}
 						<code>id</code>. Optional: <code>group</code> (students sharing a
-						group get grouped into the same submission).
+						group are graded together as that group).
 					</Text>
 					<Code block>{STUDENTS_CSV_PLACEHOLDER}</Code>
 				</Stack>

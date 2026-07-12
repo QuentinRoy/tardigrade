@@ -3,8 +3,8 @@ import type { Kysely } from "kysely";
 import { cacheLife } from "next/cache";
 import type { AssessmentCriterionValue } from "#criteria/types.ts";
 import {
-	assessmentForSubmissionCacheTag,
-	assessmentForSubmissionRubricCacheTag,
+	assessmentForGradeTargetCacheTag,
+	assessmentForGradeTargetRubricCacheTag,
 	assessmentImportCacheTag,
 	cacheTags,
 } from "#db/cacheTags.ts";
@@ -13,64 +13,64 @@ import { db as defaultDb } from "#db/kysely.ts";
 import { assertNever, nonNull } from "#utils/utils.ts";
 
 export function loadAssessmentCacheTags({
-	submissionId,
+	targetId,
 	rubricId,
 }: {
-	submissionId: string;
+	targetId: string;
 	rubricId?: string | undefined;
 }) {
-	// The granular (or submission-scoped) tag refreshes on individual saves;
+	// The granular (or target-scoped) tag refreshes on individual saves;
 	// the import tag refreshes on bulk imports.
 	const scopeTag =
 		rubricId == null
-			? assessmentForSubmissionCacheTag(submissionId)
-			: assessmentForSubmissionRubricCacheTag({ submissionId, rubricId });
+			? assessmentForGradeTargetCacheTag(targetId)
+			: assessmentForGradeTargetRubricCacheTag({ targetId, rubricId });
 	return [scopeTag, assessmentImportCacheTag()];
 }
 
-// Returns the typed criterion values for a single submission/rubric assessment.
+// Returns the typed criterion values for a single grade-target/rubric assessment.
 // `db` is a test seam only (ADR 0007 rules 13–14): never pass a handle at runtime —
 // Kysely instances are not serializable and Next.js throws on the cache key.
 export async function loadRubricAssessment(
 	{
-		submissionId,
+		targetId,
 		projectId,
 		rubricId,
-	}: { submissionId: string; projectId: string; rubricId: string },
+	}: { targetId: string; projectId: string; rubricId: string },
 	{ db = defaultDb }: { db?: Kysely<DB> } = {},
 ): Promise<AssessmentCriterionValue[]> {
 	"use cache";
-	cacheTags(...loadAssessmentCacheTags({ submissionId, rubricId }));
+	cacheTags(...loadAssessmentCacheTags({ targetId, rubricId }));
 	cacheLife("values");
-	return loadRubricAssessmentFromDb(db, { submissionId, projectId, rubricId });
+	return loadRubricAssessmentFromDb(db, { targetId, projectId, rubricId });
 }
 
-// Returns every rubric's criterion values for a submission in one query, keyed by
-// Rubric ID. Lets the submission overview load all assessments at once instead
-// of issuing one request per rubric.
+// Returns every rubric's criterion values for a grade target in one query, keyed
+// by Rubric ID. Lets the grade-target overview load all assessments at once
+// instead of issuing one request per rubric.
 // `db` is a test seam only (ADR 0007 rules 13–14): never pass a handle at runtime —
 // Kysely instances are not serializable and Next.js throws on the cache key.
-export async function loadSubmissionAssessments(
-	{ submissionId, projectId }: { submissionId: string; projectId: string },
+export async function loadGradeTargetAssessments(
+	{ targetId, projectId }: { targetId: string; projectId: string },
 	{ db = defaultDb }: { db?: Kysely<DB> } = {},
 ): Promise<Record<string, AssessmentCriterionValue[]>> {
 	"use cache";
-	cacheTags(...loadAssessmentCacheTags({ submissionId }));
+	cacheTags(...loadAssessmentCacheTags({ targetId }));
 	cacheLife("values");
-	return loadSubmissionAssessmentsFromDb(db, { submissionId, projectId });
+	return loadGradeTargetAssessmentsFromDb(db, { targetId, projectId });
 }
 
 // `db` may be the global client or a caller-supplied transaction.
 export async function loadRubricAssessmentFromDb(
 	db: Kysely<DB>,
 	{
-		submissionId,
+		targetId,
 		projectId,
 		rubricId,
-	}: { submissionId: string; projectId: string; rubricId: string },
+	}: { targetId: string; projectId: string; rubricId: string },
 ): Promise<AssessmentCriterionValue[]> {
 	const rows = await loadCriterionAssessmentRows(db, {
-		submissionId,
+		targetId,
 		projectId,
 		rubricId,
 	});
@@ -86,14 +86,11 @@ export async function loadRubricAssessmentFromDb(
 }
 
 // `db` may be the global client or a caller-supplied transaction.
-export async function loadSubmissionAssessmentsFromDb(
+export async function loadGradeTargetAssessmentsFromDb(
 	db: Kysely<DB>,
-	{ submissionId, projectId }: { submissionId: string; projectId: string },
+	{ targetId, projectId }: { targetId: string; projectId: string },
 ): Promise<Record<string, AssessmentCriterionValue[]>> {
-	const rows = await loadCriterionAssessmentRows(db, {
-		submissionId,
-		projectId,
-	});
+	const rows = await loadCriterionAssessmentRows(db, { targetId, projectId });
 
 	const valuesByRubricId: Record<string, AssessmentCriterionValue[]> = {};
 	for (const row of rows) {
@@ -116,21 +113,25 @@ type CriterionAssessmentRow = {
 	score: number | string | null;
 };
 
-// Loads one row per stored criterion assessment for a submission, optionally scoped
-// to a single rubric. Filtering by Project ID disambiguates submissions and
-// rubrics that share public ids across projects.
+// Loads one row per stored criterion assessment for a grade target, optionally
+// scoped to a single rubric. Filtering by Project ID disambiguates grade
+// targets and rubrics that share public ids across projects.
 async function loadCriterionAssessmentRows(
 	db: Kysely<DB>,
 	{
-		submissionId,
+		targetId,
 		projectId,
 		rubricId,
-	}: { submissionId: string; projectId: string; rubricId?: string | undefined },
+	}: { targetId: string; projectId: string; rubricId?: string | undefined },
 ): Promise<CriterionAssessmentRow[]> {
 	return db
 		.selectFrom("assessment")
-		.innerJoin("submission", "submission.id", "assessment.submissionId")
-		.innerJoin("project", "project.rowId", "submission.projectId")
+		.innerJoin(
+			"gradeTarget",
+			"gradeTarget.rowId",
+			"assessment.gradeTargetRowId",
+		)
+		.innerJoin("project", "project.rowId", "gradeTarget.projectId")
 		.innerJoin("rubric", "rubric.rowId", "assessment.rubricId")
 		.innerJoin(
 			"criterionAssessment",
@@ -158,7 +159,7 @@ async function loadCriterionAssessmentRows(
 			"criterionAssessment.id",
 		)
 		.where("project.id", "=", projectId)
-		.where("submission.id", "=", Number(submissionId))
+		.where("gradeTarget.id", "=", targetId)
 		.$if(rubricId != null, (qb) =>
 			qb.where("rubric.id", "=", nonNull(rubricId)),
 		)

@@ -37,7 +37,8 @@ test("saveAssessment returns a generic shaped error and logs once when the mutat
 
 		const result = await saveAssessment(
 			{
-				submissionId: fixture.submissionId,
+				projectId: fixture.projectId,
+				targetId: fixture.gradeTargetId,
 				rubricId: fixture.rubricId,
 				assessment: {
 					criterionId: fixture.criterionIds.boolean,
