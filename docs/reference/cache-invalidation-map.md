@@ -18,6 +18,8 @@ See `docs/adr/0008-cache-tags-lifetimes-and-invalidation.md` for the rules that 
 | `assessmentForGradeTargetRubricCacheTag({target, rubric})` | `assessments:{target}:{rubric}` | Exact grade-target/rubric pair |
 | `assessmentProgressForRubricCacheTag(rubric)` | `assessments:rubric:{rubric}` | One rubric's progress across all grade targets |
 
+Scoping caveat: `{target}` and `{rubric}` are public ids, unique only within a grid, so the three id-keyed tags above collide across grids (e.g. `t-1` in two grids shares `assessments:t-1`). The effect is over-invalidation — an extra rebuild in the other grid — never stale data. Grid-scoping these tags is folded into the Project→Grid stage of the terminology sweep (`plans/2026-07-06-terminology-sweep.md`, stage 6).
+
 ## Mutations → tags invalidated
 
 Each mutation calls exactly one semantic helper from `src/db/cacheInvalidation.ts` after its transaction commits (ADR 0008 rule 6). The helper picks the primitive per tag class: `updateTag` (read-your-own-writes) expires the entry immediately and is used for the tags of the entity just edited, so the editor sees its own change; `revalidateTag("max")` serves stale data while refreshing in the background and is used for coarse aggregate and derived projection tags, so a save never blocks the next navigation on recomputing project-wide completion.
