@@ -72,34 +72,22 @@ function formatStudentName(lastName: string, firstName: string): string {
 	return `${lastName} ${firstName}`.trim();
 }
 
-// `db` may be the global client or a caller-supplied transaction.
+// `db` may be the global client or a caller-supplied transaction. `projectId`
+// is required: `gradeTarget.id` is only unique within a project, so an
+// unscoped load would collide keys in `groupMembersByTargetId`.
 export async function loadGradeTargetsFromDb(
 	db: Kysely<DB>,
-	{ projectId }: { projectId?: string | undefined } = {},
+	{ projectId }: { projectId: string },
 ) {
-	let targetsQuery = db.selectFrom("gradeTarget");
-	let groupMemberQuery = db.selectFrom("gradeTarget");
-
-	if (projectId != null) {
-		const projectRowIdQuery = db
-			.selectFrom("project")
-			.select("rowId")
-			.where("id", "=", projectId);
-
-		targetsQuery = targetsQuery.where(
-			"gradeTarget.projectId",
-			"in",
-			projectRowIdQuery,
-		);
-		groupMemberQuery = groupMemberQuery.where(
-			"gradeTarget.projectId",
-			"in",
-			projectRowIdQuery,
-		);
-	}
+	const projectRowIdQuery = db
+		.selectFrom("project")
+		.select("rowId")
+		.where("id", "=", projectId);
 
 	const [targets, groupMemberRows] = await Promise.all([
-		targetsQuery
+		db
+			.selectFrom("gradeTarget")
+			.where("gradeTarget.projectId", "in", projectRowIdQuery)
 			.leftJoin("student", "student.rowId", "gradeTarget.studentRowId")
 			.leftJoin("group", "group.id", "gradeTarget.groupRowId")
 			.select([
@@ -114,7 +102,9 @@ export async function loadGradeTargetsFromDb(
 			// in insertion order) is the only column that sorts correctly.
 			.orderBy("gradeTarget.rowId", "asc")
 			.execute(),
-		groupMemberQuery
+		db
+			.selectFrom("gradeTarget")
+			.where("gradeTarget.projectId", "in", projectRowIdQuery)
 			.innerJoin(
 				"studentToGroup",
 				"studentToGroup.groupId",
@@ -158,7 +148,7 @@ export async function loadGradeTargetsFromDb(
 // `db` is a test seam only (ADR 0007 rules 13–14): never pass a handle at runtime —
 // Kysely instances are not serializable and Next.js throws on the cache key.
 export async function loadGradeTargets(
-	{ projectId }: { projectId?: string } = {},
+	{ projectId }: { projectId: string },
 	{ db = defaultDb }: { db?: Kysely<DB> } = {},
 ): Promise<GradeTarget[]> {
 	"use cache";

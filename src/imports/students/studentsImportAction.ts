@@ -22,7 +22,7 @@ export async function studentsImportAction(
 
 		return {
 			status: "success",
-			message: `Imported ${result.createdGradeTargetCount} new and updated ${result.updatedGradeTargetCount} existing students and groups; imported ${result.createdStudentCount} new and updated ${result.updatedStudentCount} existing students.`,
+			message: `Imported ${result.createdStudentCount} new and updated ${result.updatedStudentCount} existing students. ${result.createdGradeTargetCount} new and ${result.updatedGradeTargetCount} existing students and groups are ready to grade.`,
 		};
 	} catch (error) {
 		return toImportErrorState(error);
