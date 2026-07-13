@@ -6,11 +6,11 @@ import {
 	type DisposableTestDatabase,
 } from "#test/dbIntegration.ts";
 import {
-	addFullAssessmentFixture,
+	addFullGradeFixture,
 	createIndividualGradeTargetFixtures,
 	createMixedCriterionRubricFixtureProject,
 	createStudentFixtures,
-} from "#test/mixedCriterionAssessmentFixture.ts";
+} from "#test/mixedCriterionGradeFixture.ts";
 import { createCsvGradeTargetExport } from "./gradeTargetExport.ts";
 
 async function readStream(stream: ReadableStream<Uint8Array>): Promise<string> {
@@ -28,12 +28,12 @@ async function readStream(stream: ReadableStream<Uint8Array>): Promise<string> {
 	return content;
 }
 
-async function addSparseAssessment(
+async function addSparseGrade(
 	db: Kysely<Database>,
 	params: { gradeTargetRowId: number; checkCriterionRowId: number },
 ) {
-	const criterionAssessment = await db
-		.insertInto("criterionAssessment")
+	const criterionGrade = await db
+		.insertInto("criterionGrade")
 		.values({
 			gradeTargetRowId: params.gradeTargetRowId,
 			criterionId: params.checkCriterionRowId,
@@ -42,8 +42,8 @@ async function addSparseAssessment(
 		.executeTakeFirstOrThrow();
 
 	await db
-		.insertInto("checkCriterionAssessment")
-		.values({ criterionAssessmentId: criterionAssessment.id, passed: false })
+		.insertInto("checkCriterionGrade")
+		.values({ criterionGradeId: criterionGrade.id, passed: false })
 		.execute();
 }
 
@@ -82,7 +82,7 @@ test("createCsvGradeTargetExport snapshots CSV for mixed criterion types and gra
 		{ projectRowId: project.rowId, id: "student-export-3" },
 	]);
 
-	// target1: fully assessed, target2: sparse (check only), target3: no assessment
+	// target1: fully graded, target2: sparse (check only), target3: no grade
 	const [target1, target2] = await createIndividualGradeTargetFixtures(db, [
 		{ projectRowId: project.rowId, studentRowId: student1.rowId },
 		{ projectRowId: project.rowId, studentRowId: student2.rowId },
@@ -90,20 +90,20 @@ test("createCsvGradeTargetExport snapshots CSV for mixed criterion types and gra
 	]);
 
 	await Promise.all([
-		addFullAssessmentFixture(db, {
+		addFullGradeFixture(db, {
 			gradeTargetRowId: target1.rowId,
 			checkCriterionRowId: criterionRowId.get(rubric.criteria.booleanId)!,
 			optionsCriterionRowId: criterionRowId.get(rubric.criteria.ordinalId)!,
 			numberCriterionRowId: criterionRowId.get(rubric.criteria.numericalId)!,
 		}),
-		addSparseAssessment(db, {
+		addSparseGrade(db, {
 			gradeTargetRowId: target2.rowId,
 			checkCriterionRowId: criterionRowId.get(rubric.criteria.booleanId)!,
 		}),
 	]);
 
 	const stream = await createCsvGradeTargetExport(
-		{ includeCriterionAssessment: true, includeCriterionMarks: true },
+		{ includeCriterionGrade: true, includeCriterionMarks: true },
 		project.id,
 		{ db },
 	);

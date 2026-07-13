@@ -7,7 +7,7 @@ const meta = {
 	component: NumberGradeControl,
 	tags: ["autodocs"],
 	parameters: { layout: "centered" },
-	args: { onAssess: fn(), disabled: false, minScore: 0, maxScore: 10 },
+	args: { onGrade: fn(), disabled: false, minScore: 0, maxScore: 10 },
 } satisfies Meta<typeof NumberGradeControl>;
 
 export default meta;
@@ -37,6 +37,6 @@ export const ClearingRevertsToLastScore: Story = {
 		await waitFor(() => {
 			expect(input).toHaveValue("7");
 		});
-		expect(args.onAssess).not.toHaveBeenCalled();
+		expect(args.onGrade).not.toHaveBeenCalled();
 	},
 };

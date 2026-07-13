@@ -42,7 +42,7 @@ export type CriterionEditorValue =
 export type RubricDefinition = {
 	id: string;
 	position: number;
-	assessmentCount: number;
+	gradedTargetCount: number;
 	rubric: Rubric;
 };
 

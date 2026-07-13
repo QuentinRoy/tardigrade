@@ -13,16 +13,16 @@ type RouteParams = {
 // Reads the export's `include` query params. Route-internal: the only caller is
 // GET below, and its parsing contract is covered through the route tests.
 function parseExportOptions(searchParams: URLSearchParams): ExportOptions {
-	const includeSet = new Set<"criterion-assessment" | "criterion-marks">();
+	const includeSet = new Set<"criterion-grade" | "criterion-marks">();
 	for (const include of searchParams.getAll("include")) {
-		if (include !== "criterion-assessment" && include !== "criterion-marks") {
+		if (include !== "criterion-grade" && include !== "criterion-marks") {
 			throw new Error(`Invalid include option: ${include}`);
 		}
 		includeSet.add(include);
 	}
 
 	return {
-		includeCriterionAssessment: includeSet.has("criterion-assessment"),
+		includeCriterionGrade: includeSet.has("criterion-grade"),
 		includeCriterionMarks: includeSet.has("criterion-marks"),
 	};
 }

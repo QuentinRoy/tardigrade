@@ -50,7 +50,7 @@ export default function DeleteRubricDialog({
 		if (definition == null) return "";
 		return buildDeleteConfirmationPhrase(
 			definition.id,
-			definition.assessmentCount,
+			definition.gradedTargetCount,
 		);
 	}, [definition]);
 
@@ -76,8 +76,8 @@ export default function DeleteRubricDialog({
 						<>
 							<Text>
 								This will delete rubric <strong>{definition.id}</strong> and
-								cascade delete <strong>{definition.assessmentCount}</strong>{" "}
-								linked assessments.
+								cascade delete <strong>{definition.gradedTargetCount}</strong>{" "}
+								linked grades.
 							</Text>
 							<Text c="dimmed">Type this phrase to confirm:</Text>
 							<Code block>{expectedPhrase}</Code>

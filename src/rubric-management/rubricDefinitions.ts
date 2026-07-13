@@ -2,8 +2,8 @@ import "server-only";
 import type { Kysely } from "kysely";
 import { cacheLife } from "next/cache";
 import {
-	assessmentAggregateCacheTag,
 	cacheTags,
+	gradeAggregateCacheTag,
 	rubricListCacheTag,
 } from "#db/cacheTags.ts";
 import type { Database } from "#db/generated/database.ts";
@@ -56,43 +56,39 @@ export type RubricDefinitionInput = {
 };
 
 // `db` may be the global client or a caller-supplied transaction.
-export async function loadAssessmentCountsByRubricFromDb(
+export async function loadGradeCountsByRubricFromDb(
 	db: Kysely<Database>,
 	{ projectId }: { projectId: string },
 ): Promise<Map<string, number>> {
 	const counts = await db
-		.selectFrom("criterionAssessment")
-		.innerJoin(
-			"criterion",
-			"criterion.rowId",
-			"criterionAssessment.criterionId",
-		)
+		.selectFrom("criterionGrade")
+		.innerJoin("criterion", "criterion.rowId", "criterionGrade.criterionId")
 		.innerJoin("rubric", "rubric.rowId", "criterion.rubricId")
 		.innerJoin("project", "project.rowId", "rubric.projectId")
 		.where("project.id", "=", projectId)
 		.select(({ fn }) => [
 			"rubric.id as rubricId",
 			fn
-				.count<number>("criterionAssessment.gradeTargetRowId")
+				.count<number>("criterionGrade.gradeTargetRowId")
 				.distinct()
-				.as("assessmentCount"),
+				.as("gradedTargetCount"),
 		])
 		.groupBy("rubric.id")
 		.execute();
 
 	return new Map(
-		counts.map((count) => [count.rubricId, Number(count.assessmentCount)]),
+		counts.map((count) => [count.rubricId, Number(count.gradedTargetCount)]),
 	);
 }
 
 function toRubricDefinitions(
 	rows: RubricRow[],
-	assessmentCountByRubricId: Map<string, number>,
+	gradeCountByRubricId: Map<string, number>,
 ): RubricDefinition[] {
 	return rows.map((row, position) => ({
 		id: row.id,
 		position,
-		assessmentCount: assessmentCountByRubricId.get(row.id) ?? 0,
+		gradedTargetCount: gradeCountByRubricId.get(row.id) ?? 0,
 		rubric: {
 			label: row.label ?? undefined,
 			criteria: row.criteria.map(toCriterion),
@@ -105,21 +101,21 @@ export async function loadRubricDefinitionsFromDb(
 	db: Kysely<Database>,
 	{ projectId }: { projectId: string },
 ): Promise<RubricDefinition[]> {
-	const [rows, assessmentCountByRubricId] = await Promise.all([
+	const [rows, gradeCountByRubricId] = await Promise.all([
 		loadRubricRowsFromDb(db, { projectId }),
-		loadAssessmentCountsByRubricFromDb(db, { projectId }),
+		loadGradeCountsByRubricFromDb(db, { projectId }),
 	]);
 
-	return toRubricDefinitions(rows, assessmentCountByRubricId);
+	return toRubricDefinitions(rows, gradeCountByRubricId);
 }
 
 export function rubricDefinitionCacheTags(): string[] {
-	return [rubricListCacheTag(), assessmentAggregateCacheTag()];
+	return [rubricListCacheTag(), gradeAggregateCacheTag()];
 }
 
 // Canonical cached source for the rubrics-management read (Finding 4). Shares
-// `loadRubricRows`' cache entry for row data (PR6); the assessment-count query
-// is composed inside this scope. Counts derive from the coarse `assessments`
+// `loadRubricRows`' cache entry for row data (PR6); the grade-count query
+// is composed inside this scope. Counts derive from the coarse `grades`
 // aggregate, busted by every save, so this scope uses the `projection` lifetime
 // class rather than `definitions` even though most of what it renders is
 // rubric/criterion structure (ADR 0008 rule 4).
@@ -134,45 +130,41 @@ export async function loadRubricDefinitions(
 	"use cache";
 	cacheTags(...rubricDefinitionCacheTags());
 	cacheLife("projection");
-	const [rows, assessmentCountByRubricId] = await Promise.all([
+	const [rows, gradeCountByRubricId] = await Promise.all([
 		loadRubricRows({ projectId }, options),
-		loadAssessmentCountsByRubricFromDb(options?.db ?? defaultDb, { projectId }),
+		loadGradeCountsByRubricFromDb(options?.db ?? defaultDb, { projectId }),
 	]);
 
-	return toRubricDefinitions(rows, assessmentCountByRubricId);
+	return toRubricDefinitions(rows, gradeCountByRubricId);
 }
 
 // `db` may be the global client or a caller-supplied transaction.
 export async function getRubricDefinitionDeleteImpactFromDb(
 	db: Kysely<Database>,
 	{ rubricId, projectId }: { rubricId: string; projectId: string },
-): Promise<{ assessmentCount: number }> {
+): Promise<{ gradedTargetCount: number }> {
 	const projectRowId = await resolveProjectRowId(db, projectId);
 
 	const row = await db
-		.selectFrom("criterionAssessment")
-		.innerJoin(
-			"criterion",
-			"criterion.rowId",
-			"criterionAssessment.criterionId",
-		)
+		.selectFrom("criterionGrade")
+		.innerJoin("criterion", "criterion.rowId", "criterionGrade.criterionId")
 		.innerJoin("rubric", "rubric.rowId", "criterion.rubricId")
 		.select(({ fn }) => [
 			fn
-				.count<number>("criterionAssessment.gradeTargetRowId")
+				.count<number>("criterionGrade.gradeTargetRowId")
 				.distinct()
-				.as("assessmentCount"),
+				.as("gradedTargetCount"),
 		])
 		.where("rubric.id", "=", rubricId)
 		.where("rubric.projectId", "=", projectRowId)
 		.executeTakeFirst();
 
-	return { assessmentCount: Number(row?.assessmentCount ?? 0) };
+	return { gradedTargetCount: Number(row?.gradedTargetCount ?? 0) };
 }
 
 export async function getRubricDefinitionDeleteImpact(
 	{ rubricId, projectId }: { rubricId: string; projectId: string },
 	{ db = defaultDb }: { db?: Kysely<Database> } = {},
-): Promise<{ assessmentCount: number }> {
+): Promise<{ gradedTargetCount: number }> {
 	return getRubricDefinitionDeleteImpactFromDb(db, { rubricId, projectId });
 }

@@ -26,16 +26,16 @@ export function projectCacheTag(projectId: string): string {
 	return `projects:${projectId}`;
 }
 
-// The coarse assessment aggregate: every assessment in scope. Individual saves
-// bust this, and project-wide assessment reads register it.
-export function assessmentAggregateCacheTag(): string {
-	return "assessments";
+// The coarse grade aggregate: every grade in scope. Individual saves
+// bust this, and project-wide grade reads register it.
+export function gradeAggregateCacheTag(): string {
+	return "grades";
 }
 
 // The bulk-import aggregate. Imports bust this alongside the coarse aggregate;
 // individual saves do not.
-export function assessmentImportCacheTag(): string {
-	return "assessments:all";
+export function gradeImportCacheTag(): string {
+	return "grades:all";
 }
 
 // The id-keyed tags below use public ids that are only unique within a grid,
@@ -44,25 +44,25 @@ export function assessmentImportCacheTag(): string {
 // Grid-scoping them is folded into the Project→Grid sweep stage (see
 // `plans/2026-07-06-terminology-sweep.md`, stage 6).
 
-// One grade target's assessments across all rubrics.
-export function assessmentForGradeTargetCacheTag(targetId: string): string {
-	return `assessments:${targetId}`;
+// One grade target's grades across all rubrics.
+export function gradeForGradeTargetCacheTag(targetId: string): string {
+	return `grades:${targetId}`;
 }
 
-// One exact grade-target/rubric assessment pair.
-export function assessmentForGradeTargetRubricCacheTag({
+// One exact grade-target/rubric grade pair.
+export function gradeForGradeTargetRubricCacheTag({
 	targetId,
 	rubricId,
 }: {
 	targetId: string;
 	rubricId: string;
 }): string {
-	return `assessments:${targetId}:${rubricId}`;
+	return `grades:${targetId}:${rubricId}`;
 }
 
-// One rubric's assessment progress across grade targets.
-export function assessmentProgressForRubricCacheTag(rubricId: string): string {
-	return `assessments:rubric:${rubricId}`;
+// One rubric's grade completion across grade targets.
+export function gradeCompletionForRubricCacheTag(rubricId: string): string {
+	return `grades:rubric:${rubricId}`;
 }
 
 export function cacheTags(...tags: string[]): void {

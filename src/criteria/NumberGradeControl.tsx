@@ -9,7 +9,7 @@ type NumberGradeControlProps = {
 	minScore: number;
 	maxScore: number;
 	disabled: boolean;
-	onAssess: (value: number) => void;
+	onGrade: (value: number) => void;
 };
 
 export default function NumberGradeControl({
@@ -17,7 +17,7 @@ export default function NumberGradeControl({
 	minScore,
 	maxScore,
 	disabled,
-	onAssess,
+	onGrade,
 }: NumberGradeControlProps): ReactElement {
 	const ref = useRef<HTMLInputElement>(null);
 	const lastValueRef = useRef(value);
@@ -43,7 +43,7 @@ export default function NumberGradeControl({
 			ref.current.value = clampedValue.toString();
 		}
 		lastValueRef.current = clampedValue;
-		onAssess(clampedValue);
+		onGrade(clampedValue);
 	}
 
 	return (

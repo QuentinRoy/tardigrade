@@ -2,8 +2,8 @@ import "server-only";
 import type { Kysely } from "kysely";
 import { cacheLife } from "next/cache";
 import {
-	assessmentAggregateCacheTag,
 	cacheTags,
+	gradeAggregateCacheTag,
 	gradeTargetListCacheTag,
 	rubricListCacheTag,
 } from "#db/cacheTags.ts";
@@ -13,36 +13,32 @@ import { loadGradeTargets } from "#grade-targets/gradeTargets.ts";
 import { loadRubricsById } from "#rubrics/rubrics.ts";
 import {
 	buildResultsData,
-	type ResultsAssessmentRecord,
 	type ResultsData,
+	type ResultsGradeRecord,
 } from "./resultsBuilder.ts";
 
 export function resultsCacheTags(): string[] {
 	return [
 		rubricListCacheTag(),
 		gradeTargetListCacheTag(),
-		assessmentAggregateCacheTag(),
+		gradeAggregateCacheTag(),
 	];
 }
 
 // `db` may be the global client or a caller-supplied transaction. The only
 // results-specific, schema-sensitive query: the three-way leftJoin across the
-// check/options/number assessment subtype tables.
-export async function loadCriterionAssessmentRecordsFromDb(
+// check/options/number grade subtype tables.
+export async function loadCriterionGradeRecordsFromDb(
 	db: Kysely<Database>,
 	{ projectId }: { projectId: string },
-): Promise<ResultsAssessmentRecord[]> {
+): Promise<ResultsGradeRecord[]> {
 	return db
-		.selectFrom("criterionAssessment")
-		.innerJoin(
-			"criterion",
-			"criterion.rowId",
-			"criterionAssessment.criterionId",
-		)
+		.selectFrom("criterionGrade")
+		.innerJoin("criterion", "criterion.rowId", "criterionGrade.criterionId")
 		.innerJoin(
 			"gradeTarget",
 			"gradeTarget.rowId",
-			"criterionAssessment.gradeTargetRowId",
+			"criterionGrade.gradeTargetRowId",
 		)
 		.where(
 			"gradeTarget.projectId",
@@ -50,33 +46,33 @@ export async function loadCriterionAssessmentRecordsFromDb(
 			db.selectFrom("project").select("rowId").where("id", "=", projectId),
 		)
 		.leftJoin(
-			"checkCriterionAssessment",
-			"checkCriterionAssessment.criterionAssessmentId",
-			"criterionAssessment.id",
+			"checkCriterionGrade",
+			"checkCriterionGrade.criterionGradeId",
+			"criterionGrade.id",
 		)
 		.leftJoin(
-			"optionsCriterionAssessment",
-			"optionsCriterionAssessment.criterionAssessmentId",
-			"criterionAssessment.id",
+			"optionsCriterionGrade",
+			"optionsCriterionGrade.criterionGradeId",
+			"criterionGrade.id",
 		)
 		.leftJoin(
-			"numberCriterionAssessment",
-			"numberCriterionAssessment.criterionAssessmentId",
-			"criterionAssessment.id",
+			"numberCriterionGrade",
+			"numberCriterionGrade.criterionGradeId",
+			"criterionGrade.id",
 		)
 		.select([
 			"gradeTarget.id as gradeTargetId",
 			"criterion.id as criterionId",
 			"criterion.kind as kind",
-			"checkCriterionAssessment.passed as passed",
-			"optionsCriterionAssessment.selectedLabel as selectedLabel",
-			"numberCriterionAssessment.score as score",
+			"checkCriterionGrade.passed as passed",
+			"optionsCriterionGrade.selectedLabel as selectedLabel",
+			"numberCriterionGrade.score as score",
 		])
 		.execute();
 }
 
 // Composes the cached `loadGradeTargets`/`loadRubricsById` wrappers (Design B:
-// only the assessment-record query above is results-specific) so their cache
+// only the grade-record query above is results-specific) so their cache
 // entries stay shared rather than duplicated here (ADR 0008 rule 5).
 // `options` is forwarded unchanged (ADR 0007 rule 14): never resolve a default
 // here before forwarding, so an omitted `db` stays `undefined` for those calls.
@@ -88,13 +84,11 @@ export async function loadResultsData(
 	cacheTags(...resultsCacheTags());
 	cacheLife("projection");
 
-	const [targets, rubricsById, assessmentRecords] = await Promise.all([
+	const [targets, rubricsById, gradeRecords] = await Promise.all([
 		loadGradeTargets({ projectId }, options),
 		loadRubricsById({ projectId }, options),
-		loadCriterionAssessmentRecordsFromDb(options?.db ?? defaultDb, {
-			projectId,
-		}),
+		loadCriterionGradeRecordsFromDb(options?.db ?? defaultDb, { projectId }),
 	]);
 
-	return buildResultsData({ targets, rubricsById, assessmentRecords });
+	return buildResultsData({ targets, rubricsById, gradeRecords });
 }

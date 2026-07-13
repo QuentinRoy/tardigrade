@@ -1,10 +1,10 @@
 import { expect, test } from "vitest";
 import {
-	assessmentAggregateCacheTag,
-	assessmentForGradeTargetCacheTag,
-	assessmentForGradeTargetRubricCacheTag,
-	assessmentImportCacheTag,
-	assessmentProgressForRubricCacheTag,
+	gradeAggregateCacheTag,
+	gradeCompletionForRubricCacheTag,
+	gradeForGradeTargetCacheTag,
+	gradeForGradeTargetRubricCacheTag,
+	gradeImportCacheTag,
 	gradeTargetListCacheTag,
 	projectCacheTag,
 	projectListCacheTag,
@@ -21,23 +21,18 @@ test("projectCacheTag scopes to the public Project ID", () => {
 	expect(projectCacheTag("p-1")).toBe("projects:p-1");
 });
 
-test("assessment aggregate and import tags are distinct", () => {
-	expect(assessmentAggregateCacheTag()).toBe("assessments");
-	expect(assessmentImportCacheTag()).toBe("assessments:all");
+test("grade aggregate and import tags are distinct", () => {
+	expect(gradeAggregateCacheTag()).toBe("grades");
+	expect(gradeImportCacheTag()).toBe("grades:all");
 });
 
-test("assessment scope tags nest from grade target to rubric", () => {
-	expect(assessmentForGradeTargetCacheTag("t-1")).toBe("assessments:t-1");
+test("grade scope tags nest from grade target to rubric", () => {
+	expect(gradeForGradeTargetCacheTag("t-1")).toBe("grades:t-1");
 	expect(
-		assessmentForGradeTargetRubricCacheTag({
-			targetId: "t-1",
-			rubricId: "q-1",
-		}),
-	).toBe("assessments:t-1:q-1");
+		gradeForGradeTargetRubricCacheTag({ targetId: "t-1", rubricId: "q-1" }),
+	).toBe("grades:t-1:q-1");
 });
 
-test("assessmentProgressForRubricCacheTag scopes to the rubric", () => {
-	expect(assessmentProgressForRubricCacheTag("q-1")).toBe(
-		"assessments:rubric:q-1",
-	);
+test("gradeCompletionForRubricCacheTag scopes to the rubric", () => {
+	expect(gradeCompletionForRubricCacheTag("q-1")).toBe("grades:rubric:q-1");
 });

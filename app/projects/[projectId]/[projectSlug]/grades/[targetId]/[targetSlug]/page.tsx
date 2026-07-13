@@ -2,17 +2,17 @@ import { Group, Skeleton, Stack } from "@mantine/core";
 import { notFound } from "next/navigation";
 import type { ReactElement } from "react";
 import { Suspense } from "react";
-import { loadGradeTargetAssessments } from "#assessment-capture/assessments.ts";
-import GradeTargetOverviewAssessmentClient from "#assessment-capture/GradeTargetOverviewAssessmentClient.tsx";
-import { saveAssessment } from "#assessment-capture/saveAssessment.ts";
-import { loadAssessmentCompletionByTarget } from "#assessment-completion/loadAssessmentCompletion.ts";
-import { attachAssessment } from "#criteria/criterion.ts";
+import { attachGrade } from "#criteria/criterion.ts";
 import AppLink from "#design-system/AppLink.tsx";
 import AppPage from "#design-system/AppPage.tsx";
 import PageHeader from "#design-system/PageHeader.tsx";
+import { loadGradeCompletionByTarget } from "#grade-completion/loadGradeCompletion.ts";
 import { getGradeTargetLabel } from "#grade-targets/getGradeTargetLabel.ts";
 import { loadGradeTargets } from "#grade-targets/gradeTargets.ts";
 import type { GradeTarget } from "#grade-targets/types.ts";
+import GradeTargetGradingClient from "#grading/GradeTargetGradingClient.tsx";
+import { loadGradeTargetGrades } from "#grading/grades.ts";
+import { saveCriterionGrade } from "#grading/saveCriterionGrade.ts";
 import { projectGradesPath } from "#projects/projectPaths.ts";
 import { loadProjectByPublicId } from "#projects/projects.ts";
 import { loadRubricsById } from "#rubrics/rubrics.ts";
@@ -38,7 +38,7 @@ async function GradeTargetPageContent({ params }: GradeTargetPageProps) {
 		loadGradeTargets({ projectId }),
 	]);
 
-	// Ensure the grade target belongs to the project and can be assessed.
+	// Ensure the grade target belongs to the project and can be graded.
 	const currentTarget = targets.find((t) => t.id === targetId);
 	if (currentTarget == null) {
 		notFound();
@@ -76,7 +76,7 @@ async function GradeTargetPageContent({ params }: GradeTargetPageProps) {
 
 // No "use cache" here: a Suspense boundary inside a `"use cache"` scope fully
 // resolves before being cached, so it can't stream — see `loadRubricsById`'s
-// own cache and `progressPromise` below for why caching still works.
+// own cache and `completionPromise` below for why caching still works.
 async function GradeTargetGradingSection({
 	projectId,
 	projectSlug,
@@ -88,16 +88,16 @@ async function GradeTargetGradingSection({
 	targetId: string;
 	targets: GradeTarget[];
 }) {
-	// Doesn't depend on `rubricsById`/`assessmentsByRubricId`, so it's started
+	// Doesn't depend on `rubricsById`/`gradesByRubricId`, so it's started
 	// alongside the Promise.all below rather than after it. Not awaited here:
 	// only the on-demand lookup dialog needs it, so a save-then-navigate never
 	// blocks on recomputing project-wide completion (Finding 19).
-	const progressPromise = loadAssessmentCompletionByTarget({ projectId });
-	progressPromise.catch(() => {});
+	const completionPromise = loadGradeCompletionByTarget({ projectId });
+	completionPromise.catch(() => {});
 
-	const [rubricsById, assessmentsByRubricId] = await Promise.all([
+	const [rubricsById, gradesByRubricId] = await Promise.all([
 		loadRubricsById({ projectId }),
-		loadGradeTargetAssessments({ targetId, projectId }),
+		loadGradeTargetGrades({ targetId, projectId }),
 	]);
 
 	const gradedRubrics = Object.entries(rubricsById).map(
@@ -105,27 +105,27 @@ async function GradeTargetGradingSection({
 			rubricId,
 			rubricLabel: rubric.label ?? rubricId,
 			criteria: rubric.criteria.map((criterion) =>
-				attachAssessment(criterion, assessmentsByRubricId[rubricId]),
+				attachGrade(criterion, gradesByRubricId[rubricId]),
 			),
 		}),
 	);
 
 	return (
-		<GradeTargetOverviewAssessmentClient
+		<GradeTargetGradingClient
 			projectId={projectId}
 			projectSlug={projectSlug}
 			currentTargetId={targetId}
 			targets={targets}
-			progressPromise={progressPromise}
+			completionPromise={completionPromise}
 			rubrics={gradedRubrics}
-			saveAssessment={saveAssessment}
+			saveCriterionGrade={saveCriterionGrade}
 		/>
 	);
 }
 
-// Mirrors `GradeTargetOverviewAssessmentClient`'s layout (prev/next/lookup
+// Mirrors `GradeTargetGradingClient`'s layout (prev/next/lookup
 // buttons, then criterion rows) so the breadcrumb/title above stay in place and
-// the page doesn't jump once assessment values and progress load.
+// the page doesn't jump once grade values and completion load.
 function GradeTargetGradingSectionSkeleton(): ReactElement {
 	return (
 		<Stack gap="md">

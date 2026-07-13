@@ -17,7 +17,7 @@ function formatBlockingDiagnostic(
 ): string {
 	switch (diagnostic.kind) {
 		case "criterion-kind-change-blocked": {
-			return `Criterion "${diagnostic.criterionId}" of rubric "${diagnostic.rubricId}" has ${diagnostic.assessmentCount} linked assessments and cannot change type on import. Edit it in rubric management instead.`;
+			return `Criterion "${diagnostic.criterionId}" of rubric "${diagnostic.rubricId}" has ${diagnostic.gradedTargetCount} linked grades and cannot change type on import. Edit it in rubric management instead.`;
 		}
 		case "criterion-rubric-mismatch": {
 			return `Criterion "${diagnostic.criterionId}" already belongs to rubric "${diagnostic.existingRubricId}" and cannot be moved to rubric "${diagnostic.importRubricId}" on import.`;
@@ -109,7 +109,7 @@ export async function saveRubricImportPlanInDb(
 		.executeTakeFirstOrThrow();
 	const projectRowId = projectRow.rowId;
 
-	// Criteria whose type changed (no linked assessments, per the prepared plan)
+	// Criteria whose type changed (no linked grades, per the prepared plan)
 	// are deleted and recreated so subtype tables (boolean/numerical/ordinal
 	// criterion) never hold stale rows for the previous type.
 	const criteriaToRecreate = plan.criterionKindChanges.map(

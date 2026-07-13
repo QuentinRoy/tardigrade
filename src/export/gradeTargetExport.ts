@@ -2,25 +2,22 @@ import "server-only";
 import { once } from "node:events";
 import { stringify } from "csv-stringify";
 import type { Kysely } from "kysely";
-import { attachAssessment, markCriterion } from "#criteria/criterion.ts";
-import type {
-	AssessedCriterion,
-	AssessmentCriterionValue,
-} from "#criteria/types.ts";
+import { attachGrade, markCriterion } from "#criteria/criterion.ts";
+import type { CriterionGrade, GradedCriterion } from "#criteria/types.ts";
 import type { Database } from "#db/generated/database.ts";
 import { database as defaultDb } from "#db/kysely.ts";
 import type { GradeTargetSubmitter } from "#grade-targets/types.ts";
 import { loadRubricRowsFromDb, toCriterion } from "#rubrics/rubrics.ts";
 import { assertNever } from "#utils/utils.ts";
 import {
-	buildAssessmentKey,
+	buildGradeKey,
 	buildGradeTargetExportHeaders,
 	buildGradeTargetExportRecord,
 	type ExportOptions,
 	type ExportRubricPlan,
-	type GradeTargetExportAssessmentValue,
 	type GradeTargetExportCriterionData,
 	type GradeTargetExportDataRow,
+	type GradeTargetExportGradeValue,
 	type GradeTargetExportRecord,
 	type GradeTargetExportRubricData,
 } from "./gradeTargetExportCsv.ts";
@@ -99,30 +96,26 @@ function streamGradeTargetExportRowsFromDb(
 			.leftJoin("group", "group.id", "gradeTarget.groupRowId")
 			.leftJoin("student", "student.rowId", "gradeTarget.studentRowId")
 			.leftJoin(
-				"criterionAssessment",
-				"criterionAssessment.gradeTargetRowId",
+				"criterionGrade",
+				"criterionGrade.gradeTargetRowId",
 				"gradeTarget.rowId",
 			)
-			.leftJoin(
-				"criterion",
-				"criterion.rowId",
-				"criterionAssessment.criterionId",
-			)
+			.leftJoin("criterion", "criterion.rowId", "criterionGrade.criterionId")
 			.leftJoin("rubric", "rubric.rowId", "criterion.rubricId")
 			.leftJoin(
-				"checkCriterionAssessment",
-				"checkCriterionAssessment.criterionAssessmentId",
-				"criterionAssessment.id",
+				"checkCriterionGrade",
+				"checkCriterionGrade.criterionGradeId",
+				"criterionGrade.id",
 			)
 			.leftJoin(
-				"optionsCriterionAssessment",
-				"optionsCriterionAssessment.criterionAssessmentId",
-				"criterionAssessment.id",
+				"optionsCriterionGrade",
+				"optionsCriterionGrade.criterionGradeId",
+				"criterionGrade.id",
 			)
 			.leftJoin(
-				"numberCriterionAssessment",
-				"numberCriterionAssessment.criterionAssessmentId",
-				"criterionAssessment.id",
+				"numberCriterionGrade",
+				"numberCriterionGrade.criterionGradeId",
+				"criterionGrade.id",
 			)
 			.select([
 				"gradeTarget.rowId as gradeTargetRowId",
@@ -132,14 +125,14 @@ function streamGradeTargetExportRowsFromDb(
 				"student.id as studentId",
 				"rubric.id as rubricId",
 				"criterion.id as criterionId",
-				"checkCriterionAssessment.passed as checkPassed",
-				"optionsCriterionAssessment.selectedLabel as optionsSelectedLabel",
-				"numberCriterionAssessment.score as numberValue",
+				"checkCriterionGrade.passed as checkPassed",
+				"optionsCriterionGrade.selectedLabel as optionsSelectedLabel",
+				"numberCriterionGrade.score as numberValue",
 			])
 			// Creation order, not id order — see the ordering note in
 			// gradeTargetExportGrouping.ts.
 			.orderBy("gradeTarget.rowId", "asc")
-			.orderBy("criterionAssessment.id", "asc")
+			.orderBy("criterionGrade.id", "asc")
 			.stream(200)
 	);
 }
@@ -159,22 +152,22 @@ export async function createGradeTargetExport(
 		criteria: row.criteria.map(toCriterion),
 	}));
 
-	function getAssessmentValue(
-		criterion: AssessedCriterion,
-	): GradeTargetExportAssessmentValue | undefined {
-		if (criterion.assessment == null) {
+	function getGradeValue(
+		criterion: GradedCriterion,
+	): GradeTargetExportGradeValue | undefined {
+		if (criterion.grade == null) {
 			return undefined;
 		}
 
 		switch (criterion.kind) {
 			case "check": {
-				return criterion.assessment.passed;
+				return criterion.grade.passed;
 			}
 			case "options": {
-				return criterion.assessment.selectedLabel;
+				return criterion.grade.selectedLabel;
 			}
 			case "number": {
-				return criterion.assessment.score;
+				return criterion.grade.score;
 			}
 			default: {
 				return assertNever(criterion);
@@ -183,27 +176,27 @@ export async function createGradeTargetExport(
 	}
 
 	function buildRubricData(
-		valuesByKey: Map<string, AssessmentCriterionValue>,
+		valuesByKey: Map<string, CriterionGrade>,
 	): GradeTargetExportRubricData[] {
 		return rubrics.map((rubric) => ({
 			rubricId: rubric.id,
 			criteria: rubric.criteria.map((criterion) => {
-				const assessedCriterion = attachAssessment(
+				const gradedCriterion = attachGrade(
 					criterion,
-					valuesByKey.get(buildAssessmentKey(rubric.id, criterion.id)),
+					valuesByKey.get(buildGradeKey(rubric.id, criterion.id)),
 				);
 
 				const rowCriterion: GradeTargetExportCriterionData = {
 					criterionId: criterion.id,
 				};
 
-				const assessment = getAssessmentValue(assessedCriterion);
-				if (assessment != null) {
-					rowCriterion.assessment = assessment;
+				const grade = getGradeValue(gradedCriterion);
+				if (grade != null) {
+					rowCriterion.grade = grade;
 				}
 
-				if (assessedCriterion.assessment != null) {
-					rowCriterion.marks = markCriterion(assessedCriterion);
+				if (gradedCriterion.grade != null) {
+					rowCriterion.marks = markCriterion(gradedCriterion);
 				}
 
 				return rowCriterion;

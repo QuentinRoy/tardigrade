@@ -7,7 +7,7 @@ const meta = {
 	component: CheckGradeControl,
 	tags: ["autodocs"],
 	parameters: { layout: "centered" },
-	args: { onAssess: fn(), disabled: false },
+	args: { onGrade: fn(), disabled: false },
 } satisfies Meta<typeof CheckGradeControl>;
 
 export default meta;

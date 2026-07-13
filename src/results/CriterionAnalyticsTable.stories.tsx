@@ -9,7 +9,7 @@ const criteria = [
 		maxMarks: 5,
 		averageMarks: 3.5,
 		averagePercent: 70,
-		assessedCount: 3,
+		gradedCount: 3,
 		totalCount: 4,
 		completionPercent: 75,
 		details: {
@@ -26,7 +26,7 @@ const criteria = [
 		maxMarks: 4,
 		averageMarks: 1.2,
 		averagePercent: 30,
-		assessedCount: 2,
+		gradedCount: 2,
 		totalCount: 4,
 		completionPercent: 50,
 		details: {
@@ -47,7 +47,7 @@ const criteria = [
 ];
 
 const meta = {
-	title: "Assessment/CriterionAnalyticsTable",
+	title: "Grade/CriterionAnalyticsTable",
 	component: CriterionAnalyticsTable,
 	tags: ["autodocs"],
 	parameters: { layout: "padded" },
@@ -76,7 +76,7 @@ export const Complete: Story = {
 	args: {
 		criteria: criteria.map((row) => ({
 			...row,
-			assessedCount: row.totalCount,
+			gradedCount: row.totalCount,
 			completionPercent: 100,
 		})),
 	},

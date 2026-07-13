@@ -21,7 +21,7 @@ export function SaveErrorsDisplay() {
 					closeButtonLabel="Dismiss"
 					onClose={() => dismissError(error.id)}
 				>
-					Failed to save assessment for{" "}
+					Failed to save grade for{" "}
 					<AppLink
 						href={projectGradeTargetRubricPath(error)}
 						c="inherit"

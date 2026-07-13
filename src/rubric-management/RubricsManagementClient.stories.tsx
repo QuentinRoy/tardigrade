@@ -10,7 +10,7 @@ const meta = {
 			{
 				id: "q1",
 				position: 0,
-				assessmentCount: 0,
+				gradedTargetCount: 0,
 				rubric: { label: "Correctness", criteria: [] },
 			},
 		],

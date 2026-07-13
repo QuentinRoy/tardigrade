@@ -9,7 +9,7 @@ import {
 	projectExportGradesPath,
 	projectExportRubricsPath,
 	projectGradesPath,
-	projectImportAssessmentsPath,
+	projectImportGradesPath,
 	projectImportRubricsPath,
 	projectImportStudentsPath,
 	projectResultsPath,
@@ -21,12 +21,12 @@ import { getProjectRouteContext } from "./AppShell.shared.ts";
 const EXPORT_STORAGE_KEY = "export-csv-options-v1";
 
 type ExportPersistedOptions = {
-	includeCriterionAssessment: boolean;
+	includeCriterionGrade: boolean;
 	includeCriterionMarks: boolean;
 };
 
 const DEFAULT_EXPORT_OPTIONS: ExportPersistedOptions = {
-	includeCriterionAssessment: true,
+	includeCriterionGrade: true,
 	includeCriterionMarks: false,
 };
 
@@ -39,9 +39,9 @@ function deserializeExportOptions(raw: string): ExportPersistedOptions {
 	}
 
 	return {
-		includeCriterionAssessment:
-			"includeCriterionAssessment" in parsed &&
-			parsed.includeCriterionAssessment === true,
+		includeCriterionGrade:
+			"includeCriterionGrade" in parsed &&
+			parsed.includeCriterionGrade === true,
 		includeCriterionMarks:
 			"includeCriterionMarks" in parsed &&
 			parsed.includeCriterionMarks === true,
@@ -107,8 +107,8 @@ export default function AppShellDrawerContent({
 
 		const searchParams = new URLSearchParams();
 
-		if (exportOptions.includeCriterionAssessment) {
-			searchParams.append("include", "criterion-assessment");
+		if (exportOptions.includeCriterionGrade) {
+			searchParams.append("include", "criterion-grade");
 		}
 
 		if (exportOptions.includeCriterionMarks) {
@@ -132,7 +132,7 @@ export default function AppShellDrawerContent({
 		);
 	}
 
-	const assessmentItems: NavigationItem[] = [
+	const gradeItems: NavigationItem[] = [
 		{ label: "Grades", href: projectGradesPath(projectRouteContext) },
 		{ label: "Results", href: projectResultsPath(projectRouteContext) },
 	];
@@ -151,8 +151,8 @@ export default function AppShellDrawerContent({
 			href: projectImportStudentsPath(projectRouteContext),
 		},
 		{
-			label: "Import Assessments",
-			href: projectImportAssessmentsPath(projectRouteContext),
+			label: "Import Grades",
+			href: projectImportGradesPath(projectRouteContext),
 		},
 	];
 
@@ -172,11 +172,7 @@ export default function AppShellDrawerContent({
 			</Stack>
 			<Divider />
 
-			<NavigationZone
-				title="Assess"
-				items={assessmentItems}
-				onNavigate={onDismiss}
-			/>
+			<NavigationZone title="Grade" items={gradeItems} onNavigate={onDismiss} />
 			<Divider />
 			<NavigationZone
 				title="Manage"
@@ -200,12 +196,12 @@ export default function AppShellDrawerContent({
 				</Text>
 				<Stack gap="xs">
 					<Checkbox
-						label="Criterion assessment"
-						checked={exportOptions.includeCriterionAssessment}
+						label="Criterion grade"
+						checked={exportOptions.includeCriterionGrade}
 						onChange={(event) => {
 							setExportOptions((current) => ({
 								...current,
-								includeCriterionAssessment: event.currentTarget.checked,
+								includeCriterionGrade: event.currentTarget.checked,
 							}));
 						}}
 					/>

@@ -1,8 +1,8 @@
 import { Stack, Text, Title } from "@mantine/core";
-import GlobalAssessmentSummary from "#assessment-completion/GlobalAssessmentSummary.tsx";
-import { loadAssessmentCompletionSummary } from "#assessment-completion/loadAssessmentCompletion.ts";
 import AppButtonLink from "#design-system/AppButtonLink.tsx";
 import AppPage from "#design-system/AppPage.tsx";
+import GlobalCompletionSummary from "#grade-completion/GlobalCompletionSummary.tsx";
+import { loadGradeCompletionSummary } from "#grade-completion/loadGradeCompletion.ts";
 import {
 	projectGradesPath,
 	projectImportStudentsPath,
@@ -21,7 +21,7 @@ export default async function ProjectDashboardPage({
 
 	const project = await loadProjectByPublicId(projectId, { required: true });
 
-	const progress = await loadAssessmentCompletionSummary({
+	const completion = await loadGradeCompletionSummary({
 		projectId: project.id,
 	});
 
@@ -29,10 +29,10 @@ export default async function ProjectDashboardPage({
 		<AppPage>
 			<Stack gap="lg">
 				<Title order={1}>{project.name} Dashboard</Title>
-				{progress.rubrics.total === 0 ? (
+				{completion.rubrics.total === 0 ? (
 					<Stack gap="sm" align="flex-start">
 						<Text c="dimmed">
-							No rubrics yet — add rubrics to start assessing.
+							No rubrics yet — add rubrics to start grading.
 						</Text>
 						<AppButtonLink
 							href={projectRubricsPath({
@@ -43,10 +43,10 @@ export default async function ProjectDashboardPage({
 							Add rubrics
 						</AppButtonLink>
 					</Stack>
-				) : progress.gradeTargets.total === 0 ? (
+				) : completion.gradeTargets.total === 0 ? (
 					<Stack gap="sm" align="flex-start">
 						<Text c="dimmed">
-							No students or groups yet — import a roster to start assessing.
+							No students or groups yet — import a roster to start grading.
 						</Text>
 						<AppButtonLink
 							href={projectImportStudentsPath({
@@ -58,7 +58,7 @@ export default async function ProjectDashboardPage({
 						</AppButtonLink>
 					</Stack>
 				) : (
-					<GlobalAssessmentSummary progress={progress} />
+					<GlobalCompletionSummary completion={completion} />
 				)}
 				<AppButtonLink
 					href={projectGradesPath({

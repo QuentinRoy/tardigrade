@@ -12,13 +12,13 @@ See `docs/adr/0008-cache-tags-lifetimes-and-invalidation.md` for the rules that 
 | `projectCacheTag(id)` | `projects:{id}` | One project, by public Project ID |
 | `rubricListCacheTag()` | `rubrics` | All rubrics in scope |
 | `gradeTargetListCacheTag()` | `grade-targets` | All grade targets in scope |
-| `assessmentAggregateCacheTag()` | `assessments` | All assessments in scope (busted by every save) |
-| `assessmentImportCacheTag()` | `assessments:all` | Import-level aggregate (busted by imports and definition changes, not individual saves) |
-| `assessmentForGradeTargetCacheTag(target)` | `assessments:{target}` | All rubrics for one grade target |
-| `assessmentForGradeTargetRubricCacheTag({target, rubric})` | `assessments:{target}:{rubric}` | Exact grade-target/rubric pair |
-| `assessmentProgressForRubricCacheTag(rubric)` | `assessments:rubric:{rubric}` | One rubric's progress across all grade targets |
+| `gradeAggregateCacheTag()` | `grades` | All grades in scope (busted by every save) |
+| `gradeImportCacheTag()` | `grades:all` | Import-level aggregate (busted by imports and definition changes, not individual saves) |
+| `gradeForGradeTargetCacheTag(target)` | `grades:{target}` | All rubrics for one grade target |
+| `gradeForGradeTargetRubricCacheTag({target, rubric})` | `grades:{target}:{rubric}` | Exact grade-target/rubric pair |
+| `gradeCompletionForRubricCacheTag(rubric)` | `grades:rubric:{rubric}` | One rubric's completion across all grade targets |
 
-Scoping caveat: `{target}` and `{rubric}` are public ids, unique only within a grid, so the three id-keyed tags above collide across grids (e.g. `t-1` in two grids shares `assessments:t-1`). The effect is over-invalidation — an extra rebuild in the other grid — never stale data. Grid-scoping these tags is folded into the Project→Grid stage of the terminology sweep (`plans/2026-07-06-terminology-sweep.md`, stage 6).
+Scoping caveat: `{target}` and `{rubric}` are public ids, unique only within a grid, so the three id-keyed tags above collide across grids (e.g. `t-1` in two grids shares `grades:t-1`). The effect is over-invalidation — an extra rebuild in the other grid — never stale data. Grid-scoping these tags is folded into the Project→Grid stage of the terminology sweep (`plans/2026-07-06-terminology-sweep.md`, stage 6).
 
 ## Mutations → tags invalidated
 
@@ -26,14 +26,14 @@ Each mutation calls exactly one semantic helper from `src/db/cacheInvalidation.t
 
 | Mutation | Helper | `updateTag` (read-your-writes) | `revalidateTag` (stale-while-revalidate) | Source |
 |---|---|---|---|---|
-| `saveAssessment` | `invalidateAssessmentSave` | `assessments:{target}:{rubric}`, `assessments:{target}` | `assessments`, `assessments:rubric:{rubric}` | `src/assessment-capture/assessmentMutations.ts` |
-| `saveRubricDefinition` | `invalidateRubricDefinitionSave` | `rubrics` | `assessments`, `assessments:all`, `assessments:rubric:{id}` (+ `assessments:rubric:{previousId}` when id changes) | `src/rubric-management/rubricDefinitionMutations.ts` |
-| `deleteRubricDefinition` | `invalidateRubricDefinitionDelete` | `rubrics` | `assessments`, `assessments:all`, `assessments:rubric:{id}` | `src/rubric-management/rubricDefinitionMutations.ts` |
+| `saveCriterionGrade` | `invalidateGradeSave` | `grades:{target}:{rubric}`, `grades:{target}` | `grades`, `grades:rubric:{rubric}` | `src/grading/gradeMutations.ts` |
+| `saveRubricDefinition` | `invalidateRubricDefinitionSave` | `rubrics` | `grades`, `grades:all`, `grades:rubric:{id}` (+ `grades:rubric:{previousId}` when id changes) | `src/rubric-management/rubricDefinitionMutations.ts` |
+| `deleteRubricDefinition` | `invalidateRubricDefinitionDelete` | `rubrics` | `grades`, `grades:all`, `grades:rubric:{id}` | `src/rubric-management/rubricDefinitionMutations.ts` |
 | `reorderRubrics` | `invalidateRubricReorder` | `rubrics` | (none) | `src/rubric-management/rubricDefinitionMutations.ts` |
 | `createProject` | `invalidateProjectCreate` | (none) | `projects`, `projects:{id}` | `src/projects/projects.ts` |
-| `saveAssessments` (import) | `invalidateAssessmentImport` | (none) | `assessments`, `assessments:all` | `src/imports/assessments/saveAssessments.ts` |
-| `saveRubrics` (import) | `invalidateRubricImport` | (none) | `rubrics`, `assessments`, `assessments:all` | `src/imports/rubrics/saveRubrics.ts` |
-| `saveStudents` (import) | `invalidateStudentImport` | (none) | `grade-targets`, `assessments`, `assessments:all` | `src/imports/students/saveStudents.ts` |
+| `saveGrades` (import) | `invalidateGradeImport` | (none) | `grades`, `grades:all` | `src/imports/grades/saveGrades.ts` |
+| `saveRubrics` (import) | `invalidateRubricImport` | (none) | `rubrics`, `grades`, `grades:all` | `src/imports/rubrics/saveRubrics.ts` |
+| `saveStudents` (import) | `invalidateStudentImport` | (none) | `grade-targets`, `grades`, `grades:all` | `src/imports/students/saveStudents.ts` |
 
 Import helpers and `invalidateProjectCreate` run from request-scoped actions (import actions, the create-project action). `revalidateTag` throws outside request scope, so these helpers must not be called from background jobs.
 
@@ -46,17 +46,17 @@ Page-level sections inherit `cacheLife` from inner cached functions; the lifetim
 | `loadProjectList` | `projects` | 60 s | `src/projects/projects.ts` |
 | `loadProjectByPublicId` | `projects`, `projects:{id}` | 60 s | `src/projects/projects.ts` |
 | `loadRubricRows` (shared by `loadRubricsById`, `loadRubric`, which derive from it) | `rubrics` | 1 h (`definitions`) | `src/rubrics/rubrics.ts` |
-| `loadRubricDefinitions` (composes `loadRubricRows` + assessment counts) | `rubrics`, `assessments` | 60 s (`projection`; counts track the coarse aggregate) | `src/rubric-management/rubricDefinitions.ts` |
+| `loadRubricDefinitions` (composes `loadRubricRows` + grade counts) | `rubrics`, `grades` | 60 s (`projection`; counts track the coarse aggregate) | `src/rubric-management/rubricDefinitions.ts` |
 | `loadGradeTargets` | `grade-targets` | 1 h (`roster`) | `src/grade-targets/gradeTargets.ts` |
-| `loadRubricAssessment` | `assessments:{target}:{rubric}`, `assessments:all` | 5 min (`values`) | `src/assessment-capture/assessments.ts` |
-| `loadGradeTargetAssessments` | `assessments:{target}`, `assessments:all` | 5 min (`values`) | `src/assessment-capture/assessments.ts` |
-| `loadAssessmentCompletionRows` (shared by `loadAssessmentCompletionByTarget` and `loadAssessmentCompletionSummary`, plain derivers that compose it) | `grade-targets`, `rubrics`, `assessments` | 60 s | `src/assessment-completion/loadAssessmentCompletion.ts` |
-| `loadCriterionAssessmentsCount` (composed by `loadAssessmentCompletionSummary` alongside `loadAssessmentCompletionRows`) | `assessments` | 60 s | `src/assessment-completion/loadAssessmentCompletion.ts` |
-| `loadAssessedCriterionCountsByTarget` | `grade-targets`, `rubrics`, `assessments:rubric:{rubric}`, `assessments:all` | 60 s | `src/assessment-completion/loadAssessmentCompletion.ts` |
-| `loadResultsData` | `rubrics`, `grade-targets`, `assessments` | 60 s (`projection`) | `src/results/loadResults.ts` |
+| `loadRubricGrade` | `grades:{target}:{rubric}`, `grades:all` | 5 min (`values`) | `src/grading/grades.ts` |
+| `loadGradeTargetGrades` | `grades:{target}`, `grades:all` | 5 min (`values`) | `src/grading/grades.ts` |
+| `loadGradeCompletionRows` (shared by `loadGradeCompletionByTarget` and `loadGradeCompletionSummary`, plain derivers that compose it) | `grade-targets`, `rubrics`, `grades` | 60 s | `src/grade-completion/loadGradeCompletion.ts` |
+| `loadCriterionGradesCount` (composed by `loadGradeCompletionSummary` alongside `loadGradeCompletionRows`) | `grades` | 60 s | `src/grade-completion/loadGradeCompletion.ts` |
+| `loadGradedCriterionCountsByTarget` | `grade-targets`, `rubrics`, `grades:rubric:{rubric}`, `grades:all` | 60 s | `src/grade-completion/loadGradeCompletion.ts` |
+| `loadResultsData` | `rubrics`, `grade-targets`, `grades` | 60 s (`projection`) | `src/results/loadResults.ts` |
 | `RubricHeaderSection` (page) | `projects:{id}`, `rubrics` | inherits | `app/.../rubrics/[rubricId]/page.tsx` |
 
-`GradeTargetCriterionSection` and `ProjectGradesPageContent` have no page-level `"use cache"` wrapper: each calls already-cached loaders directly. The per-target progress used by the on-demand lookup dialog (or, on the grades index, the inline progress badges) still comes from those cached loaders (`loadAssessedCriterionCounts`, `loadAssessmentCompletionByTarget` — both deriving from the cached entries in the table above) — only the page-level `await` is removed, so the *page render* doesn't block on it; it streams in under Suspense instead of blocking navigation on a project-wide completion recompute (Finding 19, PR10).
+`GradeTargetCriterionSection` and `ProjectGradesPageContent` have no page-level `"use cache"` wrapper: each calls already-cached loaders directly. The per-target completion used by the on-demand lookup dialog (or, on the grades index, the inline completion badges) still comes from those cached loaders (`loadGradedCriterionCounts`, `loadGradeCompletionByTarget` — both deriving from the cached entries in the table above) — only the page-level `await` is removed, so the *page render* doesn't block on it; it streams in under Suspense instead of blocking navigation on a project-wide completion recompute (Finding 19, PR10).
 
 ## Maintenance rule
 

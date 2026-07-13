@@ -131,10 +131,10 @@ export const studentRowSchema = z
 
 export const studentRowsSchema = z.array(studentRowSchema);
 
-export const assessmentRowSchema = z
+export const gradeRowSchema = z
 	.object({ kind: z.enum(["individual", "group"]), name: nonEmptyString })
 	.catchall(z.string());
 
-export const assessmentRowsSchema = z.array(assessmentRowSchema);
+export const gradeRowsSchema = z.array(gradeRowSchema);
 
 export { criterionSchema, rubricsSchema };

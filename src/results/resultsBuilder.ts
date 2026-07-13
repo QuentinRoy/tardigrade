@@ -1,11 +1,11 @@
 import {
-	attachAssessment,
+	attachGrade,
 	getCriterionMaxMarks,
 	markCriterion,
 } from "#criteria/criterion.ts";
 import type {
-	AssessmentCriterionValue,
 	Criterion,
+	CriterionGrade,
 	CriterionKind,
 } from "#criteria/types.ts";
 import { getGradeTargetLabel } from "#grade-targets/getGradeTargetLabel.ts";
@@ -38,7 +38,7 @@ export type CriterionRow = {
 	maxMarks: number;
 	averageMarks: number | null;
 	averagePercent: number | null;
-	assessedCount: number;
+	gradedCount: number;
 	totalCount: number;
 	completionPercent: number;
 	details: CriterionDetails;
@@ -48,7 +48,7 @@ export type GradeTargetCell = {
 	criterionId: string;
 	marks: number | null;
 	maxMarks: number;
-	assessed: boolean;
+	graded: boolean;
 };
 
 export type GradeTargetRow = {
@@ -67,7 +67,7 @@ export type ResultsData = {
 	gradeTargetRows: GradeTargetRow[];
 };
 
-export type ResultsAssessmentRecord = {
+export type ResultsGradeRecord = {
 	gradeTargetId: string;
 	criterionId: string;
 	kind: CriterionKind;
@@ -84,9 +84,7 @@ type OrderedCriterion = {
 	maxMarks: number;
 };
 
-function toAssessmentValue(
-	record: ResultsAssessmentRecord,
-): AssessmentCriterionValue | null {
+function toGradeValue(record: ResultsGradeRecord): CriterionGrade | null {
 	switch (record.kind) {
 		case "check":
 			if (record.passed == null) {
@@ -165,11 +163,11 @@ function toCriterionDetails(criterion: Criterion): CriterionDetails {
 export function buildResultsData({
 	targets,
 	rubricsById,
-	assessmentRecords,
+	gradeRecords,
 }: {
 	targets: GradeTarget[];
 	rubricsById: RubricsById;
-	assessmentRecords: ResultsAssessmentRecord[];
+	gradeRecords: ResultsGradeRecord[];
 }): ResultsData {
 	const orderedCriteria: OrderedCriterion[] = [];
 
@@ -193,7 +191,7 @@ export function buildResultsData({
 	const criterionStats = new Map(
 		orderedCriteria.map((entry) => [
 			entry.criterionId,
-			{ marksSum: 0, assessedCount: 0 },
+			{ marksSum: 0, gradedCount: 0 },
 		]),
 	);
 
@@ -203,7 +201,7 @@ export function buildResultsData({
 				criterionId: entry.criterionId,
 				marks: null,
 				maxMarks: entry.maxMarks,
-				assessed: false,
+				graded: false,
 			}));
 
 			return [
@@ -226,22 +224,19 @@ export function buildResultsData({
 		orderedCriteria.map((entry, index) => [entry.criterionId, index]),
 	);
 
-	for (const record of assessmentRecords) {
+	for (const record of gradeRecords) {
 		const criterionMeta = criterionById.get(record.criterionId);
 		if (criterionMeta == null) {
 			continue;
 		}
 
-		const assessmentValue = toAssessmentValue(record);
-		if (assessmentValue == null) {
+		const gradeValue = toGradeValue(record);
+		if (gradeValue == null) {
 			continue;
 		}
 
-		const assessedCriterion = attachAssessment(
-			criterionMeta.criterion,
-			assessmentValue,
-		);
-		const marks = markCriterion(assessedCriterion);
+		const gradedCriterion = attachGrade(criterionMeta.criterion, gradeValue);
+		const marks = markCriterion(gradedCriterion);
 		const gradeTargetRow = gradeTargetRowById.get(record.gradeTargetId);
 		const criterionStat = criterionStats.get(record.criterionId);
 		const cellIndex = cellIndexByCriterionId.get(record.criterionId);
@@ -251,21 +246,21 @@ export function buildResultsData({
 		}
 
 		const existingCell = gradeTargetRow.criteria[cellIndex];
-		if (existingCell == null || existingCell.assessed) {
+		if (existingCell == null || existingCell.graded) {
 			continue;
 		}
 
 		gradeTargetRow.criteria[cellIndex] = {
 			...existingCell,
 			marks,
-			assessed: true,
+			graded: true,
 		};
 
 		gradeTargetRow.marks += marks;
 		gradeTargetRow.maxMarks += criterionMeta.maxMarks;
 		gradeTargetRow.completedCriteria += 1;
 
-		criterionStat.assessedCount += 1;
+		criterionStat.gradedCount += 1;
 		criterionStat.marksSum += marks;
 	}
 
@@ -279,11 +274,9 @@ export function buildResultsData({
 
 	const criteria = orderedCriteria.map((entry) => {
 		const stats = criterionStats.get(entry.criterionId);
-		const assessedCount = stats?.assessedCount ?? 0;
+		const gradedCount = stats?.gradedCount ?? 0;
 		const averageMarks =
-			assessedCount > 0 && stats != null
-				? stats.marksSum / assessedCount
-				: null;
+			gradedCount > 0 && stats != null ? stats.marksSum / gradedCount : null;
 		const averagePercent =
 			averageMarks != null && entry.maxMarks > 0
 				? (averageMarks / entry.maxMarks) * 100
@@ -296,10 +289,10 @@ export function buildResultsData({
 			maxMarks: entry.maxMarks,
 			averageMarks,
 			averagePercent,
-			assessedCount,
+			gradedCount,
 			totalCount: targets.length,
 			completionPercent:
-				targets.length > 0 ? (assessedCount / targets.length) * 100 : 0,
+				targets.length > 0 ? (gradedCount / targets.length) * 100 : 0,
 			details: toCriterionDetails(entry.criterion),
 		};
 	});

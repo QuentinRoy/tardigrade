@@ -62,7 +62,7 @@ describe("deleteRubricAction", () => {
 		});
 	});
 
-	it("does not include assessment counts in the delete response", async () => {
+	it("does not include grade counts in the delete response", async () => {
 		deleteRubricDefinition.mockResolvedValue({ deleted: true });
 
 		const result = await deleteRubricAction(
@@ -71,8 +71,8 @@ describe("deleteRubricAction", () => {
 			buildDeleteFormData("q1"),
 		);
 
-		expect(result.message).not.toMatch(/assessment/i);
-		expect(result).not.toHaveProperty("assessmentCount");
+		expect(result.message).not.toMatch(/grade/i);
+		expect(result).not.toHaveProperty("gradedTargetCount");
 	});
 
 	it("returns an error state when the confirmation phrase does not match", async () => {

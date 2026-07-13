@@ -94,7 +94,7 @@ describe("GET /export/grades", () => {
 			/^attachment; filename="grades-intro-to-grading-\d{4}-\d{2}-\d{2}\.csv"$/,
 		);
 		expect(createCsvGradeTargetExport).toHaveBeenCalledWith(
-			{ includeCriterionAssessment: false, includeCriterionMarks: false },
+			{ includeCriterionGrade: false, includeCriterionMarks: false },
 			"project-1",
 		);
 	});
@@ -109,14 +109,14 @@ describe("GET /export/grades", () => {
 
 		const response = await GET(
 			buildRequest(
-				"?include=criterion-assessment&include=criterion-marks&include=criterion-assessment",
+				"?include=criterion-grade&include=criterion-marks&include=criterion-grade",
 			),
 			{ params },
 		);
 
 		expect(response.status).toBe(200);
 		expect(createCsvGradeTargetExport).toHaveBeenCalledWith(
-			{ includeCriterionAssessment: true, includeCriterionMarks: true },
+			{ includeCriterionGrade: true, includeCriterionMarks: true },
 			"project-1",
 		);
 	});

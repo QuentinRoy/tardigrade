@@ -1,10 +1,10 @@
 import { assertNever } from "#utils/utils.ts";
 import type {
-	AssessedCriterion,
-	AssessmentCriterionValue,
 	Criterion,
 	CriterionForKind,
+	CriterionGrade,
 	CriterionKind,
+	GradedCriterion,
 } from "./types.ts";
 
 export function getCriterionMaxMarks(criterion: Criterion): number {
@@ -75,56 +75,44 @@ export function markOptionsCriterion(
 }
 
 export function markCriterion<TKind extends CriterionKind = CriterionKind>(
-	criterion: AssessedCriterion<TKind>,
+	criterion: GradedCriterion<TKind>,
 ): number {
-	if (criterion.assessment == null) {
+	if (criterion.grade == null) {
 		return 0;
 	}
 	switch (criterion.kind) {
 		case "check":
-			return markCheckCriterion(criterion, criterion.assessment.passed);
+			return markCheckCriterion(criterion, criterion.grade.passed);
 		case "options":
-			return markOptionsCriterion(
-				criterion,
-				criterion.assessment.selectedLabel,
-			);
+			return markOptionsCriterion(criterion, criterion.grade.selectedLabel);
 		case "number":
-			return markNumberCriterion(criterion, criterion.assessment.score);
+			return markNumberCriterion(criterion, criterion.grade.score);
 		default:
 			assertNever(criterion);
 	}
 }
 
-export function attachAssessment<TKind extends CriterionKind>(
+export function attachGrade<TKind extends CriterionKind>(
 	criterion: CriterionForKind<TKind>,
-	source: AssessmentCriterionValue | AssessmentCriterionValue[] | undefined,
-): AssessedCriterion<TKind> {
+	source: CriterionGrade | CriterionGrade[] | undefined,
+): GradedCriterion<TKind> {
 	switch (criterion.kind) {
 		// TypeScript does not narrow a free generic type parameter (TKind) inside
-		// case branches, so it cannot verify that e.g. AssessedCheckCriterion
-		// satisfies AssessedCriterion<TKind>. assertCriterionKind() guarantees the
+		// case branches, so it cannot verify that e.g. GradedCheckCriterion
+		// satisfies GradedCriterion<TKind>. assertCriterionKind() guarantees the
 		// branch matches before each call, making the casts safe.
 		case "check":
 			assertCriterionKind(criterion, "check");
 			// biome-ignore lint/plugin/no-type-assertion: c.f. comment above.
-			return attachCheckAssessment(
-				criterion,
-				source,
-			) as AssessedCriterion<TKind>;
+			return attachCheckGrade(criterion, source) as GradedCriterion<TKind>;
 		case "options":
 			assertCriterionKind(criterion, "options");
 			// biome-ignore lint/plugin/no-type-assertion: c.f. comment above.
-			return attachOptionsAssessment(
-				criterion,
-				source,
-			) as AssessedCriterion<TKind>;
+			return attachOptionsGrade(criterion, source) as GradedCriterion<TKind>;
 		case "number":
 			assertCriterionKind(criterion, "number");
 			// biome-ignore lint/plugin/no-type-assertion: c.f. comment above.
-			return attachNumberAssessment(
-				criterion,
-				source,
-			) as AssessedCriterion<TKind>;
+			return attachNumberGrade(criterion, source) as GradedCriterion<TKind>;
 		default:
 			return assertNever(criterion.kind);
 	}
@@ -141,52 +129,44 @@ function assertCriterionKind<TExpected extends CriterionKind>(
 	}
 }
 
-function attachCheckAssessment(
+function attachCheckGrade(
 	criterion: CriterionForKind<"check">,
-	source: AssessmentCriterionValue | AssessmentCriterionValue[] | undefined,
-): AssessedCriterion<"check"> {
-	const assessment = findAssessment(criterion.id, source);
+	source: CriterionGrade | CriterionGrade[] | undefined,
+): GradedCriterion<"check"> {
+	const grade = findGrade(criterion.id, source);
 	return {
 		...criterion,
-		assessment:
-			assessment?.kind === "check" ? { passed: assessment.passed } : null,
+		grade: grade?.kind === "check" ? { passed: grade.passed } : null,
 	};
 }
 
-function attachOptionsAssessment(
+function attachOptionsGrade(
 	criterion: CriterionForKind<"options">,
-	source: AssessmentCriterionValue | AssessmentCriterionValue[] | undefined,
-): AssessedCriterion<"options"> {
-	const assessment = findAssessment(criterion.id, source);
+	source: CriterionGrade | CriterionGrade[] | undefined,
+): GradedCriterion<"options"> {
+	const grade = findGrade(criterion.id, source);
 	return {
 		...criterion,
-		assessment:
-			assessment?.kind === "options"
-				? { selectedLabel: assessment.selectedLabel }
-				: null,
+		grade:
+			grade?.kind === "options" ? { selectedLabel: grade.selectedLabel } : null,
 	};
 }
 
-function attachNumberAssessment(
+function attachNumberGrade(
 	criterion: CriterionForKind<"number">,
-	source: AssessmentCriterionValue | AssessmentCriterionValue[] | undefined,
-): AssessedCriterion<"number"> {
-	const assessment = findAssessment(criterion.id, source);
+	source: CriterionGrade | CriterionGrade[] | undefined,
+): GradedCriterion<"number"> {
+	const grade = findGrade(criterion.id, source);
 	return {
 		...criterion,
-		assessment:
-			assessment?.kind === "number" ? { score: assessment.score } : null,
+		grade: grade?.kind === "number" ? { score: grade.score } : null,
 	};
 }
 
-function findAssessment(
+function findGrade(
 	criterionId: string,
-	source:
-		| AssessmentCriterionValue
-		| AssessmentCriterionValue[]
-		| null
-		| undefined,
-): AssessmentCriterionValue | null {
+	source: CriterionGrade | CriterionGrade[] | null | undefined,
+): CriterionGrade | null {
 	if (source == null) {
 		return null;
 	}

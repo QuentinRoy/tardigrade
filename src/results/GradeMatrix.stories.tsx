@@ -9,7 +9,7 @@ const criteria = [
 		maxMarks: 5,
 		averageMarks: 3.5,
 		averagePercent: 70,
-		assessedCount: 3,
+		gradedCount: 3,
 		totalCount: 4,
 		completionPercent: 75,
 		details: {
@@ -26,7 +26,7 @@ const criteria = [
 		maxMarks: 4,
 		averageMarks: 1.2,
 		averagePercent: 30,
-		assessedCount: 2,
+		gradedCount: 2,
 		totalCount: 4,
 		completionPercent: 50,
 		details: {
@@ -56,8 +56,8 @@ const gradeTargetRows = [
 		completedCriteria: 2,
 		totalCriteria: 2,
 		criteria: [
-			{ criterionId: "r-correctness", marks: 5, maxMarks: 5, assessed: true },
-			{ criterionId: "r-explanation", marks: 2.5, maxMarks: 4, assessed: true },
+			{ criterionId: "r-correctness", marks: 5, maxMarks: 5, graded: true },
+			{ criterionId: "r-explanation", marks: 2.5, maxMarks: 4, graded: true },
 		],
 	},
 	{
@@ -69,19 +69,14 @@ const gradeTargetRows = [
 		completedCriteria: 1,
 		totalCriteria: 2,
 		criteria: [
-			{ criterionId: "r-correctness", marks: 2, maxMarks: 5, assessed: true },
-			{
-				criterionId: "r-explanation",
-				marks: null,
-				maxMarks: 4,
-				assessed: false,
-			},
+			{ criterionId: "r-correctness", marks: 2, maxMarks: 5, graded: true },
+			{ criterionId: "r-explanation", marks: null, maxMarks: 4, graded: false },
 		],
 	},
 ];
 
 const meta = {
-	title: "Assessment/GradeMatrix",
+	title: "Grade/GradeMatrix",
 	component: GradeMatrix,
 	tags: ["autodocs"],
 	parameters: { layout: "padded" },
@@ -103,7 +98,7 @@ export const Complete: Story = {
 			completedCriteria: gradeTargetRow.totalCriteria,
 			criteria: gradeTargetRow.criteria.map((cell) => ({
 				...cell,
-				assessed: true,
+				graded: true,
 				marks: cell.marks ?? 2,
 			})),
 			marks: gradeTargetRow.maxMarks,

@@ -1,15 +1,15 @@
 import { revalidateTag, updateTag } from "next/cache";
 import { beforeEach, expect, test, vi } from "vitest";
 import {
-	assessmentAggregateCacheTag,
-	assessmentImportCacheTag,
-	assessmentProgressForRubricCacheTag,
+	gradeAggregateCacheTag,
+	gradeCompletionForRubricCacheTag,
+	gradeImportCacheTag,
 	rubricListCacheTag,
 } from "#db/cacheTags.ts";
 import { buildTestId, createTestDb } from "#test/dbIntegration.ts";
 import { createProject } from "#test/projects.ts";
 import {
-	createAssessedBooleanRubricFixture,
+	createGradedBooleanRubricFixture,
 	createOrdinalRubricFixture,
 	createRubric,
 	getRubricPositions,
@@ -77,11 +77,11 @@ test("saveRubricDefinitionInDb persists inside a caller transaction and rolls ba
 	expect(afterRollback).toHaveLength(0);
 });
 
-test("saveRubricDefinitionInDb renames rubric id while preserving linked assessments", async () => {
+test("saveRubricDefinitionInDb renames rubric id while preserving linked grades", async () => {
 	await using db = await createTestDb();
 	const { updateTag } = await import("next/cache");
 	await using project = await createProject(db, "Save Rename Project");
-	const fixture = await createAssessedBooleanRubricFixture(db, project.rowId);
+	const fixture = await createGradedBooleanRubricFixture(db, project.rowId);
 	const renamedRubricId = buildTestId("rubric-renamed");
 
 	const result = await saveRubricDefinitionInDb(db, {
@@ -119,9 +119,9 @@ test("saveRubricDefinitionInDb renames rubric id while preserving linked assessm
 	// The criterion grade survives the rubric rename, still linked to its
 	// criterion (and through it to the renamed rubric).
 	const criterionGrade = await db
-		.selectFrom("criterionAssessment")
+		.selectFrom("criterionGrade")
 		.select(["id", "criterionId"])
-		.where("id", "=", fixture.criterionAssessmentId)
+		.where("id", "=", fixture.criterionGradeId)
 		.executeTakeFirstOrThrow();
 
 	expect(criterionGrade.criterionId).toBe(fixture.criterionRowId);
@@ -130,7 +130,7 @@ test("saveRubricDefinitionInDb renames rubric id while preserving linked assessm
 test("saveRubricDefinitionInDb replaces criterion subtype data when criterion type changes", async () => {
 	await using db = await createTestDb();
 	await using project = await createProject(db, "Save Type Change Project");
-	const fixture = await createAssessedBooleanRubricFixture(db, project.rowId);
+	const fixture = await createGradedBooleanRubricFixture(db, project.rowId);
 
 	const replacedCriterionId = buildTestId("criterion-numerical");
 
@@ -186,21 +186,21 @@ test("saveRubricDefinitionInDb replaces criterion subtype data when criterion ty
 		.where("criterionId", "=", newCriterion.rowId)
 		.execute();
 
-	const linkedCriterionAssessments = await db
-		.selectFrom("criterionAssessment")
+	const linkedCriterionGrades = await db
+		.selectFrom("criterionGrade")
 		.select("id")
 		.where("criterionId", "=", fixture.criterionRowId)
 		.execute();
 
 	expect(booleanSubtypeRows).toHaveLength(0);
 	expect(numericalSubtypeRows).toHaveLength(1);
-	expect(linkedCriterionAssessments).toHaveLength(0);
+	expect(linkedCriterionGrades).toHaveLength(0);
 });
 
 test("saveRubricDefinitionInDb removes stale criteria that are no longer referenced", async () => {
 	await using db = await createTestDb();
 	await using project = await createProject(db, "Save Stale Criterion Project");
-	const fixture = await createAssessedBooleanRubricFixture(db, project.rowId);
+	const fixture = await createGradedBooleanRubricFixture(db, project.rowId);
 
 	const staleCriterionId = buildTestId("criterion-stale");
 
@@ -323,10 +323,10 @@ test("saveRubricDefinitionInDb replaces ordinal criterion values using the provi
 	]);
 });
 
-test("deleteRubricDefinitionInDb reports deletion and cascades linked assessments", async () => {
+test("deleteRubricDefinitionInDb reports deletion and cascades linked grades", async () => {
 	await using db = await createTestDb();
 	await using project = await createProject(db, "Delete Cascade Project");
-	const fixture = await createAssessedBooleanRubricFixture(db, project.rowId);
+	const fixture = await createGradedBooleanRubricFixture(db, project.rowId);
 
 	const result = await deleteRubricDefinitionInDb(db, {
 		rubricId: fixture.rubricId,
@@ -342,9 +342,9 @@ test("deleteRubricDefinitionInDb reports deletion and cascades linked assessment
 		.execute();
 
 	const criterionGradeRows = await db
-		.selectFrom("criterionAssessment")
+		.selectFrom("criterionGrade")
 		.select("id")
-		.where("id", "=", fixture.criterionAssessmentId)
+		.where("id", "=", fixture.criterionGradeId)
 		.execute();
 
 	expect(rubricRows).toHaveLength(0);
@@ -364,7 +364,7 @@ test("deleteRubricDefinitionInDb returns deleted false when no rubric matches in
 	expect(result).toEqual({ deleted: false });
 });
 
-test("deleteRubricDefinitionInDb deletes a rubric that has no assessments", async () => {
+test("deleteRubricDefinitionInDb deletes a rubric that has no grades", async () => {
 	await using db = await createTestDb();
 	await using project = await createProject(db, "Delete Standalone Project");
 	const rubric = await createRubric(db, project.rowId, 0);
@@ -500,7 +500,7 @@ test("reorderRubricsInDb throws when the same id is provided more than once", as
 	expect(positions).toEqual({ [rubric.id]: 0 });
 });
 
-test("saveRubricDefinition wrapper updates the rubric list read-your-writes and revalidates assessment tags after commit", async () => {
+test("saveRubricDefinition wrapper updates the rubric list read-your-writes and revalidates grade tags after commit", async () => {
 	await using db = await createTestDb();
 	await using project = await createProject(db, "Save Cache Project");
 	const rubricId = buildTestId("rubric");
@@ -532,16 +532,16 @@ test("saveRubricDefinition wrapper updates the rubric list read-your-writes and 
 		.mocked(revalidateTag)
 		.mock.calls.map((call) => call[0]);
 	expect(revalidatedTags).toEqual([
-		assessmentAggregateCacheTag(),
-		assessmentImportCacheTag(),
-		assessmentProgressForRubricCacheTag(rubricId),
+		gradeAggregateCacheTag(),
+		gradeImportCacheTag(),
+		gradeCompletionForRubricCacheTag(rubricId),
 	]);
 });
 
-test("saveRubricDefinition wrapper revalidates the previous rubric's progress when the id changes", async () => {
+test("saveRubricDefinition wrapper revalidates the previous rubric's completion when the id changes", async () => {
 	await using db = await createTestDb();
 	await using project = await createProject(db, "Save Rename Cache Project");
-	const fixture = await createAssessedBooleanRubricFixture(db, project.rowId);
+	const fixture = await createGradedBooleanRubricFixture(db, project.rowId);
 	const renamedRubricId = buildTestId("rubric-renamed");
 
 	await saveRubricDefinition(
@@ -573,10 +573,10 @@ test("saveRubricDefinition wrapper revalidates the previous rubric's progress wh
 		.mocked(revalidateTag)
 		.mock.calls.map((call) => call[0]);
 	expect(revalidatedTags).toEqual([
-		assessmentAggregateCacheTag(),
-		assessmentImportCacheTag(),
-		assessmentProgressForRubricCacheTag(renamedRubricId),
-		assessmentProgressForRubricCacheTag(fixture.rubricId),
+		gradeAggregateCacheTag(),
+		gradeImportCacheTag(),
+		gradeCompletionForRubricCacheTag(renamedRubricId),
+		gradeCompletionForRubricCacheTag(fixture.rubricId),
 	]);
 });
 
@@ -595,7 +595,7 @@ test("saveRubricDefinition wrapper does not invalidate when persistence throws",
 	expect(revalidateTag).not.toHaveBeenCalled();
 });
 
-test("deleteRubricDefinition wrapper updates the rubric list read-your-writes and revalidates assessment tags", async () => {
+test("deleteRubricDefinition wrapper updates the rubric list read-your-writes and revalidates grade tags", async () => {
 	await using db = await createTestDb();
 	await using project = await createProject(db, "Delete Cache Project");
 	const rubric = await createRubric(db, project.rowId, 0);
@@ -612,9 +612,9 @@ test("deleteRubricDefinition wrapper updates the rubric list read-your-writes an
 		.mocked(revalidateTag)
 		.mock.calls.map((call) => call[0]);
 	expect(revalidatedTags).toEqual([
-		assessmentAggregateCacheTag(),
-		assessmentImportCacheTag(),
-		assessmentProgressForRubricCacheTag(rubric.id),
+		gradeAggregateCacheTag(),
+		gradeImportCacheTag(),
+		gradeCompletionForRubricCacheTag(rubric.id),
 	]);
 });
 

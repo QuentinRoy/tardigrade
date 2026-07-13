@@ -11,7 +11,7 @@ const meta = {
 		definition: {
 			id: "q1",
 			position: 0,
-			assessmentCount: 5,
+			gradedTargetCount: 5,
 			rubric: { label: "Correctness", criteria: [] },
 		},
 		action: fn(),
@@ -34,7 +34,7 @@ export const ConfirmationGate: Story = {
 
 		await userEvent.type(
 			screen.getByLabelText("Confirmation"),
-			"DELETE q1 (5 assessments)",
+			"DELETE q1 (5 grades)",
 		);
 
 		await waitFor(() => {

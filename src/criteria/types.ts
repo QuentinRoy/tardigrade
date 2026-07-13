@@ -1,17 +1,13 @@
+import type { CriterionKind } from "#db/generated/public/CriterionKind.ts";
 import type { Simplify } from "#utils/utils.ts";
 
-export type CriterionKind = "check" | "number" | "options";
+export type { CriterionKind };
 
-type AssessmentCriterionValueBase = {
-	criterionId: string;
-	kind: CriterionKind;
-};
-export type AssessmentCriterionValue =
-	| Simplify<AssessmentCriterionValueBase & { kind: "check"; passed: boolean }>
-	| Simplify<
-			AssessmentCriterionValueBase & { kind: "options"; selectedLabel: string }
-	  >
-	| Simplify<AssessmentCriterionValueBase & { kind: "number"; score: number }>;
+type CriterionGradeBase = { criterionId: string; kind: CriterionKind };
+export type CriterionGrade =
+	| Simplify<CriterionGradeBase & { kind: "check"; passed: boolean }>
+	| Simplify<CriterionGradeBase & { kind: "options"; selectedLabel: string }>
+	| Simplify<CriterionGradeBase & { kind: "number"; score: number }>;
 
 type CriterionBase = {
 	id: string;
@@ -41,19 +37,19 @@ export type CriterionForKind<TKind extends CriterionKind> = Extract<
 	{ kind: TKind }
 >;
 
-export type AssessedCriterion<TKind extends CriterionKind = CriterionKind> =
+export type GradedCriterion<TKind extends CriterionKind = CriterionKind> =
 	TKind extends CriterionKind
 		? CriterionForKind<TKind> & {
-				assessment: AssessmentValueForCriterionKind<TKind> | null;
+				grade: CriterionGradeContentForKind<TKind> | null;
 			}
 		: never;
 
-type AssessmentValueForCriterionKind<TKind extends CriterionKind> = Omit<
-	AssessmentForCriterionKind<TKind>,
+type CriterionGradeContentForKind<TKind extends CriterionKind> = Omit<
+	CriterionGradeForKind<TKind>,
 	"criterionId" | "kind"
 >;
 
-type AssessmentForCriterionKind<TKind extends CriterionKind> = Extract<
-	AssessmentCriterionValue,
+type CriterionGradeForKind<TKind extends CriterionKind> = Extract<
+	CriterionGrade,
 	{ kind: TKind }
 >;

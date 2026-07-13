@@ -4,7 +4,7 @@ import type { Database } from "#db/generated/database.ts";
 import { nextGradeTargetIds } from "#grade-targets/gradeTargets.ts";
 import { buildTestId, createTestDb } from "#test/dbIntegration.ts";
 import { createProject } from "#test/projects.ts";
-import { loadCriterionAssessmentRecordsFromDb } from "./loadResults.ts";
+import { loadCriterionGradeRecordsFromDb } from "./loadResults.ts";
 
 async function createGradeTarget(
 	db: Kysely<Database>,
@@ -173,7 +173,7 @@ async function createNumberCriterion(
 	return rubric.rowId;
 }
 
-async function addCheckAssessment(
+async function addCheckGrade(
 	db: Kysely<Database>,
 	{
 		gradeTargetRowId,
@@ -181,19 +181,19 @@ async function addCheckAssessment(
 		passed,
 	}: { gradeTargetRowId: number; criterionRowId: number; passed: boolean },
 ): Promise<void> {
-	const criterionAssessment = await db
-		.insertInto("criterionAssessment")
+	const criterionGrade = await db
+		.insertInto("criterionGrade")
 		.values({ gradeTargetRowId, criterionId: criterionRowId })
 		.returning("id")
 		.executeTakeFirstOrThrow();
 
 	await db
-		.insertInto("checkCriterionAssessment")
-		.values({ criterionAssessmentId: criterionAssessment.id, passed })
+		.insertInto("checkCriterionGrade")
+		.values({ criterionGradeId: criterionGrade.id, passed })
 		.execute();
 }
 
-async function addOptionsAssessment(
+async function addOptionsGrade(
 	db: Kysely<Database>,
 	{
 		gradeTargetRowId,
@@ -205,19 +205,19 @@ async function addOptionsAssessment(
 		selectedLabel: string;
 	},
 ): Promise<void> {
-	const criterionAssessment = await db
-		.insertInto("criterionAssessment")
+	const criterionGrade = await db
+		.insertInto("criterionGrade")
 		.values({ gradeTargetRowId, criterionId: criterionRowId })
 		.returning("id")
 		.executeTakeFirstOrThrow();
 
 	await db
-		.insertInto("optionsCriterionAssessment")
-		.values({ criterionAssessmentId: criterionAssessment.id, selectedLabel })
+		.insertInto("optionsCriterionGrade")
+		.values({ criterionGradeId: criterionGrade.id, selectedLabel })
 		.execute();
 }
 
-async function addNumberAssessment(
+async function addNumberGrade(
 	db: Kysely<Database>,
 	{
 		gradeTargetRowId,
@@ -225,19 +225,19 @@ async function addNumberAssessment(
 		score,
 	}: { gradeTargetRowId: number; criterionRowId: number; score: number },
 ): Promise<void> {
-	const criterionAssessment = await db
-		.insertInto("criterionAssessment")
+	const criterionGrade = await db
+		.insertInto("criterionGrade")
 		.values({ gradeTargetRowId, criterionId: criterionRowId })
 		.returning("id")
 		.executeTakeFirstOrThrow();
 
 	await db
-		.insertInto("numberCriterionAssessment")
-		.values({ criterionAssessmentId: criterionAssessment.id, score })
+		.insertInto("numberCriterionGrade")
+		.values({ criterionGradeId: criterionGrade.id, score })
 		.execute();
 }
 
-test("loadCriterionAssessmentRecordsFromDb maps the per-type value column for boolean, ordinal and numerical assessments", async () => {
+test("loadCriterionGradeRecordsFromDb maps the per-type value column for boolean, ordinal and numerical grades", async () => {
 	await using db = await createTestDb();
 	await using project = await createProject(db, "Rubric Overview Types");
 
@@ -268,23 +268,23 @@ test("loadCriterionAssessmentRecordsFromDb maps the per-type value column for bo
 		criterionId: numericalRubricId,
 	});
 
-	await addCheckAssessment(db, {
+	await addCheckGrade(db, {
 		gradeTargetRowId: target.rowId,
 		criterionRowId: checkCriterionRowId,
 		passed: true,
 	});
-	await addOptionsAssessment(db, {
+	await addOptionsGrade(db, {
 		gradeTargetRowId: target.rowId,
 		criterionRowId: optionsCriterionRowId,
 		selectedLabel: "high",
 	});
-	await addNumberAssessment(db, {
+	await addNumberGrade(db, {
 		gradeTargetRowId: target.rowId,
 		criterionRowId: numberCriterionRowId,
 		score: 7,
 	});
 
-	const records = await loadCriterionAssessmentRecordsFromDb(db, {
+	const records = await loadCriterionGradeRecordsFromDb(db, {
 		projectId: project.id,
 	});
 
@@ -320,7 +320,7 @@ test("loadCriterionAssessmentRecordsFromDb maps the per-type value column for bo
 	});
 });
 
-test("loadCriterionAssessmentRecordsFromDb excludes assessment records from other projects", async () => {
+test("loadCriterionGradeRecordsFromDb excludes grade records from other projects", async () => {
 	await using db = await createTestDb();
 	await using projectA = await createProject(db, "Rubric Overview Isolation A");
 	await using projectB = await createProject(db, "Rubric Overview Isolation B");
@@ -353,21 +353,21 @@ test("loadCriterionAssessmentRecordsFromDb excludes assessment records from othe
 		criterionId: criterionIdB,
 	});
 
-	await addCheckAssessment(db, {
+	await addCheckGrade(db, {
 		gradeTargetRowId: targetA.rowId,
 		criterionRowId: criterionRowIdA,
 		passed: true,
 	});
-	await addCheckAssessment(db, {
+	await addCheckGrade(db, {
 		gradeTargetRowId: targetB.rowId,
 		criterionRowId: criterionRowIdB,
 		passed: false,
 	});
 
-	const recordsA = await loadCriterionAssessmentRecordsFromDb(db, {
+	const recordsA = await loadCriterionGradeRecordsFromDb(db, {
 		projectId: projectA.id,
 	});
-	const recordsB = await loadCriterionAssessmentRecordsFromDb(db, {
+	const recordsB = await loadCriterionGradeRecordsFromDb(db, {
 		projectId: projectB.id,
 	});
 

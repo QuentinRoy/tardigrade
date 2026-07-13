@@ -2,9 +2,9 @@ import type { Kysely } from "kysely";
 import type { Database } from "#db/generated/database.ts";
 import { buildTestId } from "./dbIntegration.ts";
 
-export type AssessedBooleanFixture = BooleanRubricFixture & {
+export type GradedBooleanFixture = BooleanRubricFixture & {
 	gradeTargetRowId: number;
-	criterionAssessmentId: number;
+	criterionGradeId: number;
 };
 
 export type BooleanRubricFixture = {
@@ -15,7 +15,7 @@ export type BooleanRubricFixture = {
 };
 
 // Creates a rubric carrying a single boolean criterion, without any grade target
-// or assessment.
+// or grade.
 export async function createBooleanRubricFixture(
 	db: Kysely<Database>,
 	projectId: number,
@@ -56,10 +56,10 @@ export async function createBooleanRubricFixture(
 	};
 }
 
-export async function createAssessedBooleanRubricFixture(
+export async function createGradedBooleanRubricFixture(
 	db: Kysely<Database>,
 	projectId: number,
-): Promise<AssessedBooleanFixture> {
+): Promise<GradedBooleanFixture> {
 	const rubric = await createBooleanRubricFixture(db, projectId);
 	const studentId = buildTestId("student");
 
@@ -85,8 +85,8 @@ export async function createAssessedBooleanRubricFixture(
 		.returning("rowId")
 		.executeTakeFirstOrThrow();
 
-	const criterionAssessment = await db
-		.insertInto("criterionAssessment")
+	const criterionGrade = await db
+		.insertInto("criterionGrade")
 		.values({
 			gradeTargetRowId: target.rowId,
 			criterionId: rubric.criterionRowId,
@@ -95,14 +95,14 @@ export async function createAssessedBooleanRubricFixture(
 		.executeTakeFirstOrThrow();
 
 	await db
-		.insertInto("checkCriterionAssessment")
-		.values({ criterionAssessmentId: criterionAssessment.id, passed: true })
+		.insertInto("checkCriterionGrade")
+		.values({ criterionGradeId: criterionGrade.id, passed: true })
 		.execute();
 
 	return {
 		...rubric,
 		gradeTargetRowId: target.rowId,
-		criterionAssessmentId: criterionAssessment.id,
+		criterionGradeId: criterionGrade.id,
 	};
 }
 

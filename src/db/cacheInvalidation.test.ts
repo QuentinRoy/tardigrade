@@ -1,8 +1,8 @@
 import { revalidateTag, updateTag } from "next/cache";
 import { beforeEach, expect, test, vi } from "vitest";
 import {
-	invalidateAssessmentImport,
-	invalidateAssessmentSave,
+	invalidateGradeImport,
+	invalidateGradeSave,
 	invalidateProjectCreate,
 	invalidateRubricDefinitionDelete,
 	invalidateRubricDefinitionSave,
@@ -25,33 +25,33 @@ function revalidatedTags(): string[] {
 	return vi.mocked(revalidateTag).mock.calls.map((call) => call[0]);
 }
 
-test("invalidateAssessmentSave updates the edited tags and revalidates the derived tags", () => {
-	invalidateAssessmentSave({ targetId: "t-1", rubricId: "q-1" });
+test("invalidateGradeSave updates the edited tags and revalidates the derived tags", () => {
+	invalidateGradeSave({ targetId: "t-1", rubricId: "q-1" });
 
-	expect(updatedTags()).toEqual(["assessments:t-1:q-1", "assessments:t-1"]);
-	expect(revalidatedTags()).toEqual(["assessments", "assessments:rubric:q-1"]);
+	expect(updatedTags()).toEqual(["grades:t-1:q-1", "grades:t-1"]);
+	expect(revalidatedTags()).toEqual(["grades", "grades:rubric:q-1"]);
 });
 
-test("invalidateRubricDefinitionSave updates the rubric list and revalidates assessment tags", () => {
+test("invalidateRubricDefinitionSave updates the rubric list and revalidates grade tags", () => {
 	invalidateRubricDefinitionSave({ rubricId: "q-1" });
 
 	expect(updatedTags()).toEqual(["rubrics"]);
 	expect(revalidatedTags()).toEqual([
-		"assessments",
-		"assessments:all",
-		"assessments:rubric:q-1",
+		"grades",
+		"grades:all",
+		"grades:rubric:q-1",
 	]);
 });
 
-test("invalidateRubricDefinitionSave revalidates the previous rubric's progress when the id changes", () => {
+test("invalidateRubricDefinitionSave revalidates the previous rubric's completion when the id changes", () => {
 	invalidateRubricDefinitionSave({ rubricId: "q-2", previousRubricId: "q-1" });
 
 	expect(updatedTags()).toEqual(["rubrics"]);
 	expect(revalidatedTags()).toEqual([
-		"assessments",
-		"assessments:all",
-		"assessments:rubric:q-2",
-		"assessments:rubric:q-1",
+		"grades",
+		"grades:all",
+		"grades:rubric:q-2",
+		"grades:rubric:q-1",
 	]);
 });
 
@@ -59,20 +59,20 @@ test("invalidateRubricDefinitionSave ignores an unchanged previous id", () => {
 	invalidateRubricDefinitionSave({ rubricId: "q-1", previousRubricId: "q-1" });
 
 	expect(revalidatedTags()).toEqual([
-		"assessments",
-		"assessments:all",
-		"assessments:rubric:q-1",
+		"grades",
+		"grades:all",
+		"grades:rubric:q-1",
 	]);
 });
 
-test("invalidateRubricDefinitionDelete updates the rubric list and revalidates assessment tags", () => {
+test("invalidateRubricDefinitionDelete updates the rubric list and revalidates grade tags", () => {
 	invalidateRubricDefinitionDelete({ rubricId: "q-1" });
 
 	expect(updatedTags()).toEqual(["rubrics"]);
 	expect(revalidatedTags()).toEqual([
-		"assessments",
-		"assessments:all",
-		"assessments:rubric:q-1",
+		"grades",
+		"grades:all",
+		"grades:rubric:q-1",
 	]);
 });
 
@@ -90,38 +90,30 @@ test("invalidateProjectCreate revalidates the project list and the new project t
 	expect(revalidatedTags()).toEqual(["projects", "projects:p-1"]);
 });
 
-test("invalidateAssessmentImport revalidates the assessment aggregates", () => {
-	invalidateAssessmentImport();
+test("invalidateGradeImport revalidates the grade aggregates", () => {
+	invalidateGradeImport();
 
 	expect(updateTag).not.toHaveBeenCalled();
-	expect(revalidatedTags()).toEqual(["assessments", "assessments:all"]);
+	expect(revalidatedTags()).toEqual(["grades", "grades:all"]);
 });
 
-test("invalidateRubricImport revalidates the rubric list and assessment aggregates", () => {
+test("invalidateRubricImport revalidates the rubric list and grade aggregates", () => {
 	invalidateRubricImport();
 
 	expect(updateTag).not.toHaveBeenCalled();
-	expect(revalidatedTags()).toEqual([
-		"rubrics",
-		"assessments",
-		"assessments:all",
-	]);
+	expect(revalidatedTags()).toEqual(["rubrics", "grades", "grades:all"]);
 });
 
-test("invalidateStudentImport revalidates the grade-target list and assessment aggregates", () => {
+test("invalidateStudentImport revalidates the grade-target list and grade aggregates", () => {
 	invalidateStudentImport();
 
 	expect(updateTag).not.toHaveBeenCalled();
-	expect(revalidatedTags()).toEqual([
-		"grade-targets",
-		"assessments",
-		"assessments:all",
-	]);
+	expect(revalidatedTags()).toEqual(["grade-targets", "grades", "grades:all"]);
 });
 
 test("import and project helpers revalidate with the max profile", () => {
 	invalidateProjectCreate({ projectId: "p-1" });
-	invalidateAssessmentImport();
+	invalidateGradeImport();
 	invalidateRubricImport();
 	invalidateStudentImport();
 

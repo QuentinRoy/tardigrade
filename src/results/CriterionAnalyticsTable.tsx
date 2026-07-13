@@ -66,7 +66,7 @@ export default function CriterionAnalyticsTable({
 							</Table.Td>
 							<Table.Td>
 								<CompletionProgress
-									assessedCount={criterion.assessedCount}
+									gradedCount={criterion.gradedCount}
 									totalCount={criterion.totalCount}
 									completionPercent={criterion.completionPercent}
 									alignItems="flex-end"
