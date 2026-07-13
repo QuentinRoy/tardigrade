@@ -1,13 +1,13 @@
 import type { Kysely } from "kysely";
 import { expect, test } from "vitest";
-import type { DB } from "#db/generated/db.ts";
+import type { Database } from "#db/generated/database.ts";
 import { nextGradeTargetIds } from "#grade-targets/gradeTargets.ts";
 import { buildTestId, createTestDb } from "#test/dbIntegration.ts";
 import { createProject } from "#test/projects.ts";
 import { loadCriterionAssessmentRecordsFromDb } from "./loadResults.ts";
 
 async function createGradeTarget(
-	db: Kysely<DB>,
+	db: Kysely<Database>,
 	projectRowId: number,
 ): Promise<{ id: string; rowId: number }> {
 	const studentId = buildTestId("student");
@@ -47,7 +47,7 @@ async function createGradeTarget(
 }
 
 async function createRubric(
-	db: Kysely<DB>,
+	db: Kysely<Database>,
 	projectRowId: number,
 	rubricId: string,
 ): Promise<number> {
@@ -72,7 +72,7 @@ async function createRubric(
 }
 
 async function createCheckCriterion(
-	db: Kysely<DB>,
+	db: Kysely<Database>,
 	{
 		projectRowId,
 		rubricRowId,
@@ -101,7 +101,7 @@ async function createCheckCriterion(
 }
 
 async function createOptionsCriterion(
-	db: Kysely<DB>,
+	db: Kysely<Database>,
 	{
 		projectRowId,
 		rubricRowId,
@@ -139,7 +139,7 @@ async function createOptionsCriterion(
 }
 
 async function createNumberCriterion(
-	db: Kysely<DB>,
+	db: Kysely<Database>,
 	{
 		projectRowId,
 		rubricRowId,
@@ -176,7 +176,7 @@ async function createNumberCriterion(
 // `Assessment` is unique per (gradeTargetRowId, rubricId): multiple criteria on
 // the same rubric share one assessment row, each with its own `criterionAssessment`.
 async function createAssessment(
-	db: Kysely<DB>,
+	db: Kysely<Database>,
 	{
 		projectRowId,
 		gradeTargetRowId,
@@ -197,7 +197,7 @@ async function createAssessment(
 }
 
 async function addCheckAssessment(
-	db: Kysely<DB>,
+	db: Kysely<Database>,
 	{
 		assessmentId,
 		criterionRowId,
@@ -217,7 +217,7 @@ async function addCheckAssessment(
 }
 
 async function addOptionsAssessment(
-	db: Kysely<DB>,
+	db: Kysely<Database>,
 	{
 		assessmentId,
 		criterionRowId,
@@ -237,7 +237,7 @@ async function addOptionsAssessment(
 }
 
 async function addNumberAssessment(
-	db: Kysely<DB>,
+	db: Kysely<Database>,
 	{
 		assessmentId,
 		criterionRowId,

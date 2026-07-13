@@ -9,8 +9,8 @@ import {
 	gradeTargetListCacheTag,
 	rubricListCacheTag,
 } from "#db/cacheTags.ts";
-import type { DB } from "#db/generated/db.ts";
-import { db as defaultDb } from "#db/kysely.ts";
+import type { Database } from "#db/generated/database.ts";
+import { database as defaultDb } from "#db/kysely.ts";
 import {
 	type AssessmentCompletionInput,
 	buildAssessmentCompletion,
@@ -44,7 +44,7 @@ export function assessmentCompletionRowsCacheTags(): string[] {
 // `db` may be the global client or a caller-supplied transaction.
 // Shared rows for `buildAssessmentCompletion`, scoped to a single project.
 export async function loadAssessmentCompletionRowsFromDb(
-	db: Kysely<DB>,
+	db: Kysely<Database>,
 	{ projectId }: { projectId: string },
 ): Promise<AssessmentCompletionInput> {
 	const projectRowIdQuery = db
@@ -124,7 +124,7 @@ function buildCompletionByTarget(
 
 // `db` may be the global client or a caller-supplied transaction.
 export async function loadAssessmentCompletionByTargetFromDb(
-	db: Kysely<DB>,
+	db: Kysely<Database>,
 	{ projectId }: { projectId: string },
 ): Promise<Record<string, CompletionMetric>> {
 	const rows = await loadAssessmentCompletionRowsFromDb(db, { projectId });
@@ -140,7 +140,7 @@ export async function loadAssessmentCompletionByTargetFromDb(
 // (ADR 0007 rules 13–14). Runtime callers omit it.
 export async function loadAssessmentCompletionRows(
 	{ projectId }: { projectId: string },
-	options?: { db?: Kysely<DB> },
+	options?: { db?: Kysely<Database> },
 ): Promise<AssessmentCompletionInput> {
 	"use cache";
 	cacheTags(...assessmentCompletionRowsCacheTags());
@@ -157,7 +157,7 @@ export async function loadAssessmentCompletionRows(
 // call shares that wrapper's own no-argument cache entry.
 export async function loadAssessmentCompletionByTarget(
 	{ projectId }: { projectId: string },
-	options?: { db?: Kysely<DB> },
+	options?: { db?: Kysely<Database> },
 ): Promise<Record<string, CompletionMetric>> {
 	const rows = await loadAssessmentCompletionRows({ projectId }, options);
 	return buildCompletionByTarget(rows);
@@ -174,7 +174,7 @@ export type AssessedCriterionCounts = {
 // per-target result from `buildAssessedCriterionCountsByTarget` below
 // instead of querying grade targets twice (Finding 7).
 export async function loadAssessedCriterionCountsFromDb(
-	db: Kysely<DB>,
+	db: Kysely<Database>,
 	{ rubricId, projectId }: { rubricId: string; projectId: string },
 ): Promise<AssessedCriterionCounts> {
 	const projectRowIdQuery = db
@@ -225,7 +225,7 @@ export async function loadAssessedCriterionCountsFromDb(
 // page composing this inside its own `"use cache"` scope (ADR 0007 rule 5).
 export async function loadAssessedCriterionCounts(
 	{ rubricId, projectId }: { rubricId: string; projectId: string },
-	{ db = defaultDb }: { db?: Kysely<DB> } = {},
+	{ db = defaultDb }: { db?: Kysely<Database> } = {},
 ): Promise<AssessedCriterionCounts> {
 	return loadAssessedCriterionCountsFromDb(db, { rubricId, projectId });
 }
@@ -250,7 +250,7 @@ export function buildAssessedCriterionCountsByTarget(
 
 // `db` may be the global client or a caller-supplied transaction.
 export async function loadAssessedCriterionCountsByTargetFromDb(
-	db: Kysely<DB>,
+	db: Kysely<Database>,
 	{ rubricId, projectId }: { rubricId: string; projectId: string },
 ): Promise<Record<string, CompletionMetric>> {
 	const projectRowIdQuery = db
@@ -275,7 +275,7 @@ export async function loadAssessedCriterionCountsByTargetFromDb(
 
 export async function loadAssessedCriterionCountsByTarget(
 	{ rubricId, projectId }: { rubricId: string; projectId: string },
-	{ db = defaultDb }: { db?: Kysely<DB> } = {},
+	{ db = defaultDb }: { db?: Kysely<Database> } = {},
 ): Promise<Record<string, CompletionMetric>> {
 	"use cache";
 	cacheTags(...assessedCriterionCountsByTargetCacheTags(rubricId));
@@ -286,7 +286,7 @@ export async function loadAssessedCriterionCountsByTarget(
 
 // `db` may be the global client or a caller-supplied transaction.
 export async function loadCriterionAssessmentsCountFromDb(
-	db: Kysely<DB>,
+	db: Kysely<Database>,
 	{ projectId }: { projectId: string },
 ): Promise<number> {
 	const projectRowIdQuery = db
@@ -317,7 +317,7 @@ export function criterionAssessmentsCountCacheTags(): string[] {
 // this query on every request even though completion rows are cached.
 export async function loadCriterionAssessmentsCount(
 	{ projectId }: { projectId: string },
-	options?: { db?: Kysely<DB> },
+	options?: { db?: Kysely<Database> },
 ): Promise<number> {
 	"use cache";
 	cacheTags(...criterionAssessmentsCountCacheTags());
@@ -363,7 +363,7 @@ function buildCompletionSummary(
 
 // `db` may be the global client or a caller-supplied transaction.
 export async function loadAssessmentCompletionSummaryFromDb(
-	db: Kysely<DB>,
+	db: Kysely<Database>,
 	{ projectId }: { projectId: string },
 ): Promise<AssessmentCompletionSummary> {
 	const [rows, criterionAssessmentsCount] = await Promise.all([
@@ -381,7 +381,7 @@ export async function loadAssessmentCompletionSummaryFromDb(
 // call shares that wrapper's own no-argument cache entry.
 export async function loadAssessmentCompletionSummary(
 	{ projectId }: { projectId: string },
-	options?: { db?: Kysely<DB> },
+	options?: { db?: Kysely<Database> },
 ): Promise<AssessmentCompletionSummary> {
 	const [rows, criterionAssessmentsCount] = await Promise.all([
 		loadAssessmentCompletionRows({ projectId }, options),

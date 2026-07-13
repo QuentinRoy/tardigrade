@@ -1,5 +1,5 @@
 import type { Kysely } from "kysely";
-import type { DB } from "#db/generated/db.ts";
+import type { Database } from "#db/generated/database.ts";
 import { buildTestId } from "./dbIntegration.ts";
 
 export type AssessedBooleanFixture = BooleanRubricFixture & {
@@ -16,7 +16,7 @@ export type BooleanRubricFixture = {
 // Creates a rubric carrying a single boolean criterion, without any grade target
 // or assessment.
 export async function createBooleanRubricFixture(
-	db: Kysely<DB>,
+	db: Kysely<Database>,
 	projectId: number,
 	position = 0,
 ): Promise<BooleanRubricFixture> {
@@ -56,7 +56,7 @@ export async function createBooleanRubricFixture(
 }
 
 export async function createAssessedBooleanRubricFixture(
-	db: Kysely<DB>,
+	db: Kysely<Database>,
 	projectId: number,
 ): Promise<AssessedBooleanFixture> {
 	const rubric = await createBooleanRubricFixture(db, projectId);
@@ -113,7 +113,7 @@ export async function createAssessedBooleanRubricFixture(
 }
 
 export async function createRubric(
-	db: Kysely<DB>,
+	db: Kysely<Database>,
 	projectId: number,
 	position: number,
 ): Promise<{ id: string; rowId: number }> {
@@ -129,7 +129,7 @@ export async function createRubric(
 }
 
 export async function getRubricPositions(
-	db: Kysely<DB>,
+	db: Kysely<Database>,
 	projectId: number,
 ): Promise<Record<string, number>> {
 	const rows = await db
@@ -142,7 +142,7 @@ export async function getRubricPositions(
 }
 
 export async function createOrdinalRubricFixture(
-	db: Kysely<DB>,
+	db: Kysely<Database>,
 	projectId: number,
 ): Promise<{ rubricId: string; criterionId: string }> {
 	const rubricId = buildTestId("rubric-ordinal");

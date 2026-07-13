@@ -3,8 +3,8 @@ import type { Kysely } from "kysely";
 import { cacheLife } from "next/cache";
 import type { Criterion, CriterionKind } from "#criteria/types.ts";
 import { cacheTags, rubricListCacheTag } from "#db/cacheTags.ts";
-import type { DB } from "#db/generated/db.ts";
-import { db as defaultDb } from "#db/kysely.ts";
+import type { Database } from "#db/generated/database.ts";
+import { database as defaultDb } from "#db/kysely.ts";
 import type { Rubric, RubricsById } from "./types.ts";
 
 export function toNumber(value: string | number): number {
@@ -102,9 +102,10 @@ export type RubricRow = {
 };
 
 // `db` may be the global client or a caller-supplied transaction
-// (a `Transaction<DB>` is a `Kysely<DB>`), so this composes inside a caller's tx.
+// (a `Transaction<Database>` is a `Kysely<Database>`), so this composes inside
+// a caller's tx.
 export async function resolveProjectRowId(
-	db: Kysely<DB>,
+	db: Kysely<Database>,
 	projectId: string,
 ): Promise<number> {
 	const project = await db
@@ -118,7 +119,7 @@ export async function resolveProjectRowId(
 
 // `db` may be the global client or a caller-supplied transaction.
 export async function loadRubricRowsFromDb(
-	db: Kysely<DB>,
+	db: Kysely<Database>,
 	{ projectId }: { projectId: string },
 ): Promise<RubricRow[]> {
 	const projectRowId = await resolveProjectRowId(db, projectId);
@@ -290,7 +291,7 @@ export function toRubricsById(rows: RubricRow[]): RubricsById {
 // the directive inert so the handle reaches the primitive.
 export async function loadRubricRows(
 	{ projectId }: { projectId: string },
-	{ db = defaultDb }: { db?: Kysely<DB> } = {},
+	{ db = defaultDb }: { db?: Kysely<Database> } = {},
 ): Promise<RubricRow[]> {
 	"use cache";
 	cacheTags(...rubricCacheTags());
@@ -307,14 +308,14 @@ export async function loadRubricRows(
 // function even on the no-args runtime path — never do that (ADR 0007 rule 14).
 export async function loadRubricsById(
 	{ projectId }: { projectId: string },
-	options?: { db?: Kysely<DB> },
+	options?: { db?: Kysely<Database> },
 ): Promise<RubricsById> {
 	return toRubricsById(await loadRubricRows({ projectId }, options));
 }
 
 export async function loadRubric(
 	{ projectId, rubricId }: { projectId: string; rubricId: string },
-	options?: { db?: Kysely<DB> },
+	options?: { db?: Kysely<Database> },
 ): Promise<Rubric | undefined> {
 	// Intentionally loads the whole project rubric set: warms the shared row cache
 	// for grading navigation, which typically visits multiple rubrics. Add a

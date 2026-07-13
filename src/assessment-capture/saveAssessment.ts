@@ -6,7 +6,7 @@ import {
 	type SaveAssessmentParams,
 	type SaveAssessmentResult,
 } from "#assessment-persistence/assessmentMutations.ts";
-import type { DB } from "#db/generated/db.ts";
+import type { Database } from "#db/generated/database.ts";
 import { createLogger } from "#utils/logger.ts";
 import { saveAssessment as persistAssessment } from "./assessmentMutations.ts";
 
@@ -21,7 +21,7 @@ const logger = createLogger("assessments");
 // for transaction rollback.
 export async function saveAssessment(
 	params: SaveAssessmentParams,
-	options?: { db?: Kysely<DB> },
+	options?: { db?: Kysely<Database> },
 ): Promise<SaveAssessmentResult> {
 	try {
 		return await persistAssessment(params, options);

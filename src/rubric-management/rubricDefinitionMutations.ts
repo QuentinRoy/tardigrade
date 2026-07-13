@@ -6,8 +6,8 @@ import {
 	invalidateRubricDefinitionSave,
 	invalidateRubricReorder,
 } from "#db/cacheInvalidation.ts";
-import type { DB } from "#db/generated/db.ts";
-import { db as defaultDb } from "#db/kysely.ts";
+import type { Database } from "#db/generated/database.ts";
+import { database as defaultDb } from "#db/kysely.ts";
 import { resolveProjectRowId } from "#rubrics/rubrics.ts";
 import { findDuplicateGroups } from "#utils/utils.ts";
 import { RubricsValidationError } from "./errors.ts";
@@ -73,7 +73,7 @@ function assertUniqueIds(label: string, ids: string[]): void {
 // `db` may be the global client or a caller-supplied transaction, so callers can
 // compose this inside their own transaction (e.g. a batch edit).
 export async function saveRubricDefinitionInDb(
-	db: Kysely<DB>,
+	db: Kysely<Database>,
 	{ input, projectId }: { input: RubricDefinitionInput; projectId: string },
 ): Promise<{ id: string; originalId: string }> {
 	const projectRowId = await resolveProjectRowId(db, projectId);
@@ -446,7 +446,7 @@ export async function saveRubricDefinitionInDb(
 
 export async function saveRubricDefinition(
 	{ input, projectId }: { input: RubricDefinitionInput; projectId: string },
-	{ db = defaultDb }: { db?: Kysely<DB> } = {},
+	{ db = defaultDb }: { db?: Kysely<Database> } = {},
 ): Promise<{ id: string }> {
 	const { id, originalId } = await db
 		.transaction()
@@ -462,7 +462,7 @@ export async function saveRubricDefinition(
 
 // `db` may be the global client or a caller-supplied transaction.
 export async function deleteRubricDefinitionInDb(
-	db: Kysely<DB>,
+	db: Kysely<Database>,
 	{ rubricId, projectId }: { rubricId: string; projectId: string },
 ): Promise<{ deleted: boolean }> {
 	const result = await db
@@ -483,7 +483,7 @@ export async function deleteRubricDefinitionInDb(
 
 export async function deleteRubricDefinition(
 	{ rubricId, projectId }: { rubricId: string; projectId: string },
-	{ db = defaultDb }: { db?: Kysely<DB> } = {},
+	{ db = defaultDb }: { db?: Kysely<Database> } = {},
 ): Promise<{ deleted: boolean }> {
 	const result = await deleteRubricDefinitionInDb(db, { rubricId, projectId });
 
@@ -494,7 +494,7 @@ export async function deleteRubricDefinition(
 
 // `db` may be the global client or a caller-supplied transaction.
 export async function reorderRubricsInDb(
-	db: Kysely<DB>,
+	db: Kysely<Database>,
 	{
 		updates,
 		projectId,
@@ -546,7 +546,7 @@ export async function reorderRubrics(
 		updates,
 		projectId,
 	}: { updates: Array<{ id: string; position: number }>; projectId: string },
-	{ db = defaultDb }: { db?: Kysely<DB> } = {},
+	{ db = defaultDb }: { db?: Kysely<Database> } = {},
 ): Promise<void> {
 	await db
 		.transaction()

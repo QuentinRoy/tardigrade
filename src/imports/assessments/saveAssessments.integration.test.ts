@@ -1,7 +1,7 @@
 import type { Kysely } from "kysely";
 import { revalidateTag } from "next/cache";
 import { beforeEach, expect, test, vi } from "vitest";
-import type { DB } from "#db/generated/db.ts";
+import type { Database } from "#db/generated/database.ts";
 import { nextGradeTargetIds } from "#grade-targets/gradeTargets.ts";
 import type { ImportedAssessmentRow } from "#imports/types.ts";
 import { buildTestId, createTestDb } from "#test/dbIntegration.ts";
@@ -15,7 +15,7 @@ beforeEach(() => {
 });
 
 async function createAssessmentFixture(
-	db: Kysely<DB>,
+	db: Kysely<Database>,
 	projectId: number,
 ): Promise<{
 	rubricId: string;

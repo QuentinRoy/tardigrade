@@ -7,8 +7,8 @@ import {
 	gradeTargetListCacheTag,
 	rubricListCacheTag,
 } from "#db/cacheTags.ts";
-import type { DB } from "#db/generated/db.ts";
-import { db as defaultDb } from "#db/kysely.ts";
+import type { Database } from "#db/generated/database.ts";
+import { database as defaultDb } from "#db/kysely.ts";
 import { loadGradeTargets } from "#grade-targets/gradeTargets.ts";
 import { loadRubricsById } from "#rubrics/rubrics.ts";
 import {
@@ -29,7 +29,7 @@ export function resultsCacheTags(): string[] {
 // results-specific, schema-sensitive query: the three-way leftJoin across the
 // check/options/number assessment subtype tables.
 export async function loadCriterionAssessmentRecordsFromDb(
-	db: Kysely<DB>,
+	db: Kysely<Database>,
 	{ projectId }: { projectId: string },
 ): Promise<ResultsAssessmentRecord[]> {
 	return db
@@ -87,7 +87,7 @@ export async function loadCriterionAssessmentRecordsFromDb(
 // here before forwarding, so an omitted `db` stays `undefined` for those calls.
 export async function loadResultsData(
 	{ projectId }: { projectId: string },
-	options?: { db?: Kysely<DB> },
+	options?: { db?: Kysely<Database> },
 ): Promise<ResultsData> {
 	"use cache";
 	cacheTags(...resultsCacheTags());

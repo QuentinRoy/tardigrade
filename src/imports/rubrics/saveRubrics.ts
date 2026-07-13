@@ -1,8 +1,8 @@
 import "server-only";
 import type { Kysely } from "kysely";
 import { invalidateRubricImport } from "#db/cacheInvalidation.ts";
-import type { DB } from "#db/generated/db.ts";
-import { db as defaultDb } from "#db/kysely.ts";
+import type { Database } from "#db/generated/database.ts";
+import { database as defaultDb } from "#db/kysely.ts";
 import { ImportBlockedError } from "#imports/importErrors.ts";
 import type { ImportedRubrics } from "#imports/types.ts";
 import {
@@ -38,7 +38,7 @@ function rubricImportBlockedError(
 // `db` may be the global client or a caller-supplied transaction. Executes a
 // plan's writes; never opens a transaction and never invalidates cache.
 export async function saveRubricImportPlanInDb(
-	db: Kysely<DB>,
+	db: Kysely<Database>,
 	{ plan, projectId }: { plan: RubricImportPlan; projectId: string },
 ): Promise<{ rubricCount: number; criterionCount: number }> {
 	const rubrics: ImportedRubrics = plan.writes;
@@ -395,7 +395,7 @@ export async function saveRubricImportPlanInDb(
 // transaction — the wrapper opens its own.
 export async function saveRubrics(
 	{ rubrics, projectId }: { rubrics: ImportedRubrics; projectId: string },
-	{ db = defaultDb }: { db?: Kysely<DB> } = {},
+	{ db = defaultDb }: { db?: Kysely<Database> } = {},
 ): Promise<{
 	rubricCount: number;
 	criterionCount: number;

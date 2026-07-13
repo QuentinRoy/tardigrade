@@ -8,8 +8,8 @@ import {
 	assessmentImportCacheTag,
 	cacheTags,
 } from "#db/cacheTags.ts";
-import type { DB } from "#db/generated/db.ts";
-import { db as defaultDb } from "#db/kysely.ts";
+import type { Database } from "#db/generated/database.ts";
+import { database as defaultDb } from "#db/kysely.ts";
 import { assertNever, nonNull } from "#utils/utils.ts";
 
 export function loadAssessmentCacheTags({
@@ -37,7 +37,7 @@ export async function loadRubricAssessment(
 		projectId,
 		rubricId,
 	}: { targetId: string; projectId: string; rubricId: string },
-	{ db = defaultDb }: { db?: Kysely<DB> } = {},
+	{ db = defaultDb }: { db?: Kysely<Database> } = {},
 ): Promise<AssessmentCriterionValue[]> {
 	"use cache";
 	cacheTags(...loadAssessmentCacheTags({ targetId, rubricId }));
@@ -52,7 +52,7 @@ export async function loadRubricAssessment(
 // Kysely instances are not serializable and Next.js throws on the cache key.
 export async function loadGradeTargetAssessments(
 	{ targetId, projectId }: { targetId: string; projectId: string },
-	{ db = defaultDb }: { db?: Kysely<DB> } = {},
+	{ db = defaultDb }: { db?: Kysely<Database> } = {},
 ): Promise<Record<string, AssessmentCriterionValue[]>> {
 	"use cache";
 	cacheTags(...loadAssessmentCacheTags({ targetId }));
@@ -62,7 +62,7 @@ export async function loadGradeTargetAssessments(
 
 // `db` may be the global client or a caller-supplied transaction.
 export async function loadRubricAssessmentFromDb(
-	db: Kysely<DB>,
+	db: Kysely<Database>,
 	{
 		targetId,
 		projectId,
@@ -87,7 +87,7 @@ export async function loadRubricAssessmentFromDb(
 
 // `db` may be the global client or a caller-supplied transaction.
 export async function loadGradeTargetAssessmentsFromDb(
-	db: Kysely<DB>,
+	db: Kysely<Database>,
 	{ targetId, projectId }: { targetId: string; projectId: string },
 ): Promise<Record<string, AssessmentCriterionValue[]>> {
 	const rows = await loadCriterionAssessmentRows(db, { targetId, projectId });
@@ -117,7 +117,7 @@ type CriterionAssessmentRow = {
 // scoped to a single rubric. Filtering by Project ID disambiguates grade
 // targets and rubrics that share public ids across projects.
 async function loadCriterionAssessmentRows(
-	db: Kysely<DB>,
+	db: Kysely<Database>,
 	{
 		targetId,
 		projectId,
