@@ -1,7 +1,7 @@
 import "server-only";
 import type { Kysely } from "kysely";
 import type { AssessmentCriterionValue } from "#criteria/types.ts";
-import type { DB } from "#db/generated/db.ts";
+import type { Database } from "#db/generated/database.ts";
 import { assertNever } from "#utils/utils.ts";
 
 export type SaveAssessmentResult =
@@ -38,7 +38,7 @@ export const assessmentErrors = {
 // Performs all validation + persistence against the given db. No cache work.
 // The db is either the global client or a caller-supplied transaction.
 export async function saveAssessmentInDb(
-	db: Kysely<DB>,
+	db: Kysely<Database>,
 	{ projectId, targetId, rubricId, assessment }: SaveAssessmentParams,
 ): Promise<SaveAssessmentResult> {
 	const criterionId = assessment.criterionId;

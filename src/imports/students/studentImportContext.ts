@@ -1,13 +1,13 @@
 import "server-only";
 import type { Kysely } from "kysely";
-import type { DB } from "#db/generated/db.ts";
+import type { Database } from "#db/generated/database.ts";
 import type { NormalizedImportedGradeTarget } from "#imports/types.ts";
 import type { StudentImportContext } from "./prepareStudentImport.ts";
 
 // `db` may be the global client or a caller-supplied transaction. Fetches
 // everything prepareStudentImport() needs, driven by the parsed grade targets.
 export async function loadStudentImportContextFromDb(
-	db: Kysely<DB>,
+	db: Kysely<Database>,
 	{
 		targets,
 		projectId,

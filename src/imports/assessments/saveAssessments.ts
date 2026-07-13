@@ -2,8 +2,8 @@ import "server-only";
 import type { Kysely } from "kysely";
 import { saveAssessmentInDb } from "#assessment-persistence/assessmentMutations.ts";
 import { invalidateAssessmentImport } from "#db/cacheInvalidation.ts";
-import type { DB } from "#db/generated/db.ts";
-import { db as defaultDb } from "#db/kysely.ts";
+import type { Database } from "#db/generated/database.ts";
+import { database as defaultDb } from "#db/kysely.ts";
 import { ImportBlockedError } from "#imports/importErrors.ts";
 import type { ImportedAssessmentRow } from "#imports/types.ts";
 import { loadAssessmentImportContextFromDb } from "./assessmentImportContext.ts";
@@ -48,7 +48,7 @@ function assessmentImportBlockedError(
 // `db` may be the global client or a caller-supplied transaction. Executes a
 // plan's writes; never opens a transaction and never invalidates cache.
 export async function saveAssessmentImportPlanInDb(
-	db: Kysely<DB>,
+	db: Kysely<Database>,
 	plan: AssessmentImportPlan,
 	{ projectId }: { projectId: string },
 ): Promise<void> {
@@ -66,7 +66,7 @@ export async function saveAssessmentImportPlanInDb(
 // transaction — the wrapper opens its own.
 export async function saveAssessments(
 	{ rows, projectId }: { rows: ImportedAssessmentRow[]; projectId: string },
-	{ db = defaultDb }: { db?: Kysely<DB> } = {},
+	{ db = defaultDb }: { db?: Kysely<Database> } = {},
 ): Promise<{ assessmentCount: number; overwriteCount: number }> {
 	const result = await db.transaction().execute(async (tx) => {
 		const context = await loadAssessmentImportContextFromDb(tx, {

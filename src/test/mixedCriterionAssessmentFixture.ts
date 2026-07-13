@@ -1,5 +1,5 @@
 import type { Kysely } from "kysely";
-import type { DB } from "#db/generated/db.ts";
+import type { Database } from "#db/generated/database.ts";
 import type { Simplify, Writable } from "#utils/utils.ts";
 import { buildTestId } from "./dbIntegration.ts";
 import { createProjectRecord } from "./projects.ts";
@@ -26,7 +26,7 @@ export type MixedCriterionRubricFixture = {
 // rubric ids are project-scoped, so each caller can pick its own ids
 // without colliding with other tests' projects.
 export async function createMixedCriterionRubricFixtureProject(
-	db: Kysely<DB>,
+	db: Kysely<Database>,
 	params: {
 		projectName: string;
 		rubricId: string;
@@ -163,7 +163,7 @@ type StudentFixtureTuple<TFixtures extends readonly { id: string }[]> =
 export async function createStudentFixtures<
 	const TFixtures extends readonly { projectRowId: number; id: string }[],
 >(
-	db: Kysely<DB>,
+	db: Kysely<Database>,
 	fixtures: TFixtures,
 ): Promise<StudentFixtureTuple<TFixtures>> {
 	const rows = await db
@@ -199,7 +199,7 @@ export async function createIndividualGradeTargetFixtures<
 		studentRowId: number;
 	}[],
 >(
-	db: Kysely<DB>,
+	db: Kysely<Database>,
 	fixtures: TFixtures,
 ): Promise<GradeTargetFixtureTuple<TFixtures>> {
 	const rows = await db
@@ -228,7 +228,7 @@ export async function createIndividualGradeTargetFixtures<
 // Inserts one assessment with all three criterion types filled in: boolean
 // passed, ordinal "A", numerical 7.5.
 export async function addFullAssessmentFixture(
-	db: Kysely<DB>,
+	db: Kysely<Database>,
 	params: {
 		projectRowId: number;
 		gradeTargetRowId: number;

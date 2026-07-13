@@ -3,7 +3,7 @@ import { expect, test } from "vitest";
 import { nextGradeTargetIds } from "#grade-targets/gradeTargets.ts";
 import { buildTestId, createTestDb } from "#test/dbIntegration.ts";
 import { createProject } from "#test/projects.ts";
-import type { DB } from "./generated/db.ts";
+import type { Database } from "./generated/database.ts";
 
 type CriterionRowIds = { boolean: number; ordinal: number; numerical: number };
 
@@ -13,7 +13,7 @@ type AssessmentConstraintFixture = {
 };
 
 async function createAssessmentConstraintFixture(
-	db: Kysely<DB>,
+	db: Kysely<Database>,
 	projectId: string,
 ): Promise<AssessmentConstraintFixture> {
 	const project = await db
@@ -273,7 +273,7 @@ async function createAssessmentConstraintFixture(
 }
 
 async function createSubtypeConstraintFixture(
-	db: Kysely<DB>,
+	db: Kysely<Database>,
 	projectId: string,
 ): Promise<CriterionRowIds> {
 	const project = await db

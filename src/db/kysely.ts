@@ -4,7 +4,7 @@ import { CamelCasePlugin, Kysely, PostgresDialect } from "kysely";
 import { Pool, types as pgTypes } from "pg";
 import Cursor from "pg-cursor";
 import { createLogger } from "../utils/logger.ts";
-import type { DB } from "./generated/db.ts";
+import type { Database } from "./generated/database.ts";
 
 const PG_NUMERIC_OID = 1700;
 
@@ -40,7 +40,7 @@ function createKyselyClient() {
 		});
 	});
 
-	return new Kysely<DB>({
+	return new Kysely<Database>({
 		dialect: new PostgresDialect({ pool, cursor: Cursor }),
 		plugins: [new CamelCasePlugin()],
 	});
@@ -57,11 +57,11 @@ type AppKyselyClient = ReturnType<typeof createKyselyClient>;
 // See: https://nextjs.org/docs/architecture/fast-refresh#how-it-works
 // biome-ignore lint/plugin/no-type-assertion: c.f. comment above.
 const globalForKysely = globalThis as typeof globalThis & {
-	db?: AppKyselyClient;
+	database?: AppKyselyClient;
 };
 
-export const db = globalForKysely.db ?? createKyselyClient();
+export const database = globalForKysely.database ?? createKyselyClient();
 
 if (process.env.NODE_ENV !== "production") {
-	globalForKysely.db = db;
+	globalForKysely.database = database;
 }

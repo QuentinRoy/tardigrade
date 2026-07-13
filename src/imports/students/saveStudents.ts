@@ -1,8 +1,8 @@
 import "server-only";
 import type { Kysely } from "kysely";
 import { invalidateStudentImport } from "#db/cacheInvalidation.ts";
-import type { DB } from "#db/generated/db.ts";
-import { db as defaultDb } from "#db/kysely.ts";
+import type { Database } from "#db/generated/database.ts";
+import { database as defaultDb } from "#db/kysely.ts";
 import { nextGradeTargetIds } from "#grade-targets/gradeTargets.ts";
 import type { NormalizedImportedGradeTarget } from "#imports/types.ts";
 import {
@@ -21,7 +21,7 @@ export type StudentImportWriteResult = {
 // `db` may be the global client or a caller-supplied transaction. Executes a
 // plan's writes; never opens a transaction and never invalidates cache.
 export async function saveStudentImportPlanInDb(
-	db: Kysely<DB>,
+	db: Kysely<Database>,
 	{ plan, projectId }: { plan: StudentImportPlan; projectId: string },
 ): Promise<StudentImportWriteResult> {
 	const targets = plan.writes;
@@ -310,7 +310,7 @@ export async function saveStudents(
 		targets,
 		projectId,
 	}: { targets: NormalizedImportedGradeTarget[]; projectId: string },
-	{ db = defaultDb }: { db?: Kysely<DB> } = {},
+	{ db = defaultDb }: { db?: Kysely<Database> } = {},
 ): Promise<StudentImportWriteResult> {
 	const result = await db.transaction().execute(async (tx) => {
 		const context = await loadStudentImportContextFromDb(tx, {

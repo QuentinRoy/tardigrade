@@ -2,7 +2,7 @@ import type { Kysely } from "kysely";
 import { revalidateTag, updateTag } from "next/cache";
 import { beforeEach, expect, test, vi } from "vitest";
 import { saveAssessmentInDb } from "#assessment-persistence/assessmentMutations.ts";
-import type { DB } from "#db/generated/db.ts";
+import type { Database } from "#db/generated/database.ts";
 import { createAssessmentFixture } from "#test/assessments.ts";
 import { runForcedInterleaving } from "#test/concurrency.ts";
 import { buildTestId, createTestDb } from "#test/dbIntegration.ts";
@@ -25,7 +25,7 @@ function assertFound(): never {
 }
 
 async function gradeTargetRowId(
-	db: Kysely<DB>,
+	db: Kysely<Database>,
 	targetId: string,
 ): Promise<number> {
 	const row = await db

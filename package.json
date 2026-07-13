@@ -27,7 +27,7 @@
 		"db:migrate:status": "dotenvx run --convention=flow -- node src/db/migrate.ts status",
 		"db:migrate:up": "dotenvx run --convention=flow -- node src/db/migrate.ts up",
 		"db:reset": "dotenvx run --convention=flow -- node src/db/migrate.ts reset",
-		"db:types:generate": "dotenvx run --convention=flow -- kysely-codegen --numeric-parser number --camel-case --out-file src/db/generated/db.ts"
+		"db:types:generate": "dotenvx run --convention=flow -- kanel && biome check --write src/db/generated"
 	},
 	"dependencies": {
 		"@dnd-kit/core": "^6.3.1",
@@ -77,7 +77,8 @@
 		"@vitest/browser-playwright": "^4.1.10",
 		"biome-plugin-no-type-assertion": "^1.1.1",
 		"dependency-cruiser": "^18.0.0",
-		"kysely-codegen": "^0.20.0",
+		"kanel": "4.0.2",
+		"kanel-kysely": "4.0.0",
 		"playwright": "^1.61.1",
 		"postcss-preset-mantine": "^1.18.0",
 		"postcss-simple-vars": "^7.0.1",

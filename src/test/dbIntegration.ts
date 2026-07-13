@@ -6,14 +6,14 @@ import { CamelCasePlugin, Kysely, PostgresDialect } from "kysely";
 import { FileMigrationProvider, Migrator } from "kysely/migration";
 import { Pool } from "pg";
 import Cursor from "pg-cursor";
-import type { DB } from "#db/generated/db.ts";
+import type { Database } from "#db/generated/database.ts";
 
 export type StartedTestDatabase = {
-	db: Kysely<DB>;
+	db: Kysely<Database>;
 	cleanup?: () => Promise<void>;
 };
 
-export type DisposableTestDatabase = Kysely<DB> & {
+export type DisposableTestDatabase = Kysely<Database> & {
 	[Symbol.asyncDispose](): Promise<void>;
 };
 
@@ -99,7 +99,7 @@ export const testMigrationsPath = path.join(
 );
 
 export function createMigrator(
-	dbInstance: Kysely<DB>,
+	dbInstance: Kysely<Database>,
 	migrationFolder: string,
 ): Migrator {
 	return new Migrator({
@@ -203,7 +203,7 @@ function createDisposableAdminPool(
 }
 
 type DisposableMigrationDb = {
-	db: Kysely<DB>;
+	db: Kysely<Database>;
 	[Symbol.asyncDispose](): Promise<void>;
 };
 
@@ -214,7 +214,7 @@ function createDisposableMigrationDb(
 	// CamelCasePlugin, so migrations receive their identifier strings verbatim
 	// and produce the same object names here as on every real database. See
 	// docs/reference/database-migrations.md.
-	const db = new Kysely<DB>({
+	const db = new Kysely<Database>({
 		dialect: new PostgresDialect({ pool: createTestPool(connectionString) }),
 	});
 
@@ -278,7 +278,7 @@ export async function startTestDatabase(): Promise<StartedTestDatabase> {
 
 	await createDatabaseFromTemplate(adminPool, databaseName, templateDbName);
 
-	const db = new Kysely<DB>({
+	const db = new Kysely<Database>({
 		dialect: new PostgresDialect({
 			pool: createTestPool(
 				buildConnectionString(adminConnectionUrl, databaseName),

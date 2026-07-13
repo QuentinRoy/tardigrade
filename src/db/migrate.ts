@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import { Kysely, PostgresDialect } from "kysely";
 import { FileMigrationProvider, Migrator } from "kysely/migration";
 import { Pool } from "pg";
-import type { DB } from "./generated/db.ts";
+import type { Database } from "./generated/database.ts";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -22,7 +22,7 @@ function createDb() {
 	// name-transforming plugin makes a committed migration's output depend on
 	// runner configuration, which forks object names between databases migrated
 	// at different times. See docs/reference/database-migrations.md.
-	return new Kysely<DB>({
+	return new Kysely<Database>({
 		dialect: new PostgresDialect({ pool: new Pool({ connectionString }) }),
 	});
 }

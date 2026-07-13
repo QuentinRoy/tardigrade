@@ -2,8 +2,8 @@ import "server-only";
 import { type Kysely, sql } from "kysely";
 import { cacheLife } from "next/cache";
 import { cacheTags, gradeTargetListCacheTag } from "#db/cacheTags.ts";
-import type { DB } from "#db/generated/db.ts";
-import { db as defaultDb } from "#db/kysely.ts";
+import type { Database } from "#db/generated/database.ts";
+import { database as defaultDb } from "#db/kysely.ts";
 import type { GradeTarget } from "./types.ts";
 
 export function gradeTargetsCacheTags(): string[] {
@@ -18,7 +18,7 @@ export function gradeTargetsCacheTags(): string[] {
 // costs a gap, never a collision; gaps and non-reuse-on-delete are accepted
 // (see `docs/reference` migration notes; no deletion path exists today, #45).
 export async function nextGradeTargetIds(
-	db: Kysely<DB>,
+	db: Kysely<Database>,
 	{ projectRowId, count }: { projectRowId: number; count: number },
 ): Promise<string[]> {
 	if (count === 0) {
@@ -76,7 +76,7 @@ function formatStudentName(lastName: string, firstName: string): string {
 // is required: `gradeTarget.id` is only unique within a project, so an
 // unscoped load would collide keys in `groupMembersByTargetId`.
 export async function loadGradeTargetsFromDb(
-	db: Kysely<DB>,
+	db: Kysely<Database>,
 	{ projectId }: { projectId: string },
 ) {
 	const projectRowIdQuery = db
@@ -149,7 +149,7 @@ export async function loadGradeTargetsFromDb(
 // Kysely instances are not serializable and Next.js throws on the cache key.
 export async function loadGradeTargets(
 	{ projectId }: { projectId: string },
-	{ db = defaultDb }: { db?: Kysely<DB> } = {},
+	{ db = defaultDb }: { db?: Kysely<Database> } = {},
 ): Promise<GradeTarget[]> {
 	"use cache";
 	cacheTags(...gradeTargetsCacheTags());

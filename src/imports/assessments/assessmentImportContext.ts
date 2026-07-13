@@ -1,6 +1,6 @@
 import "server-only";
 import type { Kysely } from "kysely";
-import type { DB } from "#db/generated/db.ts";
+import type { Database } from "#db/generated/database.ts";
 import type { ImportedAssessmentRow } from "#imports/types.ts";
 import {
 	type AssessmentImportContext,
@@ -10,7 +10,7 @@ import {
 } from "./prepareAssessmentImport.ts";
 
 async function loadCriteriaByColumn(
-	db: Kysely<DB>,
+	db: Kysely<Database>,
 	projectRowId: number,
 ): Promise<Map<string, AssessmentImportCriterion>> {
 	const criterionRows = await db
@@ -60,7 +60,7 @@ async function loadCriteriaByColumn(
 }
 
 async function loadRubricIds(
-	db: Kysely<DB>,
+	db: Kysely<Database>,
 	projectRowId: number,
 ): Promise<Set<string>> {
 	const rubrics = await db
@@ -73,7 +73,7 @@ async function loadRubricIds(
 }
 
 async function loadTargetIdsByLookup(
-	db: Kysely<DB>,
+	db: Kysely<Database>,
 	{
 		rows,
 		projectRowId,
@@ -142,7 +142,7 @@ async function loadTargetIdsByLookup(
 }
 
 async function loadAssessedCriterionKeys(
-	db: Kysely<DB>,
+	db: Kysely<Database>,
 	projectRowId: number,
 ): Promise<Set<string>> {
 	const assessedPairs = await db
@@ -179,7 +179,7 @@ async function loadAssessedCriterionKeys(
 // `db` may be the global client or a caller-supplied transaction. Fetches
 // everything prepareAssessmentImport() needs, driven by the parsed rows.
 export async function loadAssessmentImportContextFromDb(
-	db: Kysely<DB>,
+	db: Kysely<Database>,
 	{ rows, projectId }: { rows: ImportedAssessmentRow[]; projectId: string },
 ): Promise<AssessmentImportContext> {
 	const project = await db

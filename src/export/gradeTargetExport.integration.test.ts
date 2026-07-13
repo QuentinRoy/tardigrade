@@ -1,6 +1,6 @@
 import type { Kysely } from "kysely";
 import { afterAll, beforeAll, expect, test } from "vitest";
-import type { DB } from "#db/generated/db.ts";
+import type { Database } from "#db/generated/database.ts";
 import {
 	createTestDb,
 	type DisposableTestDatabase,
@@ -29,7 +29,7 @@ async function readStream(stream: ReadableStream<Uint8Array>): Promise<string> {
 }
 
 async function addSparseAssessment(
-	db: Kysely<DB>,
+	db: Kysely<Database>,
 	params: {
 		projectRowId: number;
 		gradeTargetRowId: number;

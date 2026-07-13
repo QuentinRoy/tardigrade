@@ -1,5 +1,5 @@
 import { type ControlledTransaction, type Kysely, sql } from "kysely";
-import type { DB } from "#db/generated/db.ts";
+import type { Database } from "#db/generated/database.ts";
 
 const LOCK_WAIT_POLL_INTERVAL_MS = 20;
 const LOCK_WAIT_TIMEOUT_MS = 5000;
@@ -15,13 +15,13 @@ export type ForcedInterleavingResult<FirstResult, SecondResult> = {
 // observed blocking on Postgres's lock manager. This makes the contended
 // interleaving fire on every run instead of depending on scheduling luck.
 export async function runForcedInterleaving<FirstResult, SecondResult>(
-	db: Kysely<DB>,
+	db: Kysely<Database>,
 	{
 		first,
 		second,
 	}: {
-		first: (tx: ControlledTransaction<DB>) => Promise<FirstResult>;
-		second: (tx: ControlledTransaction<DB>) => Promise<SecondResult>;
+		first: (tx: ControlledTransaction<Database>) => Promise<FirstResult>;
+		second: (tx: ControlledTransaction<Database>) => Promise<SecondResult>;
 	},
 ): Promise<ForcedInterleavingResult<FirstResult, SecondResult>> {
 	const tx1 = await db.startTransaction().execute();
@@ -64,7 +64,7 @@ function rejectAfter(ms: number, message: string): Promise<never> {
 // loses, it doesn't cancel it, so without this check the loop would keep
 // querying `pg_stat_activity` forever after a timeout.
 async function pollUntilBlockedOnLock(
-	db: Kysely<DB>,
+	db: Kysely<Database>,
 	pid: number,
 	isCancelled: () => boolean,
 ): Promise<void> {
@@ -84,7 +84,7 @@ async function pollUntilBlockedOnLock(
 }
 
 async function waitUntilBlockedOnLock(
-	db: Kysely<DB>,
+	db: Kysely<Database>,
 	pid: number,
 ): Promise<void> {
 	let cancelled = false;

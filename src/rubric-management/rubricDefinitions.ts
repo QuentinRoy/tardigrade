@@ -6,8 +6,8 @@ import {
 	cacheTags,
 	rubricListCacheTag,
 } from "#db/cacheTags.ts";
-import type { DB } from "#db/generated/db.ts";
-import { db as defaultDb } from "#db/kysely.ts";
+import type { Database } from "#db/generated/database.ts";
+import { database as defaultDb } from "#db/kysely.ts";
 import {
 	loadRubricRows,
 	loadRubricRowsFromDb,
@@ -57,7 +57,7 @@ export type RubricDefinitionInput = {
 
 // `db` may be the global client or a caller-supplied transaction.
 export async function loadAssessmentCountsByRubricFromDb(
-	db: Kysely<DB>,
+	db: Kysely<Database>,
 	{ projectId }: { projectId: string },
 ): Promise<Map<string, number>> {
 	const counts = await db
@@ -94,7 +94,7 @@ function toRubricDefinitions(
 
 // `db` may be the global client or a caller-supplied transaction.
 export async function loadRubricDefinitionsFromDb(
-	db: Kysely<DB>,
+	db: Kysely<Database>,
 	{ projectId }: { projectId: string },
 ): Promise<RubricDefinition[]> {
 	const [rows, assessmentCountByRubricId] = await Promise.all([
@@ -121,7 +121,7 @@ export function rubricDefinitionCacheTags(): string[] {
 // and the nested call shares `loadRubricRows`' own no-argument cache entry.
 export async function loadRubricDefinitions(
 	{ projectId }: { projectId: string },
-	options?: { db?: Kysely<DB> },
+	options?: { db?: Kysely<Database> },
 ): Promise<RubricDefinition[]> {
 	"use cache";
 	cacheTags(...rubricDefinitionCacheTags());
@@ -136,7 +136,7 @@ export async function loadRubricDefinitions(
 
 // `db` may be the global client or a caller-supplied transaction.
 export async function getRubricDefinitionDeleteImpactFromDb(
-	db: Kysely<DB>,
+	db: Kysely<Database>,
 	{ rubricId, projectId }: { rubricId: string; projectId: string },
 ): Promise<{ assessmentCount: number }> {
 	const projectRowId = await resolveProjectRowId(db, projectId);
@@ -156,7 +156,7 @@ export async function getRubricDefinitionDeleteImpactFromDb(
 
 export async function getRubricDefinitionDeleteImpact(
 	{ rubricId, projectId }: { rubricId: string; projectId: string },
-	{ db = defaultDb }: { db?: Kysely<DB> } = {},
+	{ db = defaultDb }: { db?: Kysely<Database> } = {},
 ): Promise<{ assessmentCount: number }> {
 	return getRubricDefinitionDeleteImpactFromDb(db, { rubricId, projectId });
 }

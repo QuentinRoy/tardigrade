@@ -1,7 +1,7 @@
 import type { Kysely } from "kysely";
 import { cacheTag } from "next/cache";
 import { beforeEach, expect, test, vi } from "vitest";
-import type { DB } from "#db/generated/db.ts";
+import type { Database } from "#db/generated/database.ts";
 import { nextGradeTargetIds } from "#grade-targets/gradeTargets.ts";
 import { buildTestId, createTestDb } from "#test/dbIntegration.ts";
 import { createProject } from "#test/projects.ts";
@@ -26,7 +26,7 @@ beforeEach(() => {
 });
 
 async function createGradeTarget(
-	db: Kysely<DB>,
+	db: Kysely<Database>,
 	projectRowId: number,
 ): Promise<{ id: string; rowId: number }> {
 	const studentId = buildTestId("student");
@@ -66,7 +66,7 @@ async function createGradeTarget(
 }
 
 async function createRubric(
-	db: Kysely<DB>,
+	db: Kysely<Database>,
 	projectRowId: number,
 	rubricId: string,
 	{ criterionId }: { criterionId?: string } = {},
@@ -117,7 +117,7 @@ async function createRubric(
 }
 
 async function addAssessment(
-	db: Kysely<DB>,
+	db: Kysely<Database>,
 	{
 		projectRowId,
 		gradeTargetRowId,

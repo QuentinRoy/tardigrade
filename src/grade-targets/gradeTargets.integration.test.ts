@@ -1,7 +1,7 @@
 import type { Kysely } from "kysely";
 import { cacheTag } from "next/cache";
 import { beforeEach, expect, test, vi } from "vitest";
-import type { DB } from "#db/generated/db.ts";
+import type { Database } from "#db/generated/database.ts";
 import { createTestDb } from "#test/dbIntegration.ts";
 import { createProject } from "#test/projects.ts";
 import {
@@ -18,7 +18,7 @@ beforeEach(() => {
 });
 
 async function loadProjectRowId(
-	db: Kysely<DB>,
+	db: Kysely<Database>,
 	projectId: string,
 ): Promise<number> {
 	const project = await db
@@ -31,7 +31,7 @@ async function loadProjectRowId(
 }
 
 async function createStudentAndTarget(
-	db: Kysely<DB>,
+	db: Kysely<Database>,
 	projectId: string,
 	studentId: string,
 ): Promise<string> {
@@ -71,7 +71,7 @@ async function createStudentAndTarget(
 }
 
 async function createGroupAndTarget(
-	db: Kysely<DB>,
+	db: Kysely<Database>,
 	projectId: string,
 	groupName: string,
 	memberStudentId: string,

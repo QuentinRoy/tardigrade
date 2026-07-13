@@ -7,8 +7,8 @@ import type {
 	AssessedCriterion,
 	AssessmentCriterionValue,
 } from "#criteria/types.ts";
-import type { DB } from "#db/generated/db.ts";
-import { db as defaultDb } from "#db/kysely.ts";
+import type { Database } from "#db/generated/database.ts";
+import { database as defaultDb } from "#db/kysely.ts";
 import type { GradeTargetSubmitter } from "#grade-targets/types.ts";
 import { loadRubricRowsFromDb, toCriterion } from "#rubrics/rubrics.ts";
 import { assertNever } from "#utils/utils.ts";
@@ -56,7 +56,7 @@ function toGradeTargetSubmitter(params: {
 }
 
 async function assertGradeTargetInvariantsFromDb(
-	db: Kysely<DB>,
+	db: Kysely<Database>,
 	{ projectId }: { projectId: string },
 ) {
 	const invalidTargets = await db
@@ -88,7 +88,7 @@ async function assertGradeTargetInvariantsFromDb(
 }
 
 function streamGradeTargetExportRowsFromDb(
-	db: Kysely<DB>,
+	db: Kysely<Database>,
 	{ projectId }: { projectId: string },
 ): AsyncIterable<GradeTargetExportRow> {
 	return (
@@ -152,7 +152,7 @@ function streamGradeTargetExportRowsFromDb(
 
 export async function createGradeTargetExport(
 	projectId: string,
-	{ db = defaultDb }: { db?: Kysely<DB> } = {},
+	{ db = defaultDb }: { db?: Kysely<Database> } = {},
 ): Promise<{
 	rubrics: ExportRubricPlan[];
 	rows: AsyncGenerator<GradeTargetExportDataRow>;
@@ -319,7 +319,7 @@ export function createCsvGradeTargetExportStream(exportData: {
 export async function createCsvGradeTargetExport(
 	options: ExportOptions,
 	projectId: string,
-	{ db = defaultDb }: { db?: Kysely<DB> } = {},
+	{ db = defaultDb }: { db?: Kysely<Database> } = {},
 ): Promise<ReadableStream<Uint8Array>> {
 	const exportData = await createGradeTargetExport(projectId, { db });
 	return createCsvGradeTargetExportDataStream({

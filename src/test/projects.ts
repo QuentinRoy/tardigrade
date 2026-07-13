@@ -1,8 +1,8 @@
 import type { Kysely } from "kysely";
-import type { DB } from "#db/generated/db.ts";
+import type { Database } from "#db/generated/database.ts";
 import { buildTestId } from "./dbIntegration.ts";
 
-export async function createProjectRecord(db: Kysely<DB>, name: string) {
+export async function createProjectRecord(db: Kysely<Database>, name: string) {
 	const project = await db
 		.insertInto("project")
 		.values({ id: buildTestId("project"), name })
@@ -12,7 +12,7 @@ export async function createProjectRecord(db: Kysely<DB>, name: string) {
 	return project;
 }
 
-export async function createProject(db: Kysely<DB>, name: string) {
+export async function createProject(db: Kysely<Database>, name: string) {
 	const { rowId, ...project } = await createProjectRecord(db, name);
 
 	return {

@@ -1,4 +1,5 @@
 import "server-only";
+import type { Selectable } from "kysely";
 import { customAlphabet } from "nanoid";
 import { cacheLife } from "next/cache";
 import { invalidateProjectCreate } from "#db/cacheInvalidation.ts";
@@ -7,13 +8,13 @@ import {
 	projectCacheTag,
 	projectListCacheTag,
 } from "#db/cacheTags.ts";
-import type { Project } from "#db/generated/db.ts";
-import { db } from "#db/kysely.ts";
+import type { Database } from "#db/generated/database.ts";
+import { database } from "#db/kysely.ts";
 
 const nanoid = customAlphabet("0123456789abcdefghijklmnopqrstuvwxyz", 10);
 const createProjectPublicId = () => `p-${nanoid()}`;
 
-type ProjectRow = Pick<Project, "id" | "name">;
+type ProjectRow = Pick<Selectable<Database["project"]>, "id" | "name">;
 
 export type ProjectSummary = ProjectRow & { slug: string };
 
@@ -47,7 +48,7 @@ export async function loadProjects(): Promise<ProjectSummary[]> {
 	cacheTags(projectListCacheTag());
 	cacheLife("directory");
 
-	const rows = await db
+	const rows = await database
 		.selectFrom("project")
 		.select(["id", "name"])
 		.orderBy("name", "asc")
@@ -63,7 +64,7 @@ async function loadProjectCached(
 	cacheTags(projectListCacheTag(), projectCacheTag(publicId));
 	cacheLife("directory");
 
-	const row = await db
+	const row = await database
 		.selectFrom("project")
 		.select(["id", "name"])
 		.where("id", "=", publicId)
@@ -109,7 +110,7 @@ export async function createProject(input: {
 		const publicId = createProjectPublicId();
 
 		try {
-			inserted = await db
+			inserted = await database
 				.insertInto("project")
 				.values({ id: publicId, name })
 				.returning(["id", "name"])

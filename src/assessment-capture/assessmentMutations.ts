@@ -6,8 +6,8 @@ import {
 	saveAssessmentInDb,
 } from "#assessment-persistence/assessmentMutations.ts";
 import { invalidateAssessmentSave } from "#db/cacheInvalidation.ts";
-import type { DB } from "#db/generated/db.ts";
-import { db as defaultDb } from "#db/kysely.ts";
+import type { Database } from "#db/generated/database.ts";
+import { database as defaultDb } from "#db/kysely.ts";
 
 // Saves a single assessment on the interactive path: owns the transaction and
 // invalidates cache only after it commits. Bulk callers (the import path) own
@@ -16,7 +16,7 @@ import { db as defaultDb } from "#db/kysely.ts";
 // transaction.
 export async function saveAssessment(
 	params: SaveAssessmentParams,
-	{ db = defaultDb }: { db?: Kysely<DB> } = {},
+	{ db = defaultDb }: { db?: Kysely<Database> } = {},
 ): Promise<SaveAssessmentResult> {
 	const result = await db
 		.transaction()

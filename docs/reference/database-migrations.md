@@ -229,9 +229,10 @@ Check `package.json` for the exact available scripts.
 
 ## Generated DB types policy
 
-The generated Kysely database types file is source-of-truth codegen output:
+The generated Kysely database types are source-of-truth codegen output:
 
-- Never hand-edit `src/db/generated/db.ts`.
+- Never hand-edit anything under `src/db/generated/`; the whole folder is
+  regenerated (and wiped, via `preDeleteOutputFolder`) on each run.
 - After schema changes, regenerate types with:
 
 ```sh

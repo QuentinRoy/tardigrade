@@ -1,4 +1,4 @@
-import type { GradeTargetKind } from "#db/generated/db.ts";
+import type { GradeTargetKind } from "#db/generated/public/GradeTargetKind.ts";
 import type { Simplify } from "#utils/utils.ts";
 
 export type { GradeTargetKind };

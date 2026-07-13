@@ -1,5 +1,5 @@
 import type { Kysely } from "kysely";
-import type { DB } from "#db/generated/db.ts";
+import type { Database } from "#db/generated/database.ts";
 import { buildTestId } from "./dbIntegration.ts";
 
 export type AssessmentFixture = {
@@ -20,7 +20,7 @@ export type AssessmentFixtureOptions = {
 // Row ID stays internal to the fixture plumbing. Cleanup is handled by disposing
 // the owning project (cascade), so no separate teardown helper is needed.
 export async function createAssessmentFixture(
-	db: Kysely<DB>,
+	db: Kysely<Database>,
 	projectId: string,
 	options?: AssessmentFixtureOptions,
 ): Promise<AssessmentFixture> {
