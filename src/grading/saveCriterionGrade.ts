@@ -26,7 +26,7 @@ export async function saveCriterionGrade(
 	try {
 		return await persistGrade(params, options);
 	} catch (error) {
-		logger.error({ err: error }, "Unexpected error saving an grade");
+		logger.error({ err: error }, "Unexpected error saving a grade");
 		return { success: false, error: saveCriterionGradeErrors.unexpected };
 	}
 }

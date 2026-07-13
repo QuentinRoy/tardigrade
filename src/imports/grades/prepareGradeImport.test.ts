@@ -318,7 +318,7 @@ test("prepareGradeImport blocks with no-grade-columns on an empty CSV", () => {
 	expect(plan.writes).toEqual([]);
 });
 
-test("prepareGradeImport does not block when the header has an grade column with no values", () => {
+test("prepareGradeImport does not block when the header has a grade column with no values", () => {
 	const context = buildContext({
 		criteriaByColumn: new Map([
 			[

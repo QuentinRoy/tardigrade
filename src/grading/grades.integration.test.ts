@@ -99,7 +99,7 @@ test("loadRubricGradeFromDb returns the stored criterion values for a grade targ
 // injected handle. Assert it delegates to its primitive (returns the test db's rows)
 // and declares "grades:all" alongside its granular tag: bulk imports only bust
 // the coarse tag, so without this declaration the per-rubric grading view would
-// serve stale data after an grade import.
+// serve stale data after a grade import.
 test("loadRubricGrade wrapper delegates to its primitive and declares its cache tags", async () => {
 	await using db = await createTestDb();
 	await using project = await createProject(db, "Grade Cache Tag Project");
