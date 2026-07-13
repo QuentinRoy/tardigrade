@@ -153,7 +153,7 @@ _Avoid_: rubric analytics, rubric matrix, rubric summary table
 ### Grade
 
 **Grade**:
-The recorded evaluation of a **Criterion** for a Grade Target — criteria are what get graded. A rubric or Grade Target is _fully graded_ when **Grade Completion** holds for it. The rubric-level grouping record in persistence is a container, not a second kind of grade. Previously two separate word families, "assess/assessment" and "grade"; consolidated to one (grade / to grade / grading) because keeping both alive was semantically too close and invited drift. The aggregate result across criteria or rubrics is **Total**, never "grade" — grade always names the atomic per-criterion record or the act of producing it.
+The recorded evaluation of a **Criterion** for a Grade Target — criteria are what get graded. A rubric or Grade Target is _fully graded_ when **Grade Completion** holds for it. In persistence a grade is one row per (Grade Target, Criterion); there is no rubric-level grouping record. Previously two separate word families, "assess/assessment" and "grade"; consolidated to one (grade / to grade / grading) because keeping both alive was semantically too close and invited drift. The aggregate result across criteria or rubrics is **Total**, never "grade" — grade always names the atomic per-criterion record or the act of producing it.
 _Avoid_: assessment, assess, treating "grade" and "criterion grade" as distinct domain concepts, using "grade" for the aggregate (see **Total**)
 
 **Value**:

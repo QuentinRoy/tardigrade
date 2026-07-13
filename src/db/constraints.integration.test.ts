@@ -162,62 +162,34 @@ async function createAssessmentConstraintFixture(
 		throw new Error("Expected grade target rows to be created.");
 	}
 
-	const insertedAssessments = await db
-		.insertInto("assessment")
-		.values([
-			{
-				projectId: projectRowId,
-				gradeTargetRowId: primaryTarget.rowId,
-				rubricId: rubric.rowId,
-			},
-			{
-				projectId: projectRowId,
-				gradeTargetRowId: secondaryTarget.rowId,
-				rubricId: rubric.rowId,
-			},
-		])
-		.returning("id")
-		.execute();
-
-	const [primaryAssessment, secondaryAssessment] = insertedAssessments;
-
-	if (primaryAssessment == null || secondaryAssessment == null) {
-		throw new Error("Expected assessment rows to be created.");
-	}
-
 	const insertedCriterionAssessments = await db
 		.insertInto("criterionAssessment")
 		.values([
 			{
-				assessmentId: primaryAssessment.id,
+				gradeTargetRowId: primaryTarget.rowId,
 				criterionId: optionsCriterionId,
-				kind: "options",
 			},
 			{
-				assessmentId: secondaryAssessment.id,
+				gradeTargetRowId: secondaryTarget.rowId,
 				criterionId: optionsCriterionId,
-				kind: "options",
 			},
+			{ gradeTargetRowId: primaryTarget.rowId, criterionId: numberCriterionId },
 			{
-				assessmentId: primaryAssessment.id,
+				gradeTargetRowId: secondaryTarget.rowId,
 				criterionId: numberCriterionId,
-				kind: "number",
-			},
-			{
-				assessmentId: secondaryAssessment.id,
-				criterionId: numberCriterionId,
-				kind: "number",
 			},
 		])
-		.returning(["id", "assessmentId", "kind"])
+		.returning(["id", "gradeTargetRowId", "criterionId"])
 		.execute();
 
 	const optionsCriterionAssessments = insertedCriterionAssessments.filter(
-		(criterionAssessment) => criterionAssessment.kind === "options",
+		(criterionAssessment) =>
+			criterionAssessment.criterionId === optionsCriterionId,
 	);
 
 	const numberCriterionAssessments = insertedCriterionAssessments.filter(
-		(criterionAssessment) => criterionAssessment.kind === "number",
+		(criterionAssessment) =>
+			criterionAssessment.criterionId === numberCriterionId,
 	);
 
 	const [ordinalPrimary, ordinalSecondary] = optionsCriterionAssessments;

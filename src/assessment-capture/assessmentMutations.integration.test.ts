@@ -315,9 +315,9 @@ test("saveAssessment wrapper does not invalidate when the save fails validation"
 	expect(revalidateTag).not.toHaveBeenCalled();
 });
 
-// Scenario A: two writers target the same (grade target, rubric, criterion).
+// Scenario A: two writers target the same (grade target, criterion).
 // Required invariant: exactly one value survives, untorn and unblended. The
-// grouping row's `INSERT ... ON CONFLICT DO NOTHING` makes the second writer
+// criterion grade's `INSERT ... ON CONFLICT DO NOTHING` makes the second writer
 // block on the first writer's uncommitted unique tuple, which is the lock
 // `runForcedInterleaving` waits on before letting the first writer commit.
 test("saveAssessmentInDb keeps a single untorn value when two writers race the same criterion", async () => {
@@ -357,18 +357,10 @@ test("saveAssessmentInDb keeps a single untorn value when two writers race the s
 	expect(secondResult).toEqual({ success: true });
 
 	const targetRowId = await gradeTargetRowId(db, fixture.gradeTargetId);
-	const assessmentRows = await db
-		.selectFrom("assessment")
-		.select("id")
-		.where("gradeTargetRowId", "=", targetRowId)
-		.execute();
-	expect(assessmentRows).toHaveLength(1);
-	const assessmentId = assessmentRows[0]?.id ?? assertFound();
-
 	const criterionAssessmentRows = await db
 		.selectFrom("criterionAssessment")
 		.select("id")
-		.where("assessmentId", "=", assessmentId)
+		.where("gradeTargetRowId", "=", targetRowId)
 		.execute();
 	expect(criterionAssessmentRows).toHaveLength(1);
 
@@ -402,10 +394,11 @@ test("saveAssessmentInDb keeps a single untorn value when two writers race the s
 	expect(booleanRows[0]?.passed).toBe(false);
 });
 
-// Scenario B: two writers target the same (grade target, rubric) but different
-// criteria — the common real race from optimistic-UI saves of several criteria
-// on one rubric. Required invariant: both criterion assessments coexist; only
-// the parent `assessment` grouping row is shared.
+// Scenario B: two writers target the same grade target but different criteria —
+// the common real race from optimistic-UI saves of several criteria on one
+// rubric. Each writer now upserts its own (grade target, criterion) row with no
+// shared parent, so the writes touch disjoint tuples and never contend; a plain
+// parallel run is enough to prove both criterion grades coexist.
 test("saveAssessmentInDb keeps both criterion assessments when two writers race different criteria on the same rubric", async () => {
 	await using db = await createTestDb();
 	await using project = await createProject(
@@ -414,41 +407,39 @@ test("saveAssessmentInDb keeps both criterion assessments when two writers race 
 	);
 	const fixture = await createAssessmentFixture(db, project.id);
 
-	const { firstResult, secondResult } = await runForcedInterleaving(db, {
-		first: (tx) =>
-			saveAssessmentInDb(tx, {
-				projectId: fixture.projectId,
-				targetId: fixture.gradeTargetId,
-				rubricId: fixture.rubricId,
-				assessment: {
-					criterionId: fixture.criterionIds.boolean,
-					kind: "check",
-					passed: true,
-				},
-			}),
-		second: (tx) =>
-			saveAssessmentInDb(tx, {
-				projectId: fixture.projectId,
-				targetId: fixture.gradeTargetId,
-				rubricId: fixture.rubricId,
-				assessment: {
-					criterionId: fixture.criterionIds.ordinal,
-					kind: "options",
-					selectedLabel: "A",
-				},
-			}),
-	});
+	const [firstResult, secondResult] = await Promise.all([
+		saveAssessmentInDb(db, {
+			projectId: fixture.projectId,
+			targetId: fixture.gradeTargetId,
+			rubricId: fixture.rubricId,
+			assessment: {
+				criterionId: fixture.criterionIds.boolean,
+				kind: "check",
+				passed: true,
+			},
+		}),
+		saveAssessmentInDb(db, {
+			projectId: fixture.projectId,
+			targetId: fixture.gradeTargetId,
+			rubricId: fixture.rubricId,
+			assessment: {
+				criterionId: fixture.criterionIds.ordinal,
+				kind: "options",
+				selectedLabel: "A",
+			},
+		}),
+	]);
 
 	expect(firstResult).toEqual({ success: true });
 	expect(secondResult).toEqual({ success: true });
 
 	const targetRowId = await gradeTargetRowId(db, fixture.gradeTargetId);
-	const assessmentRows = await db
-		.selectFrom("assessment")
+	const criterionAssessmentRows = await db
+		.selectFrom("criterionAssessment")
 		.select("id")
 		.where("gradeTargetRowId", "=", targetRowId)
 		.execute();
-	expect(assessmentRows).toHaveLength(1);
+	expect(criterionAssessmentRows).toHaveLength(2);
 
 	const loaded = await loadRubricAssessmentFromDb(db, {
 		targetId: fixture.gradeTargetId,

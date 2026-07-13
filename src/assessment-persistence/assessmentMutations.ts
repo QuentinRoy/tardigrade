@@ -4,6 +4,28 @@ import type { AssessmentCriterionValue } from "#criteria/types.ts";
 import type { Database } from "#db/generated/database.ts";
 import { assertNever } from "#utils/utils.ts";
 
+// `Record<kind, ...>` forces an entry for every criterion kind: drop one and
+// this stops compiling, so the mapping can't silently fall out of sync with the
+// kind union.
+const subtypeTableByKind = {
+	check: "checkCriterionAssessment",
+	options: "optionsCriterionAssessment",
+	number: "numberCriterionAssessment",
+} as const satisfies Record<AssessmentCriterionValue["kind"], keyof Database>;
+
+type SubtypeTable =
+	(typeof subtypeTableByKind)[keyof typeof subtypeTableByKind];
+
+// The two subtype tables other than the one for `keptKind`, so a criterion
+// grade never carries stale values from a previous kind.
+function otherSubtypeTables(
+	keptKind: AssessmentCriterionValue["kind"],
+): readonly SubtypeTable[] {
+	return Object.entries(subtypeTableByKind)
+		.filter(([kind]) => kind !== keptKind)
+		.map(([, table]) => table);
+}
+
 export type SaveAssessmentResult =
 	| { success: true }
 	| { success: false; error: string };
@@ -110,61 +132,58 @@ export async function saveAssessmentInDb(
 	}
 
 	const criterionRowId = criterion.rowId;
+	const gradeTargetRowId = target.rowId;
 
 	if (criterion.kind !== assessment.kind) {
 		return { success: false, error: assessmentErrors.criterionChanged };
 	}
 
-	await db
-		.insertInto("assessment")
-		.values({
-			projectId: rubric.projectId,
-			gradeTargetRowId: target.rowId,
-			rubricId: rubric.rowId,
-		})
-		.onConflict((conflict) =>
-			conflict.columns(["gradeTargetRowId", "rubricId"]).doNothing(),
-		)
-		.execute();
+	// Upserts the criterion grade row for this (grade target, criterion) pair and
+	// returns its id. Called only after the payload validates, so a failed
+	// first-time save writes nothing (previously a get-or-create ran before
+	// subtype validation, committing an empty grade that completion miscounted).
+	async function upsertCriterionGrade(): Promise<number> {
+		await db
+			.insertInto("criterionAssessment")
+			.values({ gradeTargetRowId, criterionId: criterionRowId })
+			.onConflict((conflict) =>
+				conflict.columns(["gradeTargetRowId", "criterionId"]).doNothing(),
+			)
+			.execute();
 
-	const existingAssessment = await db
-		.selectFrom("assessment")
-		.where("gradeTargetRowId", "=", target.rowId)
-		.where("rubricId", "=", rubric.rowId)
-		.select("id")
-		.executeTakeFirstOrThrow();
+		const existing = await db
+			.selectFrom("criterionAssessment")
+			.where("gradeTargetRowId", "=", gradeTargetRowId)
+			.where("criterionId", "=", criterionRowId)
+			.select("id")
+			.executeTakeFirstOrThrow();
 
-	const assessmentId = existingAssessment.id;
+		return existing.id;
+	}
 
-	await db
-		.insertInto("criterionAssessment")
-		.values({
-			assessmentId,
-			criterionId: criterionRowId,
-			kind: assessment.kind,
-		})
-		.onConflict((conflict) =>
-			conflict
-				.columns(["assessmentId", "criterionId"])
-				.doUpdateSet({ kind: assessment.kind }),
-		)
-		.execute();
+	async function clearOtherSubtypeValues(
+		criterionAssessmentId: number,
+		keptKind: AssessmentCriterionValue["kind"],
+	): Promise<void> {
+		await Promise.all(
+			otherSubtypeTables(keptKind).map((table) =>
+				db
+					.deleteFrom(table)
+					.where("criterionAssessmentId", "=", criterionAssessmentId)
+					.execute(),
+			),
+		);
+	}
 
-	const existingCriterionAssessment = await db
-		.selectFrom("criterionAssessment")
-		.where("assessmentId", "=", assessmentId)
-		.where("criterionId", "=", criterionRowId)
-		.select("id")
-		.executeTakeFirstOrThrow();
-
-	const criterionAssessmentId = existingCriterionAssessment.id;
-
-	// Each writer persists one criterion type's value and clears the other two
-	// types, so a criterion never carries stale values from a previous type. A
-	// non-undefined return is a validation failure that aborts the save.
+	// Each writer validates its payload first, then persists one criterion kind's
+	// value and clears the other two kinds, so a criterion never carries stale
+	// values from a previous kind. A non-undefined return is a validation failure
+	// that aborts the save before any write.
 	async function saveBooleanAssessment(
 		booleanAssessment: Extract<AssessmentCriterionValue, { kind: "check" }>,
 	): Promise<SaveAssessmentResult | undefined> {
+		const criterionAssessmentId = await upsertCriterionGrade();
+
 		await Promise.all([
 			db
 				.insertInto("checkCriterionAssessment")
@@ -175,14 +194,7 @@ export async function saveAssessmentInDb(
 						.doUpdateSet({ passed: booleanAssessment.passed }),
 				)
 				.execute(),
-			db
-				.deleteFrom("optionsCriterionAssessment")
-				.where("criterionAssessmentId", "=", criterionAssessmentId)
-				.execute(),
-			db
-				.deleteFrom("numberCriterionAssessment")
-				.where("criterionAssessmentId", "=", criterionAssessmentId)
-				.execute(),
+			clearOtherSubtypeValues(criterionAssessmentId, "check"),
 		]);
 
 		return undefined;
@@ -207,6 +219,8 @@ export async function saveAssessmentInDb(
 			return { success: false, error: assessmentErrors.invalidOption };
 		}
 
+		const criterionAssessmentId = await upsertCriterionGrade();
+
 		await Promise.all([
 			db
 				.insertInto("optionsCriterionAssessment")
@@ -220,14 +234,7 @@ export async function saveAssessmentInDb(
 						.doUpdateSet({ selectedLabel: ordinalAssessment.selectedLabel }),
 				)
 				.execute(),
-			db
-				.deleteFrom("checkCriterionAssessment")
-				.where("criterionAssessmentId", "=", criterionAssessmentId)
-				.execute(),
-			db
-				.deleteFrom("numberCriterionAssessment")
-				.where("criterionAssessmentId", "=", criterionAssessmentId)
-				.execute(),
+			clearOtherSubtypeValues(criterionAssessmentId, "options"),
 		]);
 
 		return undefined;
@@ -270,6 +277,8 @@ export async function saveAssessmentInDb(
 			return { success: false, error: `Enter a score of at most ${maxScore}.` };
 		}
 
+		const criterionAssessmentId = await upsertCriterionGrade();
+
 		await Promise.all([
 			db
 				.insertInto("numberCriterionAssessment")
@@ -280,14 +289,7 @@ export async function saveAssessmentInDb(
 						.doUpdateSet({ score: parsed }),
 				)
 				.execute(),
-			db
-				.deleteFrom("checkCriterionAssessment")
-				.where("criterionAssessmentId", "=", criterionAssessmentId)
-				.execute(),
-			db
-				.deleteFrom("optionsCriterionAssessment")
-				.where("criterionAssessmentId", "=", criterionAssessmentId)
-				.execute(),
+			clearOtherSubtypeValues(criterionAssessmentId, "number"),
 		]);
 
 		return undefined;

@@ -30,29 +30,13 @@ async function readStream(stream: ReadableStream<Uint8Array>): Promise<string> {
 
 async function addSparseAssessment(
 	db: Kysely<Database>,
-	params: {
-		projectRowId: number;
-		gradeTargetRowId: number;
-		rubricRowId: number;
-		checkCriterionRowId: number;
-	},
+	params: { gradeTargetRowId: number; checkCriterionRowId: number },
 ) {
-	const assessment = await db
-		.insertInto("assessment")
-		.values({
-			projectId: params.projectRowId,
-			gradeTargetRowId: params.gradeTargetRowId,
-			rubricId: params.rubricRowId,
-		})
-		.returning("id")
-		.executeTakeFirstOrThrow();
-
 	const criterionAssessment = await db
 		.insertInto("criterionAssessment")
 		.values({
-			assessmentId: assessment.id,
+			gradeTargetRowId: params.gradeTargetRowId,
 			criterionId: params.checkCriterionRowId,
-			kind: "check",
 		})
 		.returning("id")
 		.executeTakeFirstOrThrow();
@@ -107,17 +91,13 @@ test("createCsvGradeTargetExport snapshots CSV for mixed criterion types and gra
 
 	await Promise.all([
 		addFullAssessmentFixture(db, {
-			projectRowId: project.rowId,
 			gradeTargetRowId: target1.rowId,
-			rubricRowId: rubric.rowId,
 			checkCriterionRowId: criterionRowId.get(rubric.criteria.booleanId)!,
 			optionsCriterionRowId: criterionRowId.get(rubric.criteria.ordinalId)!,
 			numberCriterionRowId: criterionRowId.get(rubric.criteria.numericalId)!,
 		}),
 		addSparseAssessment(db, {
-			projectRowId: project.rowId,
 			gradeTargetRowId: target2.rowId,
-			rubricRowId: rubric.rowId,
 			checkCriterionRowId: criterionRowId.get(rubric.criteria.booleanId)!,
 		}),
 	]);

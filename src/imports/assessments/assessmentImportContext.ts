@@ -148,21 +148,16 @@ async function loadAssessedCriterionKeys(
 	const assessedPairs = await db
 		.selectFrom("criterionAssessment")
 		.innerJoin(
-			"assessment",
-			"assessment.id",
-			"criterionAssessment.assessmentId",
-		)
-		.innerJoin(
 			"gradeTarget",
 			"gradeTarget.rowId",
-			"assessment.gradeTargetRowId",
+			"criterionAssessment.gradeTargetRowId",
 		)
 		.innerJoin(
 			"criterion",
 			"criterion.rowId",
 			"criterionAssessment.criterionId",
 		)
-		.where("assessment.projectId", "=", projectRowId)
+		.where("gradeTarget.projectId", "=", projectRowId)
 		.select(["gradeTarget.id as targetId", "criterion.id as criterionId"])
 		.execute();
 
