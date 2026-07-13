@@ -3,7 +3,8 @@ import type { Database } from "#db/generated/database.ts";
 import { buildTestId } from "./dbIntegration.ts";
 
 export type AssessedBooleanFixture = BooleanRubricFixture & {
-	assessmentId: number;
+	gradeTargetRowId: number;
+	criterionAssessmentId: number;
 };
 
 export type BooleanRubricFixture = {
@@ -84,22 +85,11 @@ export async function createAssessedBooleanRubricFixture(
 		.returning("rowId")
 		.executeTakeFirstOrThrow();
 
-	const assessment = await db
-		.insertInto("assessment")
-		.values({
-			projectId,
-			gradeTargetRowId: target.rowId,
-			rubricId: rubric.rubricRowId,
-		})
-		.returning("id")
-		.executeTakeFirstOrThrow();
-
 	const criterionAssessment = await db
 		.insertInto("criterionAssessment")
 		.values({
-			assessmentId: assessment.id,
+			gradeTargetRowId: target.rowId,
 			criterionId: rubric.criterionRowId,
-			kind: "check",
 		})
 		.returning("id")
 		.executeTakeFirstOrThrow();
@@ -109,7 +99,11 @@ export async function createAssessedBooleanRubricFixture(
 		.values({ criterionAssessmentId: criterionAssessment.id, passed: true })
 		.execute();
 
-	return { ...rubric, assessmentId: assessment.id };
+	return {
+		...rubric,
+		gradeTargetRowId: target.rowId,
+		criterionAssessmentId: criterionAssessment.id,
+	};
 }
 
 export async function createRubric(

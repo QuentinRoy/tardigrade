@@ -148,9 +148,14 @@ test("saveAssessments does not persist valid rows when a later row fails validat
 	).rejects.toThrow("Assessment import errors:");
 
 	const persistedAssessments = await db
-		.selectFrom("assessment")
-		.select("id")
-		.where("projectId", "=", project.rowId)
+		.selectFrom("criterionAssessment")
+		.innerJoin(
+			"gradeTarget",
+			"gradeTarget.rowId",
+			"criterionAssessment.gradeTargetRowId",
+		)
+		.select("criterionAssessment.id")
+		.where("gradeTarget.projectId", "=", project.rowId)
 		.execute();
 
 	expect(persistedAssessments).toHaveLength(0);
@@ -176,9 +181,14 @@ test("saveAssessments rejects unknown columns before writing any assessment", as
 	).rejects.toThrow('Unrecognized column: "unknown_column"');
 
 	const persistedAssessments = await db
-		.selectFrom("assessment")
-		.select("id")
-		.where("projectId", "=", project.rowId)
+		.selectFrom("criterionAssessment")
+		.innerJoin(
+			"gradeTarget",
+			"gradeTarget.rowId",
+			"criterionAssessment.gradeTargetRowId",
+		)
+		.select("criterionAssessment.id")
+		.where("gradeTarget.projectId", "=", project.rowId)
 		.execute();
 
 	expect(persistedAssessments).toHaveLength(0);
@@ -211,9 +221,14 @@ test("saveAssessments blocks the import when a row has no matching student or gr
 	);
 
 	const persistedAssessments = await db
-		.selectFrom("assessment")
-		.select("id")
-		.where("projectId", "=", project.rowId)
+		.selectFrom("criterionAssessment")
+		.innerJoin(
+			"gradeTarget",
+			"gradeTarget.rowId",
+			"criterionAssessment.gradeTargetRowId",
+		)
+		.select("criterionAssessment.id")
+		.where("gradeTarget.projectId", "=", project.rowId)
 		.execute();
 
 	expect(persistedAssessments).toHaveLength(0);
@@ -283,9 +298,14 @@ test("saveAssessments rolls back all writes if a later transactional write fails
 	).rejects.toThrow("Enter a score of at most 10.");
 
 	const persistedAssessments = await db
-		.selectFrom("assessment")
-		.select("id")
-		.where("projectId", "=", project.rowId)
+		.selectFrom("criterionAssessment")
+		.innerJoin(
+			"gradeTarget",
+			"gradeTarget.rowId",
+			"criterionAssessment.gradeTargetRowId",
+		)
+		.select("criterionAssessment.id")
+		.where("gradeTarget.projectId", "=", project.rowId)
 		.execute();
 
 	expect(persistedAssessments).toHaveLength(0);
@@ -393,18 +413,28 @@ test("saveAssessments links assessments only to the target project even when the
 
 	// Project A must have zero assessments
 	const projectAAssessments = await db
-		.selectFrom("assessment")
-		.select("id")
-		.where("projectId", "=", projectA.rowId)
+		.selectFrom("criterionAssessment")
+		.innerJoin(
+			"gradeTarget",
+			"gradeTarget.rowId",
+			"criterionAssessment.gradeTargetRowId",
+		)
+		.select("criterionAssessment.id")
+		.where("gradeTarget.projectId", "=", projectA.rowId)
 		.execute();
 
 	expect(projectAAssessments).toHaveLength(0);
 
 	// Project B must have exactly one assessment
 	const projectBAssessments = await db
-		.selectFrom("assessment")
-		.select("id")
-		.where("projectId", "=", projectB.rowId)
+		.selectFrom("criterionAssessment")
+		.innerJoin(
+			"gradeTarget",
+			"gradeTarget.rowId",
+			"criterionAssessment.gradeTargetRowId",
+		)
+		.select("criterionAssessment.id")
+		.where("gradeTarget.projectId", "=", projectB.rowId)
 		.execute();
 
 	expect(projectBAssessments).toHaveLength(1);

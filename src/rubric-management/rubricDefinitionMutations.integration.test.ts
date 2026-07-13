@@ -116,13 +116,15 @@ test("saveRubricDefinitionInDb renames rubric id while preserving linked assessm
 
 	expect(rubricRow.rowId).toBe(fixture.rubricRowId);
 
-	const assessment = await db
-		.selectFrom("assessment")
-		.select(["id", "rubricId"])
-		.where("id", "=", fixture.assessmentId)
+	// The criterion grade survives the rubric rename, still linked to its
+	// criterion (and through it to the renamed rubric).
+	const criterionGrade = await db
+		.selectFrom("criterionAssessment")
+		.select(["id", "criterionId"])
+		.where("id", "=", fixture.criterionAssessmentId)
 		.executeTakeFirstOrThrow();
 
-	expect(assessment.rubricId).toBe(fixture.rubricRowId);
+	expect(criterionGrade.criterionId).toBe(fixture.criterionRowId);
 });
 
 test("saveRubricDefinitionInDb replaces criterion subtype data when criterion type changes", async () => {
@@ -187,7 +189,7 @@ test("saveRubricDefinitionInDb replaces criterion subtype data when criterion ty
 	const linkedCriterionAssessments = await db
 		.selectFrom("criterionAssessment")
 		.select("id")
-		.where("assessmentId", "=", fixture.assessmentId)
+		.where("criterionId", "=", fixture.criterionRowId)
 		.execute();
 
 	expect(booleanSubtypeRows).toHaveLength(0);
@@ -339,14 +341,14 @@ test("deleteRubricDefinitionInDb reports deletion and cascades linked assessment
 		.where("id", "=", fixture.rubricId)
 		.execute();
 
-	const assessmentRows = await db
-		.selectFrom("assessment")
+	const criterionGradeRows = await db
+		.selectFrom("criterionAssessment")
 		.select("id")
-		.where("id", "=", fixture.assessmentId)
+		.where("id", "=", fixture.criterionAssessmentId)
 		.execute();
 
 	expect(rubricRows).toHaveLength(0);
-	expect(assessmentRows).toHaveLength(0);
+	expect(criterionGradeRows).toHaveLength(0);
 });
 
 test("deleteRubricDefinitionInDb returns deleted false when no rubric matches in project", async () => {

@@ -56,9 +56,7 @@ async function createRoundtripFixtureProject(db: DisposableTestDatabase) {
 		{ projectRowId: project.rowId, studentRowId: student.rowId },
 	]);
 	await addFullAssessmentFixture(db, {
-		projectRowId: project.rowId,
 		gradeTargetRowId: target.rowId,
-		rubricRowId: rubric.rowId,
 		checkCriterionRowId: criterionRowId.get(rubric.criteria.booleanId)!,
 		optionsCriterionRowId: criterionRowId.get(rubric.criteria.ordinalId)!,
 		numberCriterionRowId: criterionRowId.get(rubric.criteria.numericalId)!,

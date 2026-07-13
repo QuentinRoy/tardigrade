@@ -225,46 +225,31 @@ export async function createIndividualGradeTargetFixtures<
 	})) as GradeTargetFixtureTuple<TFixtures>;
 }
 
-// Inserts one assessment with all three criterion types filled in: boolean
+// Inserts one criterion grade per criterion kind for a grade target: boolean
 // passed, ordinal "A", numerical 7.5.
 export async function addFullAssessmentFixture(
 	db: Kysely<Database>,
 	params: {
-		projectRowId: number;
 		gradeTargetRowId: number;
-		rubricRowId: number;
 		checkCriterionRowId: number;
 		optionsCriterionRowId: number;
 		numberCriterionRowId: number;
 	},
 ): Promise<void> {
-	const assessment = await db
-		.insertInto("assessment")
-		.values({
-			projectId: params.projectRowId,
-			gradeTargetRowId: params.gradeTargetRowId,
-			rubricId: params.rubricRowId,
-		})
-		.returning("id")
-		.executeTakeFirstOrThrow();
-
 	const criterionAssessments = await db
 		.insertInto("criterionAssessment")
 		.values([
 			{
-				assessmentId: assessment.id,
+				gradeTargetRowId: params.gradeTargetRowId,
 				criterionId: params.checkCriterionRowId,
-				kind: "check",
 			},
 			{
-				assessmentId: assessment.id,
+				gradeTargetRowId: params.gradeTargetRowId,
 				criterionId: params.optionsCriterionRowId,
-				kind: "options",
 			},
 			{
-				assessmentId: assessment.id,
+				gradeTargetRowId: params.gradeTargetRowId,
 				criterionId: params.numberCriterionRowId,
-				kind: "number",
 			},
 		])
 		.returning(["id", "criterionId"])

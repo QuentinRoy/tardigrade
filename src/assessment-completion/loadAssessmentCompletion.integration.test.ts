@@ -119,45 +119,14 @@ async function createRubric(
 async function addAssessment(
 	db: Kysely<Database>,
 	{
-		projectRowId,
 		gradeTargetRowId,
-		rubricRowId,
 		criterionRowId,
-	}: {
-		projectRowId: number;
-		gradeTargetRowId: number;
-		rubricRowId: number;
-		criterionRowId?: number;
-	},
+	}: { gradeTargetRowId: number; criterionRowId: number },
 ): Promise<void> {
-	const assessment = await db
-		.insertInto("assessment")
-		.values({
-			projectId: projectRowId,
-			gradeTargetRowId,
-			rubricId: rubricRowId,
-		})
-		.returning("id")
-		.executeTakeFirstOrThrow();
-
-	if (criterionRowId == null) {
-		return;
-	}
-
-	await db
-		.insertInto("criterionAssessment")
-		.values({
-			assessmentId: assessment.id,
-			criterionId: criterionRowId,
-			kind: "check",
-		})
-		.execute();
-
 	const criterionAssessment = await db
-		.selectFrom("criterionAssessment")
-		.select("id")
-		.where("assessmentId", "=", assessment.id)
-		.where("criterionId", "=", criterionRowId)
+		.insertInto("criterionAssessment")
+		.values({ gradeTargetRowId, criterionId: criterionRowId })
+		.returning("id")
 		.executeTakeFirstOrThrow();
 
 	await db
@@ -179,17 +148,17 @@ test("loadAssessedCriterionCountsByTargetFromDb counts only assessments within t
 	await createRubric(db, projectA.rowId, sharedRubricId, {
 		criterionId: sharedCriterionId,
 	});
-	const { rubricRowId: rubricBRowId, criterionRowId: criterionBRowId } =
-		await createRubric(db, projectB.rowId, sharedRubricId, {
-			criterionId: sharedCriterionId,
-		});
+	const { criterionRowId: criterionBRowId } = await createRubric(
+		db,
+		projectB.rowId,
+		sharedRubricId,
+		{ criterionId: sharedCriterionId },
+	);
 
 	// Add assessment only for project B
 	if (criterionBRowId == null) throw new Error("Expected criterion row");
 	await addAssessment(db, {
-		projectRowId: projectB.rowId,
 		gradeTargetRowId: targetB.rowId,
-		rubricRowId: rubricBRowId,
 		criterionRowId: criterionBRowId,
 	});
 
@@ -235,17 +204,17 @@ test("loadAssessmentCompletionByTargetFromDb counts only rubrics and assessments
 	await createRubric(db, projectA.rowId, sharedRubricId, {
 		criterionId: sharedCriterionId,
 	});
-	const { rubricRowId: rubricBRowId, criterionRowId: criterionBRowId } =
-		await createRubric(db, projectB.rowId, sharedRubricId, {
-			criterionId: sharedCriterionId,
-		});
+	const { criterionRowId: criterionBRowId } = await createRubric(
+		db,
+		projectB.rowId,
+		sharedRubricId,
+		{ criterionId: sharedCriterionId },
+	);
 
 	// Add assessment only for project B
 	if (criterionBRowId == null) throw new Error("Expected criterion row");
 	await addAssessment(db, {
-		projectRowId: projectB.rowId,
 		gradeTargetRowId: targetB.rowId,
-		rubricRowId: rubricBRowId,
 		criterionRowId: criterionBRowId,
 	});
 
@@ -364,7 +333,7 @@ test("loadAssessmentCompletionSummaryFromDb characterizes mixed completion acros
 	const targetDone = await createGradeTarget(db, project.rowId);
 	await createGradeTarget(db, project.rowId);
 
-	const { rubricRowId, criterionRowId } = await createRubric(
+	const { criterionRowId } = await createRubric(
 		db,
 		project.rowId,
 		buildTestId("rubric"),
@@ -373,9 +342,7 @@ test("loadAssessmentCompletionSummaryFromDb characterizes mixed completion acros
 	if (criterionRowId == null) throw new Error("Expected criterion row");
 
 	await addAssessment(db, {
-		projectRowId: project.rowId,
 		gradeTargetRowId: targetDone.rowId,
-		rubricRowId,
 		criterionRowId,
 	});
 

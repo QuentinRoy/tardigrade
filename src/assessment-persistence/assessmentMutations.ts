@@ -110,61 +110,44 @@ export async function saveAssessmentInDb(
 	}
 
 	const criterionRowId = criterion.rowId;
+	const gradeTargetRowId = target.rowId;
 
 	if (criterion.kind !== assessment.kind) {
 		return { success: false, error: assessmentErrors.criterionChanged };
 	}
 
-	await db
-		.insertInto("assessment")
-		.values({
-			projectId: rubric.projectId,
-			gradeTargetRowId: target.rowId,
-			rubricId: rubric.rowId,
-		})
-		.onConflict((conflict) =>
-			conflict.columns(["gradeTargetRowId", "rubricId"]).doNothing(),
-		)
-		.execute();
+	// Upserts the criterion grade row for this (grade target, criterion) pair and
+	// returns its id. Called only after the payload validates, so a failed
+	// first-time save writes nothing (previously a get-or-create ran before
+	// subtype validation, committing an empty grade that completion miscounted).
+	async function upsertCriterionGrade(): Promise<number> {
+		await db
+			.insertInto("criterionAssessment")
+			.values({ gradeTargetRowId, criterionId: criterionRowId })
+			.onConflict((conflict) =>
+				conflict.columns(["gradeTargetRowId", "criterionId"]).doNothing(),
+			)
+			.execute();
 
-	const existingAssessment = await db
-		.selectFrom("assessment")
-		.where("gradeTargetRowId", "=", target.rowId)
-		.where("rubricId", "=", rubric.rowId)
-		.select("id")
-		.executeTakeFirstOrThrow();
+		const existing = await db
+			.selectFrom("criterionAssessment")
+			.where("gradeTargetRowId", "=", gradeTargetRowId)
+			.where("criterionId", "=", criterionRowId)
+			.select("id")
+			.executeTakeFirstOrThrow();
 
-	const assessmentId = existingAssessment.id;
+		return existing.id;
+	}
 
-	await db
-		.insertInto("criterionAssessment")
-		.values({
-			assessmentId,
-			criterionId: criterionRowId,
-			kind: assessment.kind,
-		})
-		.onConflict((conflict) =>
-			conflict
-				.columns(["assessmentId", "criterionId"])
-				.doUpdateSet({ kind: assessment.kind }),
-		)
-		.execute();
-
-	const existingCriterionAssessment = await db
-		.selectFrom("criterionAssessment")
-		.where("assessmentId", "=", assessmentId)
-		.where("criterionId", "=", criterionRowId)
-		.select("id")
-		.executeTakeFirstOrThrow();
-
-	const criterionAssessmentId = existingCriterionAssessment.id;
-
-	// Each writer persists one criterion type's value and clears the other two
-	// types, so a criterion never carries stale values from a previous type. A
-	// non-undefined return is a validation failure that aborts the save.
+	// Each writer validates its payload first, then persists one criterion kind's
+	// value and clears the other two kinds, so a criterion never carries stale
+	// values from a previous kind. A non-undefined return is a validation failure
+	// that aborts the save before any write.
 	async function saveBooleanAssessment(
 		booleanAssessment: Extract<AssessmentCriterionValue, { kind: "check" }>,
 	): Promise<SaveAssessmentResult | undefined> {
+		const criterionAssessmentId = await upsertCriterionGrade();
+
 		await Promise.all([
 			db
 				.insertInto("checkCriterionAssessment")
@@ -206,6 +189,8 @@ export async function saveAssessmentInDb(
 		if (!allowedValues.includes(ordinalAssessment.selectedLabel)) {
 			return { success: false, error: assessmentErrors.invalidOption };
 		}
+
+		const criterionAssessmentId = await upsertCriterionGrade();
 
 		await Promise.all([
 			db
@@ -269,6 +254,8 @@ export async function saveAssessmentInDb(
 		if (parsed > maxScore) {
 			return { success: false, error: `Enter a score of at most ${maxScore}.` };
 		}
+
+		const criterionAssessmentId = await upsertCriterionGrade();
 
 		await Promise.all([
 			db

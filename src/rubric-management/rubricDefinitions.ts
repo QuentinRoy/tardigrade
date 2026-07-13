@@ -61,13 +61,21 @@ export async function loadAssessmentCountsByRubricFromDb(
 	{ projectId }: { projectId: string },
 ): Promise<Map<string, number>> {
 	const counts = await db
-		.selectFrom("assessment")
-		.innerJoin("rubric", "rubric.rowId", "assessment.rubricId")
-		.innerJoin("project", "project.rowId", "assessment.projectId")
+		.selectFrom("criterionAssessment")
+		.innerJoin(
+			"criterion",
+			"criterion.rowId",
+			"criterionAssessment.criterionId",
+		)
+		.innerJoin("rubric", "rubric.rowId", "criterion.rubricId")
+		.innerJoin("project", "project.rowId", "rubric.projectId")
 		.where("project.id", "=", projectId)
 		.select(({ fn }) => [
 			"rubric.id as rubricId",
-			fn.count<number>("assessment.id").as("assessmentCount"),
+			fn
+				.count<number>("criterionAssessment.gradeTargetRowId")
+				.distinct()
+				.as("assessmentCount"),
 		])
 		.groupBy("rubric.id")
 		.execute();
@@ -142,13 +150,21 @@ export async function getRubricDefinitionDeleteImpactFromDb(
 	const projectRowId = await resolveProjectRowId(db, projectId);
 
 	const row = await db
-		.selectFrom("assessment")
-		.innerJoin("rubric", "rubric.rowId", "assessment.rubricId")
+		.selectFrom("criterionAssessment")
+		.innerJoin(
+			"criterion",
+			"criterion.rowId",
+			"criterionAssessment.criterionId",
+		)
+		.innerJoin("rubric", "rubric.rowId", "criterion.rubricId")
 		.select(({ fn }) => [
-			fn.count<number>("assessment.id").as("assessmentCount"),
+			fn
+				.count<number>("criterionAssessment.gradeTargetRowId")
+				.distinct()
+				.as("assessmentCount"),
 		])
 		.where("rubric.id", "=", rubricId)
-		.where("assessment.projectId", "=", projectRowId)
+		.where("rubric.projectId", "=", projectRowId)
 		.executeTakeFirst();
 
 	return { assessmentCount: Number(row?.assessmentCount ?? 0) };

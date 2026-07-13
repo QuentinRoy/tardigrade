@@ -35,11 +35,6 @@ export async function loadCriterionAssessmentRecordsFromDb(
 	return db
 		.selectFrom("criterionAssessment")
 		.innerJoin(
-			"assessment",
-			"assessment.id",
-			"criterionAssessment.assessmentId",
-		)
-		.innerJoin(
 			"criterion",
 			"criterion.rowId",
 			"criterionAssessment.criterionId",
@@ -47,10 +42,10 @@ export async function loadCriterionAssessmentRecordsFromDb(
 		.innerJoin(
 			"gradeTarget",
 			"gradeTarget.rowId",
-			"assessment.gradeTargetRowId",
+			"criterionAssessment.gradeTargetRowId",
 		)
 		.where(
-			"assessment.projectId",
+			"gradeTarget.projectId",
 			"in",
 			db.selectFrom("project").select("rowId").where("id", "=", projectId),
 		)
@@ -72,7 +67,7 @@ export async function loadCriterionAssessmentRecordsFromDb(
 		.select([
 			"gradeTarget.id as gradeTargetId",
 			"criterion.id as criterionId",
-			"criterionAssessment.kind as kind",
+			"criterion.kind as kind",
 			"checkCriterionAssessment.passed as passed",
 			"optionsCriterionAssessment.selectedLabel as selectedLabel",
 			"numberCriterionAssessment.score as score",

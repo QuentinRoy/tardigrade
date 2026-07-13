@@ -125,24 +125,19 @@ async function loadCriterionAssessmentRows(
 	}: { targetId: string; projectId: string; rubricId?: string | undefined },
 ): Promise<CriterionAssessmentRow[]> {
 	return db
-		.selectFrom("assessment")
+		.selectFrom("criterionAssessment")
 		.innerJoin(
 			"gradeTarget",
 			"gradeTarget.rowId",
-			"assessment.gradeTargetRowId",
+			"criterionAssessment.gradeTargetRowId",
 		)
 		.innerJoin("project", "project.rowId", "gradeTarget.projectId")
-		.innerJoin("rubric", "rubric.rowId", "assessment.rubricId")
-		.innerJoin(
-			"criterionAssessment",
-			"criterionAssessment.assessmentId",
-			"assessment.id",
-		)
 		.innerJoin(
 			"criterion",
 			"criterion.rowId",
 			"criterionAssessment.criterionId",
 		)
+		.innerJoin("rubric", "rubric.rowId", "criterion.rubricId")
 		.leftJoin(
 			"checkCriterionAssessment",
 			"checkCriterionAssessment.criterionAssessmentId",
@@ -166,7 +161,7 @@ async function loadCriterionAssessmentRows(
 		.select([
 			"rubric.id as rubricId",
 			"criterion.id as criterionId",
-			"criterionAssessment.kind as kind",
+			"criterion.kind as kind",
 			"checkCriterionAssessment.passed as passed",
 			"optionsCriterionAssessment.selectedLabel as selectedLabel",
 			"numberCriterionAssessment.score as score",

@@ -99,21 +99,16 @@ function streamGradeTargetExportRowsFromDb(
 			.leftJoin("group", "group.id", "gradeTarget.groupRowId")
 			.leftJoin("student", "student.rowId", "gradeTarget.studentRowId")
 			.leftJoin(
-				"assessment",
-				"assessment.gradeTargetRowId",
-				"gradeTarget.rowId",
-			)
-			.leftJoin("rubric", "rubric.rowId", "assessment.rubricId")
-			.leftJoin(
 				"criterionAssessment",
-				"criterionAssessment.assessmentId",
-				"assessment.id",
+				"criterionAssessment.gradeTargetRowId",
+				"gradeTarget.rowId",
 			)
 			.leftJoin(
 				"criterion",
 				"criterion.rowId",
 				"criterionAssessment.criterionId",
 			)
+			.leftJoin("rubric", "rubric.rowId", "criterion.rubricId")
 			.leftJoin(
 				"checkCriterionAssessment",
 				"checkCriterionAssessment.criterionAssessmentId",
@@ -144,7 +139,6 @@ function streamGradeTargetExportRowsFromDb(
 			// Creation order, not id order — see the ordering note in
 			// gradeTargetExportGrouping.ts.
 			.orderBy("gradeTarget.rowId", "asc")
-			.orderBy("assessment.id", "asc")
 			.orderBy("criterionAssessment.id", "asc")
 			.stream(200)
 	);

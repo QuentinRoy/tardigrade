@@ -173,40 +173,17 @@ async function createNumberCriterion(
 	return rubric.rowId;
 }
 
-// `Assessment` is unique per (gradeTargetRowId, rubricId): multiple criteria on
-// the same rubric share one assessment row, each with its own `criterionAssessment`.
-async function createAssessment(
-	db: Kysely<Database>,
-	{
-		projectRowId,
-		gradeTargetRowId,
-		rubricRowId,
-	}: { projectRowId: number; gradeTargetRowId: number; rubricRowId: number },
-): Promise<number> {
-	const assessment = await db
-		.insertInto("assessment")
-		.values({
-			projectId: projectRowId,
-			gradeTargetRowId,
-			rubricId: rubricRowId,
-		})
-		.returning("id")
-		.executeTakeFirstOrThrow();
-
-	return assessment.id;
-}
-
 async function addCheckAssessment(
 	db: Kysely<Database>,
 	{
-		assessmentId,
+		gradeTargetRowId,
 		criterionRowId,
 		passed,
-	}: { assessmentId: number; criterionRowId: number; passed: boolean },
+	}: { gradeTargetRowId: number; criterionRowId: number; passed: boolean },
 ): Promise<void> {
 	const criterionAssessment = await db
 		.insertInto("criterionAssessment")
-		.values({ assessmentId, criterionId: criterionRowId, kind: "check" })
+		.values({ gradeTargetRowId, criterionId: criterionRowId })
 		.returning("id")
 		.executeTakeFirstOrThrow();
 
@@ -219,14 +196,18 @@ async function addCheckAssessment(
 async function addOptionsAssessment(
 	db: Kysely<Database>,
 	{
-		assessmentId,
+		gradeTargetRowId,
 		criterionRowId,
 		selectedLabel,
-	}: { assessmentId: number; criterionRowId: number; selectedLabel: string },
+	}: {
+		gradeTargetRowId: number;
+		criterionRowId: number;
+		selectedLabel: string;
+	},
 ): Promise<void> {
 	const criterionAssessment = await db
 		.insertInto("criterionAssessment")
-		.values({ assessmentId, criterionId: criterionRowId, kind: "options" })
+		.values({ gradeTargetRowId, criterionId: criterionRowId })
 		.returning("id")
 		.executeTakeFirstOrThrow();
 
@@ -239,14 +220,14 @@ async function addOptionsAssessment(
 async function addNumberAssessment(
 	db: Kysely<Database>,
 	{
-		assessmentId,
+		gradeTargetRowId,
 		criterionRowId,
 		score,
-	}: { assessmentId: number; criterionRowId: number; score: number },
+	}: { gradeTargetRowId: number; criterionRowId: number; score: number },
 ): Promise<void> {
 	const criterionAssessment = await db
 		.insertInto("criterionAssessment")
-		.values({ assessmentId, criterionId: criterionRowId, kind: "number" })
+		.values({ gradeTargetRowId, criterionId: criterionRowId })
 		.returning("id")
 		.executeTakeFirstOrThrow();
 
@@ -287,23 +268,18 @@ test("loadCriterionAssessmentRecordsFromDb maps the per-type value column for bo
 		criterionId: numericalRubricId,
 	});
 
-	const assessmentId = await createAssessment(db, {
-		projectRowId: project.rowId,
-		gradeTargetRowId: target.rowId,
-		rubricRowId,
-	});
 	await addCheckAssessment(db, {
-		assessmentId,
+		gradeTargetRowId: target.rowId,
 		criterionRowId: checkCriterionRowId,
 		passed: true,
 	});
 	await addOptionsAssessment(db, {
-		assessmentId,
+		gradeTargetRowId: target.rowId,
 		criterionRowId: optionsCriterionRowId,
 		selectedLabel: "high",
 	});
 	await addNumberAssessment(db, {
-		assessmentId,
+		gradeTargetRowId: target.rowId,
 		criterionRowId: numberCriterionRowId,
 		score: 7,
 	});
@@ -377,23 +353,13 @@ test("loadCriterionAssessmentRecordsFromDb excludes assessment records from othe
 		criterionId: criterionIdB,
 	});
 
-	const assessmentIdA = await createAssessment(db, {
-		projectRowId: projectA.rowId,
-		gradeTargetRowId: targetA.rowId,
-		rubricRowId: rubricRowIdA,
-	});
-	const assessmentIdB = await createAssessment(db, {
-		projectRowId: projectB.rowId,
-		gradeTargetRowId: targetB.rowId,
-		rubricRowId: rubricRowIdB,
-	});
 	await addCheckAssessment(db, {
-		assessmentId: assessmentIdA,
+		gradeTargetRowId: targetA.rowId,
 		criterionRowId: criterionRowIdA,
 		passed: true,
 	});
 	await addCheckAssessment(db, {
-		assessmentId: assessmentIdB,
+		gradeTargetRowId: targetB.rowId,
 		criterionRowId: criterionRowIdB,
 		passed: false,
 	});

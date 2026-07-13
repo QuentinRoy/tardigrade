@@ -69,19 +69,19 @@ export async function loadAssessmentCompletionRowsFromDb(
 			.groupBy("rubric.id")
 			.execute(),
 		db
-			.selectFrom("assessment")
-			.where("assessment.projectId", "in", projectRowIdQuery)
-			.innerJoin("rubric", "rubric.rowId", "assessment.rubricId")
-			.leftJoin(
-				"criterionAssessment",
-				"criterionAssessment.assessmentId",
-				"assessment.id",
-			)
+			.selectFrom("criterionAssessment")
 			.innerJoin(
 				"gradeTarget",
 				"gradeTarget.rowId",
-				"assessment.gradeTargetRowId",
+				"criterionAssessment.gradeTargetRowId",
 			)
+			.where("gradeTarget.projectId", "in", projectRowIdQuery)
+			.innerJoin(
+				"criterion",
+				"criterion.rowId",
+				"criterionAssessment.criterionId",
+			)
+			.innerJoin("rubric", "rubric.rowId", "criterion.rubricId")
 			.select((eb) => [
 				"gradeTarget.id as targetId",
 				"rubric.id as rubricId",
@@ -191,19 +191,19 @@ export async function loadAssessedCriterionCountsFromDb(
 			.select((eb) => eb.fn.countAll<number>().as("count"))
 			.executeTakeFirstOrThrow(),
 		db
-			.selectFrom("assessment")
-			.where("assessment.projectId", "in", projectRowIdQuery)
-			.innerJoin("rubric", "rubric.rowId", "assessment.rubricId")
-			.leftJoin(
-				"criterionAssessment",
-				"criterionAssessment.assessmentId",
-				"assessment.id",
-			)
+			.selectFrom("criterionAssessment")
 			.innerJoin(
 				"gradeTarget",
 				"gradeTarget.rowId",
-				"assessment.gradeTargetRowId",
+				"criterionAssessment.gradeTargetRowId",
 			)
+			.where("gradeTarget.projectId", "in", projectRowIdQuery)
+			.innerJoin(
+				"criterion",
+				"criterion.rowId",
+				"criterionAssessment.criterionId",
+			)
+			.innerJoin("rubric", "rubric.rowId", "criterion.rubricId")
 			.where("rubric.id", "=", rubricId)
 			.select((eb) => [
 				"gradeTarget.id as targetId",
@@ -297,11 +297,11 @@ export async function loadCriterionAssessmentsCountFromDb(
 	const row = await db
 		.selectFrom("criterionAssessment")
 		.innerJoin(
-			"assessment",
-			"assessment.id",
-			"criterionAssessment.assessmentId",
+			"gradeTarget",
+			"gradeTarget.rowId",
+			"criterionAssessment.gradeTargetRowId",
 		)
-		.where("assessment.projectId", "in", projectRowIdQuery)
+		.where("gradeTarget.projectId", "in", projectRowIdQuery)
 		.select((eb) => eb.fn.countAll<number>().as("count"))
 		.executeTakeFirstOrThrow();
 
