@@ -3,7 +3,7 @@ import { beforeEach, expect, test, vi } from "vitest";
 import { createTestDb } from "#test/dbIntegration.ts";
 import { createProject } from "#test/projects.ts";
 import {
-	createAssessedBooleanRubricFixture,
+	createGradedBooleanRubricFixture,
 	createOrdinalRubricFixture,
 } from "#test/rubrics.ts";
 import {
@@ -25,8 +25,8 @@ test("loadRubricRowsFromDb returns only the rows scoped to the given project", a
 
 	await using project = await createProject(db, "Read Seam Project");
 	await using otherProject = await createProject(db, "Read Seam Other Project");
-	const fixture = await createAssessedBooleanRubricFixture(db, project.rowId);
-	await createAssessedBooleanRubricFixture(db, otherProject.rowId);
+	const fixture = await createGradedBooleanRubricFixture(db, project.rowId);
+	await createGradedBooleanRubricFixture(db, otherProject.rowId);
 
 	const rows = await loadRubricRowsFromDb(db, { projectId: project.id });
 
@@ -52,7 +52,7 @@ test("loadRubricRowsFromDb returns only the rows scoped to the given project", a
 test("loadRubricRows wrapper delegates to its primitive and declares its cache tags", async () => {
 	await using db = await createTestDb();
 	await using project = await createProject(db, "Rows Wrapper Project");
-	const fixture = await createAssessedBooleanRubricFixture(db, project.rowId);
+	const fixture = await createGradedBooleanRubricFixture(db, project.rowId);
 
 	const rows = await loadRubricRows({ projectId: project.id }, { db });
 
@@ -68,7 +68,7 @@ test("loadRubricsById forwards its db option to the shared loadRubricRows source
 		db,
 		"RubricsById Forwarding Project",
 	);
-	const fixture = await createAssessedBooleanRubricFixture(db, project.rowId);
+	const fixture = await createGradedBooleanRubricFixture(db, project.rowId);
 
 	const rubricsById = await loadRubricsById({ projectId: project.id }, { db });
 
@@ -84,7 +84,7 @@ test("loadRubricsById forwards its db option to the shared loadRubricRows source
 test("loadRubric forwards its db option to the shared loadRubricRows source", async () => {
 	await using db = await createTestDb();
 	await using project = await createProject(db, "Rubric Forwarding Project");
-	const fixture = await createAssessedBooleanRubricFixture(db, project.rowId);
+	const fixture = await createGradedBooleanRubricFixture(db, project.rowId);
 
 	const rubric = await loadRubric(
 		{ projectId: project.id, rubricId: fixture.rubricId },

@@ -57,8 +57,8 @@ export function projectImportStudentsPath(project: ProjectRef): string {
 	return `${projectBasePath(project)}/import/students`;
 }
 
-export function projectImportAssessmentsPath(project: ProjectRef): string {
-	return `${projectBasePath(project)}/import/assessments`;
+export function projectImportGradesPath(project: ProjectRef): string {
+	return `${projectBasePath(project)}/import/grades`;
 }
 
 export function projectExportGradesPath(project: ProjectRef): string {

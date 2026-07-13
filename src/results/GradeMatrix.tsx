@@ -60,9 +60,9 @@ export default function GradeMatrix({
 							<Table.Tr key={gradeTargetRow.gradeTargetId}>
 								<Table.Td>{gradeTargetRow.label}</Table.Td>
 								{gradeTargetRow.criteria.map((cell) => {
-									// Leave unassessed criteria blank rather than showing a
+									// Leave ungraded criteria blank rather than showing a
 									// placeholder badge — an empty cell reads as "no mark yet".
-									if (!cell.assessed) {
+									if (!cell.graded) {
 										return <Table.Td key={cell.criterionId} />;
 									}
 
@@ -95,7 +95,7 @@ export default function GradeMatrix({
 								</Table.Td>
 								<Table.Td ta="right">
 									<CompletionProgress
-										assessedCount={gradeTargetRow.completedCriteria}
+										gradedCount={gradeTargetRow.completedCriteria}
 										totalCount={gradeTargetRow.totalCriteria}
 										completionPercent={
 											gradeTargetRow.totalCriteria > 0

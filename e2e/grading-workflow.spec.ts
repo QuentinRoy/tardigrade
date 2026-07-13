@@ -74,11 +74,11 @@ async function expectCompletionEventually(
 		await page.goto(dashboardUrl);
 		await expectCompletion(
 			page,
-			"Students and groups assessed",
+			"Students and groups graded",
 			expected.gradeTargets,
 		);
-		await expectCompletion(page, "Rubrics assessed", expected.rubrics);
-		await expectCompletion(page, "Criteria assessed", expected.criteria);
+		await expectCompletion(page, "Rubrics graded", expected.rubrics);
+		await expectCompletion(page, "Criteria graded", expected.criteria);
 	}).toPass({ timeout: 15_000, intervals: [250, 500, 1000, 2000] });
 }
 
@@ -178,7 +178,7 @@ function parseCsv(text: string): Record<string, string>[] {
 	});
 }
 
-test("grading workflow: import, assess, persist, and export a computed total", async ({
+test("grading workflow: import, grade, persist, and export a computed total", async ({
 	page,
 }) => {
 	// Create a project and land on its dashboard.
@@ -197,7 +197,7 @@ test("grading workflow: import, assess, persist, and export a computed total", a
 	}
 
 	// Import in dependency order: rubrics define the rubric model, students
-	// create the grade targets, assessments are the grade source.
+	// create the grade targets, grades are the grade source.
 	await page.goto(`/projects/${projectId}/${projectSlug}/import/rubrics`);
 	await importFixture(page, {
 		fieldLabel: "Rubrics YAML",
@@ -212,14 +212,14 @@ test("grading workflow: import, assess, persist, and export a computed total", a
 		content: readFixture("students.csv"),
 	});
 
-	await page.goto(`/projects/${projectId}/${projectSlug}/import/assessments`);
+	await page.goto(`/projects/${projectId}/${projectSlug}/import/grades`);
 	await importFixture(page, {
-		fieldLabel: "Assessments CSV",
-		submitLabel: "Import assessments",
-		content: readFixture("assessments.csv"),
+		fieldLabel: "Grades CSV",
+		submitLabel: "Import grades",
+		content: readFixture("grades.csv"),
 	});
 
-	// Assessment Completion on the dashboard: jane_smith is unassessed, so this
+	// Grade Completion on the dashboard: jane_smith is ungraded, so this
 	// is a genuine partial state, not a trivial all-complete one.
 	const dashboardUrl = `/projects/${projectId}/${projectSlug}`;
 	await expectCompletionEventually(page, dashboardUrl, EXPECTED_COMPLETION);
@@ -229,7 +229,7 @@ test("grading workflow: import, assess, persist, and export a computed total", a
 	await page.reload();
 	await expectCompletion(
 		page,
-		"Students and groups assessed",
+		"Students and groups graded",
 		EXPECTED_COMPLETION.gradeTargets,
 	);
 
@@ -270,7 +270,7 @@ test("grading workflow: import, assess, persist, and export a computed total", a
 	for (const [name, expectedMarks] of Object.entries(EXPECTED_FINAL_TOTAL)) {
 		const actual = finalTotalByName.get(name);
 		if (expectedMarks == null) {
-			// Not fully assessed: the export leaves final_total blank.
+			// Not fully graded: the export leaves final_total blank.
 			expect(actual).toBe("");
 		} else {
 			expect(actual).toBe(String(expectedMarks));

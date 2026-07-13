@@ -1,8 +1,8 @@
 import type { z } from "zod";
 import type { GradeTargetKind } from "#grade-targets/types.ts";
 import type {
-	assessmentRowSchema,
 	checkCriterionSchema,
+	gradeRowSchema,
 	numberCriterionSchema,
 	optionsCriterionSchema,
 	rubricSchema,
@@ -16,7 +16,7 @@ export type ImportedCriterion =
 export type ImportedRubric = z.output<typeof rubricSchema>;
 export type ImportedRubrics = ImportedRubric[];
 export type ImportedStudent = z.output<typeof studentRowSchema>;
-export type ImportedAssessmentRow = z.output<typeof assessmentRowSchema>;
+export type ImportedGradeRow = z.output<typeof gradeRowSchema>;
 export type NormalizedImportedGradeTarget = {
 	id: string;
 	kind: GradeTargetKind;

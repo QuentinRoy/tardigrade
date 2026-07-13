@@ -1,5 +1,5 @@
-import type { AssessmentCriterionValue } from "#criteria/types.ts";
-import { buildAssessmentKey } from "./gradeTargetExportCsv.ts";
+import type { CriterionGrade } from "#criteria/types.ts";
+import { buildGradeKey } from "./gradeTargetExportCsv.ts";
 
 export type GradeTargetExportRow = {
 	gradeTargetRowId: number | null;
@@ -19,7 +19,7 @@ export type GroupedGradeTargetRow = {
 	gradeTargetKind: "group" | "individual";
 	groupName: string | null;
 	studentId: string | null;
-	valuesByKey: Map<string, AssessmentCriterionValue>;
+	valuesByKey: Map<string, CriterionGrade>;
 };
 
 function toNumber(value: string | number): number {
@@ -39,7 +39,7 @@ export async function* groupGradeTargetRows(
 	let currentGradeTargetKind: "group" | "individual" | null = null;
 	let currentGroupName: string | null = null;
 	let currentStudentId: string | null = null;
-	let currentValuesByKey = new Map<string, AssessmentCriterionValue>();
+	let currentValuesByKey = new Map<string, CriterionGrade>();
 
 	function flush(): GroupedGradeTargetRow {
 		if (currentGradeTargetId == null || currentGradeTargetKind == null) {
@@ -73,7 +73,7 @@ export async function* groupGradeTargetRows(
 
 		if (row.rubricId == null || row.criterionId == null) continue;
 
-		const key = buildAssessmentKey(row.rubricId, row.criterionId);
+		const key = buildGradeKey(row.rubricId, row.criterionId);
 
 		if (row.checkPassed != null) {
 			currentValuesByKey.set(key, {

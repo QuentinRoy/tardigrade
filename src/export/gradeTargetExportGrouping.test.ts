@@ -40,7 +40,7 @@ const baseRow: GradeTargetExportRow = {
 };
 
 describe("groupGradeTargetRows", () => {
-	it("yields one group for a single grade target with no assessments", async () => {
+	it("yields one group for a single grade target with no grades", async () => {
 		const groups = await collectGroups([baseRow]);
 
 		expect(groups).toHaveLength(1);
@@ -149,7 +149,7 @@ describe("groupGradeTargetRows", () => {
 		});
 	});
 
-	it("handles sparse assessments — rows with null rubricId/criterionId contribute no values", async () => {
+	it("handles sparse grades — rows with null rubricId/criterionId contribute no values", async () => {
 		const rows: GradeTargetExportRow[] = [
 			{ ...baseRow, rubricId: null, criterionId: null },
 			{ ...baseRow, rubricId: "q1", criterionId: "r-bool", checkPassed: false },

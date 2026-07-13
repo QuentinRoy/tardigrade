@@ -7,15 +7,15 @@ import type { Database } from "./generated/database.ts";
 
 type CriterionRowIds = { boolean: number; ordinal: number; numerical: number };
 
-type AssessmentConstraintFixture = {
-	optionsCriterionAssessmentIds: { primary: number; secondary: number };
-	numberCriterionAssessmentIds: { primary: number; secondary: number };
+type GradeConstraintFixture = {
+	optionsCriterionGradeIds: { primary: number; secondary: number };
+	numberCriterionGradeIds: { primary: number; secondary: number };
 };
 
-async function createAssessmentConstraintFixture(
+async function createGradeConstraintFixture(
 	db: Kysely<Database>,
 	projectId: string,
-): Promise<AssessmentConstraintFixture> {
+): Promise<GradeConstraintFixture> {
 	const project = await db
 		.selectFrom("project")
 		.select("rowId")
@@ -162,8 +162,8 @@ async function createAssessmentConstraintFixture(
 		throw new Error("Expected grade target rows to be created.");
 	}
 
-	const insertedCriterionAssessments = await db
-		.insertInto("criterionAssessment")
+	const insertedCriterionGrades = await db
+		.insertInto("criterionGrade")
 		.values([
 			{
 				gradeTargetRowId: primaryTarget.rowId,
@@ -182,18 +182,16 @@ async function createAssessmentConstraintFixture(
 		.returning(["id", "gradeTargetRowId", "criterionId"])
 		.execute();
 
-	const optionsCriterionAssessments = insertedCriterionAssessments.filter(
-		(criterionAssessment) =>
-			criterionAssessment.criterionId === optionsCriterionId,
+	const optionsCriterionGrades = insertedCriterionGrades.filter(
+		(criterionGrade) => criterionGrade.criterionId === optionsCriterionId,
 	);
 
-	const numberCriterionAssessments = insertedCriterionAssessments.filter(
-		(criterionAssessment) =>
-			criterionAssessment.criterionId === numberCriterionId,
+	const numberCriterionGrades = insertedCriterionGrades.filter(
+		(criterionGrade) => criterionGrade.criterionId === numberCriterionId,
 	);
 
-	const [ordinalPrimary, ordinalSecondary] = optionsCriterionAssessments;
-	const [numericalPrimary, numericalSecondary] = numberCriterionAssessments;
+	const [ordinalPrimary, ordinalSecondary] = optionsCriterionGrades;
+	const [numericalPrimary, numericalSecondary] = numberCriterionGrades;
 
 	if (
 		ordinalPrimary == null ||
@@ -202,7 +200,7 @@ async function createAssessmentConstraintFixture(
 		numericalSecondary == null
 	) {
 		throw new Error(
-			"Expected criterion assessment rows for ordinal and numerical criteria.",
+			"Expected criterion grade rows for ordinal and numerical criteria.",
 		);
 	}
 
@@ -233,11 +231,11 @@ async function createAssessmentConstraintFixture(
 		.execute();
 
 	return {
-		optionsCriterionAssessmentIds: {
+		optionsCriterionGradeIds: {
 			primary: ordinalPrimary.id,
 			secondary: ordinalSecondary.id,
 		},
-		numberCriterionAssessmentIds: {
+		numberCriterionGradeIds: {
 			primary: numericalPrimary.id,
 			secondary: numericalSecondary.id,
 		},
@@ -330,15 +328,15 @@ async function createSubtypeConstraintFixture(
 	};
 }
 
-test("ordinal criterion assessments accept valid labels and roll back failed transactional writes", async () => {
+test("ordinal criterion grades accept valid labels and roll back failed transactional writes", async () => {
 	await using db = await createTestDb();
 	await using project = await createProject(db, "Constraint Ordinal Project");
-	const fixture = await createAssessmentConstraintFixture(db, project.id);
+	const fixture = await createGradeConstraintFixture(db, project.id);
 
 	await db
-		.insertInto("optionsCriterionAssessment")
+		.insertInto("optionsCriterionGrade")
 		.values({
-			criterionAssessmentId: fixture.optionsCriterionAssessmentIds.primary,
+			criterionGradeId: fixture.optionsCriterionGradeIds.primary,
 			selectedLabel: "A",
 		})
 		.execute();
@@ -346,18 +344,17 @@ test("ordinal criterion assessments accept valid labels and roll back failed tra
 	await expect(
 		db.transaction().execute(async (trx) => {
 			await trx
-				.insertInto("optionsCriterionAssessment")
+				.insertInto("optionsCriterionGrade")
 				.values({
-					criterionAssessmentId:
-						fixture.optionsCriterionAssessmentIds.secondary,
+					criterionGradeId: fixture.optionsCriterionGradeIds.secondary,
 					selectedLabel: "B",
 				})
 				.execute();
 
 			await trx
-				.insertInto("optionsCriterionAssessment")
+				.insertInto("optionsCriterionGrade")
 				.values({
-					criterionAssessmentId: fixture.optionsCriterionAssessmentIds.primary,
+					criterionGradeId: fixture.optionsCriterionGradeIds.primary,
 					selectedLabel: "INVALID",
 				})
 				.execute();
@@ -365,32 +362,32 @@ test("ordinal criterion assessments accept valid labels and roll back failed tra
 	).rejects.toThrow("selected_label");
 
 	const persisted = await db
-		.selectFrom("optionsCriterionAssessment")
-		.select(["criterionAssessmentId", "selectedLabel"])
-		.where("criterionAssessmentId", "in", [
-			fixture.optionsCriterionAssessmentIds.primary,
-			fixture.optionsCriterionAssessmentIds.secondary,
+		.selectFrom("optionsCriterionGrade")
+		.select(["criterionGradeId", "selectedLabel"])
+		.where("criterionGradeId", "in", [
+			fixture.optionsCriterionGradeIds.primary,
+			fixture.optionsCriterionGradeIds.secondary,
 		])
-		.orderBy("criterionAssessmentId", "asc")
+		.orderBy("criterionGradeId", "asc")
 		.execute();
 
 	expect(persisted).toEqual([
 		{
-			criterionAssessmentId: fixture.optionsCriterionAssessmentIds.primary,
+			criterionGradeId: fixture.optionsCriterionGradeIds.primary,
 			selectedLabel: "A",
 		},
 	]);
 });
 
-test("numerical criterion assessments enforce score bounds and roll back failed transactional writes", async () => {
+test("numerical criterion grades enforce score bounds and roll back failed transactional writes", async () => {
 	await using db = await createTestDb();
 	await using project = await createProject(db, "Constraint Numerical Project");
-	const fixture = await createAssessmentConstraintFixture(db, project.id);
+	const fixture = await createGradeConstraintFixture(db, project.id);
 
 	await db
-		.insertInto("numberCriterionAssessment")
+		.insertInto("numberCriterionGrade")
 		.values({
-			criterionAssessmentId: fixture.numberCriterionAssessmentIds.primary,
+			criterionGradeId: fixture.numberCriterionGradeIds.primary,
 			score: 7.5,
 		})
 		.execute();
@@ -398,17 +395,17 @@ test("numerical criterion assessments enforce score bounds and roll back failed 
 	await expect(
 		db.transaction().execute(async (trx) => {
 			await trx
-				.insertInto("numberCriterionAssessment")
+				.insertInto("numberCriterionGrade")
 				.values({
-					criterionAssessmentId: fixture.numberCriterionAssessmentIds.secondary,
+					criterionGradeId: fixture.numberCriterionGradeIds.secondary,
 					score: 4,
 				})
 				.execute();
 
 			await trx
-				.insertInto("numberCriterionAssessment")
+				.insertInto("numberCriterionGrade")
 				.values({
-					criterionAssessmentId: fixture.numberCriterionAssessmentIds.primary,
+					criterionGradeId: fixture.numberCriterionGradeIds.primary,
 					score: 11,
 				})
 				.execute();
@@ -416,25 +413,22 @@ test("numerical criterion assessments enforce score bounds and roll back failed 
 	).rejects.toThrow("out of bounds");
 
 	const persisted = await db
-		.selectFrom("numberCriterionAssessment")
-		.select(["criterionAssessmentId", "score"])
-		.where("criterionAssessmentId", "in", [
-			fixture.numberCriterionAssessmentIds.primary,
-			fixture.numberCriterionAssessmentIds.secondary,
+		.selectFrom("numberCriterionGrade")
+		.select(["criterionGradeId", "score"])
+		.where("criterionGradeId", "in", [
+			fixture.numberCriterionGradeIds.primary,
+			fixture.numberCriterionGradeIds.secondary,
 		])
-		.orderBy("criterionAssessmentId", "asc")
+		.orderBy("criterionGradeId", "asc")
 		.execute();
 
 	const normalizedPersisted = persisted.map((row) => ({
-		criterionAssessmentId: row.criterionAssessmentId,
+		criterionGradeId: row.criterionGradeId,
 		score: Number(row.score),
 	}));
 
 	expect(normalizedPersisted).toEqual([
-		{
-			criterionAssessmentId: fixture.numberCriterionAssessmentIds.primary,
-			score: 7.5,
-		},
+		{ criterionGradeId: fixture.numberCriterionGradeIds.primary, score: 7.5 },
 	]);
 });
 

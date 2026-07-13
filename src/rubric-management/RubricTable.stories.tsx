@@ -7,13 +7,13 @@ const sampleRubrics: RubricDefinition[] = [
 	{
 		id: "q1",
 		position: 0,
-		assessmentCount: 12,
+		gradedTargetCount: 12,
 		rubric: { label: "Correctness", criteria: [] },
 	},
 	{
 		id: "q2",
 		position: 1,
-		assessmentCount: 8,
+		gradedTargetCount: 8,
 		rubric: { label: "Code Quality", criteria: [] },
 	},
 ];

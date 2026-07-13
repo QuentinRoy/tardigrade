@@ -84,7 +84,7 @@ export default function SelectedRubricPane({
 							{definition.rubric.criteria.length} criteria
 						</Badge>
 						<Badge variant="default">
-							{definition.assessmentCount} linked assessments
+							{definition.gradedTargetCount} linked grades
 						</Badge>
 					</Group>
 

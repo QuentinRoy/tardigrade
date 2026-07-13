@@ -2,7 +2,7 @@ import type { Criterion } from "#criteria/types.ts";
 import type { GradeTargetSubmitter } from "#grade-targets/types.ts";
 
 export type ExportOptions = {
-	includeCriterionAssessment: boolean;
+	includeCriterionGrade: boolean;
 	includeCriterionMarks: boolean;
 };
 
@@ -33,11 +33,11 @@ export type ExportCriterionPlan =
 
 export type ExportRubricPlan = { id: string; criteria: ExportCriterionPlan[] };
 
-export type GradeTargetExportAssessmentValue = string | number | boolean;
+export type GradeTargetExportGradeValue = string | number | boolean;
 
 export type GradeTargetExportCriterionData = {
 	criterionId: string;
-	assessment?: GradeTargetExportAssessmentValue;
+	grade?: GradeTargetExportGradeValue;
 	marks?: number;
 };
 
@@ -62,10 +62,7 @@ export type GradeTargetExportRecord = {
 	[columnName: string]: GradeTargetExportValue;
 };
 
-export function buildAssessmentKey(
-	rubricId: string,
-	criterionId: string,
-): string {
+export function buildGradeKey(rubricId: string, criterionId: string): string {
 	return `${rubricId}::${criterionId}`;
 }
 
@@ -96,10 +93,7 @@ function getCriterionKey(rubricId: string, criterionId: string): string {
 	return `${rubricId}${COLUMN_PART_SEPARATOR}${criterionId}`;
 }
 
-function getAssessmentColumnName(
-	rubricId: string,
-	criterionId: string,
-): string {
+function getGradeColumnName(rubricId: string, criterionId: string): string {
 	return `${getCriterionKey(rubricId, criterionId)}`;
 }
 
@@ -119,8 +113,8 @@ export function buildGradeTargetExportHeaders(
 
 	for (const rubric of rubrics) {
 		for (const criterion of rubric.criteria) {
-			if (options.includeCriterionAssessment) {
-				headers.push(getAssessmentColumnName(rubric.id, criterion.id));
+			if (options.includeCriterionGrade) {
+				headers.push(getGradeColumnName(rubric.id, criterion.id));
 			}
 			if (options.includeCriterionMarks) {
 				headers.push(getMarksColumnName(rubric.id, criterion.id));
@@ -148,22 +142,22 @@ export function buildGradeTargetExportRecord(params: {
 	};
 
 	let finalTotal = 0;
-	let hasMissingAssessment = false;
+	let hasMissingGrade = false;
 
 	for (const rubric of rubrics) {
 		let rubricTotalMarks = 0;
-		let isRubricFullyAssessed = true;
+		let isRubricFullyGraded = true;
 
 		for (const criterion of rubric.criteria) {
-			if (criterion.assessment == null) {
-				isRubricFullyAssessed = false;
+			if (criterion.grade == null) {
+				isRubricFullyGraded = false;
 			}
 
-			if (options.includeCriterionAssessment) {
-				const assessmentValue = criterion.assessment;
-				if (assessmentValue != null) {
-					row[getAssessmentColumnName(rubric.rubricId, criterion.criterionId)] =
-						assessmentValue;
+			if (options.includeCriterionGrade) {
+				const gradeValue = criterion.grade;
+				if (gradeValue != null) {
+					row[getGradeColumnName(rubric.rubricId, criterion.criterionId)] =
+						gradeValue;
 				}
 			}
 
@@ -179,16 +173,16 @@ export function buildGradeTargetExportRecord(params: {
 			}
 		}
 
-		if (isRubricFullyAssessed) {
+		if (isRubricFullyGraded) {
 			finalTotal += rubricTotalMarks;
 			row[getRubricTotalColumnName(rubric.rubricId)] = rubricTotalMarks;
 			continue;
 		}
 
-		hasMissingAssessment = true;
+		hasMissingGrade = true;
 	}
 
-	if (!hasMissingAssessment) {
+	if (!hasMissingGrade) {
 		row["final_total"] = finalTotal;
 	}
 

@@ -5,8 +5,8 @@ import { runForcedInterleaving } from "#test/concurrency.ts";
 import { createTestDb } from "#test/dbIntegration.ts";
 import { createProject } from "#test/projects.ts";
 import {
-	createAssessedBooleanRubricFixture,
 	createBooleanRubricFixture,
+	createGradedBooleanRubricFixture,
 } from "#test/rubrics.ts";
 import { prepareRubricImport } from "./prepareRubricImport.ts";
 import { loadRubricImportContextFromDb } from "./rubricImportContext.ts";
@@ -219,10 +219,10 @@ test("saveRubrics still upserts duplicate ids within the same project", async ()
 	expect(criteria[0]?.label).toBe("Criterion after");
 });
 
-test("saveRubrics blocks a criterion type change when the criterion has linked assessments", async () => {
+test("saveRubrics blocks a criterion type change when the criterion has linked grades", async () => {
 	await using db = await createTestDb();
 	await using project = await createProject(db, "Type Change Blocked Project");
-	const fixture = await createAssessedBooleanRubricFixture(db, project.rowId);
+	const fixture = await createGradedBooleanRubricFixture(db, project.rowId);
 
 	const rubrics: ImportedRubrics = [
 		{
@@ -242,7 +242,7 @@ test("saveRubrics blocks a criterion type change when the criterion has linked a
 	await expect(
 		saveRubrics({ rubrics, projectId: project.id }, { db }),
 	).rejects.toThrow(
-		`Criterion "${fixture.criterionId}" of rubric "${fixture.rubricId}" has 1 linked assessments and cannot change type on import.`,
+		`Criterion "${fixture.criterionId}" of rubric "${fixture.rubricId}" has 1 linked grades and cannot change type on import.`,
 	);
 
 	const criterion = await db
@@ -256,7 +256,7 @@ test("saveRubrics blocks a criterion type change when the criterion has linked a
 	expect(revalidateTag).not.toHaveBeenCalled();
 });
 
-test("saveRubrics allows a criterion type change when the criterion has no linked assessments", async () => {
+test("saveRubrics allows a criterion type change when the criterion has no linked grades", async () => {
 	await using db = await createTestDb();
 	await using project = await createProject(db, "Type Change Allowed Project");
 	const fixture = await createBooleanRubricFixture(db, project.rowId);
@@ -342,7 +342,7 @@ test("saveRubrics blocks an imported criterion id that already belongs to anothe
 	expect(criterion.rubricId).toBe(fixture.rubricRowId);
 });
 
-test("saveRubrics wrapper invalidates rubric and assessment tags after the import commits", async () => {
+test("saveRubrics wrapper invalidates rubric and grade tags after the import commits", async () => {
 	await using db = await createTestDb();
 	await using project = await createProject(db, "Import Rubrics Cache Project");
 
@@ -356,8 +356,8 @@ test("saveRubrics wrapper invalidates rubric and assessment tags after the impor
 
 	expect(vi.mocked(revalidateTag).mock.calls).toEqual([
 		["rubrics", "max"],
-		["assessments", "max"],
-		["assessments:all", "max"],
+		["grades", "max"],
+		["grades:all", "max"],
 	]);
 });
 
@@ -391,7 +391,7 @@ test("saveRubricImportPlanInDb keeps a single criterion definition when two impo
 	const rubricsToMarksXY = makeOrdinalImport({ yes: 2, no: 0 });
 
 	// Both plans are built against the same pre-race snapshot (criterion still
-	// boolean, no linked assessments), mirroring two graders importing the
+	// boolean, no linked grades), mirroring two graders importing the
 	// same in-flight change before either write lands.
 	const [contextAB, contextXY] = await Promise.all([
 		loadRubricImportContextFromDb(db, {

@@ -15,7 +15,7 @@ const meta = {
 	component: OptionsGradeControl,
 	tags: ["autodocs"],
 	parameters: { layout: "centered" },
-	args: { onAssess: fn(), disabled: false, marks: exampleMarks },
+	args: { onGrade: fn(), disabled: false, marks: exampleMarks },
 } satisfies Meta<typeof OptionsGradeControl>;
 
 export default meta;

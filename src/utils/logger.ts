@@ -8,7 +8,7 @@ import pino from "pino";
 // See docs/adr/0009-server-side-logging-with-pino.md
 type LogScope =
 	| "db"
-	| "assessments"
+	| "grades"
 	| "export"
 	| "import"
 	| "projects"

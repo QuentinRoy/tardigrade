@@ -27,7 +27,7 @@ test("prepareRubricImport plans rubric and criterion upserts from parsed rubrics
 	expect(plan.criterionKindChanges).toEqual([]);
 });
 
-test("prepareRubricImport blocks a criterion type change when assessments are linked", () => {
+test("prepareRubricImport blocks a criterion type change when grades are linked", () => {
 	const rubrics: ImportedRubrics = [
 		{
 			id: "q1",
@@ -45,7 +45,7 @@ test("prepareRubricImport blocks a criterion type change when assessments are li
 
 	const context = buildContext({
 		existingCriteriaById: new Map([
-			["r1", { kind: "check", rubricId: "q1", assessmentCount: 3 }],
+			["r1", { kind: "check", rubricId: "q1", gradedTargetCount: 3 }],
 		]),
 	});
 
@@ -56,13 +56,13 @@ test("prepareRubricImport blocks a criterion type change when assessments are li
 			kind: "criterion-kind-change-blocked",
 			rubricId: "q1",
 			criterionId: "r1",
-			assessmentCount: 3,
+			gradedTargetCount: 3,
 		},
 	]);
 	expect(plan.criterionKindChanges).toEqual([]);
 });
 
-test("prepareRubricImport allows and reports a criterion type change with no linked assessments", () => {
+test("prepareRubricImport allows and reports a criterion type change with no linked grades", () => {
 	const rubrics: ImportedRubrics = [
 		{
 			id: "q1",
@@ -80,7 +80,7 @@ test("prepareRubricImport allows and reports a criterion type change with no lin
 
 	const context = buildContext({
 		existingCriteriaById: new Map([
-			["r1", { kind: "check", rubricId: "q1", assessmentCount: 0 }],
+			["r1", { kind: "check", rubricId: "q1", gradedTargetCount: 0 }],
 		]),
 	});
 
@@ -103,7 +103,7 @@ test("prepareRubricImport blocks when an imported criterion id belongs to anothe
 
 	const context = buildContext({
 		existingCriteriaById: new Map([
-			["r1", { kind: "check", rubricId: "q1", assessmentCount: 0 }],
+			["r1", { kind: "check", rubricId: "q1", gradedTargetCount: 0 }],
 		]),
 	});
 

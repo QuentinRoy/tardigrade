@@ -1,10 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { GradeTarget } from "#grade-targets/types.ts";
 import type { RubricsById } from "#rubrics/types.ts";
-import {
-	buildResultsData,
-	type ResultsAssessmentRecord,
-} from "./resultsBuilder.ts";
+import { buildResultsData, type ResultsGradeRecord } from "./resultsBuilder.ts";
 
 describe("buildResultsData", () => {
 	const targets: GradeTarget[] = [
@@ -59,11 +56,7 @@ describe("buildResultsData", () => {
 	};
 
 	it("preserves authored criterion order", () => {
-		const data = buildResultsData({
-			targets,
-			rubricsById,
-			assessmentRecords: [],
-		});
+		const data = buildResultsData({ targets, rubricsById, gradeRecords: [] });
 
 		expect(data.criteria.map((criterion) => criterion.criterionId)).toEqual([
 			"r-boolean",
@@ -72,7 +65,7 @@ describe("buildResultsData", () => {
 	});
 
 	it("computes averages and completion for mixed criterion kinds", () => {
-		const records: ResultsAssessmentRecord[] = [
+		const records: ResultsGradeRecord[] = [
 			{
 				gradeTargetId: "1",
 				criterionId: "r-boolean",
@@ -102,7 +95,7 @@ describe("buildResultsData", () => {
 		const data = buildResultsData({
 			targets,
 			rubricsById,
-			assessmentRecords: records,
+			gradeRecords: records,
 		});
 
 		const booleanCriterion = data.criteria.find(
@@ -113,7 +106,7 @@ describe("buildResultsData", () => {
 		);
 
 		expect(booleanCriterion).toMatchObject({
-			assessedCount: 2,
+			gradedCount: 2,
 			totalCount: 2,
 			completionPercent: 100,
 			averageMarks: 1,
@@ -121,7 +114,7 @@ describe("buildResultsData", () => {
 		});
 
 		expect(numericalCriterion).toMatchObject({
-			assessedCount: 1,
+			gradedCount: 1,
 			totalCount: 2,
 			completionPercent: 50,
 			averageMarks: 4,
@@ -130,11 +123,7 @@ describe("buildResultsData", () => {
 	});
 
 	it("maps details with type-specific properties", () => {
-		const data = buildResultsData({
-			targets,
-			rubricsById,
-			assessmentRecords: [],
-		});
+		const data = buildResultsData({ targets, rubricsById, gradeRecords: [] });
 
 		expect(data.criteria[0]?.details).toEqual({
 			label: "Correct",
@@ -158,8 +147,8 @@ describe("buildResultsData", () => {
 		});
 	});
 
-	it("skips duplicate assessment records for the same grade target/criterion pair (first wins)", () => {
-		const records: ResultsAssessmentRecord[] = [
+	it("skips duplicate grade records for the same grade target/criterion pair (first wins)", () => {
+		const records: ResultsGradeRecord[] = [
 			{
 				gradeTargetId: "1",
 				criterionId: "r-boolean",
@@ -181,17 +170,14 @@ describe("buildResultsData", () => {
 		const data = buildResultsData({
 			targets,
 			rubricsById,
-			assessmentRecords: records,
+			gradeRecords: records,
 		});
 
 		const booleanCriterion = data.criteria.find(
 			(criterion) => criterion.criterionId === "r-boolean",
 		);
 
-		expect(booleanCriterion).toMatchObject({
-			assessedCount: 1,
-			averageMarks: 2,
-		});
+		expect(booleanCriterion).toMatchObject({ gradedCount: 1, averageMarks: 2 });
 
 		const gradeTargetOne = data.gradeTargetRows.find(
 			(gradeTargetRow) => gradeTargetRow.gradeTargetId === "1",
@@ -200,7 +186,7 @@ describe("buildResultsData", () => {
 		expect(gradeTargetOne?.completedCriteria).toBe(1);
 	});
 
-	it("treats a null value field as unassessed for each criterion kind", () => {
+	it("treats a null value field as ungraded for each criterion kind", () => {
 		const ordinalGrid: RubricsById = {
 			q1: {
 				label: "Rubric 1",
@@ -245,7 +231,7 @@ describe("buildResultsData", () => {
 			},
 		};
 
-		const records: ResultsAssessmentRecord[] = [
+		const records: ResultsGradeRecord[] = [
 			{
 				gradeTargetId: "1",
 				criterionId: "r-boolean",
@@ -275,22 +261,22 @@ describe("buildResultsData", () => {
 		const data = buildResultsData({
 			targets,
 			rubricsById: ordinalGrid,
-			assessmentRecords: records,
+			gradeRecords: records,
 		});
 
 		for (const criterion of data.criteria) {
-			expect(criterion.assessedCount).toBe(0);
+			expect(criterion.gradedCount).toBe(0);
 		}
 
 		const gradeTargetOne = data.gradeTargetRows.find(
 			(gradeTargetRow) => gradeTargetRow.gradeTargetId === "1",
 		);
 		expect(gradeTargetOne?.completedCriteria).toBe(0);
-		expect(gradeTargetOne?.criteria.every((cell) => !cell.assessed)).toBe(true);
+		expect(gradeTargetOne?.criteria.every((cell) => !cell.graded)).toBe(true);
 	});
 
 	it("skips records referencing an unknown criterionId or gradeTargetId", () => {
-		const records: ResultsAssessmentRecord[] = [
+		const records: ResultsGradeRecord[] = [
 			{
 				gradeTargetId: "1",
 				criterionId: "unknown-criterion",
@@ -312,13 +298,13 @@ describe("buildResultsData", () => {
 		const data = buildResultsData({
 			targets,
 			rubricsById,
-			assessmentRecords: records,
+			gradeRecords: records,
 		});
 
 		const booleanCriterion = data.criteria.find(
 			(criterion) => criterion.criterionId === "r-boolean",
 		);
-		expect(booleanCriterion?.assessedCount).toBe(0);
+		expect(booleanCriterion?.gradedCount).toBe(0);
 		expect(
 			data.gradeTargetRows.every(
 				(gradeTargetRow) => gradeTargetRow.completedCriteria === 0,

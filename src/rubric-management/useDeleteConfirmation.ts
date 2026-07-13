@@ -2,9 +2,9 @@
 
 export function buildDeleteConfirmationPhrase(
 	rubricId: string,
-	assessmentCount: number,
+	gradedTargetCount: number,
 ): string {
-	return `delete ${rubricId} (${assessmentCount} assessments)`;
+	return `delete ${rubricId} (${gradedTargetCount} grades)`;
 }
 
 export function matchesDeleteConfirmation(

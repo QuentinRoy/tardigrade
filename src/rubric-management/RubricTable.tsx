@@ -104,7 +104,7 @@ const DraggableRubricItem = memo(function DraggableRubricItemRow({
 					{definition.rubric.criteria.length} criteria
 				</Badge>
 				<Badge size="sm" variant="default">
-					{definition.assessmentCount} assessments
+					{definition.gradedTargetCount} grades
 				</Badge>
 			</Group>
 		</Group>

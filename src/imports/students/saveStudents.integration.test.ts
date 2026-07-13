@@ -149,7 +149,7 @@ test("saveStudents classifies re-imported students and grade targets as updated"
 	});
 });
 
-test("saveStudents wrapper invalidates grade-target and assessment tags after the import commits", async () => {
+test("saveStudents wrapper invalidates grade-target and grade tags after the import commits", async () => {
 	await using db = await createTestDb();
 	await using project = await createProject(
 		db,
@@ -166,8 +166,8 @@ test("saveStudents wrapper invalidates grade-target and assessment tags after th
 
 	expect(vi.mocked(revalidateTag).mock.calls).toEqual([
 		["grade-targets", "max"],
-		["assessments", "max"],
-		["assessments:all", "max"],
+		["grades", "max"],
+		["grades:all", "max"],
 	]);
 });
 

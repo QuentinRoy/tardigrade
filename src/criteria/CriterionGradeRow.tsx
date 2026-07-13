@@ -2,23 +2,23 @@
 
 import { Box, Group, Stack, Text } from "@mantine/core";
 import type { ReactElement } from "react";
-import AssessmentStatus from "./AssessmentStatus.tsx";
 import CheckGradeControl from "./CheckGradeControl.tsx";
 import {
 	getCriterionMaxMarks,
 	getCriterionMinMarks,
 	markCriterion,
 } from "./criterion.ts";
+import GradeStatus from "./GradeStatus.tsx";
 import NumberGradeControl from "./NumberGradeControl.tsx";
 import OptionsGradeControl from "./OptionsGradeControl.tsx";
-import type { AssessedCriterion, AssessmentCriterionValue } from "./types.ts";
+import type { CriterionGrade, GradedCriterion } from "./types.ts";
 
 type CriterionGradeRowProps = {
-	criterion: AssessedCriterion;
-	savedCriterion?: AssessedCriterion | undefined;
+	criterion: GradedCriterion;
+	savedCriterion?: GradedCriterion | undefined;
 	isPending: boolean;
 	disabled: boolean;
-	onAssess: (assessment: AssessmentCriterionValue) => void;
+	onGrade: (grade: CriterionGrade) => void;
 };
 
 export default function CriterionGradeRow({
@@ -26,51 +26,48 @@ export default function CriterionGradeRow({
 	savedCriterion,
 	isPending,
 	disabled,
-	onAssess,
+	onGrade,
 }: CriterionGradeRowProps): ReactElement {
-	const { description, assessment, id, label, kind } = criterion;
-	const savedAssessment = savedCriterion?.assessment;
+	const { description, grade, id, label, kind } = criterion;
+	const savedGrade = savedCriterion?.grade;
 	const displayLabel = label ?? id;
 	const maxMarks = getCriterionMaxMarks(criterion);
 	const criterionBound =
 		maxMarks === 0 ? getCriterionMinMarks(criterion) : maxMarks;
-	const currentMarks = assessment != null ? markCriterion(criterion) : null;
-	const displayAssessment = isPending ? savedAssessment : assessment;
-	const assessmentStatus =
-		displayAssessment != null ? "assessed" : "unassessed";
+	const currentMarks = grade != null ? markCriterion(criterion) : null;
+	const displayGrade = isPending ? savedGrade : grade;
+	const gradeStatus = displayGrade != null ? "graded" : "ungraded";
 
 	let control: ReactElement;
 
 	if (kind === "options") {
 		control = (
 			<OptionsGradeControl
-				value={assessment?.selectedLabel}
+				value={grade?.selectedLabel}
 				marks={criterion.marks}
 				disabled={disabled}
-				onAssess={(selectedLabel) =>
-					onAssess({ criterionId: id, kind: "options", selectedLabel })
+				onGrade={(selectedLabel) =>
+					onGrade({ criterionId: id, kind: "options", selectedLabel })
 				}
 			/>
 		);
 	} else if (kind === "number") {
 		control = (
 			<NumberGradeControl
-				value={assessment?.score}
+				value={grade?.score}
 				minScore={criterion.minScore}
 				maxScore={criterion.maxScore}
 				disabled={disabled}
-				onAssess={(score) =>
-					onAssess({ criterionId: id, kind: "number", score })
-				}
+				onGrade={(score) => onGrade({ criterionId: id, kind: "number", score })}
 			/>
 		);
 	} else {
 		control = (
 			<CheckGradeControl
-				value={assessment?.passed}
+				value={grade?.passed}
 				disabled={disabled}
-				onAssess={(passed) =>
-					onAssess({ criterionId: id, kind: "check", passed })
+				onGrade={(passed) =>
+					onGrade({ criterionId: id, kind: "check", passed })
 				}
 			/>
 		);
@@ -78,10 +75,7 @@ export default function CriterionGradeRow({
 
 	return (
 		<Group wrap="nowrap" gap="md" py="0" miw={0}>
-			<AssessmentStatus
-				assessmentStatus={assessmentStatus}
-				isSaving={isPending}
-			/>
+			<GradeStatus gradeStatus={gradeStatus} isSaving={isPending} />
 			<Box flex="0 0 auto">{control}</Box>
 			<Stack gap={0} miw={0} flex={1}>
 				<Text>{displayLabel}</Text>

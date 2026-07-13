@@ -39,7 +39,7 @@ describe("createCsvGradeTargetExportDataStream", () => {
 				rubrics: [
 					{
 						rubricId: "q1",
-						criteria: [{ criterionId: "r1", assessment: true, marks: 2 }],
+						criteria: [{ criterionId: "r1", grade: true, marks: 2 }],
 					},
 				],
 			};
@@ -53,10 +53,7 @@ describe("createCsvGradeTargetExportDataStream", () => {
 		const stream = createCsvGradeTargetExportDataStream({
 			rubrics,
 			rows: rows(),
-			options: {
-				includeCriterionAssessment: true,
-				includeCriterionMarks: true,
-			},
+			options: { includeCriterionGrade: true, includeCriterionMarks: true },
 		});
 		const content = await readStream(stream);
 

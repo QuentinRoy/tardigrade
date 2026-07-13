@@ -30,32 +30,29 @@ describe("grade target CSV ordering", () => {
 		},
 	];
 
-	const fullyAssessedRubrics = [
+	const fullyGradedRubrics = [
 		{
 			rubricId: "q1",
 			criteria: [
-				{ criterionId: "r1", assessment: true, marks: 2 },
-				{ criterionId: "r2", assessment: "B", marks: 1 },
+				{ criterionId: "r1", grade: true, marks: 2 },
+				{ criterionId: "r2", grade: "B", marks: 1 },
 			],
 		},
-		{
-			rubricId: "q2",
-			criteria: [{ criterionId: "r3", assessment: 8, marks: 4 }],
-		},
+		{ rubricId: "q2", criteria: [{ criterionId: "r3", grade: 8, marks: 4 }] },
 	];
 
 	const failedBooleanRubrics = [
 		{
 			rubricId: "q1",
 			criteria: [
-				{ criterionId: "r1", assessment: false, marks: -1 },
+				{ criterionId: "r1", grade: false, marks: -1 },
 				{ criterionId: "r2" },
 			],
 		},
 		{ rubricId: "q2", criteria: [{ criterionId: "r3" }] },
 	];
 
-	const unassessedRubrics = [
+	const ungradedRubrics = [
 		{
 			rubricId: "q1",
 			criteria: [{ criterionId: "r1" }, { criterionId: "r2" }],
@@ -65,7 +62,7 @@ describe("grade target CSV ordering", () => {
 
 	it("builds headers in criterion-before-rubric-total order", () => {
 		const headers = buildGradeTargetExportHeaders(rubrics, {
-			includeCriterionAssessment: true,
+			includeCriterionGrade: true,
 			includeCriterionMarks: true,
 		});
 
@@ -88,12 +85,9 @@ describe("grade target CSV ordering", () => {
 		const row = buildGradeTargetExportRecord({
 			row: {
 				target: { id: "t-1", kind: "individual", studentId: "stu-123" },
-				rubrics: fullyAssessedRubrics,
+				rubrics: fullyGradedRubrics,
 			},
-			options: {
-				includeCriterionAssessment: true,
-				includeCriterionMarks: true,
-			},
+			options: { includeCriterionGrade: true, includeCriterionMarks: true },
 		});
 
 		expect(row).toMatchInlineSnapshot(`
@@ -119,10 +113,7 @@ describe("grade target CSV ordering", () => {
 				target: { id: "t-1", kind: "individual", studentId: "stu-123" },
 				rubrics: failedBooleanRubrics,
 			},
-			options: {
-				includeCriterionAssessment: true,
-				includeCriterionMarks: true,
-			},
+			options: { includeCriterionGrade: true, includeCriterionMarks: true },
 		});
 
 		expect(row).toMatchInlineSnapshot(`
@@ -140,12 +131,9 @@ describe("grade target CSV ordering", () => {
 			buildGradeTargetExportRecord({
 				row: {
 					target: { id: "t-group", kind: "group", groupName: "" },
-					rubrics: unassessedRubrics,
+					rubrics: ungradedRubrics,
 				},
-				options: {
-					includeCriterionAssessment: false,
-					includeCriterionMarks: false,
-				},
+				options: { includeCriterionGrade: false, includeCriterionMarks: false },
 			}),
 		).toThrow("Grade target t-group has kind group but no group is linked.");
 	});
@@ -154,12 +142,9 @@ describe("grade target CSV ordering", () => {
 		const row = buildGradeTargetExportRecord({
 			row: {
 				target: { id: "t-group-1", kind: "group", groupName: "Group A" },
-				rubrics: unassessedRubrics,
+				rubrics: ungradedRubrics,
 			},
-			options: {
-				includeCriterionAssessment: true,
-				includeCriterionMarks: false,
-			},
+			options: { includeCriterionGrade: true, includeCriterionMarks: false },
 		});
 
 		expect(row).toMatchInlineSnapshot(`

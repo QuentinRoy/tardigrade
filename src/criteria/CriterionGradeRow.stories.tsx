@@ -8,7 +8,7 @@ const meta = {
 	title: "Criteria/CriterionGradeRow",
 	component: CriterionGradeRow,
 	tags: ["autodocs"],
-	args: { onAssess: fn(), disabled: false, isPending: false },
+	args: { onGrade: fn(), disabled: false, isPending: false },
 	decorators: [
 		(Story): ReactElement => (
 			<Stack gap="xs">
@@ -31,7 +31,7 @@ export const CheckUnset: Story = {
 			falseMarks: 0,
 			label: "Correct answer",
 			description: "The student provided the correct final answer.",
-			assessment: null,
+			grade: null,
 		},
 	},
 };
@@ -45,7 +45,7 @@ export const CheckGraded: Story = {
 			falseMarks: -1,
 			label: "Correct answer",
 			description: "The student provided the correct final answer.",
-			assessment: { passed: true },
+			grade: { passed: true },
 		},
 	},
 };
@@ -59,7 +59,7 @@ export const CheckPending: Story = {
 			marks: 2,
 			falseMarks: 0,
 			label: "Correct answer",
-			assessment: { passed: true },
+			grade: { passed: true },
 		},
 	},
 };
@@ -73,7 +73,7 @@ export const CheckZeroMaxUnset: Story = {
 			falseMarks: -1,
 			label: "Penalty only",
 			description: "No marks for passing; penalty for failing. Shows (?/-1).",
-			assessment: null,
+			grade: null,
 		},
 	},
 };
@@ -87,7 +87,7 @@ export const CheckZeroMaxGraded: Story = {
 			falseMarks: -1,
 			label: "Penalty only",
 			description: "No marks for passing; penalty for failing. Shows (0/-1).",
-			assessment: { passed: true },
+			grade: { passed: true },
 		},
 	},
 };
@@ -104,7 +104,7 @@ export const NumberUnset: Story = {
 			label: "Quality of explanation",
 			description: "Rate the quality of the student's explanation from 0 to 5.",
 			reversed: false,
-			assessment: null,
+			grade: null,
 		},
 	},
 };
@@ -121,7 +121,7 @@ export const NumberGraded: Story = {
 			label: "Quality of explanation",
 			description: "Rate the quality of the student's explanation from 0 to 5.",
 			reversed: false,
-			assessment: { score: 3 },
+			grade: { score: 3 },
 		},
 	},
 };
@@ -133,7 +133,7 @@ export const OptionsUnset: Story = {
 			kind: "options",
 			marks: { Excellent: 4, Good: 3, Satisfactory: 2, Poor: 1 },
 			label: "Overall performance",
-			assessment: null,
+			grade: null,
 		},
 	},
 };
@@ -145,7 +145,7 @@ export const OptionsGraded: Story = {
 			kind: "options",
 			marks: { Excellent: 4, Good: 3, Satisfactory: 2, Poor: 1 },
 			label: "Overall performance",
-			assessment: { selectedLabel: "Good" },
+			grade: { selectedLabel: "Good" },
 		},
 	},
 };
@@ -159,7 +159,7 @@ export const Disabled: Story = {
 			marks: 1,
 			falseMarks: 0,
 			label: "Read-only criterion",
-			assessment: { passed: false },
+			grade: { passed: false },
 		},
 	},
 };
@@ -172,7 +172,7 @@ export const WithoutDescription: Story = {
 			marks: 2,
 			falseMarks: 0,
 			label: "Correct answer",
-			assessment: null,
+			grade: null,
 		},
 	},
 };

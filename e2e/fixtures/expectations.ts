@@ -10,36 +10,36 @@
 // becomes one grade target. So three grade targets exist before any grading:
 //   john_doe (individual), jane_smith (individual), Group A (bob_johnson).
 //
-// assessments.csv grades only john_doe and Group A; jane_smith is left
-// unassessed on purpose, so completion is a real partial 2 / 3.
+// grades.csv grades only john_doe and Group A; jane_smith is left
+// ungraded on purpose, so completion is a real partial 2 / 3.
 //
 //   john_doe: q1 = true = 1, q2 = good = 1        -> final_total = 2
 //   Group A:  q1 = false = 0, q2 = excellent = 2  -> final_total = 2
-//   jane_smith: unassessed                        -> final_total blank
+//   jane_smith: ungraded                        -> final_total blank
 //
-// Overview completion semantics (see `src/assessment-completion/assessmentCompletion.ts`):
+// Overview completion semantics (see `src/grade-completion/gradeCompletion.ts`):
 //   - grade targets: a grade target is complete once every rubric on it is
-//     fully assessed. Total = grade target count (3); complete = john_doe,
+//     fully graded. Total = grade target count (3); complete = john_doe,
 //     Group A (2).
-//   - rubrics: a rubric is complete only once it is fully assessed on every
+//   - rubrics: a rubric is complete only once it is fully graded on every
 //     grade target project-wide. Total = rubric count (2); since jane_smith
 //     leaves both q1 and q2 incomplete, neither rubric is complete (0).
 //   - criteria: counts individual (grade target, rubric) pairs, not
 //     deduplicated by rubric. Total = grade targets x rubrics = 3 x 2 = 6;
-//     complete = the 4 pairs assessed for john_doe and Group A.
+//     complete = the 4 pairs graded for john_doe and Group A.
 
 export const PROJECT_NAME = "E2E Smoke Project";
 
 // `final_total` in the grades export, keyed by the export name identifier
 // (student id for individuals, group name for groups). `null` means the
-// grade target is not fully assessed, so the export leaves the cell blank.
+// grade target is not fully graded, so the export leaves the cell blank.
 export const EXPECTED_FINAL_TOTAL: Record<string, number | null> = {
 	john_doe: 2,
 	"Group A": 2,
 	jane_smith: null,
 };
 
-// Assessment Completion shown on the grid home, as `completed / total`.
+// Grade Completion shown on the grid home, as `completed / total`.
 export const EXPECTED_COMPLETION = {
 	gradeTargets: { completed: 2, total: 3 },
 	rubrics: { completed: 0, total: 2 },
@@ -47,12 +47,12 @@ export const EXPECTED_COMPLETION = {
 };
 
 // CriterionAnalyticsTable aggregates each criterion across grade targets (see
-// `src/results/resultsBuilder.ts`): average = mean marks over *assessed*
-// grade targets only (jane_smith's unassessed cells don't count), formatted
-// as `<average> / <maxMarks>`; completion = assessed / total grade targets.
-//   r1 (q1, check, max 1): assessed marks = john_doe 1, Group A 0
+// `src/results/resultsBuilder.ts`): average = mean marks over *graded*
+// grade targets only (jane_smith's ungraded cells don't count), formatted
+// as `<average> / <maxMarks>`; completion = graded / total grade targets.
+//   r1 (q1, check, max 1): graded marks = john_doe 1, Group A 0
 //                            -> average = (1 + 0) / 2 = 0.5
-//   r2 (q2, options, max 2): assessed marks = john_doe 1, Group A 2
+//   r2 (q2, options, max 2): graded marks = john_doe 1, Group A 2
 //                            -> average = (1 + 2) / 2 = 1.5
 export const EXPECTED_CRITERION_ANALYTICS = [
 	{
@@ -70,7 +70,7 @@ export const EXPECTED_CRITERION_ANALYTICS = [
 ] as const;
 
 // GradeMatrix shows one row per grade target with one cell per criterion
-// ("<marks> / <maxMarks>", or empty if the criterion is unassessed), then a
+// ("<marks> / <maxMarks>", or empty if the criterion is ungraded), then a
 // per-row total and criterion-completion count. Grade target labels come
 // from `getGradeTargetLabel`: individuals as "<last_name> <first_name>", groups
 // as the group name.

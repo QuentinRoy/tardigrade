@@ -26,7 +26,7 @@ describe("toImportErrorState", () => {
 
 	it("keeps the message of an ImportBlockedError unchanged", () => {
 		const blockedError = new ImportBlockedError(
-			'Assessment import errors:\nUnrecognized column: "foo"\nNothing was imported. Fix the listed issues and retry.',
+			'Grade import errors:\nUnrecognized column: "foo"\nNothing was imported. Fix the listed issues and retry.',
 		);
 
 		const state = toImportErrorState(blockedError);

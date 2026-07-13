@@ -9,7 +9,7 @@ const meta = {
 		definition: {
 			id: "q1",
 			position: 0,
-			assessmentCount: 5,
+			gradedTargetCount: 5,
 			rubric: { label: "Correctness", criteria: [] },
 		},
 		deleteAction: fn(async () => ({
@@ -36,7 +36,7 @@ export const DeleteSettlesOnce: Story = {
 
 		await userEvent.type(
 			await screen.findByLabelText("Confirmation"),
-			"DELETE q1 (5 assessments)",
+			"DELETE q1 (5 grades)",
 		);
 
 		const confirmButton = screen.getByRole("button", {

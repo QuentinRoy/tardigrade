@@ -7,20 +7,20 @@ type OptionsGradeControlProps = {
 	value?: string | undefined;
 	marks: Record<string, number>;
 	disabled: boolean;
-	onAssess: (value: string) => void;
+	onGrade: (value: string) => void;
 };
 
 export default function OptionsGradeControl({
 	value,
 	marks,
 	disabled,
-	onAssess,
+	onGrade,
 }: OptionsGradeControlProps): ReactElement {
 	return (
 		<SegmentedControl
-			aria-label="Options criterion assessment"
+			aria-label="Options criterion grade"
 			value={value ?? ""}
-			onChange={onAssess}
+			onChange={onGrade}
 			disabled={disabled}
 			orientation="vertical"
 			data={Object.entries(marks).map(([valueLabel, valueScore]) => ({

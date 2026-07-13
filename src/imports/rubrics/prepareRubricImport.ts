@@ -4,7 +4,7 @@ import type { ImportedRubrics } from "#imports/types.ts";
 export type ExistingRubricImportCriterion = {
 	kind: CriterionKind;
 	rubricId: string;
-	assessmentCount: number;
+	gradedTargetCount: number;
 };
 
 export type RubricImportContext = {
@@ -24,7 +24,7 @@ export type RubricImportBlockingDiagnostic =
 			kind: "criterion-kind-change-blocked";
 			rubricId: string;
 			criterionId: string;
-			assessmentCount: number;
+			gradedTargetCount: number;
 	  }
 	| {
 			kind: "criterion-rubric-mismatch";
@@ -36,7 +36,7 @@ export type RubricImportBlockingDiagnostic =
 export type RubricImportPlan = {
 	writes: ImportedRubrics;
 	blockingDiagnostics: RubricImportBlockingDiagnostic[];
-	// Criterion type changes that proceed (no linked assessments), reported for the
+	// Criterion type changes that proceed (no linked grades), reported for the
 	// success message.
 	criterionKindChanges: RubricImportCriterionKindChange[];
 };
@@ -70,12 +70,12 @@ export function prepareRubricImport(params: {
 				continue;
 			}
 
-			if (existing.assessmentCount > 0) {
+			if (existing.gradedTargetCount > 0) {
 				blockingDiagnostics.push({
 					kind: "criterion-kind-change-blocked",
 					rubricId: rubric.id,
 					criterionId: criterion.id,
-					assessmentCount: existing.assessmentCount,
+					gradedTargetCount: existing.gradedTargetCount,
 				});
 				continue;
 			}

@@ -24,7 +24,7 @@ Doe,John,john_doe,
 Smith,Jane,jane_smith,
 Johnson,Bob,bob_johnson,Group A`;
 
-export const ASSESSMENTS_CSV_PLACEHOLDER = `kind,name,q1:r1,q2:r2
+export const GRADES_CSV_PLACEHOLDER = `kind,name,q1:r1,q2:r2
 individual,jane_smith,,
 individual,john_doe,true,good
 group,Group A,false,excellent`;

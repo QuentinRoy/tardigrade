@@ -2,14 +2,7 @@ import { Card, Group, Skeleton, Stack } from "@mantine/core";
 import { notFound } from "next/navigation";
 import type { ReactElement } from "react";
 import { Suspense } from "react";
-import { loadRubricAssessment } from "#assessment-capture/assessments.ts";
-import GradeTargetAssessmentClient from "#assessment-capture/GradeTargetAssessmentClient.tsx";
-import { saveAssessment } from "#assessment-capture/saveAssessment.ts";
-import {
-	buildAssessedCriterionCountsByTarget,
-	loadAssessedCriterionCounts,
-} from "#assessment-completion/loadAssessmentCompletion.ts";
-import { attachAssessment } from "#criteria/criterion.ts";
+import { attachGrade } from "#criteria/criterion.ts";
 import {
 	cacheTags,
 	projectCacheTag,
@@ -18,7 +11,14 @@ import {
 import AppLink from "#design-system/AppLink.tsx";
 import AppPage from "#design-system/AppPage.tsx";
 import PageHeader from "#design-system/PageHeader.tsx";
+import {
+	buildGradedCriterionCountsByTarget,
+	loadGradedCriterionCounts,
+} from "#grade-completion/loadGradeCompletion.ts";
 import { loadGradeTargets } from "#grade-targets/gradeTargets.ts";
+import { loadRubricGrade } from "#grading/grades.ts";
+import RubricGradingClient from "#grading/RubricGradingClient.tsx";
+import { saveCriterionGrade } from "#grading/saveCriterionGrade.ts";
 import { projectGradesPath } from "#projects/projectPaths.ts";
 import { loadProjectByPublicId } from "#projects/projects.ts";
 import { loadRubric } from "#rubrics/rubrics.ts";
@@ -95,8 +95,8 @@ async function RubricHeaderSection({
 	);
 }
 
-// No "use cache" here: `loadRubric`, `loadGradeTargets` and `loadRubricAssessment`
-// each cache themselves. The criterion progress used by the lookup dialog is
+// No "use cache" here: `loadRubric`, `loadGradeTargets` and `loadRubricGrade`
+// each cache themselves. The criterion completion used by the lookup dialog is
 // deliberately left uncached and unawaited at this scope so a save-then-navigate
 // never blocks on recomputing it — it streams in via Suspense once the dialog
 // opens (Finding 19).
@@ -112,17 +112,17 @@ async function GradeTargetCriterionSection({
 	const project = await loadProjectByPublicId(projectId, { required: true });
 
 	// Doesn't depend on `targets`, so it's started alongside the Promise.all
-	// below rather than after it, keeping the progress work parallel and
+	// below rather than after it, keeping the completion work parallel and
 	// shortening the wait if the lookup dialog is opened quickly.
-	const criterionCountsPromise = loadAssessedCriterionCounts({
+	const criterionCountsPromise = loadGradedCriterionCounts({
 		rubricId,
 		projectId: project.id,
 	});
 
-	const [rubric, targets, assessments] = await Promise.all([
+	const [rubric, targets, grades] = await Promise.all([
 		loadRubric({ rubricId, projectId: project.id }),
 		loadGradeTargets({ projectId: project.id }),
-		loadRubricAssessment({ targetId, rubricId, projectId: project.id }),
+		loadRubricGrade({ targetId, rubricId, projectId: project.id }),
 	]);
 	const hasTarget = targets.some((target) => target.id === targetId);
 
@@ -131,37 +131,37 @@ async function GradeTargetCriterionSection({
 	}
 
 	// Reuses the targets already loaded above instead of querying them again
-	// inside the progress primitive (Finding 7).
-	const progressPromise = criterionCountsPromise.then((criterionCounts) =>
-		buildAssessedCriterionCountsByTarget(
+	// inside the completion primitive (Finding 7).
+	const completionPromise = criterionCountsPromise.then((criterionCounts) =>
+		buildGradedCriterionCountsByTarget(
 			targets.map((target) => target.id),
 			criterionCounts,
 		),
 	);
 
-	const criteriaWithAssessments = rubric.criteria.map((criterion) =>
-		attachAssessment(criterion, assessments),
+	const criteriaWithGrades = rubric.criteria.map((criterion) =>
+		attachGrade(criterion, grades),
 	);
 
 	return (
-		<GradeTargetAssessmentClient
+		<RubricGradingClient
 			key={`${rubricId}-${targetId}`}
 			projectId={project.id}
 			projectSlug={project.slug}
 			rubricId={rubricId}
 			rubricLabel={rubric.label}
-			criteria={criteriaWithAssessments}
+			criteria={criteriaWithGrades}
 			targets={targets}
-			progressPromise={progressPromise}
+			completionPromise={completionPromise}
 			currentTargetId={targetId}
-			saveAssessment={saveAssessment}
+			saveCriterionGrade={saveCriterionGrade}
 		/>
 	);
 }
 
-// Mirrors `GradeTargetAssessmentClient`'s layout (current-target card,
+// Mirrors `RubricGradingClient`'s layout (current-target card,
 // prev/next/lookup buttons, criterion rows) so the rubric header above stays in
-// place and the page doesn't jump once assessment values and progress load.
+// place and the page doesn't jump once grade values and completion load.
 function GradeTargetCriterionSectionSkeleton(): ReactElement {
 	return (
 		<Stack gap="md">
