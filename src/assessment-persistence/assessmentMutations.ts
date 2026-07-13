@@ -4,6 +4,28 @@ import type { AssessmentCriterionValue } from "#criteria/types.ts";
 import type { Database } from "#db/generated/database.ts";
 import { assertNever } from "#utils/utils.ts";
 
+type SubtypeTable =
+	| "checkCriterionAssessment"
+	| "optionsCriterionAssessment"
+	| "numberCriterionAssessment";
+
+// The two subtype tables other than the one for `keptKind`, so a criterion
+// grade never carries stale values from a previous kind.
+function otherSubtypeTables(
+	keptKind: AssessmentCriterionValue["kind"],
+): readonly SubtypeTable[] {
+	switch (keptKind) {
+		case "check":
+			return ["optionsCriterionAssessment", "numberCriterionAssessment"];
+		case "options":
+			return ["checkCriterionAssessment", "numberCriterionAssessment"];
+		case "number":
+			return ["checkCriterionAssessment", "optionsCriterionAssessment"];
+		default:
+			return assertNever(keptKind);
+	}
+}
+
 export type SaveAssessmentResult =
 	| { success: true }
 	| { success: false; error: string };
@@ -139,6 +161,20 @@ export async function saveAssessmentInDb(
 		return existing.id;
 	}
 
+	async function clearOtherSubtypeValues(
+		criterionAssessmentId: number,
+		keptKind: AssessmentCriterionValue["kind"],
+	): Promise<void> {
+		await Promise.all(
+			otherSubtypeTables(keptKind).map((table) =>
+				db
+					.deleteFrom(table)
+					.where("criterionAssessmentId", "=", criterionAssessmentId)
+					.execute(),
+			),
+		);
+	}
+
 	// Each writer validates its payload first, then persists one criterion kind's
 	// value and clears the other two kinds, so a criterion never carries stale
 	// values from a previous kind. A non-undefined return is a validation failure
@@ -158,14 +194,7 @@ export async function saveAssessmentInDb(
 						.doUpdateSet({ passed: booleanAssessment.passed }),
 				)
 				.execute(),
-			db
-				.deleteFrom("optionsCriterionAssessment")
-				.where("criterionAssessmentId", "=", criterionAssessmentId)
-				.execute(),
-			db
-				.deleteFrom("numberCriterionAssessment")
-				.where("criterionAssessmentId", "=", criterionAssessmentId)
-				.execute(),
+			clearOtherSubtypeValues(criterionAssessmentId, "check"),
 		]);
 
 		return undefined;
@@ -205,14 +234,7 @@ export async function saveAssessmentInDb(
 						.doUpdateSet({ selectedLabel: ordinalAssessment.selectedLabel }),
 				)
 				.execute(),
-			db
-				.deleteFrom("checkCriterionAssessment")
-				.where("criterionAssessmentId", "=", criterionAssessmentId)
-				.execute(),
-			db
-				.deleteFrom("numberCriterionAssessment")
-				.where("criterionAssessmentId", "=", criterionAssessmentId)
-				.execute(),
+			clearOtherSubtypeValues(criterionAssessmentId, "options"),
 		]);
 
 		return undefined;
@@ -267,14 +289,7 @@ export async function saveAssessmentInDb(
 						.doUpdateSet({ score: parsed }),
 				)
 				.execute(),
-			db
-				.deleteFrom("checkCriterionAssessment")
-				.where("criterionAssessmentId", "=", criterionAssessmentId)
-				.execute(),
-			db
-				.deleteFrom("optionsCriterionAssessment")
-				.where("criterionAssessmentId", "=", criterionAssessmentId)
-				.execute(),
+			clearOtherSubtypeValues(criterionAssessmentId, "number"),
 		]);
 
 		return undefined;
