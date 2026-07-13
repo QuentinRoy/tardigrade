@@ -4,25 +4,26 @@ import type { AssessmentCriterionValue } from "#criteria/types.ts";
 import type { Database } from "#db/generated/database.ts";
 import { assertNever } from "#utils/utils.ts";
 
-const subtypeTableEntries = [
-	{ kind: "check", table: "checkCriterionAssessment" },
-	{ kind: "options", table: "optionsCriterionAssessment" },
-	{ kind: "number", table: "numberCriterionAssessment" },
-] as const satisfies Array<{
-	kind: AssessmentCriterionValue["kind"];
-	table: keyof Database;
-}>;
+// `Record<kind, ...>` forces an entry for every criterion kind: drop one and
+// this stops compiling, so the mapping can't silently fall out of sync with the
+// kind union.
+const subtypeTableByKind = {
+	check: "checkCriterionAssessment",
+	options: "optionsCriterionAssessment",
+	number: "numberCriterionAssessment",
+} as const satisfies Record<AssessmentCriterionValue["kind"], keyof Database>;
 
-type SubtypeTable = (typeof subtypeTableEntries)[number]["table"];
+type SubtypeTable =
+	(typeof subtypeTableByKind)[keyof typeof subtypeTableByKind];
 
 // The two subtype tables other than the one for `keptKind`, so a criterion
 // grade never carries stale values from a previous kind.
 function otherSubtypeTables(
 	keptKind: AssessmentCriterionValue["kind"],
 ): readonly SubtypeTable[] {
-	return subtypeTableEntries
-		.filter((entry) => entry.kind !== keptKind)
-		.map((entry) => entry.table);
+	return Object.entries(subtypeTableByKind)
+		.filter(([kind]) => kind !== keptKind)
+		.map(([, table]) => table);
 }
 
 export type SaveAssessmentResult =
