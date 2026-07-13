@@ -4,26 +4,25 @@ import type { AssessmentCriterionValue } from "#criteria/types.ts";
 import type { Database } from "#db/generated/database.ts";
 import { assertNever } from "#utils/utils.ts";
 
-type SubtypeTable =
-	| "checkCriterionAssessment"
-	| "optionsCriterionAssessment"
-	| "numberCriterionAssessment";
+const subtypeTableEntries = [
+	{ kind: "check", table: "checkCriterionAssessment" },
+	{ kind: "options", table: "optionsCriterionAssessment" },
+	{ kind: "number", table: "numberCriterionAssessment" },
+] as const satisfies Array<{
+	kind: AssessmentCriterionValue["kind"];
+	table: keyof Database;
+}>;
+
+type SubtypeTable = (typeof subtypeTableEntries)[number]["table"];
 
 // The two subtype tables other than the one for `keptKind`, so a criterion
 // grade never carries stale values from a previous kind.
 function otherSubtypeTables(
 	keptKind: AssessmentCriterionValue["kind"],
 ): readonly SubtypeTable[] {
-	switch (keptKind) {
-		case "check":
-			return ["optionsCriterionAssessment", "numberCriterionAssessment"];
-		case "options":
-			return ["checkCriterionAssessment", "numberCriterionAssessment"];
-		case "number":
-			return ["checkCriterionAssessment", "optionsCriterionAssessment"];
-		default:
-			return assertNever(keptKind);
-	}
+	return subtypeTableEntries
+		.filter((entry) => entry.kind !== keptKind)
+		.map((entry) => entry.table);
 }
 
 export type SaveAssessmentResult =
