@@ -182,10 +182,7 @@ createRubric({
 		title,
 		prompt,
 	},
-	marks: {
-		maxMarks,
-		criteria,
-	},
+	criteria,
 });
 ```
 

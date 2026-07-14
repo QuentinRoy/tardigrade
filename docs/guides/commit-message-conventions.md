@@ -47,13 +47,13 @@ When several areas are touched, choose the main reason for the change rather tha
 Prefer:
 
 ```txt
-db: scope assessment saves to project
+db: scope grade saves to grid
 ```
 
 over:
 
 ```txt
-db/tests/docs: scope assessment saves to project
+db/tests/docs: scope grade saves to grid
 ```
 
 ## Summary style

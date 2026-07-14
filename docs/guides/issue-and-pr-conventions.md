@@ -39,7 +39,7 @@ Prefer the commit message convention in `docs/guides/commit-message-conventions.
 Examples:
 
 ```txt
-projects: centralise slug canonicalisation behind a route-kind helper
+grids: centralise slug canonicalisation behind a route-kind helper
 docs: clarify TypeScript function parameter conventions
 ```
 
