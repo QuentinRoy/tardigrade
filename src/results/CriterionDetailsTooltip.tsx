@@ -2,7 +2,7 @@
 
 import { Box, Group, Stack, Text, Tooltip } from "@mantine/core";
 import { IconInfoCircle } from "@tabler/icons-react";
-import type { ReactElement, ReactNode } from "react";
+import type { ReactElement } from "react";
 import type { CriterionDetails } from "./resultsBuilder.ts";
 
 type CriterionDetailsTooltipProps = {
@@ -10,37 +10,45 @@ type CriterionDetailsTooltipProps = {
 	details: CriterionDetails;
 };
 
-function propertyRows(details: CriterionDetails): ReactNode[] {
-	if (details.properties.kind === "check") {
-		return [
-			<Text key="true" size="xs">
-				True marks: {details.properties.trueMarks}
-			</Text>,
-			<Text key="false" size="xs">
-				False marks: {details.properties.falseMarks}
-			</Text>,
-		];
+function PropertyRows(props: CriterionDetails["properties"]): ReactElement {
+	if (props.kind === "check") {
+		return (
+			<>
+				<Text key="true" size="xs">
+					True marks: {props.trueMarks}
+				</Text>
+				<Text key="false" size="xs">
+					False marks: {props.falseMarks}
+				</Text>
+			</>
+		);
 	}
 
-	if (details.properties.kind === "options") {
-		return details.properties.marksByLabel.map((entry) => (
-			<Text key={entry.label} size="xs">
-				{entry.label}: {entry.marks}
+	if (props.kind === "options") {
+		return (
+			<>
+				{props.marksByLabel.map((entry) => (
+					<Text key={entry.label} size="xs">
+						{entry.label}: {entry.marks}
+					</Text>
+				))}
+			</>
+		);
+	}
+
+	return (
+		<>
+			<Text key="value-range" size="xs">
+				Value range: {props.minValue} - {props.maxValue}
 			</Text>
-		));
-	}
-
-	return [
-		<Text key="value-range" size="xs">
-			Value range: {details.properties.minValue} - {details.properties.maxValue}
-		</Text>,
-		<Text key="marks-range" size="xs">
-			Marks range: {details.properties.minMarks} - {details.properties.maxMarks}
-		</Text>,
-		<Text key="reversed" size="xs">
-			Reversed: {details.properties.reversed ? "yes" : "no"}
-		</Text>,
-	];
+			<Text key="marks-range" size="xs">
+				Marks range: {props.minMarks} - {props.maxMarks}
+			</Text>
+			<Text key="reversed" size="xs">
+				Reversed: {props.reversed ? "yes" : "no"}
+			</Text>
+		</>
+	);
 }
 
 export default function CriterionDetailsTooltip({
@@ -58,7 +66,7 @@ export default function CriterionDetailsTooltip({
 						<Text size="xs">{details.description}</Text>
 					)}
 					<Text size="xs">Kind: {details.kind}</Text>
-					{propertyRows(details)}
+					<PropertyRows {...details.properties} />
 				</Stack>
 			}
 			position="top"
