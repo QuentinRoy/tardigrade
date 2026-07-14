@@ -15,10 +15,10 @@ function PropertyRows(props: CriterionDetails["properties"]): ReactElement {
 		return (
 			<>
 				<Text key="true" size="xs">
-					True marks: {props.trueMarks}
+					Yes marks: {props.trueMarks}
 				</Text>
 				<Text key="false" size="xs">
-					False marks: {props.falseMarks}
+					No marks: {props.falseMarks}
 				</Text>
 			</>
 		);

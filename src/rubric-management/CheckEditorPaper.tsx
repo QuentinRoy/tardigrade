@@ -31,13 +31,13 @@ export default function CheckCriterionEditorPaper({
 		>
 			<Group wrap="wrap">
 				<UncontrolledNumberInput
-					label="True marks"
+					label="Yes marks"
 					defaultValue={criterion.marks}
 					onChange={(value) => onChange({ ...criterion, marks: value })}
 					error={fieldErrors?.marks}
 				/>
 				<UncontrolledNumberInput
-					label="False marks"
+					label="No marks"
 					defaultValue={criterion.falseMarks ?? 0}
 					onChange={(value) => onChange({ ...criterion, falseMarks: value })}
 					error={fieldErrors?.falseMarks}

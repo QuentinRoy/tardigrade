@@ -11,7 +11,7 @@ const checkCriterionDefinitionSchema = z.object({
 	kind: z.literal("check"),
 	marks: z.number({ error: "Marks must be a valid number" }),
 	falseMarks: z
-		.number({ error: "False marks must be a valid number" })
+		.number({ error: "Enter a valid number for No marks." })
 		.optional(),
 });
 
