@@ -9,7 +9,7 @@ Use lightweight area-prefixed commit messages:
 Examples:
 
 ```txt
-db: scope assessment saves to project
+db: scope grade saves to grid
 ci: skip expensive checks for docs-only changes
 docs: add issue template conventions
 agents: clarify instruction ownership
@@ -31,10 +31,9 @@ db
 migrations
 import
 export
-assessments
-questions
+grading
 rubrics
-projects
+grids
 tests
 storybook
 ci
@@ -48,13 +47,13 @@ When several areas are touched, choose the main reason for the change rather tha
 Prefer:
 
 ```txt
-db: scope assessment saves to project
+db: scope grade saves to grid
 ```
 
 over:
 
 ```txt
-db/tests/docs: scope assessment saves to project
+db/tests/docs: scope grade saves to grid
 ```
 
 ## Summary style
@@ -83,7 +82,7 @@ test(issue-19): harden reliability for DB constraints
 Fix #60: refactor AppShell
 
 # Prefer
-db: harden question mutation constraints
+db: harden rubric mutation constraints
 ui: refactor AppShell drawer behavior
 ```
 
@@ -99,11 +98,11 @@ Related to #83
 For non-trivial commits, add a body explaining why the change is needed, what approach was taken, and any important validation.
 
 ```txt
-db: scope assessment saves to project
+db: scope grade saves to grid
 
-Question and rubric ids are only unique within a project. Resolve the
-question through the submission project before resolving the rubric so
-assessment saves cannot cross project boundaries when public ids collide.
+Rubric and criterion ids are only unique within a grid. Resolve the
+rubric through the grade target's grid before resolving the criterion so
+grade saves cannot cross grid boundaries when public ids collide.
 
 Validation:
 - pnpm run check-types

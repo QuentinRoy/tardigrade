@@ -13,9 +13,9 @@ Favor function signatures that stay readable at the call site and remain consist
 Use positional parameters when the function has one obvious argument and the function is unlikely to grow additional domain parameters:
 
 ```ts
-getProject(projectId);
+getGrid(gridId);
 parseCsv(source);
-renderQuestion(question, { showRubric: true });
+renderRubric(rubric, { showCriteria: true });
 ```
 
 Small conventional helpers may also use positional parameters when the order is widely understood and the call site remains clear:
@@ -28,24 +28,24 @@ replaceText(text, search, replacement);
 Prefer a named object for domain actions, mutations, exported helpers, and functions likely to be reused or extended, even when there is currently only one domain argument:
 
 ```ts
-deleteQuestion({ questionId });
-archiveProject({ projectId });
-createAssessment({ submissionId });
-recomputeGrades({ projectId });
+deleteRubric({ rubricId });
+archiveGrid({ gridId });
+saveGrade({ gradeTargetId });
+recomputeGrades({ gridId });
 ```
 
 This avoids future breaking changes when the API grows, and keeps related functions consistent:
 
 ```ts
 // Prefer a consistent family of domain actions
-createQuestion({ projectId, title, prompt });
-updateQuestion({ questionId, title, prompt });
-deleteQuestion({ questionId });
+createRubric({ gridId, title, prompt });
+updateRubric({ rubricId, title, prompt });
+deleteRubric({ rubricId });
 
 // Avoid mixing styles in the same API family
-createQuestion({ projectId, title, prompt });
-updateQuestion({ questionId, title, prompt });
-deleteQuestion(questionId);
+createRubric({ gridId, title, prompt });
+updateRubric({ rubricId, title, prompt });
+deleteRubric(rubricId);
 ```
 
 Use positional parameters for a single argument only when the argument is genuinely the value being transformed, fetched, parsed, or rendered, and not just one named field of a domain command:
@@ -54,21 +54,21 @@ Use positional parameters for a single argument only when the argument is genuin
 // Fine
 parseCsv(source);
 normalizeStudentId(rawId);
-renderQuestion(question);
+renderRubric(rubric);
 
 // Prefer object
-deleteQuestion({ questionId });
-assignReviewer({ submissionId, reviewerId });
-moveQuestion({ fromIndex, toIndex });
+deleteRubric({ rubricId });
+assignReviewer({ gradeTargetId, reviewerId });
+moveRubric({ fromIndex, toIndex });
 ```
 
 Prefer a named object when the call site would otherwise require remembering parameter order:
 
 ```ts
-moveQuestion({ fromIndex, toIndex });
-assignReviewer({ submissionId, reviewerId });
-recordAssessment({ submissionId, criterionId, score });
-copyRubricItem({ sourceItemId, targetRubricId });
+moveRubric({ fromIndex, toIndex });
+assignReviewer({ gradeTargetId, reviewerId });
+recordGrade({ gradeTargetId, criterionId, value });
+copyCriterion({ sourceCriterionId, targetRubricId });
 ```
 
 Also prefer objects when arguments include booleans, optional values, or multiple values with the same primitive type.
@@ -77,42 +77,42 @@ Avoid positional booleans:
 
 ```ts
 // Avoid
-renderQuestion(question, true);
+renderRubric(rubric, true);
 
 // Prefer
-renderQuestion(question, { readOnly: true });
+renderRubric(rubric, { readOnly: true });
 ```
 
 Avoid ambiguous same-type positional pairs:
 
 ```ts
 // Avoid
-assignReviewer(submissionId, reviewerId);
-transferAssessment(sourceProjectId, targetProjectId);
+assignReviewer(gradeTargetId, reviewerId);
+transferGrades(sourceGridId, targetGridId);
 
 // Prefer
-assignReviewer({ submissionId, reviewerId });
-transferAssessment({ sourceProjectId, targetProjectId });
+assignReviewer({ gradeTargetId, reviewerId });
+transferGrades({ sourceGridId, targetGridId });
 ```
 
 Use one primary positional argument plus an options object when the first argument is the main value and the rest are secondary modifiers:
 
 ```ts
-renderQuestion(question, { showRubric: true });
-fetchSubmissions(projectId, { includeArchived: false });
+renderRubric(rubric, { showCriteria: true });
+fetchGradeTargets(gridId, { includeArchived: false });
 ```
 
 But if the function is a domain command or mutation, prefer putting all domain inputs in the named object instead of mixing positional and named parameters:
 
 ```ts
 // Prefer
-updateQuestion({
-	questionId,
+updateRubric({
+	rubricId,
 	patch,
 });
 
 // Avoid
-updateQuestion(questionId, { patch });
+updateRubric(rubricId, { patch });
 ```
 
 ## Leading execution context
@@ -120,10 +120,10 @@ updateQuestion(questionId, { patch });
 A required execution context or dependency may be a leading positional parameter when it is conventional and consistent within a layer:
 
 ```ts
-saveQuestionsInDb(db, { questions, projectId });
-saveStudentsInDb(db, { students, projectId });
-deleteProjectFromDb(db, { projectId });
-recomputeGradesInDb(db, { projectId });
+saveRubricsInDb(db, { rubrics, gridId });
+saveStudentsInDb(db, { students, gridId });
+deleteGridFromDb(db, { gridId });
+recomputeGradesInDb(db, { gridId });
 ```
 
 In this pattern, the leading positional argument is not considered part of the domain command. Domain inputs should still be grouped in a named object.
@@ -132,18 +132,18 @@ Use this convention only for stable, cross-cutting dependencies such as a databa
 
 ```ts
 // Avoid
-saveQuestionsInDb(db, questions, projectId);
+saveRubricsInDb(db, rubrics, gridId);
 
 // Prefer
-saveQuestionsInDb(db, { questions, projectId });
+saveRubricsInDb(db, { rubrics, gridId });
 ```
 
 This also keeps transaction usage straightforward:
 
 ```ts
 await db.transaction().execute(async (tx) => {
-	await saveQuestionsInDb(tx, { questions, projectId });
-	await recomputeGradesInDb(tx, { projectId });
+	await saveRubricsInDb(tx, { rubrics, gridId });
+	await recomputeGradesInDb(tx, { gridId });
 });
 ```
 
@@ -153,21 +153,21 @@ Avoid over-nesting. Named-object parameters should make the call site clearer, n
 
 ```ts
 // Prefer
-recordAssessment({
-	submissionId,
+recordGrade({
+	gradeTargetId,
 	criterionId,
-	score,
+	value,
 	comment,
 });
 
 // Avoid
-recordAssessment({
+recordGrade({
 	target: {
-		submission: { id: submissionId },
+		gradeTarget: { id: gradeTargetId },
 		criterion: { id: criterionId },
 	},
-	value: {
-		score,
+	grade: {
+		value,
 		comment,
 	},
 });
@@ -176,16 +176,13 @@ recordAssessment({
 Nest only when the nested value is a real domain concept, reusable shape, or boundary:
 
 ```ts
-createQuestion({
-	projectId,
+createRubric({
+	gridId,
 	content: {
 		title,
 		prompt,
 	},
-	scoring: {
-		maxPoints,
-		rubric,
-	},
+	criteria,
 });
 ```
 
