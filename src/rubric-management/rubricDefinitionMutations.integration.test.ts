@@ -143,9 +143,9 @@ test("saveRubricDefinitionInDb replaces criterion subtype data when criterion ty
 					previousId: fixture.criterionId,
 					id: replacedCriterionId,
 					kind: "number",
-					label: "Score",
-					minScore: 0,
-					maxScore: 10,
+					label: "Value",
+					minValue: 0,
+					maxValue: 10,
 					minMarks: 0,
 					maxMarks: 5,
 					reversed: false,
@@ -181,7 +181,7 @@ test("saveRubricDefinitionInDb replaces criterion subtype data when criterion ty
 
 	const numericalSubtypeRows = await db
 		.selectFrom("numberCriterion")
-		.select(["criterionId", "minScore", "maxScore"])
+		.select(["criterionId", "minValue", "maxValue"])
 		.where("criterionId", "=", newCriterion.rowId)
 		.execute();
 

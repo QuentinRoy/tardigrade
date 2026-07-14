@@ -120,12 +120,16 @@ function parseGradeValue(params: {
 			};
 		}
 		case "number": {
-			const score = parseFloat(value);
-			if (Number.isNaN(score)) {
+			const criterionValue = parseFloat(value);
+			if (Number.isNaN(criterionValue)) {
 				throw new Error(`Invalid numerical value "${value}"`);
 			}
 
-			return { criterionId: criterion.id, kind: "number", score };
+			return {
+				criterionId: criterion.id,
+				kind: "number",
+				value: criterionValue,
+			};
 		}
 	}
 }

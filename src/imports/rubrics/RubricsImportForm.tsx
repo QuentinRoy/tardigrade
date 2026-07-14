@@ -43,16 +43,16 @@ export default function RubricsImportForm({
 						and accepts an optional <code>description</code> and{" "}
 						<code>label</code>. Check criteria use <code>marks</code> and
 						optional <code>falseMarks</code>, options criteria use{" "}
-						<code>marks</code>, and number criteria use <code>minScore</code>/
-						<code>maxScore</code> and/or <code>minMarks</code>/
+						<code>marks</code>, and number criteria use <code>minValue</code>/
+						<code>maxValue</code> and/or <code>minMarks</code>/
 						<code>maxMarks</code>. Number criteria can also set{" "}
-						<code>reversed: true</code> to map the highest score to the lowest
+						<code>reversed: true</code> to map the highest value to the lowest
 						mark.
 					</Text>
 					<Text size="sm" c="dimmed">
-						Number defaults and rules: <code>minScore</code> defaults to{" "}
-						<code>0</code>, <code>maxScore</code> defaults to <code>1</code>. If{" "}
-						<code>minScore</code> is provided, <code>maxScore</code> must be
+						Number defaults and rules: <code>minValue</code> defaults to{" "}
+						<code>0</code>, <code>maxValue</code> defaults to <code>1</code>. If{" "}
+						<code>minValue</code> is provided, <code>maxValue</code> must be
 						provided too. <code>minMarks</code> defaults to <code>0</code> when
 						omitted; <code>maxMarks</code> defaults to <code>0</code> when
 						omitted. At least one of <code>minMarks</code>/<code>maxMarks</code>{" "}

@@ -64,7 +64,7 @@ test("loadRubricGradeFromDb returns the stored criterion values for a grade targ
 		grade: {
 			criterionId: fixture.criterionIds.numerical,
 			kind: "number",
-			score: 7.5,
+			value: 7.5,
 		},
 	});
 
@@ -91,7 +91,7 @@ test("loadRubricGradeFromDb returns the stored criterion values for a grade targ
 	expect(byCriterionId.get(fixture.criterionIds.numerical)).toEqual({
 		criterionId: fixture.criterionIds.numerical,
 		kind: "number",
-		score: 7.5,
+		value: 7.5,
 	});
 });
 
@@ -161,7 +161,7 @@ test("loadGradeTargetGradesFromDb groups a grade target's criterion values by ru
 		grade: {
 			criterionId: fixture.criterionIds.numerical,
 			kind: "number",
-			score: 7.5,
+			value: 7.5,
 		},
 	});
 	await saveCriterionGradeInDb(db, {
@@ -193,7 +193,7 @@ test("loadGradeTargetGradesFromDb groups a grade target's criterion values by ru
 			{
 				criterionId: fixture.criterionIds.numerical,
 				kind: "number",
-				score: 7.5,
+				value: 7.5,
 			},
 		]),
 	);

@@ -13,10 +13,10 @@ export interface NumberCriterionTable {
 	id: ColumnType<NumberCriterionId, never, never>;
 
 	/** Database type: pg_catalog.numeric */
-	minScore: ColumnType<number, number, number>;
+	minValue: ColumnType<number, number, number>;
 
 	/** Database type: pg_catalog.numeric */
-	maxScore: ColumnType<number, number, number>;
+	maxValue: ColumnType<number, number, number>;
 
 	/** Database type: pg_catalog.numeric */
 	minMarks: ColumnType<number, number, number>;

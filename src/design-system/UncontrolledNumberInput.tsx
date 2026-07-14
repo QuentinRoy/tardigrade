@@ -3,7 +3,7 @@
 import { NumberInput } from "@mantine/core";
 import type { ReactElement } from "react";
 
-type ScoreInputProps = {
+type UncontrolledNumberInputProps = {
 	label: string;
 	defaultValue: number;
 	onChange: (value: number) => void;
@@ -23,12 +23,12 @@ type ScoreInputProps = {
  * the rubric schema rejects with a field-level error; pass that error back
  * in via `error` to display it.
  */
-export default function ScoreInput({
+export default function UncontrolledNumberInput({
 	label,
 	defaultValue,
 	onChange,
 	error,
-}: ScoreInputProps): ReactElement {
+}: UncontrolledNumberInputProps): ReactElement {
 	return (
 		<NumberInput
 			label={label}

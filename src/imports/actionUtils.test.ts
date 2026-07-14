@@ -12,7 +12,7 @@ describe("toImportErrorState", () => {
 		const zodError = new ZodError([
 			{
 				code: "custom",
-				path: ["rows", 0, "score"],
+				path: ["rows", 0, "amount"],
 				message: "Expected a number",
 				input: undefined,
 			},

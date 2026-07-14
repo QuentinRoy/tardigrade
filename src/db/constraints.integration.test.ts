@@ -219,8 +219,8 @@ async function createGradeConstraintFixture(
 		.insertInto("numberCriterion")
 		.values({
 			criterionId: numberCriterionId,
-			minScore: 0,
-			maxScore: 10,
+			minValue: 0,
+			maxValue: 10,
 			minMarks: 0,
 			maxMarks: 5,
 			reversed: false,
@@ -376,7 +376,7 @@ test("ordinal criterion grades accept valid labels and roll back failed transact
 	]);
 });
 
-test("numerical criterion grades enforce score bounds and roll back failed transactional writes", async () => {
+test("numerical criterion grades enforce value bounds and roll back failed transactional writes", async () => {
 	await using db = await createTestDb();
 	await using grid = await createGrid(db, "Constraint Numerical Grid");
 	const fixture = await createGradeConstraintFixture(db, grid.id);
@@ -385,7 +385,7 @@ test("numerical criterion grades enforce score bounds and roll back failed trans
 		.insertInto("numberCriterionGrade")
 		.values({
 			criterionGradeId: fixture.numberCriterionGradeIds.primary,
-			score: 7.5,
+			value: 7.5,
 		})
 		.execute();
 
@@ -395,7 +395,7 @@ test("numerical criterion grades enforce score bounds and roll back failed trans
 				.insertInto("numberCriterionGrade")
 				.values({
 					criterionGradeId: fixture.numberCriterionGradeIds.secondary,
-					score: 4,
+					value: 4,
 				})
 				.execute();
 
@@ -403,7 +403,7 @@ test("numerical criterion grades enforce score bounds and roll back failed trans
 				.insertInto("numberCriterionGrade")
 				.values({
 					criterionGradeId: fixture.numberCriterionGradeIds.primary,
-					score: 11,
+					value: 11,
 				})
 				.execute();
 		}),
@@ -411,7 +411,7 @@ test("numerical criterion grades enforce score bounds and roll back failed trans
 
 	const persisted = await db
 		.selectFrom("numberCriterionGrade")
-		.select(["criterionGradeId", "score"])
+		.select(["criterionGradeId", "value"])
 		.where("criterionGradeId", "in", [
 			fixture.numberCriterionGradeIds.primary,
 			fixture.numberCriterionGradeIds.secondary,
@@ -421,11 +421,11 @@ test("numerical criterion grades enforce score bounds and roll back failed trans
 
 	const normalizedPersisted = persisted.map((row) => ({
 		criterionGradeId: row.criterionGradeId,
-		score: Number(row.score),
+		value: Number(row.value),
 	}));
 
 	expect(normalizedPersisted).toEqual([
-		{ criterionGradeId: fixture.numberCriterionGradeIds.primary, score: 7.5 },
+		{ criterionGradeId: fixture.numberCriterionGradeIds.primary, value: 7.5 },
 	]);
 });
 
@@ -572,11 +572,11 @@ test("criterion subtype triggers reject mismatched subtype rows and roll back tr
 	expect(baselineBooleanRows).toHaveLength(1);
 });
 
-test("numerical criterion score range check rejects a collapsed or inverted range and rolls back transactional writes", async () => {
+test("numerical criterion value range check rejects a collapsed or inverted range and rolls back transactional writes", async () => {
 	await using db = await createTestDb();
 	await using grid = await createGrid(
 		db,
-		"Constraint Numerical Score Range Grid",
+		"Constraint Numerical Value Range Grid",
 	);
 	const criterionRowIds = await createSubtypeConstraintFixture(db, grid.id);
 
@@ -585,28 +585,28 @@ test("numerical criterion score range check rejects a collapsed or inverted rang
 			.insertInto("numberCriterion")
 			.values({
 				criterionId: criterionRowIds.numerical,
-				minScore: 5,
-				maxScore: 5,
+				minValue: 5,
+				maxValue: 5,
 				minMarks: 0,
 				maxMarks: 10,
 				reversed: false,
 			})
 			.execute(),
-	).rejects.toThrow("number_criterion_score_range_check");
+	).rejects.toThrow("number_criterion_value_range_check");
 
 	await expect(
 		db
 			.insertInto("numberCriterion")
 			.values({
 				criterionId: criterionRowIds.numerical,
-				minScore: 10,
-				maxScore: 5,
+				minValue: 10,
+				maxValue: 5,
 				minMarks: 0,
 				maxMarks: 10,
 				reversed: false,
 			})
 			.execute(),
-	).rejects.toThrow("number_criterion_score_range_check");
+	).rejects.toThrow("number_criterion_value_range_check");
 
 	const persisted = await db
 		.selectFrom("numberCriterion")
@@ -630,8 +630,8 @@ test("numerical criterion marks range check rejects inverted marks and rolls bac
 			.insertInto("numberCriterion")
 			.values({
 				criterionId: criterionRowIds.numerical,
-				minScore: 0,
-				maxScore: 10,
+				minValue: 0,
+				maxValue: 10,
 				minMarks: 10,
 				maxMarks: 0,
 				reversed: false,
@@ -643,8 +643,8 @@ test("numerical criterion marks range check rejects inverted marks and rolls bac
 		.insertInto("numberCriterion")
 		.values({
 			criterionId: criterionRowIds.numerical,
-			minScore: 0,
-			maxScore: 10,
+			minValue: 0,
+			maxValue: 10,
 			minMarks: 5,
 			maxMarks: 5,
 			reversed: false,

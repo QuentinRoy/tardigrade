@@ -7,8 +7,8 @@ function numberCriterion(
 	return {
 		id: "r1",
 		kind: "number" as const,
-		minScore: 0,
-		maxScore: 10,
+		minValue: 0,
+		maxValue: 10,
 		minMarks: 0,
 		maxMarks: 5,
 		reversed: false,
@@ -17,7 +17,7 @@ function numberCriterion(
 }
 
 describe("markNumberCriterion", () => {
-	it("maps low scores to low marks by default", () => {
+	it("maps low values to low marks by default", () => {
 		expect(markNumberCriterion(numberCriterion(), 2)).toBe(1);
 	});
 
@@ -25,30 +25,30 @@ describe("markNumberCriterion", () => {
 		expect(markNumberCriterion(numberCriterion({ reversed: true }), 2)).toBe(4);
 	});
 
-	it("maps minScore to minMarks when not reversed", () => {
+	it("maps minValue to minMarks when not reversed", () => {
 		expect(markNumberCriterion(numberCriterion(), 0)).toBe(0);
 	});
 
-	it("maps maxScore to maxMarks when not reversed", () => {
+	it("maps maxValue to maxMarks when not reversed", () => {
 		expect(markNumberCriterion(numberCriterion(), 10)).toBe(5);
 	});
 
-	it("maps minScore to maxMarks when reversed", () => {
+	it("maps minValue to maxMarks when reversed", () => {
 		expect(markNumberCriterion(numberCriterion({ reversed: true }), 0)).toBe(5);
 	});
 
-	it("maps maxScore to minMarks when reversed", () => {
+	it("maps maxValue to minMarks when reversed", () => {
 		expect(markNumberCriterion(numberCriterion({ reversed: true }), 10)).toBe(
 			0,
 		);
 	});
 
-	it("interpolates mid-range scores with a non-zero minMarks", () => {
+	it("interpolates mid-range values with a non-zero minMarks", () => {
 		expect(
 			markNumberCriterion(
 				numberCriterion({
-					minScore: 0,
-					maxScore: 10,
+					minValue: 0,
+					maxValue: 10,
 					minMarks: 2,
 					maxMarks: 7,
 				}),
@@ -57,12 +57,12 @@ describe("markNumberCriterion", () => {
 		).toBe(4);
 	});
 
-	it("interpolates mid-range scores with negative marks", () => {
+	it("interpolates mid-range values with negative marks", () => {
 		expect(
 			markNumberCriterion(
 				numberCriterion({
-					minScore: 0,
-					maxScore: 10,
+					minValue: 0,
+					maxValue: 10,
 					minMarks: -5,
 					maxMarks: 5,
 				}),
@@ -77,20 +77,20 @@ describe("markNumberCriterion", () => {
 		).toBe(4);
 	});
 
-	it("throws when minScore equals maxScore (zero-width score range)", () => {
+	it("throws when minValue equals maxValue (zero-width value range)", () => {
 		expect(() =>
-			markNumberCriterion(numberCriterion({ minScore: 5, maxScore: 5 }), 5),
+			markNumberCriterion(numberCriterion({ minValue: 5, maxValue: 5 }), 5),
 		).toThrow(
-			"Cannot mark a number criterion with a zero-width score range (minScore and maxScore are both 5)",
+			"Cannot mark a number criterion with a zero-width value range (minValue and maxValue are both 5)",
 		);
 	});
 
-	it("returns the finite descending value when minScore is greater than maxScore (inverted range)", () => {
+	it("returns the finite descending value when minValue is greater than maxValue (inverted range)", () => {
 		expect(
 			markNumberCriterion(
 				numberCriterion({
-					minScore: 10,
-					maxScore: 5,
+					minValue: 10,
+					maxValue: 5,
 					minMarks: 0,
 					maxMarks: 10,
 				}),
@@ -99,11 +99,11 @@ describe("markNumberCriterion", () => {
 		).toBe(6);
 	});
 
-	it("extrapolates a score above maxScore instead of throwing", () => {
+	it("extrapolates a value above maxValue instead of throwing", () => {
 		expect(markNumberCriterion(numberCriterion(), 12)).toBe(6);
 	});
 
-	it("extrapolates a score below minScore instead of throwing", () => {
+	it("extrapolates a value below minValue instead of throwing", () => {
 		expect(markNumberCriterion(numberCriterion(), -2)).toBe(-1);
 	});
 });

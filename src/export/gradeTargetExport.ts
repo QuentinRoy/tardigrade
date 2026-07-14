@@ -127,7 +127,7 @@ function streamGradeTargetExportRowsFromDb(
 				"criterion.id as criterionId",
 				"checkCriterionGrade.passed as checkPassed",
 				"optionsCriterionGrade.selectedLabel as optionsSelectedLabel",
-				"numberCriterionGrade.score as numberValue",
+				"numberCriterionGrade.value as numberValue",
 			])
 			// Creation order, not id order — see the ordering note in
 			// gradeTargetExportGrouping.ts.
@@ -167,7 +167,7 @@ export async function createGradeTargetExport(
 				return criterion.grade.selectedLabel;
 			}
 			case "number": {
-				return criterion.grade.score;
+				return criterion.grade.value;
 			}
 			default: {
 				return assertNever(criterion);

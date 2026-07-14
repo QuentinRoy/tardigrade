@@ -30,8 +30,8 @@ export type CriterionEditorValue =
 			description?: string | undefined;
 			label?: string | undefined;
 			kind: "number";
-			minScore: number;
-			maxScore: number;
+			minValue: number;
+			maxValue: number;
 			minMarks: number;
 			maxMarks: number;
 			reversed: boolean;
@@ -80,8 +80,8 @@ export function toEditorValue(item: RubricDefinition): RubricEditorValue {
 				description: criterion.description,
 				label: criterion.label,
 				kind: "number",
-				minScore: criterion.minScore,
-				maxScore: criterion.maxScore,
+				minValue: criterion.minValue,
+				maxValue: criterion.maxValue,
 				minMarks: criterion.minMarks,
 				maxMarks: criterion.maxMarks,
 				reversed: criterion.reversed,

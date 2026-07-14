@@ -23,7 +23,7 @@ type ExportOptionsCriterionPlan = Pick<
 
 type ExportNumberCriterionPlan = Pick<
 	CriterionOfKind<"number">,
-	"id" | "kind" | "minScore" | "maxScore" | "minMarks" | "maxMarks" | "reversed"
+	"id" | "kind" | "minValue" | "maxValue" | "minMarks" | "maxMarks" | "reversed"
 >;
 
 export type ExportCriterionPlan =

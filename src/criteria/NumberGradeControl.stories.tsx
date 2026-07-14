@@ -7,7 +7,7 @@ const meta = {
 	component: NumberGradeControl,
 	tags: ["autodocs"],
 	parameters: { layout: "centered" },
-	args: { onGrade: fn(), disabled: false, minScore: 0, maxScore: 10 },
+	args: { onGrade: fn(), disabled: false, minValue: 0, maxValue: 10 },
 } satisfies Meta<typeof NumberGradeControl>;
 
 export default meta;
@@ -24,9 +24,9 @@ export const AtMax: Story = { args: { value: 10 } };
 
 export const Disabled: Story = { args: { value: 5, disabled: true } };
 
-// Regression: clearing the field and blurring must restore the last score
+// Regression: clearing the field and blurring must restore the last value
 // rather than leaving the control empty.
-export const ClearingRevertsToLastScore: Story = {
+export const ClearingRevertsToLastValue: Story = {
 	args: { value: 7 },
 	play: async ({ args }) => {
 		const input = screen.getByRole("textbox");

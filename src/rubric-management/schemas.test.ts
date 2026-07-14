@@ -75,8 +75,8 @@ describe("rubricDefinitionSchema numeric criterion fields", () => {
 				{
 					id: "r1",
 					kind: "number",
-					minScore: null,
-					maxScore: null,
+					minValue: null,
+					maxValue: null,
 					minMarks: null,
 					maxMarks: null,
 					reversed: false,
@@ -91,11 +91,11 @@ describe("rubricDefinitionSchema numeric criterion fields", () => {
 				issue.message,
 			]),
 		);
-		expect(messageByPath.get("criteria.0.minScore")).toBe(
-			"Min score must be a valid number",
+		expect(messageByPath.get("criteria.0.minValue")).toBe(
+			"Min value must be a valid number",
 		);
-		expect(messageByPath.get("criteria.0.maxScore")).toBe(
-			"Max score must be a valid number",
+		expect(messageByPath.get("criteria.0.maxValue")).toBe(
+			"Max value must be a valid number",
 		);
 		expect(messageByPath.get("criteria.0.minMarks")).toBe(
 			"Min marks must be a valid number",
@@ -107,8 +107,8 @@ describe("rubricDefinitionSchema numeric criterion fields", () => {
 });
 
 function buildNumericalRubric(overrides: {
-	minScore: number;
-	maxScore: number;
+	minValue: number;
+	maxValue: number;
 	minMarks: number;
 	maxMarks: number;
 }) {
@@ -119,11 +119,11 @@ function buildNumericalRubric(overrides: {
 }
 
 describe("rubricDefinitionSchema numerical criterion bounds", () => {
-	it("rejects a numerical criterion with minScore === maxScore", () => {
+	it("rejects a numerical criterion with minValue === maxValue", () => {
 		const result = rubricDefinitionSchema.safeParse(
 			buildNumericalRubric({
-				minScore: 5,
-				maxScore: 5,
+				minValue: 5,
+				maxValue: 5,
 				minMarks: 0,
 				maxMarks: 10,
 			}),
@@ -131,16 +131,16 @@ describe("rubricDefinitionSchema numerical criterion bounds", () => {
 
 		expect(result.success).toBe(false);
 		const issue = result.error?.issues.find(
-			(issue) => issue.path.join(".") === "criteria.0.maxScore",
+			(issue) => issue.path.join(".") === "criteria.0.maxValue",
 		);
-		expect(issue?.message).toBe("Max score must be greater than min score");
+		expect(issue?.message).toBe("Max value must be greater than min value");
 	});
 
-	it("rejects a numerical criterion with minScore > maxScore", () => {
+	it("rejects a numerical criterion with minValue > maxValue", () => {
 		const result = rubricDefinitionSchema.safeParse(
 			buildNumericalRubric({
-				minScore: 10,
-				maxScore: 5,
+				minValue: 10,
+				maxValue: 5,
 				minMarks: 0,
 				maxMarks: 10,
 			}),
@@ -148,16 +148,16 @@ describe("rubricDefinitionSchema numerical criterion bounds", () => {
 
 		expect(result.success).toBe(false);
 		const issue = result.error?.issues.find(
-			(issue) => issue.path.join(".") === "criteria.0.maxScore",
+			(issue) => issue.path.join(".") === "criteria.0.maxValue",
 		);
-		expect(issue?.message).toBe("Max score must be greater than min score");
+		expect(issue?.message).toBe("Max value must be greater than min value");
 	});
 
-	it("accepts a numerical criterion with minScore < maxScore", () => {
+	it("accepts a numerical criterion with minValue < maxValue", () => {
 		const result = rubricDefinitionSchema.safeParse(
 			buildNumericalRubric({
-				minScore: 0,
-				maxScore: 10,
+				minValue: 0,
+				maxValue: 10,
 				minMarks: 0,
 				maxMarks: 10,
 			}),
@@ -169,8 +169,8 @@ describe("rubricDefinitionSchema numerical criterion bounds", () => {
 	it("rejects a numerical criterion with minMarks > maxMarks", () => {
 		const result = rubricDefinitionSchema.safeParse(
 			buildNumericalRubric({
-				minScore: 0,
-				maxScore: 10,
+				minValue: 0,
+				maxValue: 10,
 				minMarks: 10,
 				maxMarks: 0,
 			}),
@@ -188,8 +188,8 @@ describe("rubricDefinitionSchema numerical criterion bounds", () => {
 	it("accepts a numerical criterion with minMarks === maxMarks", () => {
 		const result = rubricDefinitionSchema.safeParse(
 			buildNumericalRubric({
-				minScore: 0,
-				maxScore: 10,
+				minValue: 0,
+				maxValue: 10,
 				minMarks: 5,
 				maxMarks: 5,
 			}),
@@ -201,8 +201,8 @@ describe("rubricDefinitionSchema numerical criterion bounds", () => {
 	it("accepts a numerical criterion with minMarks < maxMarks", () => {
 		const result = rubricDefinitionSchema.safeParse(
 			buildNumericalRubric({
-				minScore: 0,
-				maxScore: 10,
+				minValue: 0,
+				maxValue: 10,
 				minMarks: 0,
 				maxMarks: 10,
 			}),

@@ -77,12 +77,12 @@ describe("exportRubricsToYaml", () => {
 					{
 						id: "r1",
 						kind: "number",
-						minScore: 0,
-						maxScore: 10,
+						minValue: 0,
+						maxValue: 10,
 						minMarks: 0,
 						maxMarks: 5,
 						reversed: false,
-						label: "Score",
+						label: "Value",
 						description: undefined,
 					},
 				],
@@ -97,12 +97,12 @@ describe("exportRubricsToYaml", () => {
           criteria:
             - id: r1
               kind: number
-              minScore: 0
-              maxScore: 10
+              minValue: 0
+              maxValue: 10
               minMarks: 0
               maxMarks: 5
               reversed: false
-              label: Score
+              label: Value
       "
     `);
 	});
@@ -114,8 +114,8 @@ describe("exportRubricsToYaml", () => {
 					{
 						id: "r1",
 						kind: "number",
-						minScore: 0,
-						maxScore: 10,
+						minValue: 0,
+						maxValue: 10,
 						minMarks: 0,
 						maxMarks: 5,
 						reversed: true,
@@ -131,8 +131,8 @@ describe("exportRubricsToYaml", () => {
           criteria:
             - id: r1
               kind: number
-              minScore: 0
-              maxScore: 10
+              minValue: 0
+              maxValue: 10
               minMarks: 0
               maxMarks: 5
               reversed: true

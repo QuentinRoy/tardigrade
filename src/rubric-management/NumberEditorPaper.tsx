@@ -2,7 +2,7 @@
 
 import { Group, Stack, Switch, Text } from "@mantine/core";
 import type { ReactElement } from "react";
-import ScoreInput from "#design-system/ScoreInput.tsx";
+import UncontrolledNumberInput from "#design-system/UncontrolledNumberInput.tsx";
 import CriterionEditorPaper from "./CriterionEditorPaper.tsx";
 import type { RubricCriterionFieldErrors } from "./errors.ts";
 import type { CriterionEditorValue } from "./types.ts";
@@ -31,27 +31,27 @@ export default function NumberCriterionEditorPaper({
 		>
 			<Stack gap="xs">
 				<Group wrap="wrap">
-					<ScoreInput
-						label="Min score"
-						defaultValue={criterion.minScore}
-						onChange={(value) => onChange({ ...criterion, minScore: value })}
-						error={fieldErrors?.minScore}
+					<UncontrolledNumberInput
+						label="Min value"
+						defaultValue={criterion.minValue}
+						onChange={(value) => onChange({ ...criterion, minValue: value })}
+						error={fieldErrors?.minValue}
 					/>
-					<ScoreInput
-						label="Max score"
-						defaultValue={criterion.maxScore}
-						onChange={(value) => onChange({ ...criterion, maxScore: value })}
-						error={fieldErrors?.maxScore}
+					<UncontrolledNumberInput
+						label="Max value"
+						defaultValue={criterion.maxValue}
+						onChange={(value) => onChange({ ...criterion, maxValue: value })}
+						error={fieldErrors?.maxValue}
 					/>
 				</Group>
 				<Group wrap="wrap">
-					<ScoreInput
+					<UncontrolledNumberInput
 						label="Min marks"
 						defaultValue={criterion.minMarks}
 						onChange={(value) => onChange({ ...criterion, minMarks: value })}
 						error={fieldErrors?.minMarks}
 					/>
-					<ScoreInput
+					<UncontrolledNumberInput
 						label="Max marks"
 						defaultValue={criterion.maxMarks}
 						onChange={(value) => onChange({ ...criterion, maxMarks: value })}
@@ -59,7 +59,7 @@ export default function NumberCriterionEditorPaper({
 					/>
 				</Group>
 				<Switch
-					label={<Text size="sm">Reverse score-to-marks mapping</Text>}
+					label={<Text size="sm">Reverse value-to-marks mapping</Text>}
 					checked={criterion.reversed}
 					onChange={(event) =>
 						onChange({ ...criterion, reversed: event.currentTarget.checked })

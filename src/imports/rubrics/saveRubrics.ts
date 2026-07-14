@@ -80,8 +80,8 @@ export async function saveRubricImportPlanInDb(
 				? [
 						{
 							criterionId: criterion.id,
-							minScore: criterion.minScore,
-							maxScore: criterion.maxScore,
+							minValue: criterion.minValue,
+							maxValue: criterion.maxValue,
 							minMarks: criterion.minMarks,
 							maxMarks: criterion.maxMarks,
 							reversed: criterion.reversed,
@@ -254,8 +254,8 @@ export async function saveRubricImportPlanInDb(
 
 		return {
 			criterionId: criterionRowId,
-			minScore: criterion.minScore,
-			maxScore: criterion.maxScore,
+			minValue: criterion.minValue,
+			maxValue: criterion.maxValue,
 			minMarks: criterion.minMarks,
 			maxMarks: criterion.maxMarks,
 			reversed: criterion.reversed,
@@ -270,8 +270,8 @@ export async function saveRubricImportPlanInDb(
 				conflict
 					.column("criterionId")
 					.doUpdateSet((expressionBuilder) => ({
-						minScore: expressionBuilder.ref("excluded.minScore"),
-						maxScore: expressionBuilder.ref("excluded.maxScore"),
+						minValue: expressionBuilder.ref("excluded.minValue"),
+						maxValue: expressionBuilder.ref("excluded.maxValue"),
 						minMarks: expressionBuilder.ref("excluded.minMarks"),
 						maxMarks: expressionBuilder.ref("excluded.maxMarks"),
 						reversed: expressionBuilder.ref("excluded.reversed"),

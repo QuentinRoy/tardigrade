@@ -20,8 +20,8 @@ describe("grade target CSV ordering", () => {
 				{
 					id: "r3",
 					kind: "number" as const,
-					minScore: 0,
-					maxScore: 10,
+					minValue: 0,
+					maxValue: 10,
 					minMarks: 0,
 					maxMarks: 5,
 					reversed: false,

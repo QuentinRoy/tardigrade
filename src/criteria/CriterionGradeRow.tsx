@@ -54,11 +54,11 @@ export default function CriterionGradeRow({
 	} else if (kind === "number") {
 		control = (
 			<NumberGradeControl
-				value={grade?.score}
-				minScore={criterion.minScore}
-				maxScore={criterion.maxScore}
+				value={grade?.value}
+				minValue={criterion.minValue}
+				maxValue={criterion.maxValue}
 				disabled={disabled}
-				onGrade={(score) => onGrade({ criterionId: id, kind: "number", score })}
+				onGrade={(value) => onGrade({ criterionId: id, kind: "number", value })}
 			/>
 		);
 	} else {

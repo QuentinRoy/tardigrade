@@ -20,8 +20,8 @@ export function toCriterion(data: {
 	checkCriterion: { marks: number; falseMarks: number } | null;
 	optionsCriterion: { marks: { label: string; marks: number }[] } | null;
 	numberCriterion: {
-		minScore: number;
-		maxScore: number;
+		minValue: number;
+		maxValue: number;
 		minMarks: number;
 		maxMarks: number;
 		reversed: boolean;
@@ -58,8 +58,8 @@ export function toCriterion(data: {
 			description: data.description ?? undefined,
 			label: data.label ?? undefined,
 			kind: "number",
-			minScore: toNumber(data.numberCriterion.minScore),
-			maxScore: toNumber(data.numberCriterion.maxScore),
+			minValue: toNumber(data.numberCriterion.minValue),
+			maxValue: toNumber(data.numberCriterion.maxValue),
 			minMarks: toNumber(data.numberCriterion.minMarks),
 			maxMarks: toNumber(data.numberCriterion.maxMarks),
 			reversed: data.numberCriterion.reversed,
@@ -92,8 +92,8 @@ export type RubricRow = {
 		checkCriterion: { marks: number; falseMarks: number } | null;
 		optionsCriterion: { marks: { label: string; marks: number }[] } | null;
 		numberCriterion: {
-			minScore: number;
-			maxScore: number;
+			minValue: number;
+			maxValue: number;
 			minMarks: number;
 			maxMarks: number;
 			reversed: boolean;
@@ -166,8 +166,8 @@ export async function loadRubricRowsFromDb(
 				.where("criterion.gridRowId", "=", gridRowId)
 				.select([
 					"criterion.id as criterionId",
-					"numberCriterion.minScore as minScore",
-					"numberCriterion.maxScore as maxScore",
+					"numberCriterion.minValue as minValue",
+					"numberCriterion.maxValue as maxValue",
 					"numberCriterion.minMarks as minMarks",
 					"numberCriterion.maxMarks as maxMarks",
 					"numberCriterion.reversed as reversed",
@@ -207,8 +207,8 @@ export async function loadRubricRowsFromDb(
 		numberCriterions.map((row) => [
 			row.criterionId,
 			{
-				minScore: toNumber(row.minScore),
-				maxScore: toNumber(row.maxScore),
+				minValue: toNumber(row.minValue),
+				maxValue: toNumber(row.maxValue),
 				minMarks: toNumber(row.minMarks),
 				maxMarks: toNumber(row.maxMarks),
 				reversed: row.reversed,

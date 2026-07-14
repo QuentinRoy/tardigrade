@@ -31,8 +31,8 @@ function propertyRows(details: CriterionDetails): ReactNode[] {
 	}
 
 	return [
-		<Text key="score-range" size="xs">
-			Score range: {details.properties.minScore} - {details.properties.maxScore}
+		<Text key="value-range" size="xs">
+			Value range: {details.properties.minValue} - {details.properties.maxValue}
 		</Text>,
 		<Text key="marks-range" size="xs">
 			Marks range: {details.properties.minMarks} - {details.properties.maxMarks}

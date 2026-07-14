@@ -163,8 +163,8 @@ async function createNumberCriterion(
 		.insertInto("numberCriterion")
 		.values({
 			criterionId: rubric.rowId,
-			minScore: 0,
-			maxScore: 10,
+			minValue: 0,
+			maxValue: 10,
 			minMarks: 0,
 			maxMarks: 5,
 		})
@@ -222,8 +222,8 @@ async function addNumberGrade(
 	{
 		gradeTargetRowId,
 		criterionRowId,
-		score,
-	}: { gradeTargetRowId: number; criterionRowId: number; score: number },
+		value,
+	}: { gradeTargetRowId: number; criterionRowId: number; value: number },
 ): Promise<void> {
 	const criterionGrade = await db
 		.insertInto("criterionGrade")
@@ -233,7 +233,7 @@ async function addNumberGrade(
 
 	await db
 		.insertInto("numberCriterionGrade")
-		.values({ criterionGradeId: criterionGrade.id, score })
+		.values({ criterionGradeId: criterionGrade.id, value })
 		.execute();
 }
 
@@ -277,7 +277,7 @@ test("loadCriterionGradeRecordsFromDb maps the per-type value column for boolean
 	await addNumberGrade(db, {
 		gradeTargetRowId: target.rowId,
 		criterionRowId: numberCriterionRowId,
-		score: 7,
+		value: 7,
 	});
 
 	const records = await loadCriterionGradeRecordsFromDb(db, {
@@ -296,7 +296,7 @@ test("loadCriterionGradeRecordsFromDb maps the per-type value column for boolean
 		kind: "check",
 		passed: true,
 		selectedLabel: null,
-		score: null,
+		value: null,
 	});
 	expect(byCriterionId.get(optionsCriterionId)).toEqual({
 		gradeTargetId: target.id,
@@ -304,7 +304,7 @@ test("loadCriterionGradeRecordsFromDb maps the per-type value column for boolean
 		kind: "options",
 		passed: null,
 		selectedLabel: "high",
-		score: null,
+		value: null,
 	});
 	expect(byCriterionId.get(numericalRubricId)).toEqual({
 		gradeTargetId: target.id,
@@ -312,7 +312,7 @@ test("loadCriterionGradeRecordsFromDb maps the per-type value column for boolean
 		kind: "number",
 		passed: null,
 		selectedLabel: null,
-		score: 7,
+		value: 7,
 	});
 });
 
@@ -374,7 +374,7 @@ test("loadCriterionGradeRecordsFromDb excludes grade records from other grids", 
 			kind: "check",
 			passed: true,
 			selectedLabel: null,
-			score: null,
+			value: null,
 		},
 	]);
 	expect(recordsB).toEqual([
@@ -384,7 +384,7 @@ test("loadCriterionGradeRecordsFromDb excludes grade records from other grids", 
 			kind: "check",
 			passed: false,
 			selectedLabel: null,
-			score: null,
+			value: null,
 		},
 	]);
 });
