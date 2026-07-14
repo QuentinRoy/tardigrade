@@ -73,8 +73,8 @@ Labels are shared across issues and pull/merge requests.
 ### Areas
 
 - ui: User interface, interaction design, navigation, forms, or visual feedback.
-- rubrics: Question/rubric model, grading grid structure, scoring rules, or rubric editing.
-- assessment: Grading workflow, assessment state, assessment navigation, or progress tracking.
+- rubrics: Rubric and criterion model, marks configuration, or rubric editing.
+- grading: Grading workflow, grade state, grading navigation, or completion tracking.
 - database: Database schema, migrations, persistence, identifiers, or data integrity.
 - import-export: Import, export, backup, restore, portable formats, or file exchange.
 - testing: Tests, CI checks, quality gates, or test infrastructure.
@@ -95,7 +95,7 @@ Labels are shared across issues and pull/merge requests.
 ## Typical combinations
 
 - feature + rubrics + ui
-- feature + assessment + database
+- feature + grading + database
 - reliability + tier-0 + database
 - investigation + ui
 

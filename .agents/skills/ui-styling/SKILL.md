@@ -42,33 +42,33 @@ This covers two things on a component's outermost element:
   - The call site that knows the layout context wraps the component to place it, e.g. `<Box pos="fixed" style={{ bottom: 16, left: 16, zIndex: 2000 }}><SaveErrorsDisplay /></Box>`.
 
 ```tsx
-// Bad: SubmissionCard owns its own outer margin.
-function SubmissionCard({ submission }: SubmissionCardProps) {
+// Bad: RubricCard owns its own outer margin.
+function RubricCard({ rubric }: RubricCardProps) {
 	return (
 		<Card mb="md">
-			<Text>{submission.title}</Text>
+			<Text>{rubric.title}</Text>
 		</Card>
 	);
 }
 
 // Every caller that doesn't want that margin has to compensate:
-<SubmissionCard submission={first} mb={0} /> // a compensating prop just to undo it
+<RubricCard rubric={first} mb={0} /> // a compensating prop just to undo it
 ```
 
 ```tsx
-// Good: SubmissionCard only manages its own internal spacing.
-function SubmissionCard({ submission }: SubmissionCardProps) {
+// Good: RubricCard only manages its own internal spacing.
+function RubricCard({ rubric }: RubricCardProps) {
 	return (
 		<Card>
-			<Text>{submission.title}</Text>
+			<Text>{rubric.title}</Text>
 		</Card>
 	);
 }
 
 // The parent that lays out multiple cards owns the spacing between them:
 <Stack gap="md">
-	{submissions.map((submission) => (
-		<SubmissionCard key={submission.id} submission={submission} />
+	{rubrics.map((rubric) => (
+		<RubricCard key={rubric.id} rubric={rubric} />
 	))}
 </Stack>
 ```
@@ -77,17 +77,17 @@ function SubmissionCard({ submission }: SubmissionCardProps) {
 // Good: a one-off usage in prose, where the parent isn't a gap container,
 // adds spacing at the call site instead of inside the component.
 <Box mb="md">
-	<SubmissionCard submission={submission} />
+	<RubricCard rubric={rubric} />
 </Box>
 ```
 
 ```tsx
 // Bad: borderless, backgroundless padding acts just like outer margin —
 // it pushes siblings away even though there's no visible boundary to contain it.
-function SubmissionCard({ submission }: SubmissionCardProps) {
+function RubricCard({ rubric }: RubricCardProps) {
 	return (
 		<Box p="md">
-			<Text>{submission.title}</Text>
+			<Text>{rubric.title}</Text>
 		</Box>
 	);
 }
@@ -96,10 +96,10 @@ function SubmissionCard({ submission }: SubmissionCardProps) {
 ```tsx
 // Good: padding is fine once it's contained inside a visible boundary —
 // it's genuinely internal spacing, not a stand-in for outer margin.
-function SubmissionCard({ submission }: SubmissionCardProps) {
+function RubricCard({ rubric }: RubricCardProps) {
 	return (
 		<Card p="md">
-			<Text>{submission.title}</Text>
+			<Text>{rubric.title}</Text>
 		</Card>
 	);
 }
