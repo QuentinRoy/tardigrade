@@ -58,7 +58,7 @@ export default async function GridOverviewPage({
 				<AppButtonLink
 					href={gridGradesPath({ gridId: grid.id, gridSlug: grid.slug })}
 				>
-					Open grades
+					Start Grading
 				</AppButtonLink>
 			</Stack>
 		</AppPage>

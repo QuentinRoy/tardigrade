@@ -35,8 +35,12 @@ The recorded evaluation of one criterion — what was judged (a Yes/No answer, a
 _Avoid_: assessment, assess, evaluation, mark (when meaning the recorded judgment)
 
 **Grades** (table):
-The overview of all grading in a grid: one row per student or group, one cell per criterion's grade — rendered as the **mark** it earns, since marks are the one representation comparable across criterion kinds — plus totals and completion. Named for what the cells are (grades), not the unit they display, like an Orders table showing amounts. Its first column is headed **Name**.
+The overview of all grading in a grid: one row per student or group, one cell per criterion's grade — rendered as the **mark** it earns, since marks are the one representation comparable across criterion kinds — plus totals and completion. Named for what the cells are (grades), not the unit they display, like an Orders table showing amounts. Its first column is headed **Name**. Distinct from **Grading**, the grid's grading-entry hub page.
 _Avoid_: matrix, submission matrix, gradebook, marks (as the table name)
+
+**Grading**:
+A grid's grading-entry hub page: links to grade by student or group and by rubric, plus a link onward to **Results**. Distinct from **Overview** (the grid's home page — status and setup links) and from the **Grades** table (an outcome display, not an entry point). Its URL segment stays `/grades`, naming the resource rather than the page.
+_Avoid_: Grades (as this page's name or nav label — reserved for the outcome table)
 
 **Grid**:
 The container an instructor creates to grade a set of students or groups against a set of rubrics.

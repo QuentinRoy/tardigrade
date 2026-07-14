@@ -57,7 +57,7 @@ async function GridGradesPageContent({ gridId }: { gridId: string }) {
 	return (
 		<AppPage>
 			<Stack gap="lg">
-				<Title order={1}>Grades</Title>
+				<Title order={1}>Grading</Title>
 				<AppButtonLink
 					href={gridResultsPath({ gridId: grid.id, gridSlug: grid.slug })}
 					variant="outline"
