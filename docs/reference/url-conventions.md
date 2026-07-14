@@ -4,7 +4,7 @@ Durable facts about the app's route tree and its param-naming rules. Route lists
 
 ## Route tree shape
 
-Grid-scoped routes nest under `/grids/[gridId]/[gridSlug]/…` (Overview at the root, then `rubrics/`, `grades/`, `results/`, `import/…`, `export/…`); a target's own routes nest one level deeper under `grades/[targetId]/[targetSlug]/…`. The `/grades/` route is a grading-navigation hub ("Grade by student or group" / "Grade by rubric"), not the Grades table — the table lives on `/results/`. For exact path strings, read the helpers in `src/grids/gridPaths.ts` (`gridOverviewPath`, `gridRubricsPath`, `gridGradesPath`, `gridGradeTargetPath`, `gridGradeTargetRubricPath`, `gridResultsPath`, `gridImport*Path`, `gridExport*Path`).
+Grid-scoped routes nest under `/grids/[gridId]/[gridSlug]/…` (Overview at the root, then `rubrics/`, `grades/`, `results/`, `import/…`, `export/…`); a target's own routes nest one level deeper under `grades/[targetId]/[targetSlug]/…`. The `/grades/` route is the **Grading** hub page (grade by student or group, or by rubric) — its URL segment names the resource, not the page; the **Grades** table itself lives on `/results/`. See the lexicon's Grading and Grades entries for the distinction. For exact path strings, read the helpers in `src/grids/gridPaths.ts` (`gridOverviewPath`, `gridRubricsPath`, `gridGradesPath`, `gridGradeTargetPath`, `gridGradeTargetRubricPath`, `gridResultsPath`, `gridImport*Path`, `gridExport*Path`).
 
 Grid-scoped entity paths are built through those helpers; a couple of top-level, non-grid-scoped routes are still written by hand (`app/page.tsx`'s `/grids` redirect, `app/grids/page.tsx`'s `/grids?error=…`) since there's no grid to scope them to.
 
