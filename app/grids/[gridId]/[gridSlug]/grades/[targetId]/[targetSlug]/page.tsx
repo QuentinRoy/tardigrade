@@ -52,7 +52,7 @@ async function GradeTargetPageContent({ params }: GradeTargetPageProps) {
 						key="grades"
 						href={gridGradesPath({ gridId: grid.id, gridSlug: grid.slug })}
 					>
-						Grades
+						Grading
 					</AppLink>,
 					getGradeTargetLabel(currentTarget),
 				]}
