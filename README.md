@@ -1,11 +1,11 @@
 # Tardigrade
 
-A Next.js app for rubric-based assessment workflows:
+A Next.js app for rubric-based grading:
 
-- Import questions, students, and assessment values.
-- Grade submissions by submission or by question.
-- Export assessment data as CSV.
-- Track overall grading progress.
+- Import rubrics, students, and grades.
+- Grade students and groups against a grid's rubrics.
+- Export grades as CSV.
+- Track grading completion across a grid.
 
 **Tardigrade**'s name is a play on the near-indestructible micro-animal + "grade".
 
@@ -112,103 +112,107 @@ pnpm db:types:generate              # Regenerate database types.
 
 ## App Workflow
 
-1. Open the home page at `/`.
-2. Use **Import** to load Questions, Students, and optionally Assessments.
-3. Open `/assessments` to grade by submission or by question.
-4. Use **Export CSV** from the home page to download assessment data.
+1. Open the home page at `/` — it redirects to your first grid's Overview, or to `/grids` if none exist yet.
+2. Create or open a Grid.
+3. Use **Import** to load Rubrics, Students, and optionally Grades.
+4. Grade students and groups, by student/group or by rubric.
+5. Open **Results** for the Grades table and the Analytics breakdown.
+6. Use **Export** to download grades as CSV.
 
 ## Conventions
 
 - **Domain terminology** (internal/dev-facing): [CONTEXT.md](CONTEXT.md) is the canonical glossary — read it before changing domain terms, identifiers, or contracts.
 - **User-facing vocabulary** (UI labels, headings, messages): [docs/reference/lexicon.md](docs/reference/lexicon.md) is the canonical word list — check it before writing new UI copy.
+- **URL structure**: [docs/reference/url-conventions.md](docs/reference/url-conventions.md) documents the route tree and its ID/slug segments.
 - **Issue, PR, and label conventions**: [docs/guides/issue-and-pr-conventions.md](docs/guides/issue-and-pr-conventions.md) owns the detailed templates, label guidance, and planning notes.
 - **Full documentation map**: [docs/index.md](docs/index.md) indexes every ADR, investigation, design doc, and reference doc in the repo.
 
 ## Import Formats
 
-### Questions YAML
+### Rubrics YAML
 
 ```yaml
-questions:
-  - id: q1
-    label: Question 1
-    rubrics:
-      - id: r1
-        type: boolean
+rubrics:
+  - id: r1
+    label: Rubric 1
+    criteria:
+      - id: c1
+        kind: check
         label: Correctness
         marks: 2
 
-      - id: r2
-        type: ordinal
+      - id: c2
+        kind: options
         label: Quality
         marks:
           poor: 0
           good: 1
           excellent: 2
 
-      - id: r3
-        type: numerical
-        label: Score
-        minScore: 0
-        maxScore: 10
+      - id: c3
+        kind: number
+        label: Value
+        minValue: 0
+        maxValue: 10
         minMarks: 0
         maxMarks: 5
 ```
 
 Rules:
 
-- `questions` is required and must contain unique question ids.
-- Each question requires `id` and `rubrics`.
-- Rubric ids must be unique within each question.
-- Boolean rubric: `marks` is the number of marks awarded when true. `falseMarks` (optional) sets marks for a false result (defaults to `0`).
-- Ordinal rubric: `marks` must contain at least 2 label/value pairs (numbers).
-- Numerical rubric:
+- `rubrics` is required and must contain unique rubric ids.
+- Each rubric requires `id` and `criteria`.
+- Criterion ids must be unique within each rubric.
+- Check criterion: `marks` is the number of marks awarded for a Yes answer. `falseMarks` (optional) sets marks for a No answer (defaults to `0`).
+- Options criterion: `marks` must contain at least 2 label/value pairs (numbers).
+- Number criterion:
   - At least one of `minMarks` or `maxMarks` must be provided.
   - When only `maxMarks` is given, `minMarks` defaults to `0` and `maxMarks` must be `> 0`.
   - When only `minMarks` is given, `maxMarks` defaults to `0` and `minMarks` must be `< 0`.
-  - `minScore` defaults to `0`, `maxScore` defaults to `1`. If `minScore` is provided, `maxScore` must also be provided.
-  - `reversed` (optional boolean): reverses the score-to-marks mapping direction.
-  - Final values must satisfy `minMarks <= maxMarks` and `minScore < maxScore`.
+  - `minValue` defaults to `0`, `maxValue` defaults to `1`. If `minValue` is provided, `maxValue` must also be provided.
+  - `reversed` (optional boolean): reverses the value-to-marks mapping direction.
+  - Final values must satisfy `minMarks <= maxMarks` and `minValue < maxValue`.
+- Unrecognized top-level keys and unrecognized criterion fields are rejected, so a stale file (e.g. an old `questions:` export) fails loudly instead of importing silently with fields dropped.
 
 ### Students CSV
 
 ```csv
-last_name,first_name,id,team
+last_name,first_name,id,group
 Doe,John,john_doe,
 Smith,Jane,jane_smith,
-Johnson,Bob,bob_johnson,Team A
+Johnson,Bob,bob_johnson,Group A
 ```
 
 Rules:
 
 - Required columns: `last_name`, `first_name`, `id`.
-- Optional column: `team`.
-- Empty `team` means individual submission.
-- Same `team` groups students into one team submission.
+- Optional column: `group`.
+- Empty `group` means an individual grade target.
+- Same `group` groups students into one grade target.
 
-### Assessments CSV
+### Grades CSV
 
 ```csv
-submission_type,submitter,q1:r1,q2:r2
+kind,name,r1:c1,r2:c2
 individual,jane_smith,,
 individual,john_doe,true,good
-team,Team A,false,excellent
+group,Group A,false,excellent
 ```
 
 Rules:
 
-- Required columns: `submission_type`, `submitter`.
-- `submission_type` must be `individual` or `team`.
-- Assessment columns use `questionId:rubricId`.
-- For export/import round-trip, export must include rubric assessment columns (`questionId:rubricId`). Marks-only exports (`questionId:rubricId:marks`) do not contain importable assessment values.
-- Values by rubric type:
-  - boolean: `true` or `false`
-  - ordinal: one of the rubric labels
-  - numerical: numeric score
-- Empty assessment cells are ignored.
+- Required columns: `kind`, `name`.
+- `kind` must be `individual` or `group`.
+- Grade columns use `rubricId:criterionId`.
+- For export/import round-trip, export must include grade columns (`rubricId:criterionId`). Marks-only exports (`rubricId:criterionId:marks`) do not contain importable grades.
+- Values by criterion kind:
+  - Check: `true` or `false`
+  - Options: one of the criterion's labels
+  - Number: a numeric value
+- Empty grade cells are ignored.
 - Unknown columns are rejected.
-- Missing submissions are skipped.
-- Export-only columns like question totals, `:marks`, and `grand_total_marks` are allowed and ignored on import.
+- Rows with no matching grade target are skipped.
+- Export-only columns like rubric totals (`rubricId:total`), `:marks` columns, and `final_total` are allowed and ignored on import.
 
 ## Notes
 
