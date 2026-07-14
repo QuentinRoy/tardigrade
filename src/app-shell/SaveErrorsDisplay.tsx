@@ -3,7 +3,7 @@
 import { Alert, Stack } from "@mantine/core";
 import AppLink from "#design-system/AppLink.tsx";
 import { useSaveErrors } from "#design-system/SaveErrorsProvider.tsx";
-import { projectGradeTargetRubricPath } from "#projects/projectPaths.ts";
+import { gridGradeTargetRubricPath } from "#grids/gridPaths.ts";
 
 export function SaveErrorsDisplay() {
 	const { errors, dismissError } = useSaveErrors();
@@ -23,7 +23,7 @@ export function SaveErrorsDisplay() {
 				>
 					Failed to save grade for{" "}
 					<AppLink
-						href={projectGradeTargetRubricPath(error)}
+						href={gridGradeTargetRubricPath(error)}
 						c="inherit"
 						fw="bold"
 					>

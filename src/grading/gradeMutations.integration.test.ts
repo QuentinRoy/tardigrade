@@ -6,7 +6,7 @@ import { saveCriterionGradeInDb } from "#grade-persistence/gradeMutations.ts";
 import { runForcedInterleaving } from "#test/concurrency.ts";
 import { buildTestId, createTestDb } from "#test/dbIntegration.ts";
 import { createGradeFixture } from "#test/grades.ts";
-import { createProject } from "#test/projects.ts";
+import { createGrid } from "#test/grids.ts";
 import { saveCriterionGrade } from "./gradeMutations.ts";
 import { loadRubricGradeFromDb } from "./grades.ts";
 
@@ -39,12 +39,12 @@ async function gradeTargetRowId(
 
 test("saveCriterionGradeInDb round-trips boolean, ordinal and numerical grades", async () => {
 	await using db = await createTestDb();
-	await using project = await createProject(db, "Grade Write Project");
-	const fixture = await createGradeFixture(db, project.id);
+	await using grid = await createGrid(db, "Grade Write Grid");
+	const fixture = await createGradeFixture(db, grid.id);
 
 	const results = await Promise.all([
 		saveCriterionGradeInDb(db, {
-			projectId: fixture.projectId,
+			gridId: fixture.gridId,
 			targetId: fixture.gradeTargetId,
 			rubricId: fixture.rubricId,
 			grade: {
@@ -54,7 +54,7 @@ test("saveCriterionGradeInDb round-trips boolean, ordinal and numerical grades",
 			},
 		}),
 		saveCriterionGradeInDb(db, {
-			projectId: fixture.projectId,
+			gridId: fixture.gridId,
 			targetId: fixture.gradeTargetId,
 			rubricId: fixture.rubricId,
 			grade: {
@@ -64,7 +64,7 @@ test("saveCriterionGradeInDb round-trips boolean, ordinal and numerical grades",
 			},
 		}),
 		saveCriterionGradeInDb(db, {
-			projectId: fixture.projectId,
+			gridId: fixture.gridId,
 			targetId: fixture.gradeTargetId,
 			rubricId: fixture.rubricId,
 			grade: {
@@ -83,7 +83,7 @@ test("saveCriterionGradeInDb round-trips boolean, ordinal and numerical grades",
 
 	const loaded = await loadRubricGradeFromDb(db, {
 		targetId: fixture.gradeTargetId,
-		projectId: fixture.projectId,
+		gridId: fixture.gridId,
 		rubricId: fixture.rubricId,
 	});
 	const byCriterionId = new Map(
@@ -109,11 +109,11 @@ test("saveCriterionGradeInDb round-trips boolean, ordinal and numerical grades",
 
 test("saveCriterionGradeInDb returns a validation error for an invalid ordinal label", async () => {
 	await using db = await createTestDb();
-	await using project = await createProject(db, "Grade Ordinal Error Project");
-	const fixture = await createGradeFixture(db, project.id);
+	await using grid = await createGrid(db, "Grade Ordinal Error Grid");
+	const fixture = await createGradeFixture(db, grid.id);
 
 	const result = await saveCriterionGradeInDb(db, {
-		projectId: fixture.projectId,
+		gridId: fixture.gridId,
 		targetId: fixture.gradeTargetId,
 		rubricId: fixture.rubricId,
 		grade: {
@@ -132,14 +132,11 @@ test("saveCriterionGradeInDb returns a validation error for an invalid ordinal l
 
 test("saveCriterionGradeInDb returns a validation error for an out-of-range numerical score", async () => {
 	await using db = await createTestDb();
-	await using project = await createProject(
-		db,
-		"Grade Numerical Error Project",
-	);
-	const fixture = await createGradeFixture(db, project.id);
+	await using grid = await createGrid(db, "Grade Numerical Error Grid");
+	const fixture = await createGradeFixture(db, grid.id);
 
 	const result = await saveCriterionGradeInDb(db, {
-		projectId: fixture.projectId,
+		gridId: fixture.gridId,
 		targetId: fixture.gradeTargetId,
 		rubricId: fixture.rubricId,
 		grade: {
@@ -155,10 +152,10 @@ test("saveCriterionGradeInDb returns a validation error for an out-of-range nume
 	});
 });
 
-test("saveCriterionGradeInDb saves in the correct project when rubric and criterion ids collide", async () => {
+test("saveCriterionGradeInDb saves in the correct grid when rubric and criterion ids collide", async () => {
 	await using db = await createTestDb();
-	await using projectA = await createProject(db, "Grade Collision Project A");
-	await using projectB = await createProject(db, "Grade Collision Project B");
+	await using gridA = await createGrid(db, "Grade Collision Grid A");
+	await using gridB = await createGrid(db, "Grade Collision Grid B");
 
 	const sharedRubricId = buildTestId("shared-rubric");
 	const sharedCriterionIds = {
@@ -167,17 +164,17 @@ test("saveCriterionGradeInDb saves in the correct project when rubric and criter
 		numerical: buildTestId("shared-criterion-numerical"),
 	};
 
-	const fixtureA = await createGradeFixture(db, projectA.id, {
+	const fixtureA = await createGradeFixture(db, gridA.id, {
 		rubricId: sharedRubricId,
 		criterionIds: sharedCriterionIds,
 	});
-	const fixtureB = await createGradeFixture(db, projectB.id, {
+	const fixtureB = await createGradeFixture(db, gridB.id, {
 		rubricId: sharedRubricId,
 		criterionIds: sharedCriterionIds,
 	});
 
 	const result = await saveCriterionGradeInDb(db, {
-		projectId: fixtureB.projectId,
+		gridId: fixtureB.gridId,
 		targetId: fixtureB.gradeTargetId,
 		rubricId: fixtureB.rubricId,
 		grade: {
@@ -189,35 +186,35 @@ test("saveCriterionGradeInDb saves in the correct project when rubric and criter
 
 	expect(result).toEqual({ success: true });
 
-	const projectBGrade = await loadRubricGradeFromDb(db, {
+	const gridBGrade = await loadRubricGradeFromDb(db, {
 		targetId: fixtureB.gradeTargetId,
-		projectId: fixtureB.projectId,
+		gridId: fixtureB.gridId,
 		rubricId: fixtureB.rubricId,
 	});
-	expect(projectBGrade).toEqual([
+	expect(gridBGrade).toEqual([
 		{ criterionId: fixtureB.criterionIds.boolean, kind: "check", passed: true },
 	]);
 
-	const projectAGrade = await loadRubricGradeFromDb(db, {
+	const gridAGrade = await loadRubricGradeFromDb(db, {
 		targetId: fixtureA.gradeTargetId,
-		projectId: fixtureA.projectId,
+		gridId: fixtureA.gridId,
 		rubricId: fixtureA.rubricId,
 	});
-	expect(projectAGrade).toEqual([]);
+	expect(gridAGrade).toEqual([]);
 });
 
-test("saveCriterionGradeInDb rejects cross-project grade target and rubric combinations", async () => {
+test("saveCriterionGradeInDb rejects cross-grid grade target and rubric combinations", async () => {
 	await using db = await createTestDb();
-	await using projectA = await createProject(db, "Grade Isolation Project A");
-	await using projectB = await createProject(db, "Grade Isolation Project B");
+	await using gridA = await createGrid(db, "Grade Isolation Grid A");
+	await using gridB = await createGrid(db, "Grade Isolation Grid B");
 
-	const fixtureA = await createGradeFixture(db, projectA.id);
-	const fixtureB = await createGradeFixture(db, projectB.id);
+	const fixtureA = await createGradeFixture(db, gridA.id);
+	const fixtureB = await createGradeFixture(db, gridB.id);
 
-	// Project A's own project id, but B's rubric: the rubric lookup is scoped to
-	// project A and must not find project B's rubric.
+	// Grid A's own grid id, but B's rubric: the rubric lookup is scoped to
+	// grid A and must not find grid B's rubric.
 	const result = await saveCriterionGradeInDb(db, {
-		projectId: fixtureA.projectId,
+		gridId: fixtureA.gridId,
 		targetId: fixtureA.gradeTargetId,
 		rubricId: fixtureB.rubricId,
 		grade: {
@@ -236,12 +233,12 @@ test("saveCriterionGradeInDb rejects cross-project grade target and rubric combi
 
 test("saveCriterionGrade wrapper updates the edited tags read-your-writes and revalidates the derived tags on success", async () => {
 	await using db = await createTestDb();
-	await using project = await createProject(db, "Grade Save Cache Project");
-	const fixture = await createGradeFixture(db, project.id);
+	await using grid = await createGrid(db, "Grade Save Cache Grid");
+	const fixture = await createGradeFixture(db, grid.id);
 
 	const result = await saveCriterionGrade(
 		{
-			projectId: fixture.projectId,
+			gridId: fixture.gridId,
 			targetId: fixture.gradeTargetId,
 			rubricId: fixture.rubricId,
 			grade: {
@@ -272,15 +269,12 @@ test("saveCriterionGrade wrapper updates the edited tags read-your-writes and re
 
 test("saveCriterionGrade wrapper does not invalidate when the save fails validation", async () => {
 	await using db = await createTestDb();
-	await using project = await createProject(
-		db,
-		"Grade Save Cache Fail Project",
-	);
-	const fixture = await createGradeFixture(db, project.id);
+	await using grid = await createGrid(db, "Grade Save Cache Fail Grid");
+	const fixture = await createGradeFixture(db, grid.id);
 
 	const result = await saveCriterionGrade(
 		{
-			projectId: fixture.projectId,
+			gridId: fixture.gridId,
 			targetId: fixture.gradeTargetId,
 			rubricId: fixture.rubricId,
 			grade: {
@@ -304,16 +298,13 @@ test("saveCriterionGrade wrapper does not invalidate when the save fails validat
 // `runForcedInterleaving` waits on before letting the first writer commit.
 test("saveCriterionGradeInDb keeps a single untorn value when two writers race the same criterion", async () => {
 	await using db = await createTestDb();
-	await using project = await createProject(
-		db,
-		"Concurrency Same Criterion Project",
-	);
-	const fixture = await createGradeFixture(db, project.id);
+	await using grid = await createGrid(db, "Concurrency Same Criterion Grid");
+	const fixture = await createGradeFixture(db, grid.id);
 
 	const { firstResult, secondResult } = await runForcedInterleaving(db, {
 		first: (tx) =>
 			saveCriterionGradeInDb(tx, {
-				projectId: fixture.projectId,
+				gridId: fixture.gridId,
 				targetId: fixture.gradeTargetId,
 				rubricId: fixture.rubricId,
 				grade: {
@@ -324,7 +315,7 @@ test("saveCriterionGradeInDb keeps a single untorn value when two writers race t
 			}),
 		second: (tx) =>
 			saveCriterionGradeInDb(tx, {
-				projectId: fixture.projectId,
+				gridId: fixture.gridId,
 				targetId: fixture.gradeTargetId,
 				rubricId: fixture.rubricId,
 				grade: {
@@ -383,15 +374,15 @@ test("saveCriterionGradeInDb keeps a single untorn value when two writers race t
 // parallel run is enough to prove both criterion grades coexist.
 test("saveCriterionGradeInDb keeps both criterion grades when two writers race different criteria on the same rubric", async () => {
 	await using db = await createTestDb();
-	await using project = await createProject(
+	await using grid = await createGrid(
 		db,
-		"Concurrency Different Criteria Project",
+		"Concurrency Different Criteria Grid",
 	);
-	const fixture = await createGradeFixture(db, project.id);
+	const fixture = await createGradeFixture(db, grid.id);
 
 	const [firstResult, secondResult] = await Promise.all([
 		saveCriterionGradeInDb(db, {
-			projectId: fixture.projectId,
+			gridId: fixture.gridId,
 			targetId: fixture.gradeTargetId,
 			rubricId: fixture.rubricId,
 			grade: {
@@ -401,7 +392,7 @@ test("saveCriterionGradeInDb keeps both criterion grades when two writers race d
 			},
 		}),
 		saveCriterionGradeInDb(db, {
-			projectId: fixture.projectId,
+			gridId: fixture.gridId,
 			targetId: fixture.gradeTargetId,
 			rubricId: fixture.rubricId,
 			grade: {
@@ -425,7 +416,7 @@ test("saveCriterionGradeInDb keeps both criterion grades when two writers race d
 
 	const loaded = await loadRubricGradeFromDb(db, {
 		targetId: fixture.gradeTargetId,
-		projectId: fixture.projectId,
+		gridId: fixture.gridId,
 		rubricId: fixture.rubricId,
 	});
 	const byCriterionId = new Map(
@@ -450,13 +441,13 @@ test("saveCriterionGradeInDb keeps both criterion grades when two writers race d
 // wrapper doesn't error or deadlock under ordinary concurrent usage.
 test("saveCriterionGrade wrapper does not error under naive parallel saves", async () => {
 	await using db = await createTestDb();
-	await using project = await createProject(db, "Concurrency Smoke Project");
-	const fixture = await createGradeFixture(db, project.id);
+	await using grid = await createGrid(db, "Concurrency Smoke Grid");
+	const fixture = await createGradeFixture(db, grid.id);
 
 	const results = await Promise.all([
 		saveCriterionGrade(
 			{
-				projectId: fixture.projectId,
+				gridId: fixture.gridId,
 				targetId: fixture.gradeTargetId,
 				rubricId: fixture.rubricId,
 				grade: {
@@ -469,7 +460,7 @@ test("saveCriterionGrade wrapper does not error under naive parallel saves", asy
 		),
 		saveCriterionGrade(
 			{
-				projectId: fixture.projectId,
+				gridId: fixture.gridId,
 				targetId: fixture.gradeTargetId,
 				rubricId: fixture.rubricId,
 				grade: {
@@ -482,7 +473,7 @@ test("saveCriterionGrade wrapper does not error under naive parallel saves", asy
 		),
 		saveCriterionGrade(
 			{
-				projectId: fixture.projectId,
+				gridId: fixture.gridId,
 				targetId: fixture.gradeTargetId,
 				rubricId: fixture.rubricId,
 				grade: {

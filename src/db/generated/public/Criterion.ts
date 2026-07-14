@@ -3,7 +3,7 @@
 
 import type { ColumnType } from "kysely";
 import type { CriterionKind } from "./CriterionKind.ts";
-import type { ProjectRowId } from "./Project.ts";
+import type { GridRowId } from "./Grid.ts";
 import type { RubricRowId } from "./Rubric.ts";
 
 /** Identifier type for public.criterion */
@@ -36,7 +36,7 @@ export interface CriterionTable {
 	updatedAt: ColumnType<Date, Date | string | undefined, Date | string>;
 
 	/** Database type: pg_catalog.int4 */
-	projectId: ColumnType<ProjectRowId, ProjectRowId, ProjectRowId>;
+	gridRowId: ColumnType<GridRowId, GridRowId, GridRowId>;
 
 	/** Database type: pg_catalog.int4 */
 	rubricId: ColumnType<RubricRowId, RubricRowId, RubricRowId>;

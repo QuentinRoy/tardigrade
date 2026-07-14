@@ -11,7 +11,7 @@ import {
 } from "#design-system/SaveErrorsProvider.tsx";
 import { getGradeTargetLabel } from "#grade-targets/getGradeTargetLabel.ts";
 import type { GradeTarget } from "#grade-targets/types.ts";
-import { projectGradeTargetRubricPath } from "#projects/projectPaths.ts";
+import { gridGradeTargetRubricPath } from "#grids/gridPaths.ts";
 import CompletionSummary from "./CompletionSummary.tsx";
 import CriterionGradeList from "./CriterionGradeList.tsx";
 import GradeTargetSelector from "./GradeTargetSelector.tsx";
@@ -23,8 +23,8 @@ import { useGradeTargetQuickJump } from "./useGradeTargetQuickJump.ts";
 import { useGradingSession } from "./useGradingSession.ts";
 
 type RubricGradingClientProps = {
-	projectId: string;
-	projectSlug: string;
+	gridId: string;
+	gridSlug: string;
 	rubricId: string;
 	rubricLabel?: string | undefined;
 	criteria: GradedCriterion[];
@@ -40,8 +40,8 @@ type RubricGradingClientProps = {
 };
 
 export default function RubricGradingClient({
-	projectId,
-	projectSlug,
+	gridId,
+	gridSlug,
 	rubricId,
 	rubricLabel,
 	criteria: initialCriteria,
@@ -73,13 +73,13 @@ export default function RubricGradingClient({
 		saveCriterionGrade: (_criterion, grade) =>
 			trySaveCriterionGrade({
 				saveCriterionGrade,
-				projectId,
+				gridId,
 				targetId: currentTargetId,
 				rubricId,
 				grade,
 				errorContext: {
-					projectId,
-					projectSlug,
+					gridId,
+					gridSlug,
 					targetId: currentTargetId,
 					targetSlug: currentTarget?.slug ?? currentTargetId,
 					targetLabel: currentTargetLabel,
@@ -97,9 +97,9 @@ export default function RubricGradingClient({
 	const navigateToTarget = (targetId: string) => {
 		const target = targets.find((candidate) => candidate.id === targetId);
 		router.push(
-			projectGradeTargetRubricPath({
-				projectId,
-				projectSlug,
+			gridGradeTargetRubricPath({
+				gridId,
+				gridSlug,
 				targetId,
 				targetSlug: target?.slug ?? targetId,
 				rubricId,
@@ -125,9 +125,9 @@ export default function RubricGradingClient({
 			<Group gap="xs" wrap="wrap">
 				<Button
 					component={NextLink}
-					href={projectGradeTargetRubricPath({
-						projectId,
-						projectSlug,
+					href={gridGradeTargetRubricPath({
+						gridId,
+						gridSlug,
 						targetId: previousTarget?.id ?? currentTargetId,
 						targetSlug: previousTarget?.slug ?? currentTargetId,
 						rubricId,
@@ -141,9 +141,9 @@ export default function RubricGradingClient({
 				</Button>
 				<Button
 					component={NextLink}
-					href={projectGradeTargetRubricPath({
-						projectId,
-						projectSlug,
+					href={gridGradeTargetRubricPath({
+						gridId,
+						gridSlug,
 						targetId: nextTarget?.id ?? currentTargetId,
 						targetSlug: nextTarget?.slug ?? currentTargetId,
 						rubricId,

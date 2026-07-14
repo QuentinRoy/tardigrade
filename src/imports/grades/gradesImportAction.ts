@@ -6,7 +6,7 @@ import { parseGradesCsv } from "./parseGrades.ts";
 import { saveGrades } from "./saveGrades.ts";
 
 export async function gradesImportAction(
-	projectId: string,
+	gridId: string,
 	_previousState: ActionState,
 	formData: FormData,
 ): Promise<ActionState> {
@@ -14,7 +14,7 @@ export async function gradesImportAction(
 
 	try {
 		const grades = await parseGradesCsv(gradesCsv);
-		const result = await saveGrades({ rows: grades, projectId });
+		const result = await saveGrades({ rows: grades, gridId });
 
 		const overwriteSuffix =
 			result.overwriteCount > 0

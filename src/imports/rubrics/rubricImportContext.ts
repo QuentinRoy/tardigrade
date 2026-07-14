@@ -8,14 +8,14 @@ import type { RubricImportContext } from "./prepareRubricImport.ts";
 // everything prepareRubricImport() needs, driven by the parsed rubrics.
 export async function loadRubricImportContextFromDb(
 	db: Kysely<Database>,
-	{ rubrics, projectId }: { rubrics: ImportedRubrics; projectId: string },
+	{ rubrics, gridId }: { rubrics: ImportedRubrics; gridId: string },
 ): Promise<RubricImportContext> {
-	const project = await db
-		.selectFrom("project")
+	const grid = await db
+		.selectFrom("grid")
 		.select("rowId")
-		.where("id", "=", projectId)
+		.where("id", "=", gridId)
 		.executeTakeFirstOrThrow();
-	const projectRowId = project.rowId;
+	const gridRowId = grid.rowId;
 
 	const criterionIds = rubrics.flatMap((rubric) =>
 		rubric.criteria.map((criterion) => criterion.id),
@@ -29,7 +29,7 @@ export async function loadRubricImportContextFromDb(
 		.selectFrom("criterion")
 		.innerJoin("rubric", "rubric.rowId", "criterion.rubricId")
 		.leftJoin("criterionGrade", "criterionGrade.criterionId", "criterion.rowId")
-		.where("criterion.projectId", "=", projectRowId)
+		.where("criterion.gridRowId", "=", gridRowId)
 		.where("criterion.id", "in", criterionIds)
 		.select(({ fn }) => [
 			"criterion.id",

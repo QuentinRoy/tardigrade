@@ -41,8 +41,8 @@ const meta = {
 	title: "Grade/RubricGradingClient",
 	component: Harness,
 	args: {
-		projectId: "project-1",
-		projectSlug: "project-slug",
+		gridId: "grid-1",
+		gridSlug: "grid-slug",
 		rubricId: "rubric-1",
 		rubricLabel: "Rubric 1",
 		criteria,

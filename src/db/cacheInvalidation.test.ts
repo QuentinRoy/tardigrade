@@ -3,7 +3,7 @@ import { beforeEach, expect, test, vi } from "vitest";
 import {
 	invalidateGradeImport,
 	invalidateGradeSave,
-	invalidateProjectCreate,
+	invalidateGridCreate,
 	invalidateRubricDefinitionDelete,
 	invalidateRubricDefinitionSave,
 	invalidateRubricImport,
@@ -83,11 +83,11 @@ test("invalidateRubricReorder only updates the rubric list read-your-writes", ()
 	expect(revalidateTag).not.toHaveBeenCalled();
 });
 
-test("invalidateProjectCreate revalidates the project list and the new project tag", () => {
-	invalidateProjectCreate({ projectId: "p-1" });
+test("invalidateGridCreate revalidates the grid list and the new grid tag", () => {
+	invalidateGridCreate({ gridId: "p-1" });
 
 	expect(updateTag).not.toHaveBeenCalled();
-	expect(revalidatedTags()).toEqual(["projects", "projects:p-1"]);
+	expect(revalidatedTags()).toEqual(["grids", "grids:p-1"]);
 });
 
 test("invalidateGradeImport revalidates the grade aggregates", () => {
@@ -111,8 +111,8 @@ test("invalidateStudentImport revalidates the grade-target list and grade aggreg
 	expect(revalidatedTags()).toEqual(["grade-targets", "grades", "grades:all"]);
 });
 
-test("import and project helpers revalidate with the max profile", () => {
-	invalidateProjectCreate({ projectId: "p-1" });
+test("import and grid helpers revalidate with the max profile", () => {
+	invalidateGridCreate({ gridId: "p-1" });
 	invalidateGradeImport();
 	invalidateRubricImport();
 	invalidateStudentImport();

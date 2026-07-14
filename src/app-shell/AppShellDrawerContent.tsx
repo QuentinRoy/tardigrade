@@ -5,18 +5,18 @@ import NextLink from "next/link";
 import { usePathname } from "next/navigation";
 import { type ReactNode, useMemo } from "react";
 import {
-	changeProjectPath,
-	projectExportGradesPath,
-	projectExportRubricsPath,
-	projectGradesPath,
-	projectImportGradesPath,
-	projectImportRubricsPath,
-	projectImportStudentsPath,
-	projectResultsPath,
-	projectRubricsPath,
-} from "#projects/projectPaths.ts";
+	changeGridPath,
+	gridExportGradesPath,
+	gridExportRubricsPath,
+	gridGradesPath,
+	gridImportGradesPath,
+	gridImportRubricsPath,
+	gridImportStudentsPath,
+	gridResultsPath,
+	gridRubricsPath,
+} from "#grids/gridPaths.ts";
 import { useLocalStorage } from "#utils/useLocalStorage.ts";
-import { getProjectRouteContext } from "./AppShell.shared.ts";
+import { getGridRouteContext } from "./AppShell.shared.ts";
 
 const EXPORT_STORAGE_KEY = "export-csv-options-v1";
 
@@ -81,17 +81,14 @@ function NavigationZone({
 	);
 }
 
-type AppShellDrawerContentProps = {
-	projectName: string;
-	onDismiss?: () => void;
-};
+type AppShellDrawerContentProps = { gridName: string; onDismiss?: () => void };
 
 export default function AppShellDrawerContent({
-	projectName,
+	gridName,
 	onDismiss,
 }: AppShellDrawerContentProps): ReactNode {
 	const pathname = usePathname();
-	const projectRouteContext = getProjectRouteContext(pathname);
+	const gridRouteContext = getGridRouteContext(pathname);
 
 	const [exportOptions, setExportOptions] =
 		useLocalStorage<ExportPersistedOptions>(
@@ -101,7 +98,7 @@ export default function AppShellDrawerContent({
 		);
 
 	const exportHref = useMemo(() => {
-		if (projectRouteContext == null) {
+		if (gridRouteContext == null) {
 			return "";
 		}
 
@@ -116,16 +113,16 @@ export default function AppShellDrawerContent({
 		}
 
 		const query = searchParams.toString();
-		const basePath = projectExportGradesPath(projectRouteContext);
+		const basePath = gridExportGradesPath(gridRouteContext);
 
 		return query.length > 0 ? `${basePath}?${query}` : basePath;
-	}, [exportOptions, projectRouteContext]);
+	}, [exportOptions, gridRouteContext]);
 
-	if (projectRouteContext == null) {
+	if (gridRouteContext == null) {
 		return (
 			<Stack gap={0}>
 				<Text px="md" py="sm">
-					Select a project
+					Select a grid
 				</Text>
 				<Divider />
 			</Stack>
@@ -133,40 +130,34 @@ export default function AppShellDrawerContent({
 	}
 
 	const gradeItems: NavigationItem[] = [
-		{ label: "Grades", href: projectGradesPath(projectRouteContext) },
-		{ label: "Results", href: projectResultsPath(projectRouteContext) },
+		{ label: "Grades", href: gridGradesPath(gridRouteContext) },
+		{ label: "Results", href: gridResultsPath(gridRouteContext) },
 	];
 
 	const managementItems: NavigationItem[] = [
-		{ label: "Manage Rubrics", href: projectRubricsPath(projectRouteContext) },
+		{ label: "Manage Rubrics", href: gridRubricsPath(gridRouteContext) },
 	];
 
 	const importItems: NavigationItem[] = [
-		{
-			label: "Import Rubrics",
-			href: projectImportRubricsPath(projectRouteContext),
-		},
+		{ label: "Import Rubrics", href: gridImportRubricsPath(gridRouteContext) },
 		{
 			label: "Import Students",
-			href: projectImportStudentsPath(projectRouteContext),
+			href: gridImportStudentsPath(gridRouteContext),
 		},
-		{
-			label: "Import Grades",
-			href: projectImportGradesPath(projectRouteContext),
-		},
+		{ label: "Import Grades", href: gridImportGradesPath(gridRouteContext) },
 	];
 
 	return (
 		<Stack gap={0}>
 			<Stack gap="xs" px="md" py="sm">
 				<Text size="xs" tt="uppercase" c="dimmed" fw={600}>
-					Project
+					Grid
 				</Text>
 				<NavLink
 					component={NextLink}
-					href={changeProjectPath()}
-					label={projectName}
-					description="Change project"
+					href={changeGridPath()}
+					label={gridName}
+					description="Change grid"
 					{...(onDismiss && { onClick: onDismiss })}
 				/>
 			</Stack>
@@ -233,7 +224,7 @@ export default function AppShellDrawerContent({
 				</Text>
 				<Button
 					component={NextLink}
-					href={projectExportRubricsPath(projectRouteContext)}
+					href={gridExportRubricsPath(gridRouteContext)}
 					variant="outline"
 					fullWidth
 					{...(onDismiss && { onClick: onDismiss })}

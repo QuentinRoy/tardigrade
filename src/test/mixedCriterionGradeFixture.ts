@@ -2,7 +2,7 @@ import type { Kysely } from "kysely";
 import type { Database } from "#db/generated/database.ts";
 import type { Simplify, Writable } from "#utils/utils.ts";
 import { buildTestId } from "./dbIntegration.ts";
-import { createProjectRecord } from "./projects.ts";
+import { createGridRecord } from "./grids.ts";
 
 function mustGet<TKey, TValue>(map: Map<TKey, TValue>, key: TKey): TValue {
 	const value = map.get(key);
@@ -13,7 +13,7 @@ function mustGet<TKey, TValue>(map: Map<TKey, TValue>, key: TKey): TValue {
 }
 
 export type MixedCriterionRubricFixture = {
-	project: { id: string; rowId: number };
+	grid: { id: string; rowId: number };
 	rubric: {
 		id: string;
 		rowId: number;
@@ -21,14 +21,14 @@ export type MixedCriterionRubricFixture = {
 	};
 };
 
-// Shared by export and import integration tests: a project with one rubric
+// Shared by export and import integration tests: a grid with one rubric
 // that has one criterion of each type (boolean/ordinal/numerical). Criterion and
-// rubric ids are project-scoped, so each caller can pick its own ids
-// without colliding with other tests' projects.
-export async function createMixedCriterionRubricFixtureProject(
+// rubric ids are grid-scoped, so each caller can pick its own ids
+// without colliding with other tests' grids.
+export async function createMixedCriterionRubricFixtureGrid(
 	db: Kysely<Database>,
 	params: {
-		projectName: string;
+		gridName: string;
 		rubricId: string;
 		checkCriterionId: string;
 		optionsCriterionId: string;
@@ -36,18 +36,18 @@ export async function createMixedCriterionRubricFixtureProject(
 	},
 ): Promise<MixedCriterionRubricFixture> {
 	const {
-		projectName,
+		gridName,
 		rubricId,
 		checkCriterionId,
 		optionsCriterionId,
 		numberCriterionId,
 	} = params;
-	const project = await createProjectRecord(db, projectName);
+	const grid = await createGridRecord(db, gridName);
 
 	const rubricRow = await db
 		.insertInto("rubric")
 		.values({
-			projectId: project.rowId,
+			gridRowId: grid.rowId,
 			id: rubricId,
 			label: "Mixed rubric",
 			position: 0,
@@ -60,7 +60,7 @@ export async function createMixedCriterionRubricFixtureProject(
 		.values([
 			{
 				id: checkCriterionId,
-				projectId: project.rowId,
+				gridRowId: grid.rowId,
 				rubricId: rubricRow.rowId,
 				kind: "check",
 				position: 0,
@@ -68,7 +68,7 @@ export async function createMixedCriterionRubricFixtureProject(
 			},
 			{
 				id: optionsCriterionId,
-				projectId: project.rowId,
+				gridRowId: grid.rowId,
 				rubricId: rubricRow.rowId,
 				kind: "options",
 				position: 1,
@@ -76,7 +76,7 @@ export async function createMixedCriterionRubricFixtureProject(
 			},
 			{
 				id: numberCriterionId,
-				projectId: project.rowId,
+				gridRowId: grid.rowId,
 				rubricId: rubricRow.rowId,
 				kind: "number",
 				position: 2,
@@ -124,7 +124,7 @@ export async function createMixedCriterionRubricFixtureProject(
 	]);
 
 	return {
-		project: { id: project.id, rowId: project.rowId },
+		grid: { id: grid.id, rowId: grid.rowId },
 		rubric: {
 			id: rubricId,
 			rowId: rubricRow.rowId,
@@ -161,7 +161,7 @@ type StudentFixtureTuple<TFixtures extends readonly { id: string }[]> =
 // length array literal gives back a same-length, positionally-typed result,
 // so callers can destructure without `undefined` checks.
 export async function createStudentFixtures<
-	const TFixtures extends readonly { projectRowId: number; id: string }[],
+	const TFixtures extends readonly { gridRowId: number; id: string }[],
 >(
 	db: Kysely<Database>,
 	fixtures: TFixtures,
@@ -169,8 +169,8 @@ export async function createStudentFixtures<
 	const rows = await db
 		.insertInto("student")
 		.values(
-			fixtures.map(({ projectRowId, id }) => ({
-				projectId: projectRowId,
+			fixtures.map(({ gridRowId, id }) => ({
+				gridRowId,
 				id,
 				firstName: "Test",
 				lastName: "Student",
@@ -195,7 +195,7 @@ type GradeTargetFixtureTuple<
 // given student.
 export async function createIndividualGradeTargetFixtures<
 	const TFixtures extends readonly {
-		projectRowId: number;
+		gridRowId: number;
 		studentRowId: number;
 	}[],
 >(
@@ -205,8 +205,8 @@ export async function createIndividualGradeTargetFixtures<
 	const rows = await db
 		.insertInto("gradeTarget")
 		.values(
-			fixtures.map(({ projectRowId, studentRowId }) => ({
-				projectId: projectRowId,
+			fixtures.map(({ gridRowId, studentRowId }) => ({
+				gridRowId,
 				id: buildTestId("target"),
 				kind: "individual" as const,
 				studentRowId,

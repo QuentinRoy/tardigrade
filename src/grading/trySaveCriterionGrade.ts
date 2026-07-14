@@ -18,14 +18,14 @@ export type SaveCriterionGrade = (
 
 export async function trySaveCriterionGrade({
 	saveCriterionGrade,
-	projectId,
+	gridId,
 	targetId,
 	rubricId,
 	grade,
 	errorContext,
 }: {
 	saveCriterionGrade: SaveCriterionGrade;
-	projectId: string;
+	gridId: string;
 	targetId: string;
 	rubricId: string;
 	grade: SaveCriterionGradeParams["grade"];
@@ -33,7 +33,7 @@ export async function trySaveCriterionGrade({
 }): Promise<SaveResult<Omit<SaveError, "id">>> {
 	try {
 		const result = await saveCriterionGrade({
-			projectId,
+			gridId,
 			targetId,
 			rubricId,
 			grade,

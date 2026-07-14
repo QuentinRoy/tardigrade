@@ -9,7 +9,7 @@ import AppShellLoadingShell from "./AppShellLoadingShell.tsx";
 import AppShellTopBar from "./AppShellTopBar.tsx";
 
 type AppShellProps =
-	| { showNavigation: true; projectName: string; children: ReactNode }
+	| { showNavigation: true; gridName: string; children: ReactNode }
 	| { showNavigation?: false; children: ReactNode };
 
 export default function AppShell(props: AppShellProps) {
@@ -39,7 +39,7 @@ export default function AppShell(props: AppShellProps) {
 					{props.showNavigation ? (
 						<AppShellTopBar
 							showNavigation
-							projectName={props.projectName}
+							gridName={props.gridName}
 							navbarOpened={navbarOpened}
 							onToggleNavbar={toggleNavbar}
 							navbarId={navbarId}
@@ -51,10 +51,10 @@ export default function AppShell(props: AppShellProps) {
 			</MantineAppShell.Header>
 
 			{props.showNavigation && (
-				<MantineAppShell.Navbar id={navbarId} aria-label="Project navigation">
+				<MantineAppShell.Navbar id={navbarId} aria-label="Grid navigation">
 					<Suspense fallback={null}>
 						<AppShellDrawerContent
-							projectName={props.projectName}
+							gridName={props.gridName}
 							onDismiss={closeNavbar}
 						/>
 					</Suspense>

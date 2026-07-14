@@ -4,7 +4,7 @@ import { beforeEach, expect, test, vi } from "vitest";
 import type { Database } from "#db/generated/database.ts";
 import { nextGradeTargetIds } from "#grade-targets/gradeTargets.ts";
 import { buildTestId, createTestDb } from "#test/dbIntegration.ts";
-import { createProject } from "#test/projects.ts";
+import { createGrid } from "#test/grids.ts";
 import {
 	buildGradedCriterionCountsByTarget,
 	criterionGradesCountCacheTags,
@@ -27,14 +27,14 @@ beforeEach(() => {
 
 async function createGradeTarget(
 	db: Kysely<Database>,
-	projectRowId: number,
+	gridRowId: number,
 ): Promise<{ id: string; rowId: number }> {
 	const studentId = buildTestId("student");
 
 	await db
 		.insertInto("student")
 		.values({
-			projectId: projectRowId,
+			gridRowId: gridRowId,
 			id: studentId,
 			lastName: "Progress",
 			firstName: "Test",
@@ -44,17 +44,17 @@ async function createGradeTarget(
 	const studentRow = await db
 		.selectFrom("student")
 		.select("rowId")
-		.where("projectId", "=", projectRowId)
+		.where("gridRowId", "=", gridRowId)
 		.where("id", "=", studentId)
 		.executeTakeFirstOrThrow();
 
-	const [id] = await nextGradeTargetIds(db, { projectRowId, count: 1 });
+	const [id] = await nextGradeTargetIds(db, { gridRowId, count: 1 });
 	if (id == null) throw new Error("Expected a generated id");
 
 	const target = await db
 		.insertInto("gradeTarget")
 		.values({
-			projectId: projectRowId,
+			gridRowId: gridRowId,
 			id,
 			kind: "individual",
 			studentRowId: studentRow.rowId,
@@ -67,14 +67,14 @@ async function createGradeTarget(
 
 async function createRubric(
 	db: Kysely<Database>,
-	projectRowId: number,
+	gridRowId: number,
 	rubricId: string,
 	{ criterionId }: { criterionId?: string } = {},
 ): Promise<{ rubricRowId: number; criterionRowId: number | null }> {
 	await db
 		.insertInto("rubric")
 		.values({
-			projectId: projectRowId,
+			gridRowId: gridRowId,
 			id: rubricId,
 			label: "Shared Q",
 			position: 0,
@@ -84,7 +84,7 @@ async function createRubric(
 	const rubric = await db
 		.selectFrom("rubric")
 		.select(["rowId"])
-		.where("projectId", "=", projectRowId)
+		.where("gridRowId", "=", gridRowId)
 		.where("id", "=", rubricId)
 		.executeTakeFirstOrThrow();
 
@@ -96,7 +96,7 @@ async function createRubric(
 		.insertInto("criterion")
 		.values({
 			id: criterionId,
-			projectId: projectRowId,
+			gridRowId: gridRowId,
 			rubricId: rubric.rowId,
 			kind: "check",
 			position: 0,
@@ -135,27 +135,27 @@ async function addGrade(
 		.execute();
 }
 
-test("loadGradedCriterionCountsByTargetFromDb counts only grades within the requested project when rubric ids collide across projects", async () => {
+test("loadGradedCriterionCountsByTargetFromDb counts only grades within the requested grid when rubric ids collide across grids", async () => {
 	await using db = await createTestDb();
-	await using projectA = await createProject(db, "Progress Isolation A");
-	await using projectB = await createProject(db, "Progress Isolation B");
+	await using gridA = await createGrid(db, "Progress Isolation A");
+	await using gridB = await createGrid(db, "Progress Isolation B");
 
 	const sharedRubricId = "shared-q-completion-iso";
 	const sharedCriterionId = "shared-criterion-completion-iso";
 
-	const targetA = await createGradeTarget(db, projectA.rowId);
-	const targetB = await createGradeTarget(db, projectB.rowId);
-	await createRubric(db, projectA.rowId, sharedRubricId, {
+	const targetA = await createGradeTarget(db, gridA.rowId);
+	const targetB = await createGradeTarget(db, gridB.rowId);
+	await createRubric(db, gridA.rowId, sharedRubricId, {
 		criterionId: sharedCriterionId,
 	});
 	const { criterionRowId: criterionBRowId } = await createRubric(
 		db,
-		projectB.rowId,
+		gridB.rowId,
 		sharedRubricId,
 		{ criterionId: sharedCriterionId },
 	);
 
-	// Add grade only for project B
+	// Add grade only for grid B
 	if (criterionBRowId == null) throw new Error("Expected criterion row");
 	await addGrade(db, {
 		gradeTargetRowId: targetB.rowId,
@@ -164,54 +164,48 @@ test("loadGradedCriterionCountsByTargetFromDb counts only grades within the requ
 
 	const completionA = await loadGradedCriterionCountsByTargetFromDb(db, {
 		rubricId: sharedRubricId,
-		projectId: projectA.id,
+		gridId: gridA.id,
 	});
 	const completionB = await loadGradedCriterionCountsByTargetFromDb(db, {
 		rubricId: sharedRubricId,
-		projectId: projectB.id,
+		gridId: gridB.id,
 	});
 
-	// Project A target has no grade — should show 0 completed
+	// Grid A target has no grade — should show 0 completed
 	expect(completionA[targetA.id]).toEqual({ completed: 0, total: 1 });
 
-	// Project B target has a complete grade — should show 1 completed
+	// Grid B target has a complete grade — should show 1 completed
 	expect(completionB[targetB.id]).toEqual({ completed: 1, total: 1 });
 
-	// Each project's result contains only its own single target — ids are
-	// per-project ordinals, so targetA.id and targetB.id legitimately collide
+	// Each grid's result contains only its own single target — ids are
+	// per-grid ordinals, so targetA.id and targetB.id legitimately collide
 	// (both "t-1"); isolation means each map has exactly one entry, not that
 	// the id values differ.
 	expect(Object.keys(completionA)).toEqual([targetA.id]);
 	expect(Object.keys(completionB)).toEqual([targetB.id]);
 });
 
-test("loadGradeCompletionByTargetFromDb counts only rubrics and grades within the requested project when rubric ids collide across projects", async () => {
+test("loadGradeCompletionByTargetFromDb counts only rubrics and grades within the requested grid when rubric ids collide across grids", async () => {
 	await using db = await createTestDb();
-	await using projectA = await createProject(
-		db,
-		"Overview Progress Isolation A",
-	);
-	await using projectB = await createProject(
-		db,
-		"Overview Progress Isolation B",
-	);
+	await using gridA = await createGrid(db, "Overview Progress Isolation A");
+	await using gridB = await createGrid(db, "Overview Progress Isolation B");
 
 	const sharedRubricId = "shared-q-overview-iso";
 	const sharedCriterionId = "shared-criterion-overview-iso";
 
-	const targetA = await createGradeTarget(db, projectA.rowId);
-	const targetB = await createGradeTarget(db, projectB.rowId);
-	await createRubric(db, projectA.rowId, sharedRubricId, {
+	const targetA = await createGradeTarget(db, gridA.rowId);
+	const targetB = await createGradeTarget(db, gridB.rowId);
+	await createRubric(db, gridA.rowId, sharedRubricId, {
 		criterionId: sharedCriterionId,
 	});
 	const { criterionRowId: criterionBRowId } = await createRubric(
 		db,
-		projectB.rowId,
+		gridB.rowId,
 		sharedRubricId,
 		{ criterionId: sharedCriterionId },
 	);
 
-	// Add grade only for project B
+	// Add grade only for grid B
 	if (criterionBRowId == null) throw new Error("Expected criterion row");
 	await addGrade(db, {
 		gradeTargetRowId: targetB.rowId,
@@ -219,20 +213,20 @@ test("loadGradeCompletionByTargetFromDb counts only rubrics and grades within th
 	});
 
 	const overviewA = await loadGradeCompletionByTargetFromDb(db, {
-		projectId: projectA.id,
+		gridId: gridA.id,
 	});
 	const overviewB = await loadGradeCompletionByTargetFromDb(db, {
-		projectId: projectB.id,
+		gridId: gridB.id,
 	});
 
-	// Project A has 1 rubric, 0 completed for its target
+	// Grid A has 1 rubric, 0 completed for its target
 	expect(overviewA[targetA.id]).toEqual({ completed: 0, total: 1 });
 
-	// Project B has 1 rubric, 1 completed for its target
+	// Grid B has 1 rubric, 1 completed for its target
 	expect(overviewB[targetB.id]).toEqual({ completed: 1, total: 1 });
 
-	// Each project's result contains only its own single target — ids are
-	// per-project ordinals, so targetA.id and targetB.id legitimately collide
+	// Each grid's result contains only its own single target — ids are
+	// per-grid ordinals, so targetA.id and targetB.id legitimately collide
 	// (both "t-1"); isolation means each map has exactly one entry, not that
 	// the id values differ.
 	expect(Object.keys(overviewA)).toEqual([targetA.id]);
@@ -241,15 +235,15 @@ test("loadGradeCompletionByTargetFromDb counts only rubrics and grades within th
 
 test("loadGradedCriterionCountsByTarget wrapper delegates to its primitive and declares its cache tags", async () => {
 	await using db = await createTestDb();
-	await using project = await createProject(db, "Rubric Progress Wrapper");
+	await using grid = await createGrid(db, "Rubric Progress Wrapper");
 	const sharedRubricId = buildTestId("rubric");
-	const target = await createGradeTarget(db, project.rowId);
-	await createRubric(db, project.rowId, sharedRubricId, {
+	const target = await createGradeTarget(db, grid.rowId);
+	await createRubric(db, grid.rowId, sharedRubricId, {
 		criterionId: buildTestId("criterion"),
 	});
 
 	const completion = await loadGradedCriterionCountsByTarget(
-		{ rubricId: sharedRubricId, projectId: project.id },
+		{ rubricId: sharedRubricId, gridId: grid.id },
 		{ db },
 	);
 
@@ -263,22 +257,22 @@ test("loadGradedCriterionCountsByTarget wrapper delegates to its primitive and d
 
 test("loadGradedCriterionCounts plus buildGradedCriterionCountsByTarget matches the combined primitive, given the same target ids", async () => {
 	await using db = await createTestDb();
-	await using project = await createProject(db, "Rubric Progress Split");
+	await using grid = await createGrid(db, "Rubric Progress Split");
 	const rubricId = buildTestId("rubric");
-	const target = await createGradeTarget(db, project.rowId);
-	await createRubric(db, project.rowId, rubricId, {
+	const target = await createGradeTarget(db, grid.rowId);
+	await createRubric(db, grid.rowId, rubricId, {
 		criterionId: buildTestId("criterion"),
 	});
 
 	const combined = await loadGradedCriterionCountsByTargetFromDb(db, {
 		rubricId,
-		projectId: project.id,
+		gridId: grid.id,
 	});
 
 	// Reuses an already-loaded target id instead of letting the counts
 	// primitive query grade targets itself (Finding 7).
 	const counts = await loadGradedCriterionCounts(
-		{ rubricId, projectId: project.id },
+		{ rubricId, gridId: grid.id },
 		{ db },
 	);
 	const split = buildGradedCriterionCountsByTarget([target.id], counts);
@@ -288,14 +282,14 @@ test("loadGradedCriterionCounts plus buildGradedCriterionCountsByTarget matches 
 
 test("loadGradeCompletionByTarget is a plain deriver that shares loadGradeCompletionRows' cache entry", async () => {
 	await using db = await createTestDb();
-	await using project = await createProject(db, "Overview Progress Wrapper");
-	const target = await createGradeTarget(db, project.rowId);
-	await createRubric(db, project.rowId, buildTestId("rubric"), {
+	await using grid = await createGrid(db, "Overview Progress Wrapper");
+	const target = await createGradeTarget(db, grid.rowId);
+	await createRubric(db, grid.rowId, buildTestId("rubric"), {
 		criterionId: buildTestId("criterion"),
 	});
 
 	const overview = await loadGradeCompletionByTarget(
-		{ projectId: project.id },
+		{ gridId: grid.id },
 		{ db },
 	);
 
@@ -309,16 +303,16 @@ test("loadGradeCompletionByTarget is a plain deriver that shares loadGradeComple
 
 test("a zero-criterion rubric counts as complete per target and consistently with the summary", async () => {
 	await using db = await createTestDb();
-	await using project = await createProject(db, "Zero Criterion Rubric");
+	await using grid = await createGrid(db, "Zero Criterion Rubric");
 
-	const target = await createGradeTarget(db, project.rowId);
-	await createRubric(db, project.rowId, buildTestId("rubric"));
+	const target = await createGradeTarget(db, grid.rowId);
+	await createRubric(db, grid.rowId, buildTestId("rubric"));
 
 	const byTarget = await loadGradeCompletionByTargetFromDb(db, {
-		projectId: project.id,
+		gridId: grid.id,
 	});
 	const summary = await loadGradeCompletionSummaryFromDb(db, {
-		projectId: project.id,
+		gridId: grid.id,
 	});
 
 	expect(byTarget[target.id]).toEqual({ completed: 1, total: 1 });
@@ -328,14 +322,14 @@ test("a zero-criterion rubric counts as complete per target and consistently wit
 
 test("loadGradeCompletionSummaryFromDb characterizes mixed completion across grade targets and rubrics", async () => {
 	await using db = await createTestDb();
-	await using project = await createProject(db, "Mixed Completion Summary");
+	await using grid = await createGrid(db, "Mixed Completion Summary");
 
-	const targetDone = await createGradeTarget(db, project.rowId);
-	await createGradeTarget(db, project.rowId);
+	const targetDone = await createGradeTarget(db, grid.rowId);
+	await createGradeTarget(db, grid.rowId);
 
 	const { criterionRowId } = await createRubric(
 		db,
-		project.rowId,
+		grid.rowId,
 		buildTestId("rubric"),
 		{ criterionId: buildTestId("criterion") },
 	);
@@ -344,7 +338,7 @@ test("loadGradeCompletionSummaryFromDb characterizes mixed completion across gra
 	await addGrade(db, { gradeTargetRowId: targetDone.rowId, criterionRowId });
 
 	const summary = await loadGradeCompletionSummaryFromDb(db, {
-		projectId: project.id,
+		gridId: grid.id,
 	});
 
 	expect(summary).toEqual({
@@ -354,12 +348,12 @@ test("loadGradeCompletionSummaryFromDb characterizes mixed completion across gra
 	});
 });
 
-test("loadGradeCompletionSummaryFromDb returns vacuous aggregates for an empty project", async () => {
+test("loadGradeCompletionSummaryFromDb returns vacuous aggregates for an empty grid", async () => {
 	await using db = await createTestDb();
-	await using project = await createProject(db, "Empty Project Summary");
+	await using grid = await createGrid(db, "Empty Grid Summary");
 
 	const summary = await loadGradeCompletionSummaryFromDb(db, {
-		projectId: project.id,
+		gridId: grid.id,
 	});
 
 	expect(summary).toEqual({
@@ -371,16 +365,13 @@ test("loadGradeCompletionSummaryFromDb returns vacuous aggregates for an empty p
 
 test("loadGradeCompletionSummary is a plain deriver that shares loadGradeCompletionRows' cache entry", async () => {
 	await using db = await createTestDb();
-	await using project = await createProject(db, "Summary Wrapper");
-	await createGradeTarget(db, project.rowId);
-	await createRubric(db, project.rowId, buildTestId("rubric"), {
+	await using grid = await createGrid(db, "Summary Wrapper");
+	await createGradeTarget(db, grid.rowId);
+	await createRubric(db, grid.rowId, buildTestId("rubric"), {
 		criterionId: buildTestId("criterion"),
 	});
 
-	const summary = await loadGradeCompletionSummary(
-		{ projectId: project.id },
-		{ db },
-	);
+	const summary = await loadGradeCompletionSummary({ gridId: grid.id }, { db });
 
 	expect(summary).toEqual({
 		gradeTargets: { completed: 0, total: 1 },

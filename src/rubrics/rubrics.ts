@@ -104,38 +104,38 @@ export type RubricRow = {
 // `db` may be the global client or a caller-supplied transaction
 // (a `Transaction<Database>` is a `Kysely<Database>`), so this composes inside
 // a caller's tx.
-export async function resolveProjectRowId(
+export async function resolveGridRowId(
 	db: Kysely<Database>,
-	projectId: string,
+	gridId: string,
 ): Promise<number> {
-	const project = await db
-		.selectFrom("project")
+	const grid = await db
+		.selectFrom("grid")
 		.select("rowId")
-		.where("id", "=", projectId)
+		.where("id", "=", gridId)
 		.executeTakeFirstOrThrow();
 
-	return project.rowId;
+	return grid.rowId;
 }
 
 // `db` may be the global client or a caller-supplied transaction.
 export async function loadRubricRowsFromDb(
 	db: Kysely<Database>,
-	{ projectId }: { projectId: string },
+	{ gridId }: { gridId: string },
 ): Promise<RubricRow[]> {
-	const projectRowId = await resolveProjectRowId(db, projectId);
+	const gridRowId = await resolveGridRowId(db, gridId);
 
 	const [rubrics, criteria, checkCriterions, numberCriterions, ordinalMarks] =
 		await Promise.all([
 			db
 				.selectFrom("rubric")
-				.where("rubric.projectId", "=", projectRowId)
+				.where("rubric.gridRowId", "=", gridRowId)
 				.select(["id", "label", "position"])
 				.orderBy("position", "asc")
 				.execute(),
 			db
 				.selectFrom("criterion")
 				.innerJoin("rubric", "rubric.rowId", "criterion.rubricId")
-				.where("criterion.projectId", "=", projectRowId)
+				.where("criterion.gridRowId", "=", gridRowId)
 				.select([
 					"criterion.id as id",
 					"rubric.id as rubricId",
@@ -149,7 +149,7 @@ export async function loadRubricRowsFromDb(
 			db
 				.selectFrom("checkCriterion")
 				.innerJoin("criterion", "criterion.rowId", "checkCriterion.criterionId")
-				.where("criterion.projectId", "=", projectRowId)
+				.where("criterion.gridRowId", "=", gridRowId)
 				.select([
 					"criterion.id as criterionId",
 					"checkCriterion.marks as marks",
@@ -163,7 +163,7 @@ export async function loadRubricRowsFromDb(
 					"criterion.rowId",
 					"numberCriterion.criterionId",
 				)
-				.where("criterion.projectId", "=", projectRowId)
+				.where("criterion.gridRowId", "=", gridRowId)
 				.select([
 					"criterion.id as criterionId",
 					"numberCriterion.minScore as minScore",
@@ -185,7 +185,7 @@ export async function loadRubricRowsFromDb(
 					"criterion.rowId",
 					"optionsCriterion.criterionId",
 				)
-				.where("criterion.projectId", "=", projectRowId)
+				.where("criterion.gridRowId", "=", gridRowId)
 				.select([
 					"criterion.id as criterionId",
 					"optionsCriterionMark.label as label",
@@ -281,8 +281,8 @@ export function toRubricsById(rows: RubricRow[]): RubricsById {
 	);
 }
 
-// Canonical cached source for project-wide rubric rows. `loadRubricsById` and
-// `loadRubric` derive from this, so all three share one cache entry per project.
+// Canonical cached source for grid-wide rubric rows. `loadRubricsById` and
+// `loadRubric` derive from this, so all three share one cache entry per grid.
 //
 // The `db` option is a test seam only (ADR 0007 rules 13–14): runtime callers must
 // omit it. A Kysely handle is a non-serializable class instance, and `"use cache"`
@@ -290,13 +290,13 @@ export function toRubricsById(rows: RubricRow[]): RubricsById {
 // `Cannot serialize class instance` at runtime. Tests mock `next/cache`, which makes
 // the directive inert so the handle reaches the primitive.
 export async function loadRubricRows(
-	{ projectId }: { projectId: string },
+	{ gridId }: { gridId: string },
 	{ db = defaultDb }: { db?: Kysely<Database> } = {},
 ): Promise<RubricRow[]> {
 	"use cache";
 	cacheTags(...rubricCacheTags());
 	cacheLife("definitions");
-	return loadRubricRowsFromDb(db, { projectId });
+	return loadRubricRowsFromDb(db, { gridId });
 }
 
 // Plain deriver: shares `loadRubricRows`' cache entry at runtime. Forwards its
@@ -307,21 +307,21 @@ export async function loadRubricRows(
 // default here before forwarding would pass a real handle into the cached
 // function even on the no-args runtime path — never do that (ADR 0007 rule 14).
 export async function loadRubricsById(
-	{ projectId }: { projectId: string },
+	{ gridId }: { gridId: string },
 	options?: { db?: Kysely<Database> },
 ): Promise<RubricsById> {
-	return toRubricsById(await loadRubricRows({ projectId }, options));
+	return toRubricsById(await loadRubricRows({ gridId }, options));
 }
 
 export async function loadRubric(
-	{ projectId, rubricId }: { projectId: string; rubricId: string },
+	{ gridId, rubricId }: { gridId: string; rubricId: string },
 	options?: { db?: Kysely<Database> },
 ): Promise<Rubric | undefined> {
-	// Intentionally loads the whole project rubric set: warms the shared row cache
+	// Intentionally loads the whole grid rubric set: warms the shared row cache
 	// for grading navigation, which typically visits multiple rubrics. Add a
 	// per-rubric primitive only if measurement shows the broad load is costly
 	// (caching plan Decision 5).
-	const rows = await loadRubricRows({ projectId }, options);
+	const rows = await loadRubricRows({ gridId }, options);
 	const row = rows.find((item) => item.id === rubricId);
 	if (row == null) return undefined;
 	return {

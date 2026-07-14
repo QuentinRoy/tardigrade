@@ -2,7 +2,7 @@ import type { Kysely } from "kysely";
 import { expect, test } from "vitest";
 import { nextGradeTargetIds } from "#grade-targets/gradeTargets.ts";
 import { buildTestId, createTestDb } from "#test/dbIntegration.ts";
-import { createProject } from "#test/projects.ts";
+import { createGrid } from "#test/grids.ts";
 import type { Database } from "./generated/database.ts";
 
 type CriterionRowIds = { boolean: number; ordinal: number; numerical: number };
@@ -14,21 +14,21 @@ type GradeConstraintFixture = {
 
 async function createGradeConstraintFixture(
 	db: Kysely<Database>,
-	projectId: string,
+	gridId: string,
 ): Promise<GradeConstraintFixture> {
-	const project = await db
-		.selectFrom("project")
+	const grid = await db
+		.selectFrom("grid")
 		.select("rowId")
-		.where("id", "=", projectId)
+		.where("id", "=", gridId)
 		.executeTakeFirstOrThrow();
-	const projectRowId = project.rowId;
+	const gridRowId = grid.rowId;
 
 	const rubricId = buildTestId("rubric");
 
 	await db
 		.insertInto("rubric")
 		.values({
-			projectId: projectRowId,
+			gridRowId: gridRowId,
 			id: rubricId,
 			label: "Constraint rubric",
 			position: 0,
@@ -38,7 +38,7 @@ async function createGradeConstraintFixture(
 	const rubric = await db
 		.selectFrom("rubric")
 		.select("rowId")
-		.where("projectId", "=", projectRowId)
+		.where("gridRowId", "=", gridRowId)
 		.where("id", "=", rubricId)
 		.executeTakeFirstOrThrow();
 
@@ -46,7 +46,7 @@ async function createGradeConstraintFixture(
 		.insertInto("criterion")
 		.values([
 			{
-				projectId: projectRowId,
+				gridRowId: gridRowId,
 				id: buildTestId("criterion-boolean"),
 				rubricId: rubric.rowId,
 				kind: "check",
@@ -54,7 +54,7 @@ async function createGradeConstraintFixture(
 				label: "Boolean criterion",
 			},
 			{
-				projectId: projectRowId,
+				gridRowId: gridRowId,
 				id: buildTestId("criterion-ordinal"),
 				rubricId: rubric.rowId,
 				kind: "options",
@@ -62,7 +62,7 @@ async function createGradeConstraintFixture(
 				label: "Ordinal criterion",
 			},
 			{
-				projectId: projectRowId,
+				gridRowId: gridRowId,
 				id: buildTestId("criterion-numerical"),
 				rubricId: rubric.rowId,
 				kind: "number",
@@ -96,13 +96,13 @@ async function createGradeConstraintFixture(
 		.insertInto("student")
 		.values([
 			{
-				projectId: projectRowId,
+				gridRowId: gridRowId,
 				id: studentAId,
 				firstName: "Primary",
 				lastName: "Student",
 			},
 			{
-				projectId: projectRowId,
+				gridRowId: gridRowId,
 				id: studentBId,
 				firstName: "Secondary",
 				lastName: "Student",
@@ -113,7 +113,7 @@ async function createGradeConstraintFixture(
 	const students = await db
 		.selectFrom("student")
 		.select(["rowId", "id"])
-		.where("projectId", "=", projectRowId)
+		.where("gridRowId", "=", gridRowId)
 		.where("id", "in", [studentAId, studentBId])
 		.execute();
 
@@ -128,10 +128,7 @@ async function createGradeConstraintFixture(
 		throw new Error("Expected student rows to be created.");
 	}
 
-	const gradeTargetIds = await nextGradeTargetIds(db, {
-		projectRowId,
-		count: 2,
-	});
+	const gradeTargetIds = await nextGradeTargetIds(db, { gridRowId, count: 2 });
 	const [primaryTargetId, secondaryTargetId] = gradeTargetIds;
 	if (primaryTargetId == null || secondaryTargetId == null) {
 		throw new Error("Expected generated grade target ids.");
@@ -141,13 +138,13 @@ async function createGradeConstraintFixture(
 		.insertInto("gradeTarget")
 		.values([
 			{
-				projectId: projectRowId,
+				gridRowId: gridRowId,
 				id: primaryTargetId,
 				kind: "individual",
 				studentRowId: studentA.rowId,
 			},
 			{
-				projectId: projectRowId,
+				gridRowId: gridRowId,
 				id: secondaryTargetId,
 				kind: "individual",
 				studentRowId: studentB.rowId,
@@ -244,21 +241,21 @@ async function createGradeConstraintFixture(
 
 async function createSubtypeConstraintFixture(
 	db: Kysely<Database>,
-	projectId: string,
+	gridId: string,
 ): Promise<CriterionRowIds> {
-	const project = await db
-		.selectFrom("project")
+	const grid = await db
+		.selectFrom("grid")
 		.select("rowId")
-		.where("id", "=", projectId)
+		.where("id", "=", gridId)
 		.executeTakeFirstOrThrow();
-	const projectRowId = project.rowId;
+	const gridRowId = grid.rowId;
 
 	const rubricId = buildTestId("rubric-subtype");
 
 	await db
 		.insertInto("rubric")
 		.values({
-			projectId: projectRowId,
+			gridRowId: gridRowId,
 			id: rubricId,
 			label: "Subtype rubric",
 			position: 0,
@@ -268,7 +265,7 @@ async function createSubtypeConstraintFixture(
 	const rubric = await db
 		.selectFrom("rubric")
 		.select("rowId")
-		.where("projectId", "=", projectRowId)
+		.where("gridRowId", "=", gridRowId)
 		.where("id", "=", rubricId)
 		.executeTakeFirstOrThrow();
 
@@ -276,7 +273,7 @@ async function createSubtypeConstraintFixture(
 		.insertInto("criterion")
 		.values([
 			{
-				projectId: projectRowId,
+				gridRowId: gridRowId,
 				id: buildTestId("subtype-criterion-boolean"),
 				rubricId: rubric.rowId,
 				kind: "check",
@@ -284,7 +281,7 @@ async function createSubtypeConstraintFixture(
 				label: "Subtype boolean criterion",
 			},
 			{
-				projectId: projectRowId,
+				gridRowId: gridRowId,
 				id: buildTestId("subtype-criterion-ordinal"),
 				rubricId: rubric.rowId,
 				kind: "options",
@@ -292,7 +289,7 @@ async function createSubtypeConstraintFixture(
 				label: "Subtype ordinal criterion",
 			},
 			{
-				projectId: projectRowId,
+				gridRowId: gridRowId,
 				id: buildTestId("subtype-criterion-numerical"),
 				rubricId: rubric.rowId,
 				kind: "number",
@@ -330,8 +327,8 @@ async function createSubtypeConstraintFixture(
 
 test("ordinal criterion grades accept valid labels and roll back failed transactional writes", async () => {
 	await using db = await createTestDb();
-	await using project = await createProject(db, "Constraint Ordinal Project");
-	const fixture = await createGradeConstraintFixture(db, project.id);
+	await using grid = await createGrid(db, "Constraint Ordinal Grid");
+	const fixture = await createGradeConstraintFixture(db, grid.id);
 
 	await db
 		.insertInto("optionsCriterionGrade")
@@ -381,8 +378,8 @@ test("ordinal criterion grades accept valid labels and roll back failed transact
 
 test("numerical criterion grades enforce score bounds and roll back failed transactional writes", async () => {
 	await using db = await createTestDb();
-	await using project = await createProject(db, "Constraint Numerical Project");
-	const fixture = await createGradeConstraintFixture(db, project.id);
+	await using grid = await createGrid(db, "Constraint Numerical Grid");
+	const fixture = await createGradeConstraintFixture(db, grid.id);
 
 	await db
 		.insertInto("numberCriterionGrade")
@@ -434,17 +431,14 @@ test("numerical criterion grades enforce score bounds and roll back failed trans
 
 test("grade target owner/kind check rejects invalid rows and rolls back transactional writes", async () => {
 	await using db = await createTestDb();
-	await using project = await createProject(
-		db,
-		"Constraint Grade Target Project",
-	);
+	await using grid = await createGrid(db, "Constraint Grade Target Grid");
 
 	const studentId = buildTestId("student");
 
 	await db
 		.insertInto("student")
 		.values({
-			projectId: project.rowId,
+			gridRowId: grid.rowId,
 			id: studentId,
 			firstName: "Constraint",
 			lastName: "Student",
@@ -454,18 +448,18 @@ test("grade target owner/kind check rejects invalid rows and rolls back transact
 	const student = await db
 		.selectFrom("student")
 		.select("rowId")
-		.where("projectId", "=", project.rowId)
+		.where("gridRowId", "=", grid.rowId)
 		.where("id", "=", studentId)
 		.executeTakeFirstOrThrow();
 
 	const group = await db
 		.insertInto("group")
-		.values({ projectId: project.rowId, name: buildTestId("group") })
+		.values({ gridRowId: grid.rowId, name: buildTestId("group") })
 		.returning("id")
 		.executeTakeFirstOrThrow();
 
 	const [firstTargetId, secondTargetId, thirdTargetId] =
-		await nextGradeTargetIds(db, { projectRowId: project.rowId, count: 3 });
+		await nextGradeTargetIds(db, { gridRowId: grid.rowId, count: 3 });
 	if (
 		firstTargetId == null ||
 		secondTargetId == null ||
@@ -477,7 +471,7 @@ test("grade target owner/kind check rejects invalid rows and rolls back transact
 	await db
 		.insertInto("gradeTarget")
 		.values({
-			projectId: project.rowId,
+			gridRowId: grid.rowId,
 			id: firstTargetId,
 			kind: "individual",
 			studentRowId: student.rowId,
@@ -489,7 +483,7 @@ test("grade target owner/kind check rejects invalid rows and rolls back transact
 			await trx
 				.insertInto("gradeTarget")
 				.values({
-					projectId: project.rowId,
+					gridRowId: grid.rowId,
 					id: secondTargetId,
 					kind: "group",
 					groupRowId: group.id,
@@ -499,7 +493,7 @@ test("grade target owner/kind check rejects invalid rows and rolls back transact
 			await trx
 				.insertInto("gradeTarget")
 				.values({
-					projectId: project.rowId,
+					gridRowId: grid.rowId,
 					id: thirdTargetId,
 					kind: "individual",
 					groupRowId: group.id,
@@ -511,7 +505,7 @@ test("grade target owner/kind check rejects invalid rows and rolls back transact
 	const persisted = await db
 		.selectFrom("gradeTarget")
 		.select(["id", "kind", "studentRowId", "groupRowId"])
-		.where("projectId", "=", project.rowId)
+		.where("gridRowId", "=", grid.rowId)
 		.execute();
 
 	expect(persisted).toHaveLength(1);
@@ -529,8 +523,8 @@ test("grade target owner/kind check rejects invalid rows and rolls back transact
 
 test("criterion subtype triggers reject mismatched subtype rows and roll back transactional writes", async () => {
 	await using db = await createTestDb();
-	await using project = await createProject(db, "Constraint Subtype Project");
-	const criterionRowIds = await createSubtypeConstraintFixture(db, project.id);
+	await using grid = await createGrid(db, "Constraint Subtype Grid");
+	const criterionRowIds = await createSubtypeConstraintFixture(db, grid.id);
 
 	await db
 		.insertInto("checkCriterion")
@@ -580,11 +574,11 @@ test("criterion subtype triggers reject mismatched subtype rows and roll back tr
 
 test("numerical criterion score range check rejects a collapsed or inverted range and rolls back transactional writes", async () => {
 	await using db = await createTestDb();
-	await using project = await createProject(
+	await using grid = await createGrid(
 		db,
-		"Constraint Numerical Score Range Project",
+		"Constraint Numerical Score Range Grid",
 	);
-	const criterionRowIds = await createSubtypeConstraintFixture(db, project.id);
+	const criterionRowIds = await createSubtypeConstraintFixture(db, grid.id);
 
 	await expect(
 		db
@@ -625,11 +619,11 @@ test("numerical criterion score range check rejects a collapsed or inverted rang
 
 test("numerical criterion marks range check rejects inverted marks and rolls back transactional writes", async () => {
 	await using db = await createTestDb();
-	await using project = await createProject(
+	await using grid = await createGrid(
 		db,
-		"Constraint Numerical Marks Range Project",
+		"Constraint Numerical Marks Range Grid",
 	);
-	const criterionRowIds = await createSubtypeConstraintFixture(db, project.id);
+	const criterionRowIds = await createSubtypeConstraintFixture(db, grid.id);
 
 	await expect(
 		db

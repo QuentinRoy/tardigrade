@@ -3,7 +3,7 @@ import { beforeEach, expect, test, vi } from "vitest";
 import type { ImportedRubrics } from "#imports/types.ts";
 import { runForcedInterleaving } from "#test/concurrency.ts";
 import { createTestDb } from "#test/dbIntegration.ts";
-import { createProject } from "#test/projects.ts";
+import { createGrid } from "#test/grids.ts";
 import {
 	createBooleanRubricFixture,
 	createGradedBooleanRubricFixture,
@@ -39,10 +39,10 @@ function makeRubrics(params: {
 	];
 }
 
-test("saveRubrics allows the same rubric and criterion ids in different projects", async () => {
+test("saveRubrics allows the same rubric and criterion ids in different grids", async () => {
 	await using db = await createTestDb();
-	await using projectA = await createProject(db, "Import Project A");
-	await using projectB = await createProject(db, "Import Project B");
+	await using gridA = await createGrid(db, "Import Grid A");
+	await using gridB = await createGrid(db, "Import Grid B");
 
 	const resultA = await saveRubrics(
 		{
@@ -50,7 +50,7 @@ test("saveRubrics allows the same rubric and criterion ids in different projects
 				rubricLabel: "Rubric A",
 				criterionLabel: "Criterion A",
 			}),
-			projectId: projectA.id,
+			gridId: gridA.id,
 		},
 		{ db },
 	);
@@ -61,7 +61,7 @@ test("saveRubrics allows the same rubric and criterion ids in different projects
 				rubricLabel: "Rubric B",
 				criterionLabel: "Criterion B",
 			}),
-			projectId: projectB.id,
+			gridId: gridB.id,
 		},
 		{ db },
 	);
@@ -79,9 +79,9 @@ test("saveRubrics allows the same rubric and criterion ids in different projects
 
 	const rubrics = await db
 		.selectFrom("rubric")
-		.select(["projectId", "id", "label"])
+		.select(["gridRowId", "id", "label"])
 		.where("id", "=", "q1")
-		.orderBy("projectId", "asc")
+		.orderBy("gridRowId", "asc")
 		.execute();
 
 	expect(rubrics).toHaveLength(2);
@@ -90,9 +90,9 @@ test("saveRubrics allows the same rubric and criterion ids in different projects
 
 	const criteria = await db
 		.selectFrom("criterion")
-		.select(["projectId", "id", "label"])
+		.select(["gridRowId", "id", "label"])
 		.where("id", "=", "r1")
-		.orderBy("projectId", "asc")
+		.orderBy("gridRowId", "asc")
 		.execute();
 
 	expect(criteria).toHaveLength(2);
@@ -100,10 +100,10 @@ test("saveRubrics allows the same rubric and criterion ids in different projects
 	expect(criteria[1]?.label).toBe("Criterion B");
 });
 
-test("saveRubrics updates only the target project rows", async () => {
+test("saveRubrics updates only the target grid rows", async () => {
 	await using db = await createTestDb();
-	await using projectA = await createProject(db, "Isolation Project A");
-	await using projectB = await createProject(db, "Isolation Project B");
+	await using gridA = await createGrid(db, "Isolation Grid A");
+	await using gridB = await createGrid(db, "Isolation Grid B");
 
 	await saveRubrics(
 		{
@@ -111,7 +111,7 @@ test("saveRubrics updates only the target project rows", async () => {
 				rubricLabel: "A initial",
 				criterionLabel: "A criterion initial",
 			}),
-			projectId: projectA.id,
+			gridId: gridA.id,
 		},
 		{ db },
 	);
@@ -122,7 +122,7 @@ test("saveRubrics updates only the target project rows", async () => {
 				rubricLabel: "B initial",
 				criterionLabel: "B criterion initial",
 			}),
-			projectId: projectB.id,
+			gridId: gridB.id,
 		},
 		{ db },
 	);
@@ -133,7 +133,7 @@ test("saveRubrics updates only the target project rows", async () => {
 				rubricLabel: "A updated",
 				criterionLabel: "A criterion updated",
 			}),
-			projectId: projectA.id,
+			gridId: gridA.id,
 		},
 		{ db },
 	);
@@ -141,28 +141,28 @@ test("saveRubrics updates only the target project rows", async () => {
 	const rubricA = await db
 		.selectFrom("rubric")
 		.select(["label"])
-		.where("projectId", "=", projectA.rowId)
+		.where("gridRowId", "=", gridA.rowId)
 		.where("id", "=", "q1")
 		.executeTakeFirstOrThrow();
 
 	const rubricB = await db
 		.selectFrom("rubric")
 		.select(["label"])
-		.where("projectId", "=", projectB.rowId)
+		.where("gridRowId", "=", gridB.rowId)
 		.where("id", "=", "q1")
 		.executeTakeFirstOrThrow();
 
 	const criterionA = await db
 		.selectFrom("criterion")
 		.select(["label"])
-		.where("projectId", "=", projectA.rowId)
+		.where("gridRowId", "=", gridA.rowId)
 		.where("id", "=", "r1")
 		.executeTakeFirstOrThrow();
 
 	const criterionB = await db
 		.selectFrom("criterion")
 		.select(["label"])
-		.where("projectId", "=", projectB.rowId)
+		.where("gridRowId", "=", gridB.rowId)
 		.where("id", "=", "r1")
 		.executeTakeFirstOrThrow();
 
@@ -172,10 +172,10 @@ test("saveRubrics updates only the target project rows", async () => {
 	expect(criterionB.label).toBe("B criterion initial");
 });
 
-test("saveRubrics still upserts duplicate ids within the same project", async () => {
+test("saveRubrics still upserts duplicate ids within the same grid", async () => {
 	await using db = await createTestDb();
-	await using project = await createProject(db, "Single Project Upsert");
-	const projectRowId = project.rowId;
+	await using grid = await createGrid(db, "Single Grid Upsert");
+	const gridRowId = grid.rowId;
 
 	await saveRubrics(
 		{
@@ -183,7 +183,7 @@ test("saveRubrics still upserts duplicate ids within the same project", async ()
 				rubricLabel: "Before",
 				criterionLabel: "Criterion before",
 			}),
-			projectId: project.id,
+			gridId: grid.id,
 		},
 		{ db },
 	);
@@ -194,7 +194,7 @@ test("saveRubrics still upserts duplicate ids within the same project", async ()
 				rubricLabel: "After",
 				criterionLabel: "Criterion after",
 			}),
-			projectId: project.id,
+			gridId: grid.id,
 		},
 		{ db },
 	);
@@ -202,14 +202,14 @@ test("saveRubrics still upserts duplicate ids within the same project", async ()
 	const rubrics = await db
 		.selectFrom("rubric")
 		.select(["id", "label"])
-		.where("projectId", "=", projectRowId)
+		.where("gridRowId", "=", gridRowId)
 		.where("id", "=", "q1")
 		.execute();
 
 	const criteria = await db
 		.selectFrom("criterion")
 		.select(["id", "label"])
-		.where("projectId", "=", projectRowId)
+		.where("gridRowId", "=", gridRowId)
 		.where("id", "=", "r1")
 		.execute();
 
@@ -221,8 +221,8 @@ test("saveRubrics still upserts duplicate ids within the same project", async ()
 
 test("saveRubrics blocks a criterion type change when the criterion has linked grades", async () => {
 	await using db = await createTestDb();
-	await using project = await createProject(db, "Type Change Blocked Project");
-	const fixture = await createGradedBooleanRubricFixture(db, project.rowId);
+	await using grid = await createGrid(db, "Type Change Blocked Grid");
+	const fixture = await createGradedBooleanRubricFixture(db, grid.rowId);
 
 	const rubrics: ImportedRubrics = [
 		{
@@ -240,7 +240,7 @@ test("saveRubrics blocks a criterion type change when the criterion has linked g
 	];
 
 	await expect(
-		saveRubrics({ rubrics, projectId: project.id }, { db }),
+		saveRubrics({ rubrics, gridId: grid.id }, { db }),
 	).rejects.toThrow(
 		`Criterion "${fixture.criterionId}" of rubric "${fixture.rubricId}" has 1 linked grades and cannot change type on import.`,
 	);
@@ -248,7 +248,7 @@ test("saveRubrics blocks a criterion type change when the criterion has linked g
 	const criterion = await db
 		.selectFrom("criterion")
 		.select("kind")
-		.where("projectId", "=", project.rowId)
+		.where("gridRowId", "=", grid.rowId)
 		.where("id", "=", fixture.criterionId)
 		.executeTakeFirstOrThrow();
 
@@ -258,8 +258,8 @@ test("saveRubrics blocks a criterion type change when the criterion has linked g
 
 test("saveRubrics allows a criterion type change when the criterion has no linked grades", async () => {
 	await using db = await createTestDb();
-	await using project = await createProject(db, "Type Change Allowed Project");
-	const fixture = await createBooleanRubricFixture(db, project.rowId);
+	await using grid = await createGrid(db, "Type Change Allowed Grid");
+	const fixture = await createBooleanRubricFixture(db, grid.rowId);
 
 	const rubrics: ImportedRubrics = [
 		{
@@ -276,7 +276,7 @@ test("saveRubrics allows a criterion type change when the criterion has no linke
 		},
 	];
 
-	const result = await saveRubrics({ rubrics, projectId: project.id }, { db });
+	const result = await saveRubrics({ rubrics, gridId: grid.id }, { db });
 
 	expect(result).toEqual({
 		rubricCount: 1,
@@ -287,7 +287,7 @@ test("saveRubrics allows a criterion type change when the criterion has no linke
 	const criterion = await db
 		.selectFrom("criterion")
 		.select("kind")
-		.where("projectId", "=", project.rowId)
+		.where("gridRowId", "=", grid.rowId)
 		.where("id", "=", fixture.criterionId)
 		.executeTakeFirstOrThrow();
 
@@ -313,8 +313,8 @@ test("saveRubrics allows a criterion type change when the criterion has no linke
 
 test("saveRubrics blocks an imported criterion id that already belongs to another rubric", async () => {
 	await using db = await createTestDb();
-	await using project = await createProject(db, "Criterion Mismatch Project");
-	const fixture = await createBooleanRubricFixture(db, project.rowId);
+	await using grid = await createGrid(db, "Criterion Mismatch Grid");
+	const fixture = await createBooleanRubricFixture(db, grid.rowId);
 
 	const rubrics: ImportedRubrics = [
 		{
@@ -327,7 +327,7 @@ test("saveRubrics blocks an imported criterion id that already belongs to anothe
 	];
 
 	await expect(
-		saveRubrics({ rubrics, projectId: project.id }, { db }),
+		saveRubrics({ rubrics, gridId: grid.id }, { db }),
 	).rejects.toThrow(
 		`Criterion "${fixture.criterionId}" already belongs to rubric "${fixture.rubricId}" and cannot be moved to rubric "another-rubric" on import.`,
 	);
@@ -335,7 +335,7 @@ test("saveRubrics blocks an imported criterion id that already belongs to anothe
 	const criterion = await db
 		.selectFrom("criterion")
 		.select("rubricId")
-		.where("projectId", "=", project.rowId)
+		.where("gridRowId", "=", grid.rowId)
 		.where("id", "=", fixture.criterionId)
 		.executeTakeFirstOrThrow();
 
@@ -344,12 +344,12 @@ test("saveRubrics blocks an imported criterion id that already belongs to anothe
 
 test("saveRubrics wrapper invalidates rubric and grade tags after the import commits", async () => {
 	await using db = await createTestDb();
-	await using project = await createProject(db, "Import Rubrics Cache Project");
+	await using grid = await createGrid(db, "Import Rubrics Cache Grid");
 
 	await saveRubrics(
 		{
 			rubrics: makeRubrics({ rubricLabel: "Q", criterionLabel: "R" }),
-			projectId: project.id,
+			gridId: grid.id,
 		},
 		{ db },
 	);
@@ -369,11 +369,8 @@ test("saveRubrics wrapper invalidates rubric and grade tags after the import com
 // stale rows for the previous type.
 test("saveRubricImportPlanInDb keeps a single criterion definition when two imports race the same criterion type change", async () => {
 	await using db = await createTestDb();
-	await using project = await createProject(
-		db,
-		"Concurrency Rubric Import Project",
-	);
-	const fixture = await createBooleanRubricFixture(db, project.rowId);
+	await using grid = await createGrid(db, "Concurrency Rubric Import Grid");
+	const fixture = await createBooleanRubricFixture(db, grid.rowId);
 
 	function makeOrdinalImport(marks: Record<string, number>): ImportedRubrics {
 		return [
@@ -396,11 +393,11 @@ test("saveRubricImportPlanInDb keeps a single criterion definition when two impo
 	const [contextAB, contextXY] = await Promise.all([
 		loadRubricImportContextFromDb(db, {
 			rubrics: rubricsToMarksAB,
-			projectId: project.id,
+			gridId: grid.id,
 		}),
 		loadRubricImportContextFromDb(db, {
 			rubrics: rubricsToMarksXY,
-			projectId: project.id,
+			gridId: grid.id,
 		}),
 	]);
 
@@ -415,15 +412,15 @@ test("saveRubricImportPlanInDb keeps a single criterion definition when two impo
 
 	await runForcedInterleaving(db, {
 		first: (tx) =>
-			saveRubricImportPlanInDb(tx, { plan: planAB, projectId: project.id }),
+			saveRubricImportPlanInDb(tx, { plan: planAB, gridId: grid.id }),
 		second: (tx) =>
-			saveRubricImportPlanInDb(tx, { plan: planXY, projectId: project.id }),
+			saveRubricImportPlanInDb(tx, { plan: planXY, gridId: grid.id }),
 	});
 
 	const criterionRows = await db
 		.selectFrom("criterion")
 		.select(["rowId", "kind"])
-		.where("projectId", "=", project.rowId)
+		.where("gridRowId", "=", grid.rowId)
 		.where("id", "=", fixture.criterionId)
 		.execute();
 	expect(criterionRows).toHaveLength(1);

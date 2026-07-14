@@ -3,7 +3,7 @@ import type { Database } from "#db/generated/database.ts";
 import { buildTestId } from "./dbIntegration.ts";
 
 export type GradeFixture = {
-	projectId: string;
+	gridId: string;
 	rubricId: string;
 	studentId: string;
 	gradeTargetId: string;
@@ -16,21 +16,21 @@ export type GradeFixtureOptions = {
 };
 
 // Creates a grade target with a rubric carrying one criterion of each type, ready for
-// grade round-trips. Exposes the Project ID (public identifier); the Project
+// grade round-trips. Exposes the Grid ID (public identifier); the Grid
 // Row ID stays internal to the fixture plumbing. Cleanup is handled by disposing
-// the owning project (cascade), so no separate teardown helper is needed.
+// the owning grid (cascade), so no separate teardown helper is needed.
 export async function createGradeFixture(
 	db: Kysely<Database>,
-	projectId: string,
+	gridId: string,
 	options?: GradeFixtureOptions,
 ): Promise<GradeFixture> {
-	const project = await db
-		.selectFrom("project")
+	const grid = await db
+		.selectFrom("grid")
 		.select("rowId")
-		.where("id", "=", projectId)
+		.where("id", "=", gridId)
 		.executeTakeFirstOrThrow();
 
-	const projectRowId = project.rowId;
+	const gridRowId = grid.rowId;
 
 	const rubricId = options?.rubricId ?? buildTestId("q");
 	const studentId = buildTestId("student");
@@ -44,7 +44,7 @@ export async function createGradeFixture(
 	await db
 		.insertInto("student")
 		.values({
-			projectId: projectRowId,
+			gridRowId: gridRowId,
 			id: studentId,
 			lastName: "Integration",
 			firstName: "Test",
@@ -54,14 +54,14 @@ export async function createGradeFixture(
 	const studentRow = await db
 		.selectFrom("student")
 		.select(["rowId", "id"])
-		.where("projectId", "=", projectRowId)
+		.where("gridRowId", "=", gridRowId)
 		.where("id", "=", studentId)
 		.executeTakeFirstOrThrow();
 
 	const target = await db
 		.insertInto("gradeTarget")
 		.values({
-			projectId: projectRowId,
+			gridRowId: gridRowId,
 			id: buildTestId("target"),
 			kind: "individual",
 			studentRowId: studentRow.rowId,
@@ -72,7 +72,7 @@ export async function createGradeFixture(
 	await db
 		.insertInto("rubric")
 		.values({
-			projectId: projectRowId,
+			gridRowId: gridRowId,
 			id: rubricId,
 			label: "Integration rubric",
 			position: 0,
@@ -82,7 +82,7 @@ export async function createGradeFixture(
 	const rubric = await db
 		.selectFrom("rubric")
 		.select(["id", "rowId"])
-		.where("projectId", "=", projectRowId)
+		.where("gridRowId", "=", gridRowId)
 		.where("id", "=", rubricId)
 		.executeTakeFirstOrThrow();
 
@@ -91,7 +91,7 @@ export async function createGradeFixture(
 		.values([
 			{
 				id: checkCriterionId,
-				projectId: projectRowId,
+				gridRowId: gridRowId,
 				rubricId: rubric.rowId,
 				kind: "check",
 				position: 0,
@@ -99,7 +99,7 @@ export async function createGradeFixture(
 			},
 			{
 				id: optionsCriterionId,
-				projectId: projectRowId,
+				gridRowId: gridRowId,
 				rubricId: rubric.rowId,
 				kind: "options",
 				position: 1,
@@ -107,7 +107,7 @@ export async function createGradeFixture(
 			},
 			{
 				id: numberCriterionId,
-				projectId: projectRowId,
+				gridRowId: gridRowId,
 				rubricId: rubric.rowId,
 				kind: "number",
 				position: 2,
@@ -164,7 +164,7 @@ export async function createGradeFixture(
 		.execute();
 
 	return {
-		projectId,
+		gridId,
 		rubricId,
 		studentId,
 		gradeTargetId: target.id,

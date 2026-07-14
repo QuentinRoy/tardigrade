@@ -8,7 +8,7 @@ import {
 import {
 	addFullGradeFixture,
 	createIndividualGradeTargetFixtures,
-	createMixedCriterionRubricFixtureProject,
+	createMixedCriterionRubricFixtureGrid,
 	createStudentFixtures,
 } from "#test/mixedCriterionGradeFixture.ts";
 import { loadGradeImportContextFromDb } from "./gradeImportContext.ts";
@@ -30,30 +30,27 @@ async function readStream(stream: ReadableStream<Uint8Array>): Promise<string> {
 	return content;
 }
 
-async function createRoundtripFixtureProject(db: DisposableTestDatabase) {
-	const { project, rubric } = await createMixedCriterionRubricFixtureProject(
-		db,
-		{
-			projectName: "Roundtrip Integration Project",
-			rubricId: "q-roundtrip-test",
-			checkCriterionId: "r-bool-roundtrip-test",
-			optionsCriterionId: "r-ord-roundtrip-test",
-			numberCriterionId: "r-num-roundtrip-test",
-		},
-	);
+async function createRoundtripFixtureGrid(db: DisposableTestDatabase) {
+	const { grid, rubric } = await createMixedCriterionRubricFixtureGrid(db, {
+		gridName: "Roundtrip Integration Grid",
+		rubricId: "q-roundtrip-test",
+		checkCriterionId: "r-bool-roundtrip-test",
+		optionsCriterionId: "r-ord-roundtrip-test",
+		numberCriterionId: "r-num-roundtrip-test",
+	});
 
 	const criterionRowIds = await db
 		.selectFrom("criterion")
-		.where("projectId", "=", project.rowId)
+		.where("gridRowId", "=", grid.rowId)
 		.select(["id", "rowId"])
 		.execute();
 	const criterionRowId = new Map(criterionRowIds.map((r) => [r.id, r.rowId]));
 
 	const [student] = await createStudentFixtures(db, [
-		{ projectRowId: project.rowId, id: "student-roundtrip-1" },
+		{ gridRowId: grid.rowId, id: "student-roundtrip-1" },
 	]);
 	const [target] = await createIndividualGradeTargetFixtures(db, [
-		{ projectRowId: project.rowId, studentRowId: student.rowId },
+		{ gridRowId: grid.rowId, studentRowId: student.rowId },
 	]);
 	await addFullGradeFixture(db, {
 		gradeTargetRowId: target.rowId,
@@ -69,7 +66,7 @@ async function createRoundtripFixtureProject(db: DisposableTestDatabase) {
 		.executeTakeFirstOrThrow();
 
 	return {
-		project,
+		grid,
 		targetId: targetRow.id,
 		rubricId: rubric.id,
 		criterionIds: rubric.criteria,
@@ -99,21 +96,19 @@ describe.each<{ name: string; options: ExportOptions }>([
 		name: "grade-only export",
 		options: { includeCriterionGrade: true, includeCriterionMarks: false },
 	},
-])("$name re-imports into the same project without drift", ({ options }) => {
+])("$name re-imports into the same grid without drift", ({ options }) => {
 	test("plan reproduces the seeded grade values exactly", async () => {
-		const fixture = await createRoundtripFixtureProject(db);
+		const fixture = await createRoundtripFixtureGrid(db);
 
-		const stream = await createCsvGradeTargetExport(
-			options,
-			fixture.project.id,
-			{ db },
-		);
+		const stream = await createCsvGradeTargetExport(options, fixture.grid.id, {
+			db,
+		});
 		const csv = await readStream(stream);
 
 		const rows = await parseGradesCsv(csv);
 		const context = await loadGradeImportContextFromDb(db, {
 			rows,
-			projectId: fixture.project.id,
+			gridId: fixture.grid.id,
 		});
 		const plan = prepareGradeImport({ rows, context });
 
@@ -155,11 +150,11 @@ describe.each<{ name: string; options: ExportOptions }>([
 });
 
 test("marks-only export re-import is blocked with no-grade-columns", async () => {
-	const fixture = await createRoundtripFixtureProject(db);
+	const fixture = await createRoundtripFixtureGrid(db);
 
 	const stream = await createCsvGradeTargetExport(
 		{ includeCriterionGrade: false, includeCriterionMarks: true },
-		fixture.project.id,
+		fixture.grid.id,
 		{ db },
 	);
 	const csv = await readStream(stream);
@@ -167,7 +162,7 @@ test("marks-only export re-import is blocked with no-grade-columns", async () =>
 	const rows = await parseGradesCsv(csv);
 	const context = await loadGradeImportContextFromDb(db, {
 		rows,
-		projectId: fixture.project.id,
+		gridId: fixture.grid.id,
 	});
 	const plan = prepareGradeImport({ rows, context });
 

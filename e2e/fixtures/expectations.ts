@@ -22,13 +22,13 @@
 //     fully graded. Total = grade target count (3); complete = john_doe,
 //     Group A (2).
 //   - rubrics: a rubric is complete only once it is fully graded on every
-//     grade target project-wide. Total = rubric count (2); since jane_smith
+//     grade target grid-wide. Total = rubric count (2); since jane_smith
 //     leaves both q1 and q2 incomplete, neither rubric is complete (0).
 //   - criteria: counts individual (grade target, rubric) pairs, not
 //     deduplicated by rubric. Total = grade targets x rubrics = 3 x 2 = 6;
 //     complete = the 4 pairs graded for john_doe and Group A.
 
-export const PROJECT_NAME = "E2E Smoke Project";
+export const GRID_NAME = "E2E Smoke Grid";
 
 // `final_total` in the grades export, keyed by the export name identifier
 // (student id for individuals, group name for groups). `null` means the

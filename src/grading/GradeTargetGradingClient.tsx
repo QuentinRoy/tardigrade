@@ -12,7 +12,7 @@ import {
 } from "#design-system/SaveErrorsProvider.tsx";
 import { getGradeTargetLabel } from "#grade-targets/getGradeTargetLabel.ts";
 import type { GradeTarget } from "#grade-targets/types.ts";
-import { projectGradeTargetPath } from "#projects/projectPaths.ts";
+import { gridGradeTargetPath } from "#grids/gridPaths.ts";
 import CompletionSummary from "./CompletionSummary.tsx";
 import CriterionGradeList from "./CriterionGradeList.tsx";
 import GradeTargetSelector from "./GradeTargetSelector.tsx";
@@ -37,8 +37,8 @@ type OptimisticRubricSection = {
 };
 
 type GradeTargetGradingClientProps = {
-	projectId: string;
-	projectSlug: string;
+	gridId: string;
+	gridSlug: string;
 	rubrics: RubricGradeSection[];
 	targets: GradeTarget[];
 	completionPromise: Promise<
@@ -52,8 +52,8 @@ type GradeTargetGradingClientProps = {
 };
 
 export default function GradeTargetGradingClient({
-	projectId,
-	projectSlug,
+	gridId,
+	gridSlug,
 	rubrics: initialRubrics,
 	targets,
 	completionPromise,
@@ -103,8 +103,8 @@ export default function GradeTargetGradingClient({
 		saveCriterionGrade: async (criterion, grade) => {
 			const info = criterionInfoByCriterionId.get(criterion.id);
 			const baseErrorContext = {
-				projectId,
-				projectSlug,
+				gridId,
+				gridSlug,
 				targetId: currentTargetId,
 				targetSlug: currentTarget?.slug ?? currentTargetId,
 				targetLabel: currentTargetLabel,
@@ -124,7 +124,7 @@ export default function GradeTargetGradingClient({
 
 			return trySaveCriterionGrade({
 				saveCriterionGrade,
-				projectId,
+				gridId,
 				targetId: currentTargetId,
 				rubricId: info.rubricId,
 				grade,
@@ -169,9 +169,9 @@ export default function GradeTargetGradingClient({
 	const navigateToTarget = (targetId: string) => {
 		const target = targets.find((candidate) => candidate.id === targetId);
 		router.push(
-			projectGradeTargetPath({
-				projectId,
-				projectSlug,
+			gridGradeTargetPath({
+				gridId,
+				gridSlug,
 				targetId,
 				targetSlug: target?.slug ?? targetId,
 			}),
@@ -185,8 +185,8 @@ export default function GradeTargetGradingClient({
 	return (
 		<Stack gap="xl">
 			<GradeTargetNavigation
-				projectId={projectId}
-				projectSlug={projectSlug}
+				gridId={gridId}
+				gridSlug={gridSlug}
 				currentTargetId={currentTargetId}
 				currentTargetIndex={currentTargetIndex}
 				totalTargets={targets.length}
@@ -266,8 +266,8 @@ export default function GradeTargetGradingClient({
 }
 
 function GradeTargetNavigation({
-	projectId,
-	projectSlug,
+	gridId,
+	gridSlug,
 	currentTargetId,
 	currentTargetIndex,
 	totalTargets,
@@ -275,8 +275,8 @@ function GradeTargetNavigation({
 	nextTarget,
 	onOpenLookup,
 }: {
-	projectId: string;
-	projectSlug: string;
+	gridId: string;
+	gridSlug: string;
 	currentTargetId: string;
 	currentTargetIndex: number;
 	totalTargets: number;
@@ -288,9 +288,9 @@ function GradeTargetNavigation({
 		<Group gap="xs" wrap="wrap">
 			<Button
 				component={NextLink}
-				href={projectGradeTargetPath({
-					projectId,
-					projectSlug,
+				href={gridGradeTargetPath({
+					gridId,
+					gridSlug,
 					targetId: previousTarget?.id ?? currentTargetId,
 					targetSlug: previousTarget?.slug ?? currentTargetId,
 				})}
@@ -302,9 +302,9 @@ function GradeTargetNavigation({
 			</Button>
 			<Button
 				component={NextLink}
-				href={projectGradeTargetPath({
-					projectId,
-					projectSlug,
+				href={gridGradeTargetPath({
+					gridId,
+					gridSlug,
 					targetId: nextTarget?.id ?? currentTargetId,
 					targetSlug: nextTarget?.slug ?? currentTargetId,
 				})}

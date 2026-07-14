@@ -9,7 +9,7 @@ import {
 import { saveStudents } from "./saveStudents.ts";
 
 export async function studentsImportAction(
-	projectId: string,
+	gridId: string,
 	_previousState: ActionState,
 	formData: FormData,
 ): Promise<ActionState> {
@@ -18,7 +18,7 @@ export async function studentsImportAction(
 	try {
 		const students = parseStudentsCsv(studentsCsv);
 		const targets = groupStudentsIntoGradeTargets(students);
-		const result = await saveStudents({ targets, projectId });
+		const result = await saveStudents({ targets, gridId });
 
 		return {
 			status: "success",

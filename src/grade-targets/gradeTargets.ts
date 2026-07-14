@@ -10,8 +10,8 @@ export function gradeTargetsCacheTags(): string[] {
 	return [gradeTargetListCacheTag()];
 }
 
-// Reserves `count` fresh public ids for `projectRowId`, contiguous from the
-// project's current per-project maximum, for the caller's own transaction to
+// Reserves `count` fresh public ids for `gridRowId`, contiguous from the
+// grid's current per-grid maximum, for the caller's own transaction to
 // assign to newly inserted rows. A candidate id that ends up on an
 // `ON CONFLICT DO UPDATE` path (an upsert onto an already-existing row) is
 // simply never persisted — `id` is never in that clause's `SET` list — so it
@@ -19,7 +19,7 @@ export function gradeTargetsCacheTags(): string[] {
 // (see `docs/reference` migration notes; no deletion path exists today, #45).
 export async function nextGradeTargetIds(
 	db: Kysely<Database>,
-	{ projectRowId, count }: { projectRowId: number; count: number },
+	{ gridRowId, count }: { gridRowId: number; count: number },
 ): Promise<string[]> {
 	if (count === 0) {
 		return [];
@@ -30,7 +30,7 @@ export async function nextGradeTargetIds(
 		.select((eb) =>
 			eb.fn.max(sql<number>`substring(${eb.ref("id")} from 3)::int`).as("max"),
 		)
-		.where("projectId", "=", projectRowId)
+		.where("gridRowId", "=", gridRowId)
 		.executeTakeFirstOrThrow();
 
 	const start = (max ?? 0) + 1;
@@ -51,9 +51,9 @@ function normalizeSlug(value: string): string {
 		.replace(/^-+|-+$/g, "");
 }
 
-// Mirrors `toProjectSlug` (`#projects/projects.ts`): a target's display label
+// Mirrors `toGridSlug` (`#grids/grids.ts`): a target's display label
 // is always non-empty (student names and group names are validated non-empty
-// at the import write boundary), so unlike a project name there is no
+// at the import write boundary), so unlike a grid name there is no
 // empty-label case to guard against here.
 export function toTargetSlug(displayLabel: string): string {
 	const normalized = normalizeSlug(displayLabel);
@@ -72,22 +72,22 @@ function formatStudentName(lastName: string, firstName: string): string {
 	return `${lastName} ${firstName}`.trim();
 }
 
-// `db` may be the global client or a caller-supplied transaction. `projectId`
-// is required: `gradeTarget.id` is only unique within a project, so an
+// `db` may be the global client or a caller-supplied transaction. `gridId`
+// is required: `gradeTarget.id` is only unique within a grid, so an
 // unscoped load would collide keys in `groupMembersByTargetId`.
 export async function loadGradeTargetsFromDb(
 	db: Kysely<Database>,
-	{ projectId }: { projectId: string },
+	{ gridId }: { gridId: string },
 ) {
-	const projectRowIdQuery = db
-		.selectFrom("project")
+	const gridRowIdQuery = db
+		.selectFrom("grid")
 		.select("rowId")
-		.where("id", "=", projectId);
+		.where("id", "=", gridId);
 
 	const [targets, groupMemberRows] = await Promise.all([
 		db
 			.selectFrom("gradeTarget")
-			.where("gradeTarget.projectId", "in", projectRowIdQuery)
+			.where("gradeTarget.gridRowId", "in", gridRowIdQuery)
 			.leftJoin("student", "student.rowId", "gradeTarget.studentRowId")
 			.leftJoin("group", "group.id", "gradeTarget.groupRowId")
 			.select([
@@ -97,14 +97,14 @@ export async function loadGradeTargetsFromDb(
 				"student.firstName as studentFirstName",
 				"group.name as groupName",
 			])
-			// Creation order, not id order: `id` is a per-project text ordinal
+			// Creation order, not id order: `id` is a per-grid text ordinal
 			// (`t-9` sorts after `t-12` lexicographically), so `rowId` (assigned
 			// in insertion order) is the only column that sorts correctly.
 			.orderBy("gradeTarget.rowId", "asc")
 			.execute(),
 		db
 			.selectFrom("gradeTarget")
-			.where("gradeTarget.projectId", "in", projectRowIdQuery)
+			.where("gradeTarget.gridRowId", "in", gridRowIdQuery)
 			.innerJoin(
 				"studentToGroup",
 				"studentToGroup.groupId",
@@ -148,7 +148,7 @@ export async function loadGradeTargetsFromDb(
 // `db` is a test seam only (ADR 0007 rules 13–14): never pass a handle at runtime —
 // Kysely instances are not serializable and Next.js throws on the cache key.
 export async function loadGradeTargets(
-	{ projectId }: { projectId: string },
+	{ gridId }: { gridId: string },
 	{ db = defaultDb }: { db?: Kysely<Database> } = {},
 ): Promise<GradeTarget[]> {
 	"use cache";
@@ -156,7 +156,7 @@ export async function loadGradeTargets(
 	cacheLife("roster");
 
 	const { targets, groupMembersByTargetId } = await loadGradeTargetsFromDb(db, {
-		projectId,
+		gridId,
 	});
 
 	return targets.map((target) => {

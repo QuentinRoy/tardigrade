@@ -8,7 +8,7 @@ import {
 } from "#db/cacheInvalidation.ts";
 import type { Database } from "#db/generated/database.ts";
 import { database as defaultDb } from "#db/kysely.ts";
-import { resolveProjectRowId } from "#rubrics/rubrics.ts";
+import { resolveGridRowId } from "#rubrics/rubrics.ts";
 import { findDuplicateGroups } from "#utils/utils.ts";
 import { RubricsValidationError } from "./errors.ts";
 import type {
@@ -74,9 +74,9 @@ function assertUniqueIds(label: string, ids: string[]): void {
 // compose this inside their own transaction (e.g. a batch edit).
 export async function saveRubricDefinitionInDb(
 	db: Kysely<Database>,
-	{ input, projectId }: { input: RubricDefinitionInput; projectId: string },
+	{ input, gridId }: { input: RubricDefinitionInput; gridId: string },
 ): Promise<{ id: string; originalId: string }> {
-	const projectRowId = await resolveProjectRowId(db, projectId);
+	const gridRowId = await resolveGridRowId(db, gridId);
 
 	const requestedId = input.id.trim();
 	const originalId = input.originalId?.trim() || requestedId;
@@ -105,7 +105,7 @@ export async function saveRubricDefinitionInDb(
 		.selectFrom("rubric")
 		.select(["id", "position", "rowId"])
 		.where("id", "=", originalId)
-		.where("rubric.projectId", "=", projectRowId)
+		.where("rubric.gridRowId", "=", gridRowId)
 		.executeTakeFirst();
 
 	const conflictingRubric =
@@ -114,7 +114,7 @@ export async function saveRubricDefinitionInDb(
 					.selectFrom("rubric")
 					.select("id")
 					.where("id", "=", requestedId)
-					.where("rubric.projectId", "=", projectRowId)
+					.where("rubric.gridRowId", "=", gridRowId)
 					.executeTakeFirst()
 			: null;
 
@@ -128,7 +128,7 @@ export async function saveRubricDefinitionInDb(
 		const row = await db
 			.selectFrom("rubric")
 			.select(({ fn }) => [fn.max<number>("position").as("maxPosition")])
-			.where("rubric.projectId", "=", projectRowId)
+			.where("rubric.gridRowId", "=", gridRowId)
 			.executeTakeFirst();
 		const nextPosition = (row?.maxPosition ?? -1) + 1;
 
@@ -138,7 +138,7 @@ export async function saveRubricDefinitionInDb(
 				id: requestedId,
 				label: normalizeOptionalText(input.label),
 				position: nextPosition,
-				projectId: projectRowId,
+				gridRowId: gridRowId,
 			})
 			.execute();
 	} else {
@@ -146,7 +146,7 @@ export async function saveRubricDefinitionInDb(
 			.updateTable("rubric")
 			.set({ id: requestedId, label: normalizeOptionalText(input.label) })
 			.where("id", "=", originalId)
-			.where("rubric.projectId", "=", projectRowId)
+			.where("rubric.gridRowId", "=", gridRowId)
 			.execute();
 	}
 
@@ -154,7 +154,7 @@ export async function saveRubricDefinitionInDb(
 		.selectFrom("rubric")
 		.select(["id", "rowId"])
 		.where("id", "=", requestedId)
-		.where("rubric.projectId", "=", projectRowId)
+		.where("rubric.gridRowId", "=", gridRowId)
 		.executeTakeFirstOrThrow();
 
 	let existingCriteriaQuery = db
@@ -163,9 +163,9 @@ export async function saveRubricDefinitionInDb(
 		.where("rubricId", "=", persistedRubric.rowId);
 
 	existingCriteriaQuery = existingCriteriaQuery.where(
-		"criterion.projectId",
+		"criterion.gridRowId",
 		"=",
-		projectRowId,
+		gridRowId,
 	);
 
 	const existingCriteria = await existingCriteriaQuery.execute();
@@ -183,7 +183,7 @@ export async function saveRubricDefinitionInDb(
 		await db
 			.deleteFrom("criterion")
 			.where("rowId", "in", staleCriterionIds)
-			.where("criterion.projectId", "=", projectRowId)
+			.where("criterion.gridRowId", "=", gridRowId)
 			.execute();
 	}
 
@@ -199,7 +199,7 @@ export async function saveRubricDefinitionInDb(
 					position: criterion.position,
 					description: criterion.description,
 					label: criterion.label,
-					projectId: projectRowId,
+					gridRowId: gridRowId,
 					kind: criterion.kind,
 				})
 				.execute();
@@ -211,7 +211,7 @@ export async function saveRubricDefinitionInDb(
 			await db
 				.deleteFrom("criterion")
 				.where("rowId", "=", existing.rowId)
-				.where("criterion.projectId", "=", projectRowId)
+				.where("criterion.gridRowId", "=", gridRowId)
 				.execute();
 			await db
 				.insertInto("criterion")
@@ -221,7 +221,7 @@ export async function saveRubricDefinitionInDb(
 					position: criterion.position,
 					description: criterion.description,
 					label: criterion.label,
-					projectId: projectRowId,
+					gridRowId: gridRowId,
 					kind: criterion.kind,
 				})
 				.execute();
@@ -236,11 +236,11 @@ export async function saveRubricDefinitionInDb(
 				position: criterion.position,
 				description: criterion.description,
 				label: criterion.label,
-				projectId: projectRowId,
+				gridRowId: gridRowId,
 				kind: criterion.kind,
 			})
 			.where("rowId", "=", existing.rowId)
-			.where("criterion.projectId", "=", projectRowId)
+			.where("criterion.gridRowId", "=", gridRowId)
 			.execute();
 	}
 
@@ -253,7 +253,7 @@ export async function saveRubricDefinitionInDb(
 			input.criteria.map((criterion) => criterion.id),
 		)
 		.where("rubricId", "=", persistedRubric.rowId)
-		.where("criterion.projectId", "=", projectRowId)
+		.where("criterion.gridRowId", "=", gridRowId)
 		.execute();
 
 	const criterionRowIdById = new Map(
@@ -445,12 +445,12 @@ export async function saveRubricDefinitionInDb(
 }
 
 export async function saveRubricDefinition(
-	{ input, projectId }: { input: RubricDefinitionInput; projectId: string },
+	{ input, gridId }: { input: RubricDefinitionInput; gridId: string },
 	{ db = defaultDb }: { db?: Kysely<Database> } = {},
 ): Promise<{ id: string }> {
 	const { id, originalId } = await db
 		.transaction()
-		.execute((tx) => saveRubricDefinitionInDb(tx, { input, projectId }));
+		.execute((tx) => saveRubricDefinitionInDb(tx, { input, gridId }));
 
 	invalidateRubricDefinitionSave({
 		rubricId: id,
@@ -463,18 +463,15 @@ export async function saveRubricDefinition(
 // `db` may be the global client or a caller-supplied transaction.
 export async function deleteRubricDefinitionInDb(
 	db: Kysely<Database>,
-	{ rubricId, projectId }: { rubricId: string; projectId: string },
+	{ rubricId, gridId }: { rubricId: string; gridId: string },
 ): Promise<{ deleted: boolean }> {
 	const result = await db
 		.deleteFrom("rubric")
 		.where("rubric.id", "=", rubricId)
 		.where(
-			"rubric.projectId",
+			"rubric.gridRowId",
 			"=",
-			db
-				.selectFrom("project")
-				.select("rowId")
-				.where("project.id", "=", projectId),
+			db.selectFrom("grid").select("rowId").where("grid.id", "=", gridId),
 		)
 		.executeTakeFirst();
 
@@ -482,10 +479,10 @@ export async function deleteRubricDefinitionInDb(
 }
 
 export async function deleteRubricDefinition(
-	{ rubricId, projectId }: { rubricId: string; projectId: string },
+	{ rubricId, gridId }: { rubricId: string; gridId: string },
 	{ db = defaultDb }: { db?: Kysely<Database> } = {},
 ): Promise<{ deleted: boolean }> {
-	const result = await deleteRubricDefinitionInDb(db, { rubricId, projectId });
+	const result = await deleteRubricDefinitionInDb(db, { rubricId, gridId });
 
 	invalidateRubricDefinitionDelete({ rubricId });
 
@@ -497,8 +494,8 @@ export async function reorderRubricsInDb(
 	db: Kysely<Database>,
 	{
 		updates,
-		projectId,
-	}: { updates: Array<{ id: string; position: number }>; projectId: string },
+		gridId,
+	}: { updates: Array<{ id: string; position: number }>; gridId: string },
 ): Promise<void> {
 	if (updates.length === 0) return;
 
@@ -522,12 +519,9 @@ export async function reorderRubricsInDb(
 		.set({ position: sql`case ${sql.join(conditions, sql` `)} end` })
 		.where("rubric.id", "in", rubricIds)
 		.where(
-			"rubric.projectId",
+			"rubric.gridRowId",
 			"=",
-			db
-				.selectFrom("project")
-				.select("rowId")
-				.where("project.id", "=", projectId),
+			db.selectFrom("grid").select("rowId").where("grid.id", "=", gridId),
 		)
 		.returning("rubric.id")
 		.execute();
@@ -536,7 +530,7 @@ export async function reorderRubricsInDb(
 		const foundIds = new Set(updated.map((row) => row.id));
 		const missingIds = rubricIds.filter((id) => !foundIds.has(id));
 		throw new Error(
-			`Some rubrics were not found in this project: ${missingIds.join(", ")}.`,
+			`Some rubrics were not found in this grid: ${missingIds.join(", ")}.`,
 		);
 	}
 }
@@ -544,13 +538,13 @@ export async function reorderRubricsInDb(
 export async function reorderRubrics(
 	{
 		updates,
-		projectId,
-	}: { updates: Array<{ id: string; position: number }>; projectId: string },
+		gridId,
+	}: { updates: Array<{ id: string; position: number }>; gridId: string },
 	{ db = defaultDb }: { db?: Kysely<Database> } = {},
 ): Promise<void> {
 	await db
 		.transaction()
-		.execute((tx) => reorderRubricsInDb(tx, { updates, projectId }));
+		.execute((tx) => reorderRubricsInDb(tx, { updates, gridId }));
 
 	invalidateRubricReorder();
 }

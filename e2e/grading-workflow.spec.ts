@@ -1,15 +1,12 @@
 import { readFileSync } from "node:fs";
 import { expect, type Page, test } from "@playwright/test";
-import {
-	projectExportGradesPath,
-	projectResultsPath,
-} from "#projects/projectPaths.ts";
+import { gridExportGradesPath, gridResultsPath } from "#grids/gridPaths.ts";
 import {
 	EXPECTED_COMPLETION,
 	EXPECTED_CRITERION_ANALYTICS,
 	EXPECTED_FINAL_TOTAL,
 	EXPECTED_GRADE_MATRIX,
-	PROJECT_NAME,
+	GRID_NAME,
 } from "./fixtures/expectations.ts";
 
 // One narrow happy-path smoke test: it drives a realistic grading workflow
@@ -62,7 +59,7 @@ async function expectCompletion(
 // Bulk imports invalidate the grid home's completion tags with
 // stale-while-revalidate, not read-your-own-writes (see
 // `src/db/cacheInvalidation.ts`): the grid home was already cached at "0 / 0"
-// from the project-creation redirect, so the very next load can still serve
+// from the grid-creation redirect, so the very next load can still serve
 // that stale value while a background refresh recomputes it. Poll with reloads
 // until the refreshed value lands, rather than asserting on a single load.
 async function expectCompletionEventually(
@@ -181,38 +178,36 @@ function parseCsv(text: string): Record<string, string>[] {
 test("grading workflow: import, grade, persist, and export a computed total", async ({
 	page,
 }) => {
-	// Create a project and land on its dashboard.
-	await page.goto("/projects");
-	await page.getByLabel("Project name").fill(PROJECT_NAME);
+	// Create a grid and land on its dashboard.
+	await page.goto("/grids");
+	await page.getByLabel("Grid name").fill(GRID_NAME);
 	await page.getByRole("button", { name: "Create and switch" }).click();
-	await expect(page).toHaveURL(/\/projects\/[^/]+\/[^/]+$/);
+	await expect(page).toHaveURL(/\/grids\/[^/]+\/[^/]+$/);
 
-	const [, , projectId, projectSlug] = new URL(page.url()).pathname.split("/");
-	expect(projectId).toBeTruthy();
-	expect(projectSlug).toBeTruthy();
-	if (projectId == null || projectSlug == null) {
-		throw new Error(
-			"Project id and slug were not present in the dashboard URL.",
-		);
+	const [, , gridId, gridSlug] = new URL(page.url()).pathname.split("/");
+	expect(gridId).toBeTruthy();
+	expect(gridSlug).toBeTruthy();
+	if (gridId == null || gridSlug == null) {
+		throw new Error("Grid id and slug were not present in the dashboard URL.");
 	}
 
 	// Import in dependency order: rubrics define the rubric model, students
 	// create the grade targets, grades are the grade source.
-	await page.goto(`/projects/${projectId}/${projectSlug}/import/rubrics`);
+	await page.goto(`/grids/${gridId}/${gridSlug}/import/rubrics`);
 	await importFixture(page, {
 		fieldLabel: "Rubrics YAML",
 		submitLabel: "Import rubrics",
 		content: readFixture("rubrics.yaml"),
 	});
 
-	await page.goto(`/projects/${projectId}/${projectSlug}/import/students`);
+	await page.goto(`/grids/${gridId}/${gridSlug}/import/students`);
 	await importFixture(page, {
 		fieldLabel: "Students CSV",
 		submitLabel: "Import students",
 		content: readFixture("students.csv"),
 	});
 
-	await page.goto(`/projects/${projectId}/${projectSlug}/import/grades`);
+	await page.goto(`/grids/${gridId}/${gridSlug}/import/grades`);
 	await importFixture(page, {
 		fieldLabel: "Grades CSV",
 		submitLabel: "Import grades",
@@ -221,7 +216,7 @@ test("grading workflow: import, grade, persist, and export a computed total", as
 
 	// Grade Completion on the dashboard: jane_smith is ungraded, so this
 	// is a genuine partial state, not a trivial all-complete one.
-	const dashboardUrl = `/projects/${projectId}/${projectSlug}`;
+	const dashboardUrl = `/grids/${gridId}/${gridSlug}`;
 	await expectCompletionEventually(page, dashboardUrl, EXPECTED_COMPLETION);
 
 	// Reload to prove the completion persisted: the writes survived in Postgres
@@ -239,7 +234,7 @@ test("grading workflow: import, grade, persist, and export a computed total", as
 	// is invalid") that no other check caught — tsc has no notion of the
 	// client/server boundary, and this route isn't statically prerendered, so
 	// only an actual render (here, or a real request) exercises it.
-	await page.goto(projectResultsPath({ projectId, projectSlug }));
+	await page.goto(gridResultsPath({ gridId, gridSlug }));
 	await expect(page.getByRole("table", { name: "Analytics" })).toBeVisible();
 	await expect(page.getByRole("table", { name: "Grades" })).toBeVisible();
 
@@ -258,7 +253,7 @@ test("grading workflow: import, grade, persist, and export a computed total", as
 	// browser download flakiness) and assert the computed final totals. The
 	// grid home shows completion only, so the numeric total is asserted here.
 	const exportResponse = await page.request.get(
-		projectExportGradesPath({ projectId, projectSlug }),
+		gridExportGradesPath({ gridId, gridSlug }),
 	);
 	expect(exportResponse.ok()).toBe(true);
 

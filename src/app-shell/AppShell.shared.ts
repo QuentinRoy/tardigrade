@@ -1,18 +1,12 @@
 export const APP_SHELL_DRAWER_WIDTH = 280;
 
-export type ProjectRouteContext = { projectId: string; projectSlug: string };
+export type GridRouteContext = { gridId: string; gridSlug: string };
 
-export function getProjectRouteContext(
-	pathname: string,
-): ProjectRouteContext | null {
+export function getGridRouteContext(pathname: string): GridRouteContext | null {
 	const segments = pathname.split("/").filter((segment) => segment.length > 0);
-	if (
-		segments[0] !== "projects" ||
-		segments[1] == null ||
-		segments[2] == null
-	) {
+	if (segments[0] !== "grids" || segments[1] == null || segments[2] == null) {
 		return null;
 	}
 
-	return { projectId: segments[1], projectSlug: segments[2] };
+	return { gridId: segments[1], gridSlug: segments[2] };
 }

@@ -1,7 +1,7 @@
 import { cacheTag } from "next/cache";
 import { beforeEach, expect, test, vi } from "vitest";
 import { createTestDb } from "#test/dbIntegration.ts";
-import { createProject } from "#test/projects.ts";
+import { createGrid } from "#test/grids.ts";
 import {
 	createGradedBooleanRubricFixture,
 	createOrdinalRubricFixture,
@@ -20,15 +20,15 @@ beforeEach(() => {
 	vi.clearAllMocks();
 });
 
-test("loadRubricRowsFromDb returns only the rows scoped to the given project", async () => {
+test("loadRubricRowsFromDb returns only the rows scoped to the given grid", async () => {
 	await using db = await createTestDb();
 
-	await using project = await createProject(db, "Read Seam Project");
-	await using otherProject = await createProject(db, "Read Seam Other Project");
-	const fixture = await createGradedBooleanRubricFixture(db, project.rowId);
-	await createGradedBooleanRubricFixture(db, otherProject.rowId);
+	await using grid = await createGrid(db, "Read Seam Grid");
+	await using otherGrid = await createGrid(db, "Read Seam Other Grid");
+	const fixture = await createGradedBooleanRubricFixture(db, grid.rowId);
+	await createGradedBooleanRubricFixture(db, otherGrid.rowId);
 
-	const rows = await loadRubricRowsFromDb(db, { projectId: project.id });
+	const rows = await loadRubricRowsFromDb(db, { gridId: grid.id });
 
 	expect(rows).toEqual([
 		{
@@ -51,10 +51,10 @@ test("loadRubricRowsFromDb returns only the rows scoped to the given project", a
 
 test("loadRubricRows wrapper delegates to its primitive and declares its cache tags", async () => {
 	await using db = await createTestDb();
-	await using project = await createProject(db, "Rows Wrapper Project");
-	const fixture = await createGradedBooleanRubricFixture(db, project.rowId);
+	await using grid = await createGrid(db, "Rows Wrapper Grid");
+	const fixture = await createGradedBooleanRubricFixture(db, grid.rowId);
 
-	const rows = await loadRubricRows({ projectId: project.id }, { db });
+	const rows = await loadRubricRows({ gridId: grid.id }, { db });
 
 	expect(rows.map((row) => row.id)).toEqual([fixture.rubricId]);
 
@@ -64,13 +64,10 @@ test("loadRubricRows wrapper delegates to its primitive and declares its cache t
 
 test("loadRubricsById forwards its db option to the shared loadRubricRows source", async () => {
 	await using db = await createTestDb();
-	await using project = await createProject(
-		db,
-		"RubricsById Forwarding Project",
-	);
-	const fixture = await createGradedBooleanRubricFixture(db, project.rowId);
+	await using grid = await createGrid(db, "RubricsById Forwarding Grid");
+	const fixture = await createGradedBooleanRubricFixture(db, grid.rowId);
 
-	const rubricsById = await loadRubricsById({ projectId: project.id }, { db });
+	const rubricsById = await loadRubricsById({ gridId: grid.id }, { db });
 
 	expect(Object.keys(rubricsById)).toEqual([fixture.rubricId]);
 	expect(
@@ -83,11 +80,11 @@ test("loadRubricsById forwards its db option to the shared loadRubricRows source
 
 test("loadRubric forwards its db option to the shared loadRubricRows source", async () => {
 	await using db = await createTestDb();
-	await using project = await createProject(db, "Rubric Forwarding Project");
-	const fixture = await createGradedBooleanRubricFixture(db, project.rowId);
+	await using grid = await createGrid(db, "Rubric Forwarding Grid");
+	const fixture = await createGradedBooleanRubricFixture(db, grid.rowId);
 
 	const rubric = await loadRubric(
-		{ projectId: project.id, rubricId: fixture.rubricId },
+		{ gridId: grid.id, rubricId: fixture.rubricId },
 		{ db },
 	);
 
@@ -98,11 +95,11 @@ test("loadRubric forwards its db option to the shared loadRubricRows source", as
 
 test("loadRubricRowsFromDb returns optionsCriterion with empty marks when the optionsCriterion row exists but has no optionsCriterionMark rows", async () => {
 	await using db = await createTestDb();
-	await using project = await createProject(db, "Ordinal Empty Marks Project");
+	await using grid = await createGrid(db, "Ordinal Empty Marks Grid");
 
 	const { rubricId, criterionId } = await createOrdinalRubricFixture(
 		db,
-		project.rowId,
+		grid.rowId,
 	);
 
 	await db
@@ -122,7 +119,7 @@ test("loadRubricRowsFromDb returns optionsCriterion with empty marks when the op
 		)
 		.execute();
 
-	const rows = await loadRubricRowsFromDb(db, { projectId: project.id });
+	const rows = await loadRubricRowsFromDb(db, { gridId: grid.id });
 
 	expect(rows).toEqual([
 		{

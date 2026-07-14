@@ -7,7 +7,7 @@ export type ExistingStudentImportRecord = {
 };
 
 export type StudentImportContext = {
-	// Existing students keyed by imported student id, scoped to the project.
+	// Existing students keyed by imported student id, scoped to the grid.
 	existingStudentsById: Map<string, ExistingStudentImportRecord>;
 	// Student ids that already have an individual grade target.
 	existingIndividualGradeTargetStudentIds: Set<string>;

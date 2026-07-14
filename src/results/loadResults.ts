@@ -30,7 +30,7 @@ export function resultsCacheTags(): string[] {
 // check/options/number grade subtype tables.
 export async function loadCriterionGradeRecordsFromDb(
 	db: Kysely<Database>,
-	{ projectId }: { projectId: string },
+	{ gridId }: { gridId: string },
 ): Promise<ResultsGradeRecord[]> {
 	return db
 		.selectFrom("criterionGrade")
@@ -41,9 +41,9 @@ export async function loadCriterionGradeRecordsFromDb(
 			"criterionGrade.gradeTargetRowId",
 		)
 		.where(
-			"gradeTarget.projectId",
+			"gradeTarget.gridRowId",
 			"in",
-			db.selectFrom("project").select("rowId").where("id", "=", projectId),
+			db.selectFrom("grid").select("rowId").where("id", "=", gridId),
 		)
 		.leftJoin(
 			"checkCriterionGrade",
@@ -77,7 +77,7 @@ export async function loadCriterionGradeRecordsFromDb(
 // `options` is forwarded unchanged (ADR 0007 rule 14): never resolve a default
 // here before forwarding, so an omitted `db` stays `undefined` for those calls.
 export async function loadResultsData(
-	{ projectId }: { projectId: string },
+	{ gridId }: { gridId: string },
 	options?: { db?: Kysely<Database> },
 ): Promise<ResultsData> {
 	"use cache";
@@ -85,9 +85,9 @@ export async function loadResultsData(
 	cacheLife("projection");
 
 	const [targets, rubricsById, gradeRecords] = await Promise.all([
-		loadGradeTargets({ projectId }, options),
-		loadRubricsById({ projectId }, options),
-		loadCriterionGradeRecordsFromDb(options?.db ?? defaultDb, { projectId }),
+		loadGradeTargets({ gridId }, options),
+		loadRubricsById({ gridId }, options),
+		loadCriterionGradeRecordsFromDb(options?.db ?? defaultDb, { gridId }),
 	]);
 
 	return buildResultsData({ targets, rubricsById, gradeRecords });

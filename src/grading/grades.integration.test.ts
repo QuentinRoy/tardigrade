@@ -3,7 +3,7 @@ import { expect, test, vi } from "vitest";
 import { saveCriterionGradeInDb } from "#grade-persistence/gradeMutations.ts";
 import { createTestDb } from "#test/dbIntegration.ts";
 import { createGradeFixture } from "#test/grades.ts";
-import { createProject } from "#test/projects.ts";
+import { createGrid } from "#test/grids.ts";
 import { createBooleanRubricFixture } from "#test/rubrics.ts";
 import {
 	loadGradeTargetGrades,
@@ -20,12 +20,12 @@ vi.mock("next/cache", () => ({
 
 test("loadRubricGradeFromDb returns an empty list when no grade exists", async () => {
 	await using db = await createTestDb();
-	await using project = await createProject(db, "Grade Read Empty Project");
-	const fixture = await createGradeFixture(db, project.id);
+	await using grid = await createGrid(db, "Grade Read Empty Grid");
+	const fixture = await createGradeFixture(db, grid.id);
 
 	const result = await loadRubricGradeFromDb(db, {
 		targetId: fixture.gradeTargetId,
-		projectId: fixture.projectId,
+		gridId: fixture.gridId,
 		rubricId: fixture.rubricId,
 	});
 
@@ -34,11 +34,11 @@ test("loadRubricGradeFromDb returns an empty list when no grade exists", async (
 
 test("loadRubricGradeFromDb returns the stored criterion values for a grade target/rubric", async () => {
 	await using db = await createTestDb();
-	await using project = await createProject(db, "Grade Read Project");
-	const fixture = await createGradeFixture(db, project.id);
+	await using grid = await createGrid(db, "Grade Read Grid");
+	const fixture = await createGradeFixture(db, grid.id);
 
 	await saveCriterionGradeInDb(db, {
-		projectId: fixture.projectId,
+		gridId: fixture.gridId,
 		targetId: fixture.gradeTargetId,
 		rubricId: fixture.rubricId,
 		grade: {
@@ -48,7 +48,7 @@ test("loadRubricGradeFromDb returns the stored criterion values for a grade targ
 		},
 	});
 	await saveCriterionGradeInDb(db, {
-		projectId: fixture.projectId,
+		gridId: fixture.gridId,
 		targetId: fixture.gradeTargetId,
 		rubricId: fixture.rubricId,
 		grade: {
@@ -58,7 +58,7 @@ test("loadRubricGradeFromDb returns the stored criterion values for a grade targ
 		},
 	});
 	await saveCriterionGradeInDb(db, {
-		projectId: fixture.projectId,
+		gridId: fixture.gridId,
 		targetId: fixture.gradeTargetId,
 		rubricId: fixture.rubricId,
 		grade: {
@@ -70,7 +70,7 @@ test("loadRubricGradeFromDb returns the stored criterion values for a grade targ
 
 	const loaded = await loadRubricGradeFromDb(db, {
 		targetId: fixture.gradeTargetId,
-		projectId: fixture.projectId,
+		gridId: fixture.gridId,
 		rubricId: fixture.rubricId,
 	});
 
@@ -102,11 +102,11 @@ test("loadRubricGradeFromDb returns the stored criterion values for a grade targ
 // serve stale data after a grade import.
 test("loadRubricGrade wrapper delegates to its primitive and declares its cache tags", async () => {
 	await using db = await createTestDb();
-	await using project = await createProject(db, "Grade Cache Tag Project");
-	const fixture = await createGradeFixture(db, project.id);
+	await using grid = await createGrid(db, "Grade Cache Tag Grid");
+	const fixture = await createGradeFixture(db, grid.id);
 
 	await saveCriterionGradeInDb(db, {
-		projectId: fixture.projectId,
+		gridId: fixture.gridId,
 		targetId: fixture.gradeTargetId,
 		rubricId: fixture.rubricId,
 		grade: {
@@ -119,7 +119,7 @@ test("loadRubricGrade wrapper delegates to its primitive and declares its cache 
 	const loaded = await loadRubricGrade(
 		{
 			targetId: fixture.gradeTargetId,
-			projectId: fixture.projectId,
+			gridId: fixture.gridId,
 			rubricId: fixture.rubricId,
 		},
 		{ db },
@@ -138,17 +138,14 @@ test("loadRubricGrade wrapper delegates to its primitive and declares its cache 
 
 test("loadGradeTargetGradesFromDb groups a grade target's criterion values by rubric", async () => {
 	await using db = await createTestDb();
-	await using project = await createProject(
-		db,
-		"Grade Grade Target Read Project",
-	);
-	const fixture = await createGradeFixture(db, project.id);
-	// Second rubric on the same target's project, so the grouping across
+	await using grid = await createGrid(db, "Grade Grade Target Read Grid");
+	const fixture = await createGradeFixture(db, grid.id);
+	// Second rubric on the same target's grid, so the grouping across
 	// rubrics is observable.
-	const secondRubric = await createBooleanRubricFixture(db, project.rowId, 1);
+	const secondRubric = await createBooleanRubricFixture(db, grid.rowId, 1);
 
 	await saveCriterionGradeInDb(db, {
-		projectId: fixture.projectId,
+		gridId: fixture.gridId,
 		targetId: fixture.gradeTargetId,
 		rubricId: fixture.rubricId,
 		grade: {
@@ -158,7 +155,7 @@ test("loadGradeTargetGradesFromDb groups a grade target's criterion values by ru
 		},
 	});
 	await saveCriterionGradeInDb(db, {
-		projectId: fixture.projectId,
+		gridId: fixture.gridId,
 		targetId: fixture.gradeTargetId,
 		rubricId: fixture.rubricId,
 		grade: {
@@ -168,7 +165,7 @@ test("loadGradeTargetGradesFromDb groups a grade target's criterion values by ru
 		},
 	});
 	await saveCriterionGradeInDb(db, {
-		projectId: fixture.projectId,
+		gridId: fixture.gridId,
 		targetId: fixture.gradeTargetId,
 		rubricId: secondRubric.rubricId,
 		grade: {
@@ -180,7 +177,7 @@ test("loadGradeTargetGradesFromDb groups a grade target's criterion values by ru
 
 	const byRubricId = await loadGradeTargetGradesFromDb(db, {
 		targetId: fixture.gradeTargetId,
-		projectId: fixture.projectId,
+		gridId: fixture.gridId,
 	});
 
 	expect(Object.keys(byRubricId).toSorted()).toEqual(
@@ -210,14 +207,11 @@ test("loadGradeTargetGradesFromDb groups a grade target's criterion values by ru
 // "grades:all" (busted by bulk imports) or the overview would serve stale data.
 test("loadGradeTargetGrades wrapper delegates to its primitive and declares its cache tags", async () => {
 	await using db = await createTestDb();
-	await using project = await createProject(
-		db,
-		"Grade Grade Target Cache Tag Project",
-	);
-	const fixture = await createGradeFixture(db, project.id);
+	await using grid = await createGrid(db, "Grade Grade Target Cache Tag Grid");
+	const fixture = await createGradeFixture(db, grid.id);
 
 	await saveCriterionGradeInDb(db, {
-		projectId: fixture.projectId,
+		gridId: fixture.gridId,
 		targetId: fixture.gradeTargetId,
 		rubricId: fixture.rubricId,
 		grade: {
@@ -228,7 +222,7 @@ test("loadGradeTargetGrades wrapper delegates to its primitive and declares its 
 	});
 
 	const loaded = await loadGradeTargetGrades(
-		{ targetId: fixture.gradeTargetId, projectId: fixture.projectId },
+		{ targetId: fixture.gradeTargetId, gridId: fixture.gridId },
 		{ db },
 	);
 
@@ -247,16 +241,16 @@ test("loadGradeTargetGrades wrapper delegates to its primitive and declares its 
 	expect(declaredTags).toContain(`grades:${fixture.gradeTargetId}`);
 });
 
-// The reads scope by Project ID; a mismatched Project ID must not leak another
-// project's data.
-test("grade reads return nothing when the Project ID does not match the grade target", async () => {
+// The reads scope by Grid ID; a mismatched Grid ID must not leak another
+// grid's data.
+test("grade reads return nothing when the Grid ID does not match the grade target", async () => {
 	await using db = await createTestDb();
-	await using projectA = await createProject(db, "Grade Scope Project A");
-	await using projectB = await createProject(db, "Grade Scope Project B");
-	const fixture = await createGradeFixture(db, projectA.id);
+	await using gridA = await createGrid(db, "Grade Scope Grid A");
+	await using gridB = await createGrid(db, "Grade Scope Grid B");
+	const fixture = await createGradeFixture(db, gridA.id);
 
 	await saveCriterionGradeInDb(db, {
-		projectId: fixture.projectId,
+		gridId: fixture.gridId,
 		targetId: fixture.gradeTargetId,
 		rubricId: fixture.rubricId,
 		grade: {
@@ -268,14 +262,14 @@ test("grade reads return nothing when the Project ID does not match the grade ta
 
 	const rubricGrade = await loadRubricGradeFromDb(db, {
 		targetId: fixture.gradeTargetId,
-		projectId: projectB.id,
+		gridId: gridB.id,
 		rubricId: fixture.rubricId,
 	});
 	expect(rubricGrade).toEqual([]);
 
 	const gradeTargetGrades = await loadGradeTargetGradesFromDb(db, {
 		targetId: fixture.gradeTargetId,
-		projectId: projectB.id,
+		gridId: gridB.id,
 	});
 	expect(gradeTargetGrades).toEqual({});
 });

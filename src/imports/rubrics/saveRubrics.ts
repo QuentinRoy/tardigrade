@@ -39,7 +39,7 @@ function rubricImportBlockedError(
 // plan's writes; never opens a transaction and never invalidates cache.
 export async function saveRubricImportPlanInDb(
 	db: Kysely<Database>,
-	{ plan, projectId }: { plan: RubricImportPlan; projectId: string },
+	{ plan, gridId }: { plan: RubricImportPlan; gridId: string },
 ): Promise<{ rubricCount: number; criterionCount: number }> {
 	const rubrics: ImportedRubrics = plan.writes;
 
@@ -102,12 +102,12 @@ export async function saveRubricImportPlanInDb(
 	const rubricIds = rubricsById.map((rubric) => rubric.id);
 	const criterionIds = criterionSources.map((criterion) => criterion.id);
 
-	const projectRow = await db
-		.selectFrom("project")
+	const gridRow = await db
+		.selectFrom("grid")
 		.select("rowId")
-		.where("id", "=", projectId)
+		.where("id", "=", gridId)
 		.executeTakeFirstOrThrow();
-	const projectRowId = projectRow.rowId;
+	const gridRowId = gridRow.rowId;
 
 	// Criteria whose type changed (no linked grades, per the prepared plan)
 	// are deleted and recreated so subtype tables (boolean/numerical/ordinal
@@ -119,7 +119,7 @@ export async function saveRubricImportPlanInDb(
 	if (criteriaToRecreate.length > 0) {
 		await db
 			.deleteFrom("criterion")
-			.where("projectId", "=", projectRowId)
+			.where("gridRowId", "=", gridRowId)
 			.where("id", "in", criteriaToRecreate)
 			.execute();
 	}
@@ -127,12 +127,10 @@ export async function saveRubricImportPlanInDb(
 	if (rubricsById.length > 0) {
 		await db
 			.insertInto("rubric")
-			.values(
-				rubricsById.map((rubric) => ({ ...rubric, projectId: projectRowId })),
-			)
+			.values(rubricsById.map((rubric) => ({ ...rubric, gridRowId })))
 			.onConflict((conflict) =>
 				conflict
-					.columns(["projectId", "id"])
+					.columns(["gridRowId", "id"])
 					.doUpdateSet((expressionBuilder) => ({
 						label: expressionBuilder.ref("excluded.label"),
 						position: expressionBuilder.ref("excluded.position"),
@@ -147,7 +145,7 @@ export async function saveRubricImportPlanInDb(
 			: await db
 					.selectFrom("rubric")
 					.select(["id", "rowId"])
-					.where("projectId", "=", projectRowId)
+					.where("gridRowId", "=", gridRowId)
 					.where("id", "in", rubricIds)
 					.execute();
 
@@ -170,7 +168,7 @@ export async function saveRubricImportPlanInDb(
 			position: criterion.position,
 			description: criterion.description,
 			label: criterion.label,
-			projectId: projectRowId,
+			gridRowId,
 			kind: criterion.kind,
 		};
 	});
@@ -181,7 +179,7 @@ export async function saveRubricImportPlanInDb(
 			.values(criterionRows)
 			.onConflict((conflict) =>
 				conflict
-					.columns(["projectId", "id"])
+					.columns(["gridRowId", "id"])
 					.doUpdateSet((expressionBuilder) => ({
 						rubricId: expressionBuilder.ref("excluded.rubricId"),
 						position: expressionBuilder.ref("excluded.position"),
@@ -199,7 +197,7 @@ export async function saveRubricImportPlanInDb(
 			: await db
 					.selectFrom("criterion")
 					.select(["id", "rowId"])
-					.where("projectId", "=", projectRowId)
+					.where("gridRowId", "=", gridRowId)
 					.where("id", "in", criterionIds)
 					.execute();
 
@@ -394,7 +392,7 @@ export async function saveRubricImportPlanInDb(
 // `db` defaults to the global client; tests pass a test database. Never pass a
 // transaction — the wrapper opens its own.
 export async function saveRubrics(
-	{ rubrics, projectId }: { rubrics: ImportedRubrics; projectId: string },
+	{ rubrics, gridId }: { rubrics: ImportedRubrics; gridId: string },
 	{ db = defaultDb }: { db?: Kysely<Database> } = {},
 ): Promise<{
 	rubricCount: number;
@@ -404,7 +402,7 @@ export async function saveRubrics(
 	const result = await db.transaction().execute(async (tx) => {
 		const context = await loadRubricImportContextFromDb(tx, {
 			rubrics,
-			projectId,
+			gridId,
 		});
 		const plan = prepareRubricImport({ rubrics, context });
 
@@ -412,7 +410,7 @@ export async function saveRubrics(
 			throw rubricImportBlockedError(plan.blockingDiagnostics);
 		}
 
-		const writeResult = await saveRubricImportPlanInDb(tx, { plan, projectId });
+		const writeResult = await saveRubricImportPlanInDb(tx, { plan, gridId });
 
 		return {
 			...writeResult,

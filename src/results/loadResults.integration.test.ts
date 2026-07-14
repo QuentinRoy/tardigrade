@@ -3,19 +3,19 @@ import { expect, test } from "vitest";
 import type { Database } from "#db/generated/database.ts";
 import { nextGradeTargetIds } from "#grade-targets/gradeTargets.ts";
 import { buildTestId, createTestDb } from "#test/dbIntegration.ts";
-import { createProject } from "#test/projects.ts";
+import { createGrid } from "#test/grids.ts";
 import { loadCriterionGradeRecordsFromDb } from "./loadResults.ts";
 
 async function createGradeTarget(
 	db: Kysely<Database>,
-	projectRowId: number,
+	gridRowId: number,
 ): Promise<{ id: string; rowId: number }> {
 	const studentId = buildTestId("student");
 
 	await db
 		.insertInto("student")
 		.values({
-			projectId: projectRowId,
+			gridRowId: gridRowId,
 			id: studentId,
 			lastName: "Overview",
 			firstName: "Test",
@@ -25,17 +25,17 @@ async function createGradeTarget(
 	const studentRow = await db
 		.selectFrom("student")
 		.select("rowId")
-		.where("projectId", "=", projectRowId)
+		.where("gridRowId", "=", gridRowId)
 		.where("id", "=", studentId)
 		.executeTakeFirstOrThrow();
 
-	const [id] = await nextGradeTargetIds(db, { projectRowId, count: 1 });
+	const [id] = await nextGradeTargetIds(db, { gridRowId, count: 1 });
 	if (id == null) throw new Error("Expected a generated id");
 
 	const target = await db
 		.insertInto("gradeTarget")
 		.values({
-			projectId: projectRowId,
+			gridRowId: gridRowId,
 			id,
 			kind: "individual",
 			studentRowId: studentRow.rowId,
@@ -48,13 +48,13 @@ async function createGradeTarget(
 
 async function createRubric(
 	db: Kysely<Database>,
-	projectRowId: number,
+	gridRowId: number,
 	rubricId: string,
 ): Promise<number> {
 	await db
 		.insertInto("rubric")
 		.values({
-			projectId: projectRowId,
+			gridRowId: gridRowId,
 			id: rubricId,
 			label: "Overview Q",
 			position: 0,
@@ -64,7 +64,7 @@ async function createRubric(
 	const rubric = await db
 		.selectFrom("rubric")
 		.select("rowId")
-		.where("projectId", "=", projectRowId)
+		.where("gridRowId", "=", gridRowId)
 		.where("id", "=", rubricId)
 		.executeTakeFirstOrThrow();
 
@@ -74,16 +74,16 @@ async function createRubric(
 async function createCheckCriterion(
 	db: Kysely<Database>,
 	{
-		projectRowId,
+		gridRowId,
 		rubricRowId,
 		criterionId,
-	}: { projectRowId: number; rubricRowId: number; criterionId: string },
+	}: { gridRowId: number; rubricRowId: number; criterionId: string },
 ): Promise<number> {
 	const rubric = await db
 		.insertInto("criterion")
 		.values({
 			id: criterionId,
-			projectId: projectRowId,
+			gridRowId: gridRowId,
 			rubricId: rubricRowId,
 			kind: "check",
 			position: 0,
@@ -103,16 +103,16 @@ async function createCheckCriterion(
 async function createOptionsCriterion(
 	db: Kysely<Database>,
 	{
-		projectRowId,
+		gridRowId,
 		rubricRowId,
 		criterionId,
-	}: { projectRowId: number; rubricRowId: number; criterionId: string },
+	}: { gridRowId: number; rubricRowId: number; criterionId: string },
 ): Promise<number> {
 	const rubric = await db
 		.insertInto("criterion")
 		.values({
 			id: criterionId,
-			projectId: projectRowId,
+			gridRowId: gridRowId,
 			rubricId: rubricRowId,
 			kind: "options",
 			position: 1,
@@ -141,16 +141,16 @@ async function createOptionsCriterion(
 async function createNumberCriterion(
 	db: Kysely<Database>,
 	{
-		projectRowId,
+		gridRowId,
 		rubricRowId,
 		criterionId,
-	}: { projectRowId: number; rubricRowId: number; criterionId: string },
+	}: { gridRowId: number; rubricRowId: number; criterionId: string },
 ): Promise<number> {
 	const rubric = await db
 		.insertInto("criterion")
 		.values({
 			id: criterionId,
-			projectId: projectRowId,
+			gridRowId: gridRowId,
 			rubricId: rubricRowId,
 			kind: "number",
 			position: 2,
@@ -239,31 +239,27 @@ async function addNumberGrade(
 
 test("loadCriterionGradeRecordsFromDb maps the per-type value column for boolean, ordinal and numerical grades", async () => {
 	await using db = await createTestDb();
-	await using project = await createProject(db, "Rubric Overview Types");
+	await using grid = await createGrid(db, "Rubric Overview Types");
 
-	const target = await createGradeTarget(db, project.rowId);
-	const rubricRowId = await createRubric(
-		db,
-		project.rowId,
-		buildTestId("rubric"),
-	);
+	const target = await createGradeTarget(db, grid.rowId);
+	const rubricRowId = await createRubric(db, grid.rowId, buildTestId("rubric"));
 
 	const booleanRubricId = buildTestId("rubric-boolean");
 	const optionsCriterionId = buildTestId("rubric-ordinal");
 	const numericalRubricId = buildTestId("rubric-numerical");
 
 	const checkCriterionRowId = await createCheckCriterion(db, {
-		projectRowId: project.rowId,
+		gridRowId: grid.rowId,
 		rubricRowId,
 		criterionId: booleanRubricId,
 	});
 	const optionsCriterionRowId = await createOptionsCriterion(db, {
-		projectRowId: project.rowId,
+		gridRowId: grid.rowId,
 		rubricRowId,
 		criterionId: optionsCriterionId,
 	});
 	const numberCriterionRowId = await createNumberCriterion(db, {
-		projectRowId: project.rowId,
+		gridRowId: grid.rowId,
 		rubricRowId,
 		criterionId: numericalRubricId,
 	});
@@ -285,7 +281,7 @@ test("loadCriterionGradeRecordsFromDb maps the per-type value column for boolean
 	});
 
 	const records = await loadCriterionGradeRecordsFromDb(db, {
-		projectId: project.id,
+		gridId: grid.id,
 	});
 
 	expect(records).toHaveLength(3);
@@ -320,22 +316,22 @@ test("loadCriterionGradeRecordsFromDb maps the per-type value column for boolean
 	});
 });
 
-test("loadCriterionGradeRecordsFromDb excludes grade records from other projects", async () => {
+test("loadCriterionGradeRecordsFromDb excludes grade records from other grids", async () => {
 	await using db = await createTestDb();
-	await using projectA = await createProject(db, "Rubric Overview Isolation A");
-	await using projectB = await createProject(db, "Rubric Overview Isolation B");
+	await using gridA = await createGrid(db, "Rubric Overview Isolation A");
+	await using gridB = await createGrid(db, "Rubric Overview Isolation B");
 
-	const targetA = await createGradeTarget(db, projectA.rowId);
-	const targetB = await createGradeTarget(db, projectB.rowId);
+	const targetA = await createGradeTarget(db, gridA.rowId);
+	const targetB = await createGradeTarget(db, gridB.rowId);
 
 	const rubricRowIdA = await createRubric(
 		db,
-		projectA.rowId,
+		gridA.rowId,
 		buildTestId("criterion-a"),
 	);
 	const rubricRowIdB = await createRubric(
 		db,
-		projectB.rowId,
+		gridB.rowId,
 		buildTestId("criterion-b"),
 	);
 
@@ -343,12 +339,12 @@ test("loadCriterionGradeRecordsFromDb excludes grade records from other projects
 	const criterionIdB = buildTestId("criterion-b");
 
 	const criterionRowIdA = await createCheckCriterion(db, {
-		projectRowId: projectA.rowId,
+		gridRowId: gridA.rowId,
 		rubricRowId: rubricRowIdA,
 		criterionId: criterionIdA,
 	});
 	const criterionRowIdB = await createCheckCriterion(db, {
-		projectRowId: projectB.rowId,
+		gridRowId: gridB.rowId,
 		rubricRowId: rubricRowIdB,
 		criterionId: criterionIdB,
 	});
@@ -365,10 +361,10 @@ test("loadCriterionGradeRecordsFromDb excludes grade records from other projects
 	});
 
 	const recordsA = await loadCriterionGradeRecordsFromDb(db, {
-		projectId: projectA.id,
+		gridId: gridA.id,
 	});
 	const recordsB = await loadCriterionGradeRecordsFromDb(db, {
-		projectId: projectB.id,
+		gridId: gridB.id,
 	});
 
 	expect(recordsA).toEqual([

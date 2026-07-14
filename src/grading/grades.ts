@@ -34,15 +34,15 @@ export function loadGradeCacheTags({
 export async function loadRubricGrade(
 	{
 		targetId,
-		projectId,
+		gridId,
 		rubricId,
-	}: { targetId: string; projectId: string; rubricId: string },
+	}: { targetId: string; gridId: string; rubricId: string },
 	{ db = defaultDb }: { db?: Kysely<Database> } = {},
 ): Promise<CriterionGrade[]> {
 	"use cache";
 	cacheTags(...loadGradeCacheTags({ targetId, rubricId }));
 	cacheLife("values");
-	return loadRubricGradeFromDb(db, { targetId, projectId, rubricId });
+	return loadRubricGradeFromDb(db, { targetId, gridId, rubricId });
 }
 
 // Returns every rubric's criterion values for a grade target in one query, keyed
@@ -51,13 +51,13 @@ export async function loadRubricGrade(
 // `db` is a test seam only (ADR 0007 rules 13–14): never pass a handle at runtime —
 // Kysely instances are not serializable and Next.js throws on the cache key.
 export async function loadGradeTargetGrades(
-	{ targetId, projectId }: { targetId: string; projectId: string },
+	{ targetId, gridId }: { targetId: string; gridId: string },
 	{ db = defaultDb }: { db?: Kysely<Database> } = {},
 ): Promise<Record<string, CriterionGrade[]>> {
 	"use cache";
 	cacheTags(...loadGradeCacheTags({ targetId }));
 	cacheLife("values");
-	return loadGradeTargetGradesFromDb(db, { targetId, projectId });
+	return loadGradeTargetGradesFromDb(db, { targetId, gridId });
 }
 
 // `db` may be the global client or a caller-supplied transaction.
@@ -65,13 +65,13 @@ export async function loadRubricGradeFromDb(
 	db: Kysely<Database>,
 	{
 		targetId,
-		projectId,
+		gridId,
 		rubricId,
-	}: { targetId: string; projectId: string; rubricId: string },
+	}: { targetId: string; gridId: string; rubricId: string },
 ): Promise<CriterionGrade[]> {
 	const rows = await loadCriterionGradeQueryRows(db, {
 		targetId,
-		projectId,
+		gridId,
 		rubricId,
 	});
 
@@ -88,9 +88,9 @@ export async function loadRubricGradeFromDb(
 // `db` may be the global client or a caller-supplied transaction.
 export async function loadGradeTargetGradesFromDb(
 	db: Kysely<Database>,
-	{ targetId, projectId }: { targetId: string; projectId: string },
+	{ targetId, gridId }: { targetId: string; gridId: string },
 ): Promise<Record<string, CriterionGrade[]>> {
-	const rows = await loadCriterionGradeQueryRows(db, { targetId, projectId });
+	const rows = await loadCriterionGradeQueryRows(db, { targetId, gridId });
 
 	const valuesByRubricId: Record<string, CriterionGrade[]> = {};
 	for (const row of rows) {
@@ -114,15 +114,15 @@ type CriterionGradeQueryRow = {
 };
 
 // Loads one row per stored criterion grade for a grade target, optionally
-// scoped to a single rubric. Filtering by Project ID disambiguates grade
-// targets and rubrics that share public ids across projects.
+// scoped to a single rubric. Filtering by Grid ID disambiguates grade
+// targets and rubrics that share public ids across grids.
 async function loadCriterionGradeQueryRows(
 	db: Kysely<Database>,
 	{
 		targetId,
-		projectId,
+		gridId,
 		rubricId,
-	}: { targetId: string; projectId: string; rubricId?: string | undefined },
+	}: { targetId: string; gridId: string; rubricId?: string | undefined },
 ): Promise<CriterionGradeQueryRow[]> {
 	return db
 		.selectFrom("criterionGrade")
@@ -131,7 +131,7 @@ async function loadCriterionGradeQueryRows(
 			"gradeTarget.rowId",
 			"criterionGrade.gradeTargetRowId",
 		)
-		.innerJoin("project", "project.rowId", "gradeTarget.projectId")
+		.innerJoin("grid", "grid.rowId", "gradeTarget.gridRowId")
 		.innerJoin("criterion", "criterion.rowId", "criterionGrade.criterionId")
 		.innerJoin("rubric", "rubric.rowId", "criterion.rubricId")
 		.leftJoin(
@@ -149,7 +149,7 @@ async function loadCriterionGradeQueryRows(
 			"numberCriterionGrade.criterionGradeId",
 			"criterionGrade.id",
 		)
-		.where("project.id", "=", projectId)
+		.where("grid.id", "=", gridId)
 		.where("gradeTarget.id", "=", targetId)
 		.$if(rubricId != null, (qb) =>
 			qb.where("rubric.id", "=", nonNull(rubricId)),

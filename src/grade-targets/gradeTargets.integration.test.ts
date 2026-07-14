@@ -3,7 +3,7 @@ import { cacheTag } from "next/cache";
 import { beforeEach, expect, test, vi } from "vitest";
 import type { Database } from "#db/generated/database.ts";
 import { createTestDb } from "#test/dbIntegration.ts";
-import { createProject } from "#test/projects.ts";
+import { createGrid } from "#test/grids.ts";
 import {
 	gradeTargetsCacheTags,
 	loadGradeTargets,
@@ -17,30 +17,30 @@ beforeEach(() => {
 	vi.clearAllMocks();
 });
 
-async function loadProjectRowId(
+async function loadGridRowId(
 	db: Kysely<Database>,
-	projectId: string,
+	gridId: string,
 ): Promise<number> {
-	const project = await db
-		.selectFrom("project")
+	const grid = await db
+		.selectFrom("grid")
 		.select("rowId")
-		.where("id", "=", projectId)
+		.where("id", "=", gridId)
 		.executeTakeFirstOrThrow();
 
-	return project.rowId;
+	return grid.rowId;
 }
 
 async function createStudentAndTarget(
 	db: Kysely<Database>,
-	projectId: string,
+	gridId: string,
 	studentId: string,
 ): Promise<string> {
-	const projectRowId = await loadProjectRowId(db, projectId);
+	const gridRowId = await loadGridRowId(db, gridId);
 
 	await db
 		.insertInto("student")
 		.values({
-			projectId: projectRowId,
+			gridRowId: gridRowId,
 			id: studentId,
 			lastName: "Isolation",
 			firstName: "Test",
@@ -50,17 +50,17 @@ async function createStudentAndTarget(
 	const studentRow = await db
 		.selectFrom("student")
 		.select("rowId")
-		.where("projectId", "=", projectRowId)
+		.where("gridRowId", "=", gridRowId)
 		.where("id", "=", studentId)
 		.executeTakeFirstOrThrow();
 
-	const [id] = await nextGradeTargetIds(db, { projectRowId, count: 1 });
+	const [id] = await nextGradeTargetIds(db, { gridRowId, count: 1 });
 	if (id == null) throw new Error("Expected a generated id");
 
 	await db
 		.insertInto("gradeTarget")
 		.values({
-			projectId: projectRowId,
+			gridRowId: gridRowId,
 			id,
 			kind: "individual",
 			studentRowId: studentRow.rowId,
@@ -72,28 +72,28 @@ async function createStudentAndTarget(
 
 async function createGroupAndTarget(
 	db: Kysely<Database>,
-	projectId: string,
+	gridId: string,
 	groupName: string,
 	memberStudentId: string,
 ): Promise<string> {
-	const projectRowId = await loadProjectRowId(db, projectId);
+	const gridRowId = await loadGridRowId(db, gridId);
 
 	await db
 		.insertInto("group")
-		.values({ projectId: projectRowId, name: groupName })
+		.values({ gridRowId: gridRowId, name: groupName })
 		.execute();
 
 	const group = await db
 		.selectFrom("group")
 		.select("id")
-		.where("projectId", "=", projectRowId)
+		.where("gridRowId", "=", gridRowId)
 		.where("name", "=", groupName)
 		.executeTakeFirstOrThrow();
 
 	await db
 		.insertInto("student")
 		.values({
-			projectId: projectRowId,
+			gridRowId: gridRowId,
 			id: memberStudentId,
 			lastName: "Group",
 			firstName: "Member",
@@ -103,7 +103,7 @@ async function createGroupAndTarget(
 	const studentRow = await db
 		.selectFrom("student")
 		.select("rowId")
-		.where("projectId", "=", projectRowId)
+		.where("gridRowId", "=", gridRowId)
 		.where("id", "=", memberStudentId)
 		.executeTakeFirstOrThrow();
 
@@ -112,45 +112,32 @@ async function createGroupAndTarget(
 		.values({ studentId: studentRow.rowId, groupId: group.id })
 		.execute();
 
-	const [id] = await nextGradeTargetIds(db, { projectRowId, count: 1 });
+	const [id] = await nextGradeTargetIds(db, { gridRowId, count: 1 });
 	if (id == null) throw new Error("Expected a generated id");
 
 	await db
 		.insertInto("gradeTarget")
-		.values({
-			projectId: projectRowId,
-			id,
-			kind: "group",
-			groupRowId: group.id,
-		})
+		.values({ gridRowId: gridRowId, id, kind: "group", groupRowId: group.id })
 		.execute();
 
 	return id;
 }
 
-test("loadGradeTargetsFromDb returns only individual targets for the requested project when student ids collide across projects", async () => {
+test("loadGradeTargetsFromDb returns only individual targets for the requested grid when student ids collide across grids", async () => {
 	await using db = await createTestDb();
-	await using projectA = await createProject(db, "Isolation Project A");
-	await using projectB = await createProject(db, "Isolation Project B");
+	await using gridA = await createGrid(db, "Isolation Grid A");
+	await using gridB = await createGrid(db, "Isolation Grid B");
 
 	const sharedStudentId = "shared-student-iso-001";
 
-	const targetAId = await createStudentAndTarget(
-		db,
-		projectA.id,
-		sharedStudentId,
-	);
-	const targetBId = await createStudentAndTarget(
-		db,
-		projectB.id,
-		sharedStudentId,
-	);
+	const targetAId = await createStudentAndTarget(db, gridA.id, sharedStudentId);
+	const targetBId = await createStudentAndTarget(db, gridB.id, sharedStudentId);
 
 	const { targets: targetsA } = await loadGradeTargetsFromDb(db, {
-		projectId: projectA.id,
+		gridId: gridA.id,
 	});
 	const { targets: targetsB } = await loadGradeTargetsFromDb(db, {
-		projectId: projectB.id,
+		gridId: gridB.id,
 	});
 
 	expect(targetsA).toHaveLength(1);
@@ -163,38 +150,38 @@ test("loadGradeTargetsFromDb returns only individual targets for the requested p
 
 	expect(targetA.id).toBe(targetAId);
 	expect(targetB.id).toBe(targetBId);
-	// Ids are per-project ordinals, not globally unique — each project's first
+	// Ids are per-grid ordinals, not globally unique — each grid's first
 	// target is legitimately "t-1" in both, and that collision is expected, not
-	// a leak. Isolation is proven above: each project sees only its own row.
+	// a leak. Isolation is proven above: each grid sees only its own row.
 	expect(targetA.id).toBe("t-1");
 	expect(targetB.id).toBe("t-1");
 });
 
-test("loadGradeTargets returns only group targets for the requested project when group names collide across projects", async () => {
+test("loadGradeTargets returns only group targets for the requested grid when group names collide across grids", async () => {
 	await using db = await createTestDb();
-	await using projectA = await createProject(db, "Group Isolation A");
-	await using projectB = await createProject(db, "Group Isolation B");
+	await using gridA = await createGrid(db, "Group Isolation A");
+	await using gridB = await createGrid(db, "Group Isolation B");
 
 	const sharedGroupName = "Shared Group Iso";
 
 	const targetAId = await createGroupAndTarget(
 		db,
-		projectA.id,
+		gridA.id,
 		sharedGroupName,
 		"group-member-proj-a",
 	);
 	const targetBId = await createGroupAndTarget(
 		db,
-		projectB.id,
+		gridB.id,
 		sharedGroupName,
 		"group-member-proj-b",
 	);
 
 	const { targets: targetsA } = await loadGradeTargetsFromDb(db, {
-		projectId: projectA.id,
+		gridId: gridA.id,
 	});
 	const { targets: targetsB } = await loadGradeTargetsFromDb(db, {
-		projectId: projectB.id,
+		gridId: gridB.id,
 	});
 
 	expect(targetsA).toHaveLength(1);
@@ -209,24 +196,21 @@ test("loadGradeTargets returns only group targets for the requested project when
 	expect(targetA.id).toBe(targetAId);
 	expect(targetB.kind).toBe("group");
 	expect(targetB.id).toBe(targetBId);
-	// Same per-project-ordinal collision as the individual-target test above.
+	// Same per-grid-ordinal collision as the individual-target test above.
 	expect(targetA.id).toBe("t-1");
 	expect(targetB.id).toBe("t-1");
 });
 
 test("loadGradeTargets wrapper delegates to its primitive and declares its cache tags", async () => {
 	await using db = await createTestDb();
-	await using project = await createProject(
-		db,
-		"Grade Targets Wrapper Project",
-	);
+	await using grid = await createGrid(db, "Grade Targets Wrapper Grid");
 	const targetId = await createStudentAndTarget(
 		db,
-		project.id,
+		grid.id,
 		"wrapper-student-001",
 	);
 
-	const targets = await loadGradeTargets({ projectId: project.id }, { db });
+	const targets = await loadGradeTargets({ gridId: grid.id }, { db });
 
 	expect(targets.map((target) => target.id)).toEqual([targetId]);
 
@@ -234,23 +218,23 @@ test("loadGradeTargets wrapper delegates to its primitive and declares its cache
 	expect(declaredTags).toEqual(gradeTargetsCacheTags());
 });
 
-test("nextGradeTargetIds numbers each project from 1 independently", async () => {
+test("nextGradeTargetIds numbers each grid from 1 independently", async () => {
 	await using db = await createTestDb();
-	await using projectA = await createProject(db, "Numbering Project A");
-	await using projectB = await createProject(db, "Numbering Project B");
+	await using gridA = await createGrid(db, "Numbering Grid A");
+	await using gridB = await createGrid(db, "Numbering Grid B");
 
-	const projectARowId = await loadProjectRowId(db, projectA.id);
-	const projectBRowId = await loadProjectRowId(db, projectB.id);
+	const gridARowId = await loadGridRowId(db, gridA.id);
+	const gridBRowId = await loadGridRowId(db, gridB.id);
 
-	await createStudentAndTarget(db, projectA.id, "numbering-a-1");
-	await createStudentAndTarget(db, projectA.id, "numbering-a-2");
+	await createStudentAndTarget(db, gridA.id, "numbering-a-1");
+	await createStudentAndTarget(db, gridA.id, "numbering-a-2");
 
 	const nextForA = await nextGradeTargetIds(db, {
-		projectRowId: projectARowId,
+		gridRowId: gridARowId,
 		count: 2,
 	});
 	const nextForB = await nextGradeTargetIds(db, {
-		projectRowId: projectBRowId,
+		gridRowId: gridBRowId,
 		count: 2,
 	});
 
