@@ -20,7 +20,7 @@ description: User-facing error message conventions for this repository - meaning
 catch (error) {
 	return { success: false, error: error.message };
 	// e.g. "duplicate key value violates unique constraint
-	// \"assessments_submission_id_criterion_id_key\""
+	// \"criterion_grade_grade_target_row_id_criterion_id_key\""
 }
 ```
 
@@ -38,7 +38,7 @@ catch (error) {
 
 ```ts
 // Good: recognized domain error keeps its specific, actionable message
-// (src/assessments/assessmentMutations.ts).
+// (src/grade-persistence/gradeMutations.ts).
 criterionChanged:
 	"This grading criterion changed while you were grading. Reload and try again.",
 invalidValue: "Enter a valid value and try again.",
@@ -46,10 +46,10 @@ invalidValue: "Enter a valid value and try again.",
 
 ```ts
 // Good: truly unexpected error — log it once, return a generic but
-// actionable fallback instead of the raw message (src/assessments/saveAssessment.ts).
+// actionable fallback instead of the raw message (src/grading/saveCriterionGrade.ts).
 catch (error) {
-	logger.error({ err: error }, "Unexpected error saving an assessment");
-	return { success: false, error: assessmentErrors.unexpected };
+	logger.error({ err: error }, "Unexpected error saving a grade");
+	return { success: false, error: saveCriterionGradeErrors.unexpected };
 	// "Something went wrong saving this grade. Reload and try again.
 	// If this keeps happening, report this issue."
 }

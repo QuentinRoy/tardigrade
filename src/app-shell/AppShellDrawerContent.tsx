@@ -130,7 +130,7 @@ export default function AppShellDrawerContent({
 	}
 
 	const gradeItems: NavigationItem[] = [
-		{ label: "Grades", href: gridGradesPath(gridRouteContext) },
+		{ label: "Grading", href: gridGradesPath(gridRouteContext) },
 		{ label: "Results", href: gridResultsPath(gridRouteContext) },
 	];
 
