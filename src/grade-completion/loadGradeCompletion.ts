@@ -2,12 +2,11 @@ import "server-only";
 import type { Kysely } from "kysely";
 import { cacheLife } from "next/cache";
 import {
+	allGradesTag,
+	allRubricsTag,
+	allTargetsTag,
 	cacheTags,
-	gradeAggregateCacheTag,
-	gradeCompletionForRubricCacheTag,
-	gradeImportCacheTag,
-	gradeTargetListCacheTag,
-	rubricListCacheTag,
+	rubricCompletionTag,
 } from "#db/cacheTags.ts";
 import type { Database } from "#db/generated/database.ts";
 import { database as defaultDb } from "#db/kysely.ts";
@@ -30,10 +29,10 @@ export function gradedCriterionCountsByTargetCacheTags({
 	rubricId: string;
 }): string[] {
 	return [
-		gradeTargetListCacheTag({ gridId }),
-		rubricListCacheTag({ gridId }),
-		gradeCompletionForRubricCacheTag({ gridId, rubricId }),
-		gradeImportCacheTag({ gridId }),
+		allTargetsTag({ gridId }),
+		allRubricsTag({ gridId }),
+		rubricCompletionTag({ gridId, rubricId }),
+		allGradesTag({ gridId }),
 	];
 }
 
@@ -43,9 +42,9 @@ export function gradeCompletionRowsCacheTags({
 	gridId: string;
 }): string[] {
 	return [
-		gradeTargetListCacheTag({ gridId }),
-		rubricListCacheTag({ gridId }),
-		gradeAggregateCacheTag({ gridId }),
+		allTargetsTag({ gridId }),
+		allRubricsTag({ gridId }),
+		allGradesTag({ gridId }),
 	];
 }
 
@@ -311,7 +310,7 @@ export function criterionGradesCountCacheTags({
 }: {
 	gridId: string;
 }): string[] {
-	return [gradeAggregateCacheTag({ gridId })];
+	return [allGradesTag({ gridId })];
 }
 
 // Canonical cached source for the grid-wide criterion-grade count, so the

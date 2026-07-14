@@ -12,7 +12,7 @@ test("gradedCriterionCountsByTargetCacheTags scopes invalidation to the given gr
 		"grids:g-1:grade-targets",
 		"grids:g-1:rubrics",
 		"grids:g-1:grades:rubric:q-1",
-		"grids:g-1:grades:all",
+		"grids:g-1:grades",
 	]);
 });
 

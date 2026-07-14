@@ -2,10 +2,10 @@ import "server-only";
 import type { Kysely } from "kysely";
 import { cacheLife } from "next/cache";
 import {
+	allGradesTag,
+	allRubricsTag,
+	allTargetsTag,
 	cacheTags,
-	gradeAggregateCacheTag,
-	gradeTargetListCacheTag,
-	rubricListCacheTag,
 } from "#db/cacheTags.ts";
 import type { Database } from "#db/generated/database.ts";
 import { database as defaultDb } from "#db/kysely.ts";
@@ -19,9 +19,9 @@ import {
 
 export function resultsCacheTags({ gridId }: { gridId: string }): string[] {
 	return [
-		rubricListCacheTag({ gridId }),
-		gradeTargetListCacheTag({ gridId }),
-		gradeAggregateCacheTag({ gridId }),
+		allRubricsTag({ gridId }),
+		allTargetsTag({ gridId }),
+		allGradesTag({ gridId }),
 	];
 }
 

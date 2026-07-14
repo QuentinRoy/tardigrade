@@ -3,10 +3,10 @@ import type { Kysely } from "kysely";
 import { cacheLife } from "next/cache";
 import type { CriterionGrade } from "#criteria/types.ts";
 import {
+	allGradesTag,
 	cacheTags,
-	gradeForGradeTargetCacheTag,
-	gradeForGradeTargetRubricCacheTag,
-	gradeImportCacheTag,
+	targetGradesTag,
+	targetRubricGradeTag,
 } from "#db/cacheTags.ts";
 import type { Database } from "#db/generated/database.ts";
 import { database as defaultDb } from "#db/kysely.ts";
@@ -25,9 +25,9 @@ export function loadGradeCacheTags({
 	// the import tag refreshes on bulk imports.
 	const scopeTag =
 		rubricId == null
-			? gradeForGradeTargetCacheTag({ gridId, targetId })
-			: gradeForGradeTargetRubricCacheTag({ gridId, targetId, rubricId });
-	return [scopeTag, gradeImportCacheTag({ gridId })];
+			? targetGradesTag({ gridId, targetId })
+			: targetRubricGradeTag({ gridId, targetId, rubricId });
+	return [scopeTag, allGradesTag({ gridId })];
 }
 
 // Returns the typed criterion values for a single grade-target/rubric grade.

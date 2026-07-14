@@ -1,14 +1,13 @@
 import { expect, test } from "vitest";
 import {
-	gradeAggregateCacheTag,
-	gradeCompletionForRubricCacheTag,
-	gradeForGradeTargetCacheTag,
-	gradeForGradeTargetRubricCacheTag,
-	gradeImportCacheTag,
-	gradeTargetListCacheTag,
-	gridCacheTag,
-	gridListCacheTag,
-	rubricListCacheTag,
+	allGradesTag,
+	allGridsTag,
+	allRubricsTag,
+	allTargetsTag,
+	gridTag,
+	rubricCompletionTag,
+	targetGradesTag,
+	targetRubricGradeTag,
 } from "./cacheTags.ts";
 
 // The exact tag strings are pinned with inline snapshots: an unintended change
@@ -18,36 +17,28 @@ import {
 test("every tag shape", () => {
 	const gridId = "g-1";
 	expect({
-		gridList: gridListCacheTag(),
-		grid: gridCacheTag({ gridId }),
-		rubricList: rubricListCacheTag({ gridId }),
-		gradeTargetList: gradeTargetListCacheTag({ gridId }),
-		gradeAggregate: gradeAggregateCacheTag({ gridId }),
-		gradeImport: gradeImportCacheTag({ gridId }),
-		gradeForGradeTarget: gradeForGradeTargetCacheTag({
-			gridId,
-			targetId: "t-1",
-		}),
-		gradeForGradeTargetRubric: gradeForGradeTargetRubricCacheTag({
+		allGrids: allGridsTag(),
+		grid: gridTag({ gridId }),
+		allRubrics: allRubricsTag({ gridId }),
+		allTargets: allTargetsTag({ gridId }),
+		allGrades: allGradesTag({ gridId }),
+		targetGrades: targetGradesTag({ gridId, targetId: "t-1" }),
+		targetRubricGrade: targetRubricGradeTag({
 			gridId,
 			targetId: "t-1",
 			rubricId: "q-1",
 		}),
-		gradeCompletionForRubric: gradeCompletionForRubricCacheTag({
-			gridId,
-			rubricId: "q-1",
-		}),
+		rubricCompletion: rubricCompletionTag({ gridId, rubricId: "q-1" }),
 	}).toMatchInlineSnapshot(`
 		{
-		  "gradeAggregate": "grids:g-1:grades",
-		  "gradeCompletionForRubric": "grids:g-1:grades:rubric:q-1",
-		  "gradeForGradeTarget": "grids:g-1:grades:target:t-1",
-		  "gradeForGradeTargetRubric": "grids:g-1:grades:target:t-1:rubric:q-1",
-		  "gradeImport": "grids:g-1:grades:all",
-		  "gradeTargetList": "grids:g-1:grade-targets",
+		  "allGrades": "grids:g-1:grades",
+		  "allGrids": "grids",
+		  "allRubrics": "grids:g-1:rubrics",
+		  "allTargets": "grids:g-1:grade-targets",
 		  "grid": "grids:g-1",
-		  "gridList": "grids",
-		  "rubricList": "grids:g-1:rubrics",
+		  "rubricCompletion": "grids:g-1:grades:rubric:q-1",
+		  "targetGrades": "grids:g-1:grades:target:t-1",
+		  "targetRubricGrade": "grids:g-1:grades:target:t-1:rubric:q-1",
 		}
 	`);
 });
@@ -60,21 +51,16 @@ test("every tag shape", () => {
 test("adversarial ids cannot alias distinct tag shapes", () => {
 	const gridId = "g-1";
 	const tags = [
-		gridListCacheTag(),
-		gridCacheTag({ gridId }),
-		rubricListCacheTag({ gridId }),
-		gradeTargetListCacheTag({ gridId }),
-		gradeAggregateCacheTag({ gridId }),
-		gradeImportCacheTag({ gridId }),
-		gradeForGradeTargetCacheTag({ gridId, targetId: "all" }),
-		gradeForGradeTargetCacheTag({ gridId, targetId: "rubric" }),
-		gradeForGradeTargetRubricCacheTag({
-			gridId,
-			targetId: "all",
-			rubricId: "all",
-		}),
-		gradeCompletionForRubricCacheTag({ gridId, rubricId: "all" }),
-		gradeCompletionForRubricCacheTag({ gridId, rubricId: "target" }),
+		allGridsTag(),
+		gridTag({ gridId }),
+		allRubricsTag({ gridId }),
+		allTargetsTag({ gridId }),
+		allGradesTag({ gridId }),
+		targetGradesTag({ gridId, targetId: "all" }),
+		targetGradesTag({ gridId, targetId: "rubric" }),
+		targetRubricGradeTag({ gridId, targetId: "all", rubricId: "all" }),
+		rubricCompletionTag({ gridId, rubricId: "all" }),
+		rubricCompletionTag({ gridId, rubricId: "target" }),
 	];
 
 	expect(new Set(tags).size).toBe(tags.length);

@@ -6,19 +6,18 @@ See `docs/adr/0008-cache-tags-lifetimes-and-invalidation.md` for the rules that 
 
 ## Tag scopes
 
-Every tag except `gridListCacheTag` is grid-scoped under the `grids:{gridId}:…` namespace (ADR 0008 rule 8), so a mutation in one grid never invalidates another grid's reads. Author-chosen ids (grade target, rubric) always sit behind a literal discriminator (`target:`, `rubric:`), so no two tag shapes can alias. Every helper takes a named-object argument.
+Every tag except `allGridsTag` is grid-scoped under the `grids:{gridId}:…` namespace (ADR 0008 rule 8), so a mutation in one grid never invalidates another grid's reads. Author-chosen ids (grade target, rubric) always sit behind a literal discriminator (`target:`, `rubric:`), so no two tag shapes can alias. Every helper takes a named-object argument.
 
 | Helper | Tag string | Scope |
 |---|---|---|
-| `gridListCacheTag()` | `grids` | All grids (the only grid-unscoped tag) |
-| `gridCacheTag({gridId})` | `grids:{gridId}` | One grid, by public Grid ID |
-| `rubricListCacheTag({gridId})` | `grids:{gridId}:rubrics` | All rubrics in the grid |
-| `gradeTargetListCacheTag({gridId})` | `grids:{gridId}:grade-targets` | All grade targets in the grid |
-| `gradeAggregateCacheTag({gridId})` | `grids:{gridId}:grades` | All grades in the grid (busted by every save) |
-| `gradeImportCacheTag({gridId})` | `grids:{gridId}:grades:all` | Import-level aggregate (busted by imports and definition changes, not individual saves) |
-| `gradeForGradeTargetCacheTag({gridId, targetId})` | `grids:{gridId}:grades:target:{targetId}` | All rubrics for one grade target |
-| `gradeForGradeTargetRubricCacheTag({gridId, targetId, rubricId})` | `grids:{gridId}:grades:target:{targetId}:rubric:{rubricId}` | Exact grade-target/rubric pair |
-| `gradeCompletionForRubricCacheTag({gridId, rubricId})` | `grids:{gridId}:grades:rubric:{rubricId}` | One rubric's completion across the grid's grade targets |
+| `allGridsTag()` | `grids` | All grids (the only grid-unscoped tag) |
+| `gridTag({gridId})` | `grids:{gridId}` | One grid, by public Grid ID |
+| `allRubricsTag({gridId})` | `grids:{gridId}:rubrics` | All rubrics in the grid |
+| `allTargetsTag({gridId})` | `grids:{gridId}:grade-targets` | All grade targets in the grid |
+| `allGradesTag({gridId})` | `grids:{gridId}:grades` | All grades in the grid (busted by saves, imports, and definition changes) |
+| `targetGradesTag({gridId, targetId})` | `grids:{gridId}:grades:target:{targetId}` | All rubrics for one grade target |
+| `targetRubricGradeTag({gridId, targetId, rubricId})` | `grids:{gridId}:grades:target:{targetId}:rubric:{rubricId}` | Exact grade-target/rubric pair |
+| `rubricCompletionTag({gridId, rubricId})` | `grids:{gridId}:grades:rubric:{rubricId}` | One rubric's completion across the grid's grade targets |
 
 ## Mutations → tags invalidated
 
@@ -29,13 +28,13 @@ Each mutation calls exactly one semantic helper from `src/db/cacheInvalidation.t
 | Mutation | Helper | `updateTag` (read-your-writes) | `revalidateTag` (stale-while-revalidate) | Source |
 |---|---|---|---|---|
 | `saveCriterionGrade` | `invalidateGradeSave` | `…:grades:target:{targetId}:rubric:{rubricId}`, `…:grades:target:{targetId}` | `…:grades`, `…:grades:rubric:{rubricId}` | `src/grading/gradeMutations.ts` |
-| `saveRubricDefinition` | `invalidateRubricDefinitionSave` | `…:rubrics` | `…:grades`, `…:grades:all`, `…:grades:rubric:{rubricId}` (+ `…:grades:rubric:{previousRubricId}` when id changes) | `src/rubric-management/rubricDefinitionMutations.ts` |
-| `deleteRubricDefinition` | `invalidateRubricDefinitionDelete` | `…:rubrics` | `…:grades`, `…:grades:all`, `…:grades:rubric:{rubricId}` | `src/rubric-management/rubricDefinitionMutations.ts` |
+| `saveRubricDefinition` | `invalidateRubricDefinitionSave` | `…:rubrics` | `…:grades`, `…:grades:rubric:{rubricId}` (+ `…:grades:rubric:{previousRubricId}` when id changes) | `src/rubric-management/rubricDefinitionMutations.ts` |
+| `deleteRubricDefinition` | `invalidateRubricDefinitionDelete` | `…:rubrics` | `…:grades`, `…:grades:rubric:{rubricId}` | `src/rubric-management/rubricDefinitionMutations.ts` |
 | `reorderRubrics` | `invalidateRubricReorder` | `…:rubrics` | (none) | `src/rubric-management/rubricDefinitionMutations.ts` |
 | `createGrid` | `invalidateGridCreate` | (none) | `grids`, `grids:{gridId}` | `src/grids/grids.ts` |
-| `saveGrades` (import) | `invalidateGradeImport` | (none) | `…:grades`, `…:grades:all` | `src/imports/grades/saveGrades.ts` |
-| `saveRubrics` (import) | `invalidateRubricImport` | (none) | `…:rubrics`, `…:grades`, `…:grades:all` | `src/imports/rubrics/saveRubrics.ts` |
-| `saveStudents` (import) | `invalidateStudentImport` | (none) | `…:grade-targets`, `…:grades`, `…:grades:all` | `src/imports/students/saveStudents.ts` |
+| `saveGrades` (import) | `invalidateGradeImport` | (none) | `…:grades` | `src/imports/grades/saveGrades.ts` |
+| `saveRubrics` (import) | `invalidateRubricImport` | (none) | `…:rubrics`, `…:grades` | `src/imports/rubrics/saveRubrics.ts` |
+| `saveStudents` (import) | `invalidateStudentImport` | (none) | `…:grade-targets`, `…:grades` | `src/imports/students/saveStudents.ts` |
 
 Import helpers and `invalidateGridCreate` run from request-scoped actions (import actions, the create-grid action). `revalidateTag` throws outside request scope, so these helpers must not be called from background jobs.
 
@@ -50,11 +49,11 @@ Page-level sections inherit `cacheLife` from inner cached functions; the lifetim
 | `loadRubricRows` (shared by `loadRubricsById`, `loadRubric`, which derive from it) | `…:rubrics` | 1 h (`definitions`) | `src/rubrics/rubrics.ts` |
 | `loadRubricDefinitions` (composes `loadRubricRows` + grade counts) | `…:rubrics`, `…:grades` | 60 s (`projection`; counts track the coarse aggregate) | `src/rubric-management/rubricDefinitions.ts` |
 | `loadGradeTargets` | `…:grade-targets` | 1 h (`roster`) | `src/grade-targets/gradeTargets.ts` |
-| `loadRubricGrade` | `…:grades:target:{targetId}:rubric:{rubricId}`, `…:grades:all` | 5 min (`values`) | `src/grading/grades.ts` |
-| `loadGradeTargetGrades` | `…:grades:target:{targetId}`, `…:grades:all` | 5 min (`values`) | `src/grading/grades.ts` |
+| `loadRubricGrade` | `…:grades:target:{targetId}:rubric:{rubricId}`, `…:grades` | 5 min (`values`) | `src/grading/grades.ts` |
+| `loadGradeTargetGrades` | `…:grades:target:{targetId}`, `…:grades` | 5 min (`values`) | `src/grading/grades.ts` |
 | `loadGradeCompletionRows` (shared by `loadGradeCompletionByTarget` and `loadGradeCompletionSummary`, plain derivers that compose it) | `…:grade-targets`, `…:rubrics`, `…:grades` | 60 s | `src/grade-completion/loadGradeCompletion.ts` |
 | `loadCriterionGradesCount` (composed by `loadGradeCompletionSummary` alongside `loadGradeCompletionRows`) | `…:grades` | 60 s | `src/grade-completion/loadGradeCompletion.ts` |
-| `loadGradedCriterionCountsByTarget` | `…:grade-targets`, `…:rubrics`, `…:grades:rubric:{rubricId}`, `…:grades:all` | 60 s | `src/grade-completion/loadGradeCompletion.ts` |
+| `loadGradedCriterionCountsByTarget` | `…:grade-targets`, `…:rubrics`, `…:grades:rubric:{rubricId}`, `…:grades` | 60 s | `src/grade-completion/loadGradeCompletion.ts` |
 | `loadResultsData` | `…:rubrics`, `…:grade-targets`, `…:grades` | 60 s (`projection`) | `src/results/loadResults.ts` |
 | `RubricHeaderSection` (page) | `grids:{gridId}`, `…:rubrics` | inherits | `app/.../rubrics/[rubricId]/page.tsx` |
 

@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import type { ReactElement } from "react";
 import { Suspense } from "react";
 import { attachGrade } from "#criteria/criterion.ts";
-import { cacheTags, gridCacheTag, rubricListCacheTag } from "#db/cacheTags.ts";
+import { allRubricsTag, cacheTags, gridTag } from "#db/cacheTags.ts";
 import AppLink from "#design-system/AppLink.tsx";
 import AppPage from "#design-system/AppPage.tsx";
 import PageHeader from "#design-system/PageHeader.tsx";
@@ -62,7 +62,7 @@ async function RubricHeaderSection({
 	rubricId: string;
 }) {
 	"use cache";
-	cacheTags(gridCacheTag({ gridId }), rubricListCacheTag({ gridId }));
+	cacheTags(gridTag({ gridId }), allRubricsTag({ gridId }));
 
 	const grid = await loadGridByPublicId(gridId, { required: true });
 

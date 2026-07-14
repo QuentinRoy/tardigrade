@@ -1,11 +1,7 @@
 import "server-only";
 import type { Kysely } from "kysely";
 import { cacheLife } from "next/cache";
-import {
-	cacheTags,
-	gradeAggregateCacheTag,
-	rubricListCacheTag,
-} from "#db/cacheTags.ts";
+import { allGradesTag, allRubricsTag, cacheTags } from "#db/cacheTags.ts";
 import type { Database } from "#db/generated/database.ts";
 import { database as defaultDb } from "#db/kysely.ts";
 import {
@@ -114,7 +110,7 @@ export function rubricDefinitionCacheTags({
 }: {
 	gridId: string;
 }): string[] {
-	return [rubricListCacheTag({ gridId }), gradeAggregateCacheTag({ gridId })];
+	return [allRubricsTag({ gridId }), allGradesTag({ gridId })];
 }
 
 // Canonical cached source for the rubrics-management read (Finding 4). Shares

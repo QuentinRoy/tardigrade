@@ -57,7 +57,6 @@ test("invalidateRubricDefinitionSave updates the rubric list and revalidates gra
 	expect(revalidatedTags()).toMatchInlineSnapshot(`
 		[
 		  "grids:g-1:grades",
-		  "grids:g-1:grades:all",
 		  "grids:g-1:grades:rubric:q-1",
 		]
 	`);
@@ -78,7 +77,6 @@ test("invalidateRubricDefinitionSave revalidates the previous rubric's completio
 	expect(revalidatedTags()).toMatchInlineSnapshot(`
 		[
 		  "grids:g-1:grades",
-		  "grids:g-1:grades:all",
 		  "grids:g-1:grades:rubric:q-2",
 		  "grids:g-1:grades:rubric:q-1",
 		]
@@ -95,7 +93,6 @@ test("invalidateRubricDefinitionSave ignores an unchanged previous id", () => {
 	expect(revalidatedTags()).toMatchInlineSnapshot(`
 		[
 		  "grids:g-1:grades",
-		  "grids:g-1:grades:all",
 		  "grids:g-1:grades:rubric:q-1",
 		]
 	`);
@@ -112,7 +109,6 @@ test("invalidateRubricDefinitionDelete updates the rubric list and revalidates g
 	expect(revalidatedTags()).toMatchInlineSnapshot(`
 		[
 		  "grids:g-1:grades",
-		  "grids:g-1:grades:all",
 		  "grids:g-1:grades:rubric:q-1",
 		]
 	`);
@@ -148,7 +144,6 @@ test("invalidateGradeImport revalidates the grade aggregates", () => {
 	expect(revalidatedTags()).toMatchInlineSnapshot(`
 		[
 		  "grids:g-1:grades",
-		  "grids:g-1:grades:all",
 		]
 	`);
 });
@@ -161,7 +156,6 @@ test("invalidateRubricImport revalidates the rubric list and grade aggregates", 
 		[
 		  "grids:g-1:rubrics",
 		  "grids:g-1:grades",
-		  "grids:g-1:grades:all",
 		]
 	`);
 });
@@ -174,7 +168,6 @@ test("invalidateStudentImport revalidates the grade-target list and grade aggreg
 		[
 		  "grids:g-1:grade-targets",
 		  "grids:g-1:grades",
-		  "grids:g-1:grades:all",
 		]
 	`);
 });

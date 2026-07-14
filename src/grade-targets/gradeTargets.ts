@@ -1,7 +1,7 @@
 import "server-only";
 import { type Kysely, sql } from "kysely";
 import { cacheLife } from "next/cache";
-import { cacheTags, gradeTargetListCacheTag } from "#db/cacheTags.ts";
+import { allTargetsTag, cacheTags } from "#db/cacheTags.ts";
 import type { Database } from "#db/generated/database.ts";
 import { database as defaultDb } from "#db/kysely.ts";
 import type { GradeTarget } from "./types.ts";
@@ -11,7 +11,7 @@ export function gradeTargetsCacheTags({
 }: {
 	gridId: string;
 }): string[] {
-	return [gradeTargetListCacheTag({ gridId })];
+	return [allTargetsTag({ gridId })];
 }
 
 // Reserves `count` fresh public ids for `gridRowId`, contiguous from the

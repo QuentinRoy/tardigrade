@@ -47,7 +47,7 @@ Finally, the invalidation primitive is a freshness policy, not plumbing. `update
 
 7. The mutation-to-tag map lives in `docs/reference/cache-invalidation-map.md` and is updated in the same PR as any change to a tag helper, a semantic invalidation helper, or the tags a loader registers. Reviewers reject a caching change whose map entry is missing. Tests assert helper outputs (tags produced, tags invalidated) so the map and code cannot silently diverge.
 
-8. Tags are grid-scoped: every tag except `gridListCacheTag` lives under the `grids:{gridId}:…` namespace, so a mutation in one grid never invalidates another grid's cached reads. One uniform grammar, `grids:{gridId}:<entity>[:<discriminator>:<id>]…`, with any author-chosen id (a grade target or rubric public id) always behind a literal discriminator (`target:`, `rubric:`); no two tag shapes can alias regardless of what ids authors pick — a structural guarantee, not a convention that depends on ids looking a certain way. This scoping was migrated all-at-once with the Project→Grid rename, never a mix of scoped and unscoped shapes.
+8. Tags are grid-scoped: every tag except `allGridsTag` lives under the `grids:{gridId}:…` namespace, so a mutation in one grid never invalidates another grid's cached reads. One uniform grammar, `grids:{gridId}:<entity>[:<discriminator>:<id>]…`, with any author-chosen id (a grade target or rubric public id) always behind a literal discriminator (`target:`, `rubric:`); no two tag shapes can alias regardless of what ids authors pick — a structural guarantee, not a convention that depends on ids looking a certain way. This scoping was migrated all-at-once with the Project→Grid rename, never a mix of scoped and unscoped shapes.
 
 ## Consequences
 

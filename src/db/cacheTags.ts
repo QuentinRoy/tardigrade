@@ -8,7 +8,7 @@ import { cacheTag } from "next/cache";
 // `"use cache"` scope registers the full closure of these tags for everything it
 // renders (ADR 0008 rule 3).
 //
-// Grid scoping (ADR 0008 rule 8): every tag below except `gridListCacheTag`
+// Grid scoping (ADR 0008 rule 8): every tag below except `allGridsTag`
 // lives under the `grids:{gridId}:…` namespace, so a mutation in one grid never
 // busts another grid's cached reads. Rubric and grade-target public ids are only
 // unique within a grid, so an unscoped tag would let two grids share one entry.
@@ -19,41 +19,31 @@ import { cacheTag } from "next/cache";
 // tag shapes can alias no matter what ids authors pick. This is a structural
 // guarantee, not a convention that depends on ids looking like `t-<n>`.
 
-export function gridListCacheTag(): string {
+export function allGridsTag(): string {
 	return "grids";
 }
 
 // A single grid's data, keyed by its public Grid ID.
-export function gridCacheTag({ gridId }: { gridId: string }): string {
+export function gridTag({ gridId }: { gridId: string }): string {
 	return `grids:${gridId}`;
 }
 
-export function rubricListCacheTag({ gridId }: { gridId: string }): string {
+export function allRubricsTag({ gridId }: { gridId: string }): string {
 	return `grids:${gridId}:rubrics`;
 }
 
-export function gradeTargetListCacheTag({
-	gridId,
-}: {
-	gridId: string;
-}): string {
+export function allTargetsTag({ gridId }: { gridId: string }): string {
 	return `grids:${gridId}:grade-targets`;
 }
 
 // The coarse grade aggregate: every grade in the grid. Individual saves
 // bust this, and grid-wide grade reads register it.
-export function gradeAggregateCacheTag({ gridId }: { gridId: string }): string {
+export function allGradesTag({ gridId }: { gridId: string }): string {
 	return `grids:${gridId}:grades`;
 }
 
-// The bulk-import aggregate. Imports bust this alongside the coarse aggregate;
-// individual saves do not.
-export function gradeImportCacheTag({ gridId }: { gridId: string }): string {
-	return `grids:${gridId}:grades:all`;
-}
-
 // One grade target's grades across all rubrics.
-export function gradeForGradeTargetCacheTag({
+export function targetGradesTag({
 	gridId,
 	targetId,
 }: {
@@ -64,7 +54,7 @@ export function gradeForGradeTargetCacheTag({
 }
 
 // One exact grade-target/rubric grade pair.
-export function gradeForGradeTargetRubricCacheTag({
+export function targetRubricGradeTag({
 	gridId,
 	targetId,
 	rubricId,
@@ -77,7 +67,7 @@ export function gradeForGradeTargetRubricCacheTag({
 }
 
 // One rubric's grade completion across grade targets.
-export function gradeCompletionForRubricCacheTag({
+export function rubricCompletionTag({
 	gridId,
 	rubricId,
 }: {
