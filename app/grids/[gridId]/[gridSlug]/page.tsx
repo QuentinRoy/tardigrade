@@ -10,13 +10,13 @@ import {
 } from "#grids/gridPaths.ts";
 import { loadGridByPublicId } from "#grids/grids.ts";
 
-type GridDashboardPageProps = {
+type GridOverviewPageProps = {
 	params: Promise<{ gridId: string; gridSlug: string }>;
 };
 
-export default async function GridDashboardPage({
+export default async function GridOverviewPage({
 	params,
-}: GridDashboardPageProps) {
+}: GridOverviewPageProps) {
 	const { gridId } = await params;
 
 	const grid = await loadGridByPublicId(gridId, { required: true });
@@ -26,7 +26,7 @@ export default async function GridDashboardPage({
 	return (
 		<AppPage>
 			<Stack gap="lg">
-				<Title order={1}>{grid.name} Dashboard</Title>
+				<Title order={1}>{grid.name} Overview</Title>
 				{completion.rubrics.total === 0 ? (
 					<Stack gap="sm" align="flex-start">
 						<Text c="dimmed">

@@ -64,11 +64,11 @@ async function expectCompletion(
 // until the refreshed value lands, rather than asserting on a single load.
 async function expectCompletionEventually(
 	page: Page,
-	dashboardUrl: string,
+	overviewUrl: string,
 	expected: typeof EXPECTED_COMPLETION,
 ): Promise<void> {
 	await expect(async () => {
-		await page.goto(dashboardUrl);
+		await page.goto(overviewUrl);
 		await expectCompletion(
 			page,
 			"Students and groups graded",
@@ -178,7 +178,7 @@ function parseCsv(text: string): Record<string, string>[] {
 test("grading workflow: import, grade, persist, and export a computed total", async ({
 	page,
 }) => {
-	// Create a grid and land on its dashboard.
+	// Create a grid and land on its overview.
 	await page.goto("/grids");
 	await page.getByLabel("Grid name").fill(GRID_NAME);
 	await page.getByRole("button", { name: "Create and switch" }).click();
@@ -188,7 +188,7 @@ test("grading workflow: import, grade, persist, and export a computed total", as
 	expect(gridId).toBeTruthy();
 	expect(gridSlug).toBeTruthy();
 	if (gridId == null || gridSlug == null) {
-		throw new Error("Grid id and slug were not present in the dashboard URL.");
+		throw new Error("Grid id and slug were not present in the overview URL.");
 	}
 
 	// Import in dependency order: rubrics define the rubric model, students
@@ -214,10 +214,10 @@ test("grading workflow: import, grade, persist, and export a computed total", as
 		content: readFixture("grades.csv"),
 	});
 
-	// Grade Completion on the dashboard: jane_smith is ungraded, so this
+	// Grade Completion on the overview: jane_smith is ungraded, so this
 	// is a genuine partial state, not a trivial all-complete one.
-	const dashboardUrl = `/grids/${gridId}/${gridSlug}`;
-	await expectCompletionEventually(page, dashboardUrl, EXPECTED_COMPLETION);
+	const overviewUrl = `/grids/${gridId}/${gridSlug}`;
+	await expectCompletionEventually(page, overviewUrl, EXPECTED_COMPLETION);
 
 	// Reload to prove the completion persisted: the writes survived in Postgres
 	// and the production caches were invalidated after the imports.

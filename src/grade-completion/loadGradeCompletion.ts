@@ -303,7 +303,7 @@ export function criterionGradesCountCacheTags(): string[] {
 }
 
 // Canonical cached source for the grid-wide criterion-grade count, so the
-// uncached grid dashboard page (`app/.../[gridSlug]/page.tsx`) doesn't run
+// uncached grid overview page (`app/.../[gridSlug]/page.tsx`) doesn't run
 // this query on every request even though completion rows are cached.
 export async function loadCriterionGradesCount(
 	{ gridId }: { gridId: string },

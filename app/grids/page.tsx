@@ -12,7 +12,7 @@ import AppShell from "#app-shell/AppShell.tsx";
 import AppNavLink from "#design-system/AppNavLink.tsx";
 import AppPage from "#design-system/AppPage.tsx";
 import { toCreateGridErrorMessage } from "#grids/createGridErrorMessage.ts";
-import { gridDashboardPath } from "#grids/gridPaths.ts";
+import { gridOverviewPath } from "#grids/gridPaths.ts";
 import { createGrid, loadGrids } from "#grids/grids.ts";
 
 function isNextRedirectError(error: unknown): boolean {
@@ -37,7 +37,7 @@ export default async function GridsPage({ searchParams }: GridsPageProps) {
 
 		try {
 			const grid = await createGrid({ name });
-			redirect(gridDashboardPath({ gridId: grid.id, gridSlug: grid.slug }));
+			redirect(gridOverviewPath({ gridId: grid.id, gridSlug: grid.slug }));
 		} catch (error) {
 			if (isNextRedirectError(error)) {
 				throw error;
@@ -71,7 +71,7 @@ export default async function GridsPage({ searchParams }: GridsPageProps) {
 							{grids.map((grid) => (
 								<AppNavLink
 									key={grid.id}
-									href={gridDashboardPath({
+									href={gridOverviewPath({
 										gridId: grid.id,
 										gridSlug: grid.slug,
 									})}

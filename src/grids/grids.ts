@@ -8,7 +8,7 @@ import type { Database } from "#db/generated/database.ts";
 import { database } from "#db/kysely.ts";
 
 const nanoid = customAlphabet("0123456789abcdefghijklmnopqrstuvwxyz", 10);
-const createGridPublicId = () => `p-${nanoid()}`;
+const createGridPublicId = () => `g-${nanoid()}`;
 
 type GridRow = Pick<Selectable<Database["grid"]>, "id" | "name">;
 

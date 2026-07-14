@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { gridDashboardPath } from "#grids/gridPaths.ts";
+import { gridOverviewPath } from "#grids/gridPaths.ts";
 import { loadGrids } from "#grids/grids.ts";
 
 export default async function HomePage() {
@@ -11,6 +11,6 @@ export default async function HomePage() {
 	}
 
 	redirect(
-		gridDashboardPath({ gridId: defaultGrid.id, gridSlug: defaultGrid.slug }),
+		gridOverviewPath({ gridId: defaultGrid.id, gridSlug: defaultGrid.slug }),
 	);
 }

@@ -4,7 +4,7 @@ import { Box, Burger, Flex, Title } from "@mantine/core";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import AppLink from "#design-system/AppLink.tsx";
-import { gridDashboardPath } from "#grids/gridPaths.ts";
+import { gridOverviewPath } from "#grids/gridPaths.ts";
 import { getGridRouteContext } from "./AppShell.shared.ts";
 
 const SIDE_ZONE_WIDTH = 48;
@@ -25,7 +25,7 @@ export default function AppShellTopBar(props: AppShellTopBarProps): ReactNode {
 	const title = props.showNavigation ? props.gridName : "BonPoint";
 	const titleHref =
 		props.showNavigation && gridRouteContext != null
-			? gridDashboardPath(gridRouteContext)
+			? gridOverviewPath(gridRouteContext)
 			: undefined;
 
 	return (

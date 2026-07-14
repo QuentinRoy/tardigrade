@@ -8,7 +8,7 @@ export function gridBasePath({ gridId, gridSlug }: GridRef): string {
 	return `/grids/${gridId}/${gridSlug}`;
 }
 
-export function gridDashboardPath(grid: GridRef): string {
+export function gridOverviewPath(grid: GridRef): string {
 	return gridBasePath(grid);
 }
 
