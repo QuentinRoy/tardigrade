@@ -7,62 +7,74 @@ import { cacheTag } from "next/cache";
 // mutation (ADR 0008 rule 2). Never depend on nested tag propagation: a
 // `"use cache"` scope registers the full closure of these tags for everything it
 // renders (ADR 0008 rule 3).
+//
+// Grid scoping (ADR 0008 rule 8): every tag below except `allGridsTag`
+// lives under the `grids:{gridId}:…` namespace, so a mutation in one grid never
+// busts another grid's cached reads. Rubric and grade-target public ids are only
+// unique within a grid, so an unscoped tag would let two grids share one entry.
+//
+// One uniform grammar: `grids:{gridId}:<entity>[:<discriminator>:<id>]…`.
+// Rubric public ids are author-chosen and always sit behind a literal
+// discriminator (`rubric:`); grade-target ids are system-generated and also
+// discriminator-delimited (`target:`). This avoids relying on id formatting
+// conventions to keep tag shapes distinct.
 
-// Coarse list tags — one per entity collection.
-export function gridListCacheTag(): string {
+export function allGridsTag(): string {
 	return "grids";
 }
 
-export function rubricListCacheTag(): string {
-	return "rubrics";
-}
-
-export function gradeTargetListCacheTag(): string {
-	return "grade-targets";
-}
-
 // A single grid's data, keyed by its public Grid ID.
-export function gridCacheTag(gridId: string): string {
+export function gridTag({ gridId }: { gridId: string }): string {
 	return `grids:${gridId}`;
 }
 
-// The coarse grade aggregate: every grade in scope. Individual saves
+export function allRubricsTag({ gridId }: { gridId: string }): string {
+	return `grids:${gridId}:rubrics`;
+}
+
+export function allTargetsTag({ gridId }: { gridId: string }): string {
+	return `grids:${gridId}:grade-targets`;
+}
+
+// The coarse grade aggregate: every grade in the grid. Individual saves
 // bust this, and grid-wide grade reads register it.
-export function gradeAggregateCacheTag(): string {
-	return "grades";
+export function allGradesTag({ gridId }: { gridId: string }): string {
+	return `grids:${gridId}:grades`;
 }
-
-// The bulk-import aggregate. Imports bust this alongside the coarse aggregate;
-// individual saves do not.
-export function gradeImportCacheTag(): string {
-	return "grades:all";
-}
-
-// The id-keyed tags below use public ids that are only unique within a grid,
-// so the same tag can cover two grids (e.g. `t-1` in each). That costs an
-// extra rebuild in the other grid (over-invalidation), never stale data.
-// Grid-scoping them is folded into the Grid→Grid sweep stage (see
-// `plans/2026-07-06-terminology-sweep.md`, stage 6).
 
 // One grade target's grades across all rubrics.
-export function gradeForGradeTargetCacheTag(targetId: string): string {
-	return `grades:${targetId}`;
+export function allTargetGradesTag({
+	gridId,
+	targetId,
+}: {
+	gridId: string;
+	targetId: string;
+}): string {
+	return `grids:${gridId}:grades:target:${targetId}`;
 }
 
-// One exact grade-target/rubric grade pair.
-export function gradeForGradeTargetRubricCacheTag({
+// All grade rows for one exact grade-target/rubric cohort.
+export function allTargetRubricGradesTag({
+	gridId,
 	targetId,
 	rubricId,
 }: {
+	gridId: string;
 	targetId: string;
 	rubricId: string;
 }): string {
-	return `grades:${targetId}:${rubricId}`;
+	return `grids:${gridId}:grades:target:${targetId}:rubric:${rubricId}`;
 }
 
-// One rubric's grade completion across grade targets.
-export function gradeCompletionForRubricCacheTag(rubricId: string): string {
-	return `grades:rubric:${rubricId}`;
+// One rubric's completion across grade targets.
+export function gradeCompletionByRubricTag({
+	gridId,
+	rubricId,
+}: {
+	gridId: string;
+	rubricId: string;
+}): string {
+	return `grids:${gridId}:grades:rubric:${rubricId}`;
 }
 
 export function cacheTags(...tags: string[]): void {

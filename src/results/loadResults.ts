@@ -2,10 +2,10 @@ import "server-only";
 import type { Kysely } from "kysely";
 import { cacheLife } from "next/cache";
 import {
+	allGradesTag,
+	allRubricsTag,
+	allTargetsTag,
 	cacheTags,
-	gradeAggregateCacheTag,
-	gradeTargetListCacheTag,
-	rubricListCacheTag,
 } from "#db/cacheTags.ts";
 import type { Database } from "#db/generated/database.ts";
 import { database as defaultDb } from "#db/kysely.ts";
@@ -17,11 +17,11 @@ import {
 	type ResultsGradeRecord,
 } from "./resultsBuilder.ts";
 
-export function resultsCacheTags(): string[] {
+export function resultsCacheTags({ gridId }: { gridId: string }): string[] {
 	return [
-		rubricListCacheTag(),
-		gradeTargetListCacheTag(),
-		gradeAggregateCacheTag(),
+		allRubricsTag({ gridId }),
+		allTargetsTag({ gridId }),
+		allGradesTag({ gridId }),
 	];
 }
 
@@ -81,7 +81,7 @@ export async function loadResultsData(
 	options?: { db?: Kysely<Database> },
 ): Promise<ResultsData> {
 	"use cache";
-	cacheTags(...resultsCacheTags());
+	cacheTags(...resultsCacheTags({ gridId }));
 	cacheLife("projection");
 
 	const [targets, rubricsById, gradeRecords] = await Promise.all([

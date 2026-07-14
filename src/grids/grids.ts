@@ -3,7 +3,7 @@ import type { Selectable } from "kysely";
 import { customAlphabet } from "nanoid";
 import { cacheLife } from "next/cache";
 import { invalidateGridCreate } from "#db/cacheInvalidation.ts";
-import { cacheTags, gridCacheTag, gridListCacheTag } from "#db/cacheTags.ts";
+import { allGridsTag, cacheTags, gridTag } from "#db/cacheTags.ts";
 import type { Database } from "#db/generated/database.ts";
 import { database } from "#db/kysely.ts";
 
@@ -41,7 +41,7 @@ function toGridSummary(row: GridRow): GridSummary {
 
 export async function loadGrids(): Promise<GridSummary[]> {
 	"use cache";
-	cacheTags(gridListCacheTag());
+	cacheTags(allGridsTag());
 	cacheLife("directory");
 
 	const rows = await database
@@ -57,7 +57,7 @@ async function loadGridCached(
 	publicId: string,
 ): Promise<GridSummary | undefined> {
 	"use cache";
-	cacheTags(gridListCacheTag(), gridCacheTag(publicId));
+	cacheTags(allGridsTag(), gridTag({ gridId: publicId }));
 	cacheLife("directory");
 
 	const row = await database

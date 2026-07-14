@@ -32,7 +32,7 @@ Finally, the invalidation primitive is a freshness policy, not plumbing. `update
    - `roster` — submissions, students: long fallback; imports are the freshness mechanism.
    - `values` — individual assessment values: conservative fallback; exact-tag invalidation is the freshness mechanism.
    - `projection` — completion, progress, overview, dashboards: short fallback (currently 60 seconds); derived and user-visible during grading.
-   - `directory` — project list and project lookup: short fallback.
+   - `directory` — grid list and grid lookup: short fallback.
 
    Changing a class's duration is a one-line change in one place; a loader that needs to deviate from its class documents why at the call site.
 
@@ -41,16 +41,20 @@ Finally, the invalidation primitive is a freshness policy, not plumbing. `update
 6. Mutations invalidate through semantic helpers named after the mutation, not after the mechanism: `invalidateAssessmentSave(...)`, `invalidateAssessmentImport(...)`, `invalidateQuestionDefinitionSave(...)`, and so on, colocated with `cacheTags.ts`. Wrappers and import actions call exactly one helper after commit. The helper chooses the primitive per tag class:
 
    - `updateTag` (read-your-own-writes) for the tags of the entity that was just edited — the exact assessment pair, the submission's assessments, the question's definition.
-   - `revalidateTag` (stale-while-revalidate) for derived projection tags and coarse aggregate tags, so a save never blocks the next navigation on recomputing project-wide completion.
+   - `revalidateTag` (stale-while-revalidate) for derived projection tags and coarse aggregate tags, so a save never blocks the next navigation on recomputing grid-wide completion.
 
    `revalidateTag` is only callable in request scope; helpers used outside request scope must document the constraint, as the import savers do today.
 
 7. The mutation-to-tag map lives in `docs/reference/cache-invalidation-map.md` and is updated in the same PR as any change to a tag helper, a semantic invalidation helper, or the tags a loader registers. Reviewers reject a caching change whose map entry is missing. Tests assert helper outputs (tags produced, tags invalidated) so the map and code cannot silently diverge.
 
-8. Tags are coarse across projects for now. The helper API must keep project scoping addable behind the helpers without touching call sites, but the migration to project-scoped tags is a deliberate, all-at-once change under a future ADR — never a mix of old and new shapes.
+8. Tags are grid-scoped: every tag except `allGridsTag` lives under the `grids:{gridId}:…` namespace, so a mutation in one grid never invalidates another grid's cached reads. One uniform grammar, `grids:{gridId}:<entity>[:<discriminator>:<id>]…`, keeps shape parsing explicit with literal discriminators (`target:`, `rubric:`): rubric ids are author-chosen and target ids are system-generated, and both are represented in discriminator-delimited positions rather than inferred from id formatting conventions. This scoping was migrated all-at-once with the Project→Grid rename, never a mix of scoped and unscoped shapes.
 
 ## Consequences
 
 - A new cached read costs three small artifacts: a helper-based tag set, an explicit lifetime class, and a map entry. This is intentional friction; it is the cheap end of the cost curve compared with debugging staleness.
 - Page-level sections are more verbose (full tag closure). That verbosity is the permanent price of not depending on undocumented behavior; verifying propagation would not remove it, because undocumented behavior stays undependable even when it happens to work.
 - The `updateTag`/`revalidateTag` split means progress indicators may be one navigation stale immediately after a save. This is accepted: the grading loop must not block on derived data (#59).
+
+## Changelog
+
+- 2026-07-14: Rule 8 executed — tags moved from project-coarse to grid-scoped under the `grids:{gridId}:…` namespace (only the grid list stays global), following the Project→Grid rename.
