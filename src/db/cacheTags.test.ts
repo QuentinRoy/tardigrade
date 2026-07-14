@@ -3,11 +3,11 @@ import {
 	allGradesTag,
 	allGridsTag,
 	allRubricsTag,
+	allTargetGradesTag,
+	allTargetRubricGradesTag,
 	allTargetsTag,
 	gridTag,
 	rubricCompletionTag,
-	targetGradesTag,
-	targetRubricGradeTag,
 } from "./cacheTags.ts";
 
 // The exact tag strings are pinned with inline snapshots: an unintended change
@@ -22,8 +22,8 @@ test("every tag shape", () => {
 		allRubrics: allRubricsTag({ gridId }),
 		allTargets: allTargetsTag({ gridId }),
 		allGrades: allGradesTag({ gridId }),
-		targetGrades: targetGradesTag({ gridId, targetId: "t-1" }),
-		targetRubricGrade: targetRubricGradeTag({
+		allTargetGrades: allTargetGradesTag({ gridId, targetId: "t-1" }),
+		allTargetRubricGrades: allTargetRubricGradesTag({
 			gridId,
 			targetId: "t-1",
 			rubricId: "q-1",
@@ -34,11 +34,11 @@ test("every tag shape", () => {
 		  "allGrades": "grids:g-1:grades",
 		  "allGrids": "grids",
 		  "allRubrics": "grids:g-1:rubrics",
+		  "allTargetGrades": "grids:g-1:grades:target:t-1",
+		  "allTargetRubricGrades": "grids:g-1:grades:target:t-1:rubric:q-1",
 		  "allTargets": "grids:g-1:grade-targets",
 		  "grid": "grids:g-1",
 		  "rubricCompletion": "grids:g-1:grades:rubric:q-1",
-		  "targetGrades": "grids:g-1:grades:target:t-1",
-		  "targetRubricGrade": "grids:g-1:grades:target:t-1:rubric:q-1",
 		}
 	`);
 });
@@ -56,9 +56,9 @@ test("adversarial ids cannot alias distinct tag shapes", () => {
 		allRubricsTag({ gridId }),
 		allTargetsTag({ gridId }),
 		allGradesTag({ gridId }),
-		targetGradesTag({ gridId, targetId: "all" }),
-		targetGradesTag({ gridId, targetId: "rubric" }),
-		targetRubricGradeTag({ gridId, targetId: "all", rubricId: "all" }),
+		allTargetGradesTag({ gridId, targetId: "all" }),
+		allTargetGradesTag({ gridId, targetId: "rubric" }),
+		allTargetRubricGradesTag({ gridId, targetId: "all", rubricId: "all" }),
 		rubricCompletionTag({ gridId, rubricId: "all" }),
 		rubricCompletionTag({ gridId, rubricId: "target" }),
 	];

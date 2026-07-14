@@ -3,11 +3,11 @@ import {
 	allGradesTag,
 	allGridsTag,
 	allRubricsTag,
+	allTargetGradesTag,
+	allTargetRubricGradesTag,
 	allTargetsTag,
 	gridTag,
 	rubricCompletionTag,
-	targetGradesTag,
-	targetRubricGradeTag,
 } from "./cacheTags.ts";
 
 // Semantic cache-invalidation helpers, one per mutation (ADR 0008 rule 6). Each
@@ -45,8 +45,8 @@ export function invalidateGradeSave({
 	targetId: string;
 	rubricId: string;
 }): void {
-	updateTag(targetRubricGradeTag({ gridId, targetId, rubricId }));
-	updateTag(targetGradesTag({ gridId, targetId }));
+	updateTag(allTargetRubricGradesTag({ gridId, targetId, rubricId }));
+	updateTag(allTargetGradesTag({ gridId, targetId }));
 	revalidate(allGradesTag({ gridId }));
 	revalidate(rubricCompletionTag({ gridId, rubricId }));
 }

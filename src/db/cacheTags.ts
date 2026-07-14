@@ -43,7 +43,7 @@ export function allGradesTag({ gridId }: { gridId: string }): string {
 }
 
 // One grade target's grades across all rubrics.
-export function targetGradesTag({
+export function allTargetGradesTag({
 	gridId,
 	targetId,
 }: {
@@ -53,8 +53,8 @@ export function targetGradesTag({
 	return `grids:${gridId}:grades:target:${targetId}`;
 }
 
-// One exact grade-target/rubric grade pair.
-export function targetRubricGradeTag({
+// All grade rows for one exact grade-target/rubric cohort.
+export function allTargetRubricGradesTag({
 	gridId,
 	targetId,
 	rubricId,

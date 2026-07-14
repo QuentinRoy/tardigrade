@@ -15,8 +15,8 @@ Every tag except `allGridsTag` is grid-scoped under the `grids:{gridId}:…` nam
 | `allRubricsTag({gridId})` | `grids:{gridId}:rubrics` | All rubrics in the grid |
 | `allTargetsTag({gridId})` | `grids:{gridId}:grade-targets` | All grade targets in the grid |
 | `allGradesTag({gridId})` | `grids:{gridId}:grades` | All grades in the grid (busted by saves, imports, and definition changes) |
-| `targetGradesTag({gridId, targetId})` | `grids:{gridId}:grades:target:{targetId}` | All rubrics for one grade target |
-| `targetRubricGradeTag({gridId, targetId, rubricId})` | `grids:{gridId}:grades:target:{targetId}:rubric:{rubricId}` | Exact grade-target/rubric pair |
+| `allTargetGradesTag({gridId, targetId})` | `grids:{gridId}:grades:target:{targetId}` | All rubrics for one grade target |
+| `allTargetRubricGradesTag({gridId, targetId, rubricId})` | `grids:{gridId}:grades:target:{targetId}:rubric:{rubricId}` | All grade rows for one grade-target/rubric cohort |
 | `rubricCompletionTag({gridId, rubricId})` | `grids:{gridId}:grades:rubric:{rubricId}` | One rubric's completion across the grid's grade targets |
 
 ## Mutations → tags invalidated
