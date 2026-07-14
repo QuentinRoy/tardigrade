@@ -156,8 +156,8 @@ export async function createGradeFixture(
 		.insertInto("numberCriterion")
 		.values({
 			criterionId: numberCriterionRowId,
-			minScore: 0,
-			maxScore: 10,
+			minValue: 0,
+			maxValue: 10,
 			minMarks: 0,
 			maxMarks: 5,
 		})

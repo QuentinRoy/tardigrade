@@ -7,7 +7,7 @@ type CriterionGradeBase = { criterionId: string; kind: CriterionKind };
 export type CriterionGrade =
 	| Simplify<CriterionGradeBase & { kind: "check"; passed: boolean }>
 	| Simplify<CriterionGradeBase & { kind: "options"; selectedLabel: string }>
-	| Simplify<CriterionGradeBase & { kind: "number"; score: number }>;
+	| Simplify<CriterionGradeBase & { kind: "number"; value: number }>;
 
 type CriterionBase = {
 	id: string;
@@ -24,8 +24,8 @@ export type Criterion =
 	| Simplify<
 			CriterionBase & {
 				kind: "number";
-				minScore: number;
-				maxScore: number;
+				minValue: number;
+				maxValue: number;
 				minMarks: number;
 				maxMarks: number;
 				reversed: boolean;

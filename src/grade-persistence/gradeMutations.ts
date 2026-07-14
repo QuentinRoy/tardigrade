@@ -50,9 +50,9 @@ export const saveCriterionGradeErrors = {
 		"This grading criterion changed while you were grading. Reload and try again.",
 	invalidOption:
 		"That option is no longer available. Reload and choose another option.",
-	invalidScore: "Enter a valid score and try again.",
-	invalidScoreRange:
-		"This score range is currently unavailable. Reload and try again. If it still fails, report this issue.",
+	invalidValue: "Enter a valid value and try again.",
+	invalidValueRange:
+		"This value range is currently unavailable. Reload and try again. If it still fails, report this issue.",
 	unexpected:
 		"Something went wrong saving this grade. Reload and try again. If this keeps happening, report this issue.",
 };
@@ -122,8 +122,8 @@ export async function saveCriterionGradeInDb(
 			"criterion.kind",
 			"criterion.rubricId",
 			"optionsCriterionMark.label",
-			"numberCriterion.minScore",
-			"numberCriterion.maxScore",
+			"numberCriterion.minValue",
+			"numberCriterion.maxValue",
 		])
 		.executeTakeFirst();
 
@@ -240,41 +240,41 @@ export async function saveCriterionGradeInDb(
 	async function saveNumericalGrade(
 		numericalGrade: Extract<CriterionGrade, { kind: "number" }>,
 	): Promise<SaveCriterionGradeResult | undefined> {
-		const parsed = numericalGrade.score;
+		const parsed = numericalGrade.value;
 		if (!Number.isFinite(parsed)) {
-			return { success: false, error: saveCriterionGradeErrors.invalidScore };
+			return { success: false, error: saveCriterionGradeErrors.invalidValue };
 		}
 
 		const numberCriterionData = await db
 			.selectFrom("numberCriterion")
 			.where("criterionId", "=", criterionRowId)
-			.select(["minScore", "maxScore"])
+			.select(["minValue", "maxValue"])
 			.executeTakeFirst();
 
-		const minScore =
-			numberCriterionData?.minScore != null
-				? Number(numberCriterionData.minScore)
+		const minValue =
+			numberCriterionData?.minValue != null
+				? Number(numberCriterionData.minValue)
 				: null;
-		const maxScore =
-			numberCriterionData?.maxScore != null
-				? Number(numberCriterionData.maxScore)
+		const maxValue =
+			numberCriterionData?.maxValue != null
+				? Number(numberCriterionData.maxValue)
 				: null;
 
-		if (minScore == null || maxScore == null || maxScore <= minScore) {
+		if (minValue == null || maxValue == null || maxValue <= minValue) {
 			return {
 				success: false,
-				error: saveCriterionGradeErrors.invalidScoreRange,
+				error: saveCriterionGradeErrors.invalidValueRange,
 			};
 		}
 
-		if (parsed < minScore) {
+		if (parsed < minValue) {
 			return {
 				success: false,
-				error: `Enter a score of at least ${minScore}.`,
+				error: `Enter a value of at least ${minValue}.`,
 			};
 		}
-		if (parsed > maxScore) {
-			return { success: false, error: `Enter a score of at most ${maxScore}.` };
+		if (parsed > maxValue) {
+			return { success: false, error: `Enter a value of at most ${maxValue}.` };
 		}
 
 		const criterionGradeId = await upsertCriterionGrade();
@@ -282,9 +282,9 @@ export async function saveCriterionGradeInDb(
 		await Promise.all([
 			db
 				.insertInto("numberCriterionGrade")
-				.values({ criterionGradeId, score: parsed })
+				.values({ criterionGradeId, value: parsed })
 				.onConflict((conflict) =>
-					conflict.column("criterionGradeId").doUpdateSet({ score: parsed }),
+					conflict.column("criterionGradeId").doUpdateSet({ value: parsed }),
 				)
 				.execute(),
 			clearOtherSubtypeValues(criterionGradeId, "number"),

@@ -115,8 +115,8 @@ export async function createMixedCriterionRubricFixtureGrid(
 			.insertInto("numberCriterion")
 			.values({
 				criterionId: mustGet(criterionRowId, numberCriterionId),
-				minScore: 0,
-				maxScore: 10,
+				minValue: 0,
+				maxValue: 10,
 				minMarks: 0,
 				maxMarks: 5,
 			})
@@ -281,7 +281,7 @@ export async function addFullGradeFixture(
 			.insertInto("numberCriterionGrade")
 			.values({
 				criterionGradeId: mustGet(raByCriterionId, params.numberCriterionRowId),
-				score: 7.5,
+				value: 7.5,
 			})
 			.execute(),
 	]);

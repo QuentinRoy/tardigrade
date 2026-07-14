@@ -77,14 +77,14 @@ export async function loadRubricGradeFromDb(
 		rubricId,
 	});
 
-	const values: CriterionGrade[] = [];
+	const grades: CriterionGrade[] = [];
 	for (const row of rows) {
-		const value = toCriterionValue(row);
-		if (value != null) {
-			values.push(value);
+		const grade = toCriterionGrade(row);
+		if (grade != null) {
+			grades.push(grade);
 		}
 	}
-	return values;
+	return grades;
 }
 
 // `db` may be the global client or a caller-supplied transaction.
@@ -94,16 +94,16 @@ export async function loadGradeTargetGradesFromDb(
 ): Promise<Record<string, CriterionGrade[]>> {
 	const rows = await loadCriterionGradeQueryRows(db, { targetId, gridId });
 
-	const valuesByRubricId: Record<string, CriterionGrade[]> = {};
+	const gradesByRubricId: Record<string, CriterionGrade[]> = {};
 	for (const row of rows) {
-		const value = toCriterionValue(row);
-		if (value != null) {
-			const values = valuesByRubricId[row.rubricId] ?? [];
-			values.push(value);
-			valuesByRubricId[row.rubricId] = values;
+		const grade = toCriterionGrade(row);
+		if (grade != null) {
+			const grades = gradesByRubricId[row.rubricId] ?? [];
+			grades.push(grade);
+			gradesByRubricId[row.rubricId] = grades;
 		}
 	}
-	return valuesByRubricId;
+	return gradesByRubricId;
 }
 
 type CriterionGradeQueryRow = {
@@ -112,7 +112,7 @@ type CriterionGradeQueryRow = {
 	kind: CriterionGrade["kind"];
 	passed: boolean | null;
 	selectedLabel: string | null;
-	score: number | string | null;
+	value: number | string | null;
 };
 
 // Loads one row per stored criterion grade for a grade target, optionally
@@ -162,12 +162,12 @@ async function loadCriterionGradeQueryRows(
 			"criterion.kind as kind",
 			"checkCriterionGrade.passed as passed",
 			"optionsCriterionGrade.selectedLabel as selectedLabel",
-			"numberCriterionGrade.score as score",
+			"numberCriterionGrade.value as value",
 		])
 		.execute();
 }
 
-function toCriterionValue(row: CriterionGradeQueryRow): CriterionGrade | null {
+function toCriterionGrade(row: CriterionGradeQueryRow): CriterionGrade | null {
 	switch (row.kind) {
 		case "check": {
 			if (row.passed == null) {
@@ -190,16 +190,16 @@ function toCriterionValue(row: CriterionGradeQueryRow): CriterionGrade | null {
 			};
 		}
 		case "number": {
-			if (row.score == null) {
+			if (row.value == null) {
 				return null;
 			}
 			return {
 				criterionId: row.criterionId,
 				kind: "number",
-				score:
-					typeof row.score === "number"
-						? row.score
-						: parseFloat(String(row.score)),
+				value:
+					typeof row.value === "number"
+						? row.value
+						: parseFloat(String(row.value)),
 			};
 		}
 		default: {

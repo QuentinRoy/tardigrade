@@ -69,7 +69,7 @@ test("prepareGradeImport plans one write per non-empty criterion cell of a match
 		{
 			targetId: "42",
 			rubricId: "q1",
-			grade: { criterionId: "r-num", kind: "number", score: 7.5 },
+			grade: { criterionId: "r-num", kind: "number", value: 7.5 },
 		},
 	]);
 });

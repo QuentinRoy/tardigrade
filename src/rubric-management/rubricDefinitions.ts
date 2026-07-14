@@ -37,8 +37,8 @@ export type CriterionDefinitionInput =
 			description?: string | undefined;
 			label?: string | undefined;
 			kind: "number";
-			minScore: number;
-			maxScore: number;
+			minValue: number;
+			maxValue: number;
 			minMarks: number;
 			maxMarks: number;
 			reversed: boolean;

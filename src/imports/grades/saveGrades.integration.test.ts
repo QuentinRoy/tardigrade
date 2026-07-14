@@ -102,7 +102,7 @@ async function createGradeFixture(
 			rubricId: rubric.rowId,
 			kind: "number",
 			position: 1,
-			label: "Score",
+			label: "Value",
 		})
 		.returning("rowId")
 		.executeTakeFirstOrThrow();
@@ -111,8 +111,8 @@ async function createGradeFixture(
 		.insertInto("numberCriterion")
 		.values({
 			criterionId: numberCriterion.rowId,
-			minScore: 0,
-			maxScore: 10,
+			minValue: 0,
+			maxValue: 10,
 			minMarks: 0,
 			maxMarks: 5,
 		})
@@ -270,8 +270,8 @@ test("saveGrades rolls back all writes if a later transactional write fails", as
 	const fixture = await createGradeFixture(db, grid.rowId);
 
 	// The first row writes a valid boolean grade; the second row carries a
-	// numerical score outside the criterion range. saveGrades parses both rows
-	// before the transaction, so the out-of-range score only fails inside
+	// numerical value outside the criterion range. saveGrades parses both rows
+	// before the transaction, so the out-of-range value only fails inside
 	// saveCriterionGradeInDb — after the first write has already happened in the same
 	// transaction. A genuine in-transaction failure, no primitive mock required.
 	const rows: ImportedGradeRow[] = [
@@ -289,7 +289,7 @@ test("saveGrades rolls back all writes if a later transactional write fails", as
 
 	await expect(
 		saveGrades({ rows, gridId: gridPublicId }, { db }),
-	).rejects.toThrow("Enter a score of at most 10.");
+	).rejects.toThrow("Enter a value of at most 10.");
 
 	const persistedGrades = await db
 		.selectFrom("criterionGrade")

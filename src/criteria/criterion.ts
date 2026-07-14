@@ -35,22 +35,22 @@ export function getCriterionMinMarks(criterion: Criterion): number {
 
 export function markNumberCriterion(
 	criterion: CriterionForKind<"number">,
-	score: number,
+	value: number,
 ): number {
-	const scoreRange = criterion.maxScore - criterion.minScore;
-	if (scoreRange === 0) {
+	const valueRange = criterion.maxValue - criterion.minValue;
+	if (valueRange === 0) {
 		throw new Error(
-			`Cannot mark a number criterion with a zero-width score range (minScore and maxScore are both ${criterion.minScore})`,
+			`Cannot mark a number criterion with a zero-width value range (minValue and maxValue are both ${criterion.minValue})`,
 		);
 	}
 
-	const scoreOffset = criterion.reversed
-		? criterion.maxScore - score
-		: score - criterion.minScore;
+	const valueOffset = criterion.reversed
+		? criterion.maxValue - value
+		: value - criterion.minValue;
 
 	return (
 		criterion.minMarks +
-		(scoreOffset * (criterion.maxMarks - criterion.minMarks)) / scoreRange
+		(valueOffset * (criterion.maxMarks - criterion.minMarks)) / valueRange
 	);
 }
 
@@ -86,7 +86,7 @@ export function markCriterion<TKind extends CriterionKind = CriterionKind>(
 		case "options":
 			return markOptionsCriterion(criterion, criterion.grade.selectedLabel);
 		case "number":
-			return markNumberCriterion(criterion, criterion.grade.score);
+			return markNumberCriterion(criterion, criterion.grade.value);
 		default:
 			assertNever(criterion);
 	}
@@ -159,7 +159,7 @@ function attachNumberGrade(
 	const grade = findGrade(criterion.id, source);
 	return {
 		...criterion,
-		grade: grade?.kind === "number" ? { score: grade.score } : null,
+		grade: grade?.kind === "number" ? { value: grade.value } : null,
 	};
 }
 

@@ -23,15 +23,15 @@ export default function OptionsGradeControl({
 			onChange={onGrade}
 			disabled={disabled}
 			orientation="vertical"
-			data={Object.entries(marks).map(([valueLabel, valueScore]) => ({
-				value: valueLabel,
+			data={Object.entries(marks).map(([optionLabel, optionMarks]) => ({
+				value: optionLabel,
 				label: (
 					<Group justify="space-between" wrap="nowrap" gap="sm" miw={0}>
 						<Text truncate="end" miw={0}>
-							{valueLabel}
+							{optionLabel}
 						</Text>
 						<Text c="dimmed" flex="0 0 auto">
-							({valueScore})
+							({optionMarks})
 						</Text>
 					</Group>
 				),

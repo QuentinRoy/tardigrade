@@ -43,8 +43,8 @@ describe("buildResultsData", () => {
 				{
 					id: "r-numerical",
 					kind: "number",
-					minScore: 0,
-					maxScore: 10,
+					minValue: 0,
+					maxValue: 10,
 					minMarks: 0,
 					maxMarks: 5,
 					reversed: false,
@@ -72,7 +72,7 @@ describe("buildResultsData", () => {
 				kind: "check",
 				passed: true,
 				selectedLabel: null,
-				score: null,
+				value: null,
 			},
 			{
 				gradeTargetId: "2",
@@ -80,7 +80,7 @@ describe("buildResultsData", () => {
 				kind: "check",
 				passed: false,
 				selectedLabel: null,
-				score: null,
+				value: null,
 			},
 			{
 				gradeTargetId: "1",
@@ -88,7 +88,7 @@ describe("buildResultsData", () => {
 				kind: "number",
 				passed: null,
 				selectedLabel: null,
-				score: 8,
+				value: 8,
 			},
 		];
 
@@ -138,8 +138,8 @@ describe("buildResultsData", () => {
 			kind: "number",
 			properties: {
 				kind: "number",
-				minScore: 0,
-				maxScore: 10,
+				minValue: 0,
+				maxValue: 10,
 				minMarks: 0,
 				maxMarks: 5,
 				reversed: false,
@@ -155,7 +155,7 @@ describe("buildResultsData", () => {
 				kind: "check",
 				passed: true,
 				selectedLabel: null,
-				score: null,
+				value: null,
 			},
 			{
 				gradeTargetId: "1",
@@ -163,7 +163,7 @@ describe("buildResultsData", () => {
 				kind: "check",
 				passed: false,
 				selectedLabel: null,
-				score: null,
+				value: null,
 			},
 		];
 
@@ -219,8 +219,8 @@ describe("buildResultsData", () => {
 					{
 						id: "r-numerical",
 						kind: "number",
-						minScore: 0,
-						maxScore: 10,
+						minValue: 0,
+						maxValue: 10,
 						minMarks: 0,
 						maxMarks: 5,
 						reversed: false,
@@ -238,7 +238,7 @@ describe("buildResultsData", () => {
 				kind: "check",
 				passed: null,
 				selectedLabel: null,
-				score: null,
+				value: null,
 			},
 			{
 				gradeTargetId: "1",
@@ -246,7 +246,7 @@ describe("buildResultsData", () => {
 				kind: "options",
 				passed: null,
 				selectedLabel: null,
-				score: null,
+				value: null,
 			},
 			{
 				gradeTargetId: "1",
@@ -254,7 +254,7 @@ describe("buildResultsData", () => {
 				kind: "number",
 				passed: null,
 				selectedLabel: null,
-				score: null,
+				value: null,
 			},
 		];
 
@@ -283,7 +283,7 @@ describe("buildResultsData", () => {
 				kind: "check",
 				passed: true,
 				selectedLabel: null,
-				score: null,
+				value: null,
 			},
 			{
 				gradeTargetId: "999",
@@ -291,7 +291,7 @@ describe("buildResultsData", () => {
 				kind: "check",
 				passed: true,
 				selectedLabel: null,
-				score: null,
+				value: null,
 			},
 		];
 

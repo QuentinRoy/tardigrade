@@ -70,7 +70,7 @@ test("saveCriterionGradeInDb round-trips boolean, ordinal and numerical grades",
 			grade: {
 				criterionId: fixture.criterionIds.numerical,
 				kind: "number",
-				score: 7.5,
+				value: 7.5,
 			},
 		}),
 	]);
@@ -103,7 +103,7 @@ test("saveCriterionGradeInDb round-trips boolean, ordinal and numerical grades",
 	expect(byCriterionId.get(fixture.criterionIds.numerical)).toEqual({
 		criterionId: fixture.criterionIds.numerical,
 		kind: "number",
-		score: 7.5,
+		value: 7.5,
 	});
 });
 
@@ -130,7 +130,7 @@ test("saveCriterionGradeInDb returns a validation error for an invalid ordinal l
 	});
 });
 
-test("saveCriterionGradeInDb returns a validation error for an out-of-range numerical score", async () => {
+test("saveCriterionGradeInDb returns a validation error for an out-of-range numerical value", async () => {
 	await using db = await createTestDb();
 	await using grid = await createGrid(db, "Grade Numerical Error Grid");
 	const fixture = await createGradeFixture(db, grid.id);
@@ -142,13 +142,13 @@ test("saveCriterionGradeInDb returns a validation error for an out-of-range nume
 		grade: {
 			criterionId: fixture.criterionIds.numerical,
 			kind: "number",
-			score: 11,
+			value: 11,
 		},
 	});
 
 	expect(result).toEqual({
 		success: false,
-		error: "Enter a score of at most 10.",
+		error: "Enter a value of at most 10.",
 	});
 });
 
@@ -479,7 +479,7 @@ test("saveCriterionGrade wrapper does not error under naive parallel saves", asy
 				grade: {
 					criterionId: fixture.criterionIds.numerical,
 					kind: "number",
-					score: 5,
+					value: 5,
 				},
 			},
 			{ db },

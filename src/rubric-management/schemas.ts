@@ -34,8 +34,8 @@ const numberCriterionDefinitionSchema = z.object({
 	description: z.string().trim().optional(),
 	label: z.string().trim().optional(),
 	kind: z.literal("number"),
-	minScore: z.number({ error: "Min score must be a valid number" }),
-	maxScore: z.number({ error: "Max score must be a valid number" }),
+	minValue: z.number({ error: "Min value must be a valid number" }),
+	maxValue: z.number({ error: "Max value must be a valid number" }),
 	minMarks: z.number({ error: "Min marks must be a valid number" }),
 	maxMarks: z.number({ error: "Max marks must be a valid number" }),
 	reversed: z.boolean(),
@@ -104,11 +104,11 @@ export const rubricDefinitionSchema = z
 				return;
 			}
 
-			if (criterion.minScore >= criterion.maxScore) {
+			if (criterion.minValue >= criterion.maxValue) {
 				ctx.addIssue({
 					code: "custom",
-					message: "Max score must be greater than min score",
-					path: ["criteria", index, "maxScore"],
+					message: "Max value must be greater than min value",
+					path: ["criteria", index, "maxValue"],
 				});
 			}
 

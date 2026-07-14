@@ -20,5 +20,5 @@ export interface NumberCriterionGradeTable {
 	>;
 
 	/** Database type: pg_catalog.numeric */
-	score: ColumnType<number, number, number>;
+	value: ColumnType<number, number, number>;
 }

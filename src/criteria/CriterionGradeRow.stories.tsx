@@ -97,8 +97,8 @@ export const NumberUnset: Story = {
 		criterion: {
 			id: "r2",
 			kind: "number",
-			minScore: 0,
-			maxScore: 5,
+			minValue: 0,
+			maxValue: 5,
 			minMarks: 0,
 			maxMarks: 5,
 			label: "Quality of explanation",
@@ -114,14 +114,14 @@ export const NumberGraded: Story = {
 		criterion: {
 			id: "r2",
 			kind: "number",
-			minScore: 0,
-			maxScore: 5,
+			minValue: 0,
+			maxValue: 5,
 			minMarks: 0,
 			maxMarks: 5,
 			label: "Quality of explanation",
 			description: "Rate the quality of the student's explanation from 0 to 5.",
 			reversed: false,
-			grade: { score: 3 },
+			grade: { value: 3 },
 		},
 	},
 };

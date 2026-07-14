@@ -293,8 +293,8 @@ export async function saveRubricDefinitionInDb(
 					return [
 						{
 							criterionId: criterionRowId,
-							minScore: criterion.minScore,
-							maxScore: criterion.maxScore,
+							minValue: criterion.minValue,
+							maxValue: criterion.maxValue,
 							minMarks: criterion.minMarks,
 							maxMarks: criterion.maxMarks,
 							reversed: criterion.reversed,
@@ -341,8 +341,8 @@ export async function saveRubricDefinitionInDb(
 				conflict
 					.column("criterionId")
 					.doUpdateSet((eb) => ({
-						minScore: eb.ref("excluded.minScore"),
-						maxScore: eb.ref("excluded.maxScore"),
+						minValue: eb.ref("excluded.minValue"),
+						maxValue: eb.ref("excluded.maxValue"),
 						minMarks: eb.ref("excluded.minMarks"),
 						maxMarks: eb.ref("excluded.maxMarks"),
 						reversed: eb.ref("excluded.reversed"),

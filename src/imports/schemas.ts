@@ -10,11 +10,13 @@ const baseCriterionSchema = z.object({
 	kind: z.string(),
 });
 
-export const checkCriterionSchema = baseCriterionSchema.extend({
-	kind: z.literal("check"),
-	marks: numericValue,
-	falseMarks: numericValue.optional(),
-});
+export const checkCriterionSchema = baseCriterionSchema
+	.extend({
+		kind: z.literal("check"),
+		marks: numericValue,
+		falseMarks: numericValue.optional(),
+	})
+	.strict();
 
 const optionsMarksSchema = z
 	.record(nonEmptyString, numericValue)
@@ -22,26 +24,26 @@ const optionsMarksSchema = z
 		message: "Options criterion must have at least 2 mark entries",
 	});
 
-export const optionsCriterionSchema = baseCriterionSchema.extend({
-	kind: z.literal("options"),
-	marks: optionsMarksSchema,
-});
+export const optionsCriterionSchema = baseCriterionSchema
+	.extend({ kind: z.literal("options"), marks: optionsMarksSchema })
+	.strict();
 
 export const numberCriterionSchema = baseCriterionSchema
 	.extend({
 		kind: z.literal("number"),
-		minScore: numericValue.optional(),
-		maxScore: numericValue.optional(),
+		minValue: numericValue.optional(),
+		maxValue: numericValue.optional(),
 		minMarks: numericValue.optional(),
 		maxMarks: numericValue.optional(),
 		reversed: z.boolean().optional(),
 	})
+	.strict()
 	.refine((r) => r.minMarks != null || r.maxMarks != null, {
 		message:
 			"Number criterion must provide at least one of minMarks or maxMarks",
 	})
-	.refine((r) => r.minScore == null || r.maxScore != null, {
-		message: "maxScore must be provided when minScore is provided",
+	.refine((r) => r.minValue == null || r.maxValue != null, {
+		message: "maxValue must be provided when minValue is provided",
 	})
 	.refine((r) => r.minMarks != null || (r.maxMarks ?? 0) > 0, {
 		message: "When minMarks is omitted, maxMarks must be greater than 0",
@@ -51,8 +53,8 @@ export const numberCriterionSchema = baseCriterionSchema
 	})
 	.transform((r) => ({
 		...r,
-		minScore: r.minScore ?? 0,
-		maxScore: r.maxScore ?? 1,
+		minValue: r.minValue ?? 0,
+		maxValue: r.maxValue ?? 1,
 		minMarks: r.minMarks ?? 0,
 		maxMarks: r.maxMarks ?? 0,
 		reversed: r.reversed ?? false,
@@ -60,8 +62,8 @@ export const numberCriterionSchema = baseCriterionSchema
 	.refine((r) => r.minMarks <= r.maxMarks, {
 		message: "minMarks must be less than or equal to maxMarks",
 	})
-	.refine((r) => r.minScore < r.maxScore, {
-		message: "minScore must be less than maxScore",
+	.refine((r) => r.minValue < r.maxValue, {
+		message: "minValue must be less than maxValue",
 	});
 
 const criterionSchema = z.discriminatedUnion("kind", [

@@ -166,7 +166,7 @@ function isSameGrade(
 	}
 
 	if (criterion.kind === "number" && grade.kind === "number") {
-		return criterion.grade.score === grade.score;
+		return criterion.grade.value === grade.value;
 	}
 
 	return false;

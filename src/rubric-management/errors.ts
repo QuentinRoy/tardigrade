@@ -15,8 +15,8 @@ export type RubricCriterionFieldErrors = {
 	type?: string | undefined;
 	marks?: string | undefined;
 	falseMarks?: string | undefined;
-	minScore?: string | undefined;
-	maxScore?: string | undefined;
+	minValue?: string | undefined;
+	maxValue?: string | undefined;
 	minMarks?: string | undefined;
 	maxMarks?: string | undefined;
 	reversed?: string | undefined;

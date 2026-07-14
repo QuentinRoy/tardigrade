@@ -1,11 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { useState } from "react";
 import { expect, fn, screen, userEvent } from "storybook/test";
-import ScoreInput from "./ScoreInput.tsx";
+import UncontrolledNumberInput from "./UncontrolledNumberInput.tsx";
 
 const onCommit = fn();
 
-function ControlledScoreInput({
+function NumberInputHarness({
 	label,
 	initialValue,
 	error,
@@ -16,7 +16,7 @@ function ControlledScoreInput({
 }) {
 	const [value, setValue] = useState(initialValue);
 	return (
-		<ScoreInput
+		<UncontrolledNumberInput
 			label={label}
 			defaultValue={value}
 			onChange={(next) => {
@@ -29,13 +29,13 @@ function ControlledScoreInput({
 }
 
 const meta = {
-	title: "Shared/ScoreInput",
-	component: ControlledScoreInput,
+	title: "Shared/UncontrolledNumberInput",
+	component: NumberInputHarness,
 	args: { label: "Marks", initialValue: 1 },
 	beforeEach: () => {
 		onCommit.mockClear();
 	},
-} satisfies Meta<typeof ControlledScoreInput>;
+} satisfies Meta<typeof NumberInputHarness>;
 
 export default meta;
 

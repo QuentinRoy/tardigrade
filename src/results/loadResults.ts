@@ -66,7 +66,7 @@ export async function loadCriterionGradeRecordsFromDb(
 			"criterion.kind as kind",
 			"checkCriterionGrade.passed as passed",
 			"optionsCriterionGrade.selectedLabel as selectedLabel",
-			"numberCriterionGrade.score as score",
+			"numberCriterionGrade.value as value",
 		])
 		.execute();
 }

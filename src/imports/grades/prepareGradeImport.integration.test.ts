@@ -139,7 +139,7 @@ describe.each<{ name: string; options: ExportOptions }>([
 					grade: {
 						criterionId: fixture.criterionIds.numericalId,
 						kind: "number",
-						score: 7.5,
+						value: 7.5,
 					},
 				},
 			]),

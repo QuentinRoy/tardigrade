@@ -17,8 +17,8 @@ type CriterionPropertyDetails =
 	| { kind: "options"; marksByLabel: Array<{ label: string; marks: number }> }
 	| {
 			kind: "number";
-			minScore: number;
-			maxScore: number;
+			minValue: number;
+			maxValue: number;
 			minMarks: number;
 			maxMarks: number;
 			reversed: boolean;
@@ -73,7 +73,7 @@ export type ResultsGradeRecord = {
 	kind: CriterionKind;
 	passed: boolean | null;
 	selectedLabel: string | null;
-	score: number | null;
+	value: number | null;
 };
 
 type OrderedCriterion = {
@@ -105,13 +105,13 @@ function toGradeValue(record: ResultsGradeRecord): CriterionGrade | null {
 				selectedLabel: record.selectedLabel,
 			};
 		case "number":
-			if (record.score == null) {
+			if (record.value == null) {
 				return null;
 			}
 			return {
 				criterionId: record.criterionId,
 				kind: "number",
-				score: record.score,
+				value: record.value,
 			};
 		default:
 			return null;
@@ -150,8 +150,8 @@ function toCriterionDetails(criterion: Criterion): CriterionDetails {
 				kind: criterion.kind,
 				properties: {
 					kind: "number",
-					minScore: criterion.minScore,
-					maxScore: criterion.maxScore,
+					minValue: criterion.minValue,
+					maxValue: criterion.maxValue,
 					minMarks: criterion.minMarks,
 					maxMarks: criterion.maxMarks,
 					reversed: criterion.reversed,

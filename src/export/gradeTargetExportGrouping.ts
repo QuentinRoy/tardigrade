@@ -97,7 +97,7 @@ export async function* groupGradeTargetRows(
 			currentValuesByKey.set(key, {
 				criterionId: row.criterionId,
 				kind: "number",
-				score: toNumber(row.numberValue),
+				value: toNumber(row.numberValue),
 			});
 		}
 	}

@@ -22,8 +22,8 @@ describe("parseRubricsYaml", () => {
     criteria:
       - id: r1
         kind: number
-        minScore: 0
-        maxScore: 10
+        minValue: 0
+        maxValue: 10
         minMarks: 0
         maxMarks: 5
         reversed: true`);
@@ -33,6 +33,21 @@ describe("parseRubricsYaml", () => {
 			kind: "number",
 			reversed: true,
 		});
+	});
+
+	// The number criterion's numeric-payload field was renamed from `minScore`/
+	// `maxScore` to `minValue`/`maxValue`. A file still using the old field
+	// names must be rejected loudly rather than silently importing defaults.
+	it("rejects a number criterion still using the old `minScore`/`maxScore` fields", () => {
+		expect(() =>
+			parseRubricsYaml(`rubrics:
+  - id: q1
+    criteria:
+      - id: r1
+        kind: number
+        minScore: 0
+        maxScore: 10`),
+		).toThrow(/unrecognized key.*minScore/i);
 	});
 
 	it("parses criterion description", () => {

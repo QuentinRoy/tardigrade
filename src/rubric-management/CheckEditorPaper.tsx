@@ -2,7 +2,7 @@
 
 import { Group } from "@mantine/core";
 import type { ReactElement } from "react";
-import ScoreInput from "#design-system/ScoreInput.tsx";
+import UncontrolledNumberInput from "#design-system/UncontrolledNumberInput.tsx";
 import CriterionEditorPaper from "./CriterionEditorPaper.tsx";
 import type { RubricCriterionFieldErrors } from "./errors.ts";
 import type { CriterionEditorValue } from "./types.ts";
@@ -30,13 +30,13 @@ export default function CheckCriterionEditorPaper({
 			fieldErrors={fieldErrors}
 		>
 			<Group wrap="wrap">
-				<ScoreInput
+				<UncontrolledNumberInput
 					label="True marks"
 					defaultValue={criterion.marks}
 					onChange={(value) => onChange({ ...criterion, marks: value })}
 					error={fieldErrors?.marks}
 				/>
-				<ScoreInput
+				<UncontrolledNumberInput
 					label="False marks"
 					defaultValue={criterion.falseMarks ?? 0}
 					onChange={(value) => onChange({ ...criterion, falseMarks: value })}

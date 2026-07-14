@@ -30,8 +30,8 @@ const initialCriteria: GradedCriterion[] = [
 		id: "criterion-performance",
 		kind: "number",
 		label: "Performance",
-		minScore: 0,
-		maxScore: 100,
+		minValue: 0,
+		maxValue: 100,
 		minMarks: 0,
 		maxMarks: 5,
 		reversed: false,
@@ -127,7 +127,7 @@ function describeGrade(criterion: GradedCriterion): string {
 		case "options":
 			return criterion.grade.selectedLabel;
 		case "number":
-			return String(criterion.grade.score);
+			return String(criterion.grade.value);
 	}
 }
 

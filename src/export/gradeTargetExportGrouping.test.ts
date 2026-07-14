@@ -145,7 +145,7 @@ describe("groupGradeTargetRows", () => {
 		expect(values.get("q1::r-num")).toEqual({
 			criterionId: "r-num",
 			kind: "number",
-			score: 7.5,
+			value: 7.5,
 		});
 	});
 
@@ -160,7 +160,7 @@ describe("groupGradeTargetRows", () => {
 		expect(groups[0]!.valuesByKey.size).toBe(1);
 	});
 
-	it("converts numeric string scores to numbers", async () => {
+	it("converts numeric string values to numbers", async () => {
 		const rows: GradeTargetExportRow[] = [
 			{ ...baseRow, rubricId: "q1", criterionId: "r-num", numberValue: "3.75" },
 		];
@@ -168,7 +168,7 @@ describe("groupGradeTargetRows", () => {
 
 		expect(groups[0]!.valuesByKey.get("q1::r-num")).toMatchObject({
 			kind: "number",
-			score: 3.75,
+			value: 3.75,
 		});
 	});
 

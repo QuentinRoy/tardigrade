@@ -6,16 +6,16 @@ import { clamp } from "#utils/utils.ts";
 
 type NumberGradeControlProps = {
 	value?: number | undefined;
-	minScore: number;
-	maxScore: number;
+	minValue: number;
+	maxValue: number;
 	disabled: boolean;
 	onGrade: (value: number) => void;
 };
 
 export default function NumberGradeControl({
 	value,
-	minScore,
-	maxScore,
+	minValue,
+	maxValue,
 	disabled,
 	onGrade,
 }: NumberGradeControlProps): ReactElement {
@@ -36,8 +36,8 @@ export default function NumberGradeControl({
 		}
 		const clampedValue = clamp({
 			value: parsedValue,
-			min: minScore,
-			max: maxScore,
+			min: minValue,
+			max: maxValue,
 		});
 		if (clampedValue !== parsedValue && ref.current != null) {
 			ref.current.value = clampedValue.toString();
@@ -51,11 +51,11 @@ export default function NumberGradeControl({
 			ref={ref}
 			defaultValue={value ?? ""}
 			onBlur={(event) => submit(event.currentTarget.value)}
-			placeholder="Score"
+			placeholder="Value"
 			clampBehavior="none"
 			disabled={disabled}
-			min={minScore}
-			max={maxScore}
+			min={minValue}
+			max={maxValue}
 			allowDecimal
 			w="90"
 		/>
