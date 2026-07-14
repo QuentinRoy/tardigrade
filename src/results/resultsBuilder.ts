@@ -84,7 +84,7 @@ type OrderedCriterion = {
 	maxMarks: number;
 };
 
-function toGradeValue(record: ResultsGradeRecord): CriterionGrade | null {
+function toCriterionGrade(record: ResultsGradeRecord): CriterionGrade | null {
 	switch (record.kind) {
 		case "check":
 			if (record.passed == null) {
@@ -230,12 +230,15 @@ export function buildResultsData({
 			continue;
 		}
 
-		const gradeValue = toGradeValue(record);
-		if (gradeValue == null) {
+		const criterionGrade = toCriterionGrade(record);
+		if (criterionGrade == null) {
 			continue;
 		}
 
-		const gradedCriterion = attachGrade(criterionMeta.criterion, gradeValue);
+		const gradedCriterion = attachGrade(
+			criterionMeta.criterion,
+			criterionGrade,
+		);
 		const marks = markCriterion(gradedCriterion);
 		const gradeTargetRow = gradeTargetRowById.get(record.gradeTargetId);
 		const criterionStat = criterionStats.get(record.criterionId);

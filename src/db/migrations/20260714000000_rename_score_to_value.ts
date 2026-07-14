@@ -37,6 +37,8 @@ export async function up(db: Kysely<unknown>): Promise<void> {
 
 	await sql`
     DROP TRIGGER IF EXISTS trg_number_criterion_score_bounds ON "number_criterion_grade";
+  `.execute(db);
+	await sql`
     DROP FUNCTION IF EXISTS enforce_number_criterion_score_bounds();
   `.execute(db);
 
@@ -71,7 +73,8 @@ export async function up(db: Kysely<unknown>): Promise<void> {
       RETURN NEW;
     END;
     $$;
-
+  `.execute(db);
+	await sql`
     CREATE TRIGGER trg_number_criterion_value_bounds
     BEFORE INSERT OR UPDATE OF value, criterion_grade_id ON "number_criterion_grade"
     FOR EACH ROW
@@ -82,6 +85,8 @@ export async function up(db: Kysely<unknown>): Promise<void> {
 export async function down(db: Kysely<unknown>): Promise<void> {
 	await sql`
     DROP TRIGGER IF EXISTS trg_number_criterion_value_bounds ON "number_criterion_grade";
+  `.execute(db);
+	await sql`
     DROP FUNCTION IF EXISTS enforce_number_criterion_value_bounds();
   `.execute(db);
 
@@ -116,7 +121,8 @@ export async function down(db: Kysely<unknown>): Promise<void> {
       RETURN NEW;
     END;
     $$;
-
+  `.execute(db);
+	await sql`
     CREATE TRIGGER trg_number_criterion_score_bounds
     BEFORE INSERT OR UPDATE OF score, criterion_grade_id ON "number_criterion_grade"
     FOR EACH ROW

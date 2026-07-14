@@ -37,7 +37,9 @@ describe("parseRubricsYaml", () => {
 
 	// The number criterion's numeric-payload field was renamed from `minScore`/
 	// `maxScore` to `minValue`/`maxValue`. A file still using the old field
-	// names must be rejected loudly rather than silently importing defaults.
+	// names must be rejected loudly, with an actionable message naming the
+	// criterion and the stale fields, rather than Zod's terse default or a
+	// silent import of defaults.
 	it("rejects a number criterion still using the old `minScore`/`maxScore` fields", () => {
 		expect(() =>
 			parseRubricsYaml(`rubrics:
@@ -47,7 +49,23 @@ describe("parseRubricsYaml", () => {
         kind: number
         minScore: 0
         maxScore: 10`),
-		).toThrow(/unrecognized key.*minScore/i);
+		).toThrow(
+			/unexpected fields.*minScore.*maxScore.*criterion.*r1.*import again/is,
+		);
+	});
+
+	// The unrecognized-key message is defined once on the shared base criterion
+	// schema, so it must reach every criterion kind, not just Number.
+	it("rejects a check criterion with an unrecognized field", () => {
+		expect(() =>
+			parseRubricsYaml(`rubrics:
+  - id: q1
+    criteria:
+      - id: r1
+        kind: check
+        marks: 2
+        passMarks: 2`),
+		).toThrow(/unexpected field.*passMarks.*criterion.*r1.*import again/is);
 	});
 
 	it("parses criterion description", () => {
