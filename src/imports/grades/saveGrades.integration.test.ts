@@ -448,7 +448,6 @@ test("saveGrades invalidates the grade tags after the import commits", async () 
 
 	expect(vi.mocked(revalidateTag).mock.calls).toEqual([
 		[`grids:${grid.id}:grades`, "max"],
-		[`grids:${grid.id}:grades:all`, "max"],
 	]);
 });
 

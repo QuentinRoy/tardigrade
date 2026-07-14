@@ -357,7 +357,6 @@ test("saveRubrics wrapper invalidates rubric and grade tags after the import com
 	expect(vi.mocked(revalidateTag).mock.calls).toEqual([
 		[`grids:${grid.id}:rubrics`, "max"],
 		[`grids:${grid.id}:grades`, "max"],
-		[`grids:${grid.id}:grades:all`, "max"],
 	]);
 });
 

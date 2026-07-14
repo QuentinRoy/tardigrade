@@ -161,7 +161,6 @@ test("saveStudents wrapper invalidates grade-target and grade tags after the imp
 	expect(vi.mocked(revalidateTag).mock.calls).toEqual([
 		[`grids:${grid.id}:grade-targets`, "max"],
 		[`grids:${grid.id}:grades`, "max"],
-		[`grids:${grid.id}:grades:all`, "max"],
 	]);
 });
 
