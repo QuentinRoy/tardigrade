@@ -10,9 +10,7 @@ const checkCriterionDefinitionSchema = z.object({
 	label: z.string().trim().optional(),
 	kind: z.literal("check"),
 	marks: z.number({ error: "Marks must be a valid number" }),
-	falseMarks: z
-		.number({ error: "False marks must be a valid number" })
-		.optional(),
+	falseMarks: z.number({ error: "No marks must be a valid number" }).optional(),
 });
 
 const optionsCriterionDefinitionSchema = z.object({

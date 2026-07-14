@@ -65,6 +65,8 @@ export default function CriterionGradeRow({
 		control = (
 			<CheckGradeControl
 				value={grade?.passed}
+				marks={criterion.marks}
+				falseMarks={criterion.falseMarks}
 				disabled={disabled}
 				onGrade={(passed) =>
 					onGrade({ criterionId: id, kind: "check", passed })
