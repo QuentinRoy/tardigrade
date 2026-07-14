@@ -1,8 +1,10 @@
 import { expect, test } from "vitest";
 import { gradeTargetsCacheTags, toTargetSlug } from "./gradeTargets.ts";
 
-test("gradeTargetsCacheTags declares the grade-targets tag", () => {
-	expect(gradeTargetsCacheTags()).toEqual(["grade-targets"]);
+test("gradeTargetsCacheTags declares the grid-scoped grade-targets tag", () => {
+	expect(gradeTargetsCacheTags({ gridId: "g-1" })).toEqual([
+		"grids:g-1:grade-targets",
+	]);
 });
 
 test("toTargetSlug normalizes a display label into a URL-safe slug", () => {

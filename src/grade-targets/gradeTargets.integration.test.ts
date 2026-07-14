@@ -215,7 +215,7 @@ test("loadGradeTargets wrapper delegates to its primitive and declares its cache
 	expect(targets.map((target) => target.id)).toEqual([targetId]);
 
 	const declaredTags = vi.mocked(cacheTag).mock.calls.map((call) => call[0]);
-	expect(declaredTags).toEqual(gradeTargetsCacheTags());
+	expect(declaredTags).toEqual(gradeTargetsCacheTags({ gridId: grid.id }));
 });
 
 test("nextGradeTargetIds numbers each grid from 1 independently", async () => {

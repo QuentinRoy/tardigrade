@@ -1,38 +1,67 @@
 import { expect, test } from "vitest";
 import {
-	gradeAggregateCacheTag,
-	gradeCompletionForRubricCacheTag,
-	gradeForGradeTargetCacheTag,
-	gradeForGradeTargetRubricCacheTag,
-	gradeImportCacheTag,
-	gradeTargetListCacheTag,
-	gridCacheTag,
-	gridListCacheTag,
-	rubricListCacheTag,
+	allGradesTag,
+	allGridsTag,
+	allRubricsTag,
+	allTargetGradesTag,
+	allTargetRubricGradesTag,
+	allTargetsTag,
+	gradeCompletionByRubricTag,
+	gridTag,
 } from "./cacheTags.ts";
 
-test("list tags name their entity collection", () => {
-	expect(gridListCacheTag()).toBe("grids");
-	expect(rubricListCacheTag()).toBe("rubrics");
-	expect(gradeTargetListCacheTag()).toBe("grade-targets");
+// The exact tag strings are pinned with inline snapshots: an unintended change
+// to a tag's shape fails the test (a shape change silently breaks invalidation),
+// while a deliberate change is a one-line `vitest -u`. `g-1`/`t-1`/`q-1` are
+// representative public ids.
+test("every tag shape", () => {
+	const gridId = "g-1";
+	expect({
+		allGrids: allGridsTag(),
+		grid: gridTag({ gridId }),
+		allRubrics: allRubricsTag({ gridId }),
+		allTargets: allTargetsTag({ gridId }),
+		allGrades: allGradesTag({ gridId }),
+		allTargetGrades: allTargetGradesTag({ gridId, targetId: "t-1" }),
+		allTargetRubricGrades: allTargetRubricGradesTag({
+			gridId,
+			targetId: "t-1",
+			rubricId: "q-1",
+		}),
+		rubricCompletion: gradeCompletionByRubricTag({ gridId, rubricId: "q-1" }),
+	}).toMatchInlineSnapshot(`
+		{
+		  "allGrades": "grids:g-1:grades",
+		  "allGrids": "grids",
+		  "allRubrics": "grids:g-1:rubrics",
+		  "allTargetGrades": "grids:g-1:grades:target:t-1",
+		  "allTargetRubricGrades": "grids:g-1:grades:target:t-1:rubric:q-1",
+		  "allTargets": "grids:g-1:grade-targets",
+		  "grid": "grids:g-1",
+		  "rubricCompletion": "grids:g-1:grades:rubric:q-1",
+		}
+	`);
 });
 
-test("gridCacheTag scopes to the public Grid ID", () => {
-	expect(gridCacheTag("p-1")).toBe("grids:p-1");
-});
+// The literal discriminators (`target:`, `rubric:`, `all`) keep tag shapes
+// distinct without relying on id formatting conventions. Prove it with
+// adversarial ids: a grade target or rubric literally named "all",
+// "rubric", or "target" still can't alias the aggregate, import, or completion
+// tags — the shapes stay distinct by construction, not by id convention.
+test("adversarial ids cannot alias distinct tag shapes", () => {
+	const gridId = "g-1";
+	const tags = [
+		allGridsTag(),
+		gridTag({ gridId }),
+		allRubricsTag({ gridId }),
+		allTargetsTag({ gridId }),
+		allGradesTag({ gridId }),
+		allTargetGradesTag({ gridId, targetId: "all" }),
+		allTargetGradesTag({ gridId, targetId: "rubric" }),
+		allTargetRubricGradesTag({ gridId, targetId: "all", rubricId: "all" }),
+		gradeCompletionByRubricTag({ gridId, rubricId: "all" }),
+		gradeCompletionByRubricTag({ gridId, rubricId: "target" }),
+	];
 
-test("grade aggregate and import tags are distinct", () => {
-	expect(gradeAggregateCacheTag()).toBe("grades");
-	expect(gradeImportCacheTag()).toBe("grades:all");
-});
-
-test("grade scope tags nest from grade target to rubric", () => {
-	expect(gradeForGradeTargetCacheTag("t-1")).toBe("grades:t-1");
-	expect(
-		gradeForGradeTargetRubricCacheTag({ targetId: "t-1", rubricId: "q-1" }),
-	).toBe("grades:t-1:q-1");
-});
-
-test("gradeCompletionForRubricCacheTag scopes to the rubric", () => {
-	expect(gradeCompletionForRubricCacheTag("q-1")).toBe("grades:rubric:q-1");
+	expect(new Set(tags).size).toBe(tags.length);
 });

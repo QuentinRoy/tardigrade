@@ -2,12 +2,11 @@ import "server-only";
 import type { Kysely } from "kysely";
 import { cacheLife } from "next/cache";
 import {
+	allGradesTag,
+	allRubricsTag,
+	allTargetsTag,
 	cacheTags,
-	gradeAggregateCacheTag,
-	gradeCompletionForRubricCacheTag,
-	gradeImportCacheTag,
-	gradeTargetListCacheTag,
-	rubricListCacheTag,
+	gradeCompletionByRubricTag,
 } from "#db/cacheTags.ts";
 import type { Database } from "#db/generated/database.ts";
 import { database as defaultDb } from "#db/kysely.ts";
@@ -19,25 +18,33 @@ import {
 import type { GradeCompletionSummary } from "./types.ts";
 
 // Rubric-scoped completion: saving a criterion for rubric Q busts
-// `grades:rubric:Q` (and the coarse aggregate), so completion for Q
-// refreshes without busting other rubrics; the import tag covers bulk imports,
+// `grids:{gridId}:grades:rubric:Q` (and the coarse aggregate), so completion for Q
+// refreshes without busting other rubrics; the coarse grades tag covers bulk imports,
 // and the list tags cover roster and definition changes.
-export function gradedCriterionCountsByTargetCacheTags(
-	rubricId: string,
-): string[] {
+export function gradedCriterionCountsByTargetCacheTags({
+	gridId,
+	rubricId,
+}: {
+	gridId: string;
+	rubricId: string;
+}): string[] {
 	return [
-		gradeTargetListCacheTag(),
-		rubricListCacheTag(),
-		gradeCompletionForRubricCacheTag(rubricId),
-		gradeImportCacheTag(),
+		allTargetsTag({ gridId }),
+		allRubricsTag({ gridId }),
+		gradeCompletionByRubricTag({ gridId, rubricId }),
+		allGradesTag({ gridId }),
 	];
 }
 
-export function gradeCompletionRowsCacheTags(): string[] {
+export function gradeCompletionRowsCacheTags({
+	gridId,
+}: {
+	gridId: string;
+}): string[] {
 	return [
-		gradeTargetListCacheTag(),
-		rubricListCacheTag(),
-		gradeAggregateCacheTag(),
+		allTargetsTag({ gridId }),
+		allRubricsTag({ gridId }),
+		allGradesTag({ gridId }),
 	];
 }
 
@@ -139,7 +146,7 @@ export async function loadGradeCompletionRows(
 	options?: { db?: Kysely<Database> },
 ): Promise<GradeCompletionInput> {
 	"use cache";
-	cacheTags(...gradeCompletionRowsCacheTags());
+	cacheTags(...gradeCompletionRowsCacheTags({ gridId }));
 	cacheLife("projection");
 	return loadGradeCompletionRowsFromDb(options?.db ?? defaultDb, { gridId });
 }
@@ -268,7 +275,7 @@ export async function loadGradedCriterionCountsByTarget(
 	{ db = defaultDb }: { db?: Kysely<Database> } = {},
 ): Promise<Record<string, CompletionMetric>> {
 	"use cache";
-	cacheTags(...gradedCriterionCountsByTargetCacheTags(rubricId));
+	cacheTags(...gradedCriterionCountsByTargetCacheTags({ gridId, rubricId }));
 	cacheLife("projection");
 
 	return loadGradedCriterionCountsByTargetFromDb(db, { rubricId, gridId });
@@ -298,8 +305,12 @@ export async function loadCriterionGradesCountFromDb(
 	return Number(row.count);
 }
 
-export function criterionGradesCountCacheTags(): string[] {
-	return [gradeAggregateCacheTag()];
+export function criterionGradesCountCacheTags({
+	gridId,
+}: {
+	gridId: string;
+}): string[] {
+	return [allGradesTag({ gridId })];
 }
 
 // Canonical cached source for the grid-wide criterion-grade count, so the
@@ -310,7 +321,7 @@ export async function loadCriterionGradesCount(
 	options?: { db?: Kysely<Database> },
 ): Promise<number> {
 	"use cache";
-	cacheTags(...criterionGradesCountCacheTags());
+	cacheTags(...criterionGradesCountCacheTags({ gridId }));
 	cacheLife("projection");
 	return loadCriterionGradesCountFromDb(options?.db ?? defaultDb, { gridId });
 }

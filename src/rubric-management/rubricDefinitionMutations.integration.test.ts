@@ -1,10 +1,9 @@
 import { revalidateTag, updateTag } from "next/cache";
 import { beforeEach, expect, test, vi } from "vitest";
 import {
-	gradeAggregateCacheTag,
-	gradeCompletionForRubricCacheTag,
-	gradeImportCacheTag,
-	rubricListCacheTag,
+	allGradesTag,
+	allRubricsTag,
+	gradeCompletionByRubricTag,
 } from "#db/cacheTags.ts";
 import { buildTestId, createTestDb } from "#test/dbIntegration.ts";
 import { createGrid } from "#test/grids.ts";
@@ -526,15 +525,14 @@ test("saveRubricDefinition wrapper updates the rubric list read-your-writes and 
 	);
 
 	const updatedTags = vi.mocked(updateTag).mock.calls.map((call) => call[0]);
-	expect(updatedTags).toEqual([rubricListCacheTag()]);
+	expect(updatedTags).toEqual([allRubricsTag({ gridId: grid.id })]);
 
 	const revalidatedTags = vi
 		.mocked(revalidateTag)
 		.mock.calls.map((call) => call[0]);
 	expect(revalidatedTags).toEqual([
-		gradeAggregateCacheTag(),
-		gradeImportCacheTag(),
-		gradeCompletionForRubricCacheTag(rubricId),
+		allGradesTag({ gridId: grid.id }),
+		gradeCompletionByRubricTag({ gridId: grid.id, rubricId }),
 	]);
 });
 
@@ -567,16 +565,15 @@ test("saveRubricDefinition wrapper revalidates the previous rubric's completion 
 	);
 
 	const updatedTags = vi.mocked(updateTag).mock.calls.map((call) => call[0]);
-	expect(updatedTags).toEqual([rubricListCacheTag()]);
+	expect(updatedTags).toEqual([allRubricsTag({ gridId: grid.id })]);
 
 	const revalidatedTags = vi
 		.mocked(revalidateTag)
 		.mock.calls.map((call) => call[0]);
 	expect(revalidatedTags).toEqual([
-		gradeAggregateCacheTag(),
-		gradeImportCacheTag(),
-		gradeCompletionForRubricCacheTag(renamedRubricId),
-		gradeCompletionForRubricCacheTag(fixture.rubricId),
+		allGradesTag({ gridId: grid.id }),
+		gradeCompletionByRubricTag({ gridId: grid.id, rubricId: renamedRubricId }),
+		gradeCompletionByRubricTag({ gridId: grid.id, rubricId: fixture.rubricId }),
 	]);
 });
 
@@ -606,15 +603,14 @@ test("deleteRubricDefinition wrapper updates the rubric list read-your-writes an
 	);
 
 	const updatedTags = vi.mocked(updateTag).mock.calls.map((call) => call[0]);
-	expect(updatedTags).toEqual([rubricListCacheTag()]);
+	expect(updatedTags).toEqual([allRubricsTag({ gridId: grid.id })]);
 
 	const revalidatedTags = vi
 		.mocked(revalidateTag)
 		.mock.calls.map((call) => call[0]);
 	expect(revalidatedTags).toEqual([
-		gradeAggregateCacheTag(),
-		gradeImportCacheTag(),
-		gradeCompletionForRubricCacheTag(rubric.id),
+		allGradesTag({ gridId: grid.id }),
+		gradeCompletionByRubricTag({ gridId: grid.id, rubricId: rubric.id }),
 	]);
 });
 
@@ -636,6 +632,6 @@ test("reorderRubrics wrapper updates the rubrics tag read-your-writes after comm
 	);
 
 	const updatedTags = vi.mocked(updateTag).mock.calls.map((call) => call[0]);
-	expect(updatedTags).toEqual([rubricListCacheTag()]);
+	expect(updatedTags).toEqual([allRubricsTag({ gridId: grid.id })]);
 	expect(revalidateTag).not.toHaveBeenCalled();
 });

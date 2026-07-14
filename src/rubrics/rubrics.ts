@@ -2,7 +2,7 @@ import "server-only";
 import type { Kysely } from "kysely";
 import { cacheLife } from "next/cache";
 import type { Criterion, CriterionKind } from "#criteria/types.ts";
-import { cacheTags, rubricListCacheTag } from "#db/cacheTags.ts";
+import { allRubricsTag, cacheTags } from "#db/cacheTags.ts";
 import type { Database } from "#db/generated/database.ts";
 import { database as defaultDb } from "#db/kysely.ts";
 import type { Rubric, RubricsById } from "./types.ts";
@@ -265,8 +265,8 @@ export async function loadRubricRowsFromDb(
 	});
 }
 
-export function rubricCacheTags(): string[] {
-	return [rubricListCacheTag()];
+export function rubricCacheTags({ gridId }: { gridId: string }): string[] {
+	return [allRubricsTag({ gridId })];
 }
 
 export function toRubricsById(rows: RubricRow[]): RubricsById {
@@ -294,7 +294,7 @@ export async function loadRubricRows(
 	{ db = defaultDb }: { db?: Kysely<Database> } = {},
 ): Promise<RubricRow[]> {
 	"use cache";
-	cacheTags(...rubricCacheTags());
+	cacheTags(...rubricCacheTags({ gridId }));
 	cacheLife("definitions");
 	return loadRubricRowsFromDb(db, { gridId });
 }

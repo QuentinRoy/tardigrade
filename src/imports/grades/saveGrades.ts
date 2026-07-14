@@ -87,7 +87,7 @@ export async function saveGrades(
 	// The transaction owner invalidates after commit. Safe only because this saver
 	// always runs from gradesImportAction (request scope); the helper's
 	// revalidateTag calls throw outside a request.
-	invalidateGradeImport();
+	invalidateGradeImport({ gridId });
 
 	return result;
 }

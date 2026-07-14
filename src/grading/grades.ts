@@ -3,29 +3,31 @@ import type { Kysely } from "kysely";
 import { cacheLife } from "next/cache";
 import type { CriterionGrade } from "#criteria/types.ts";
 import {
+	allGradesTag,
+	allTargetGradesTag,
+	allTargetRubricGradesTag,
 	cacheTags,
-	gradeForGradeTargetCacheTag,
-	gradeForGradeTargetRubricCacheTag,
-	gradeImportCacheTag,
 } from "#db/cacheTags.ts";
 import type { Database } from "#db/generated/database.ts";
 import { database as defaultDb } from "#db/kysely.ts";
 import { assertNever, nonNull } from "#utils/utils.ts";
 
 export function loadGradeCacheTags({
+	gridId,
 	targetId,
 	rubricId,
 }: {
+	gridId: string;
 	targetId: string;
 	rubricId?: string | undefined;
 }) {
 	// The granular (or target-scoped) tag refreshes on individual saves;
-	// the import tag refreshes on bulk imports.
+	// the coarse grid-wide grades tag refreshes on bulk imports.
 	const scopeTag =
 		rubricId == null
-			? gradeForGradeTargetCacheTag(targetId)
-			: gradeForGradeTargetRubricCacheTag({ targetId, rubricId });
-	return [scopeTag, gradeImportCacheTag()];
+			? allTargetGradesTag({ gridId, targetId })
+			: allTargetRubricGradesTag({ gridId, targetId, rubricId });
+	return [scopeTag, allGradesTag({ gridId })];
 }
 
 // Returns the typed criterion values for a single grade-target/rubric grade.
@@ -40,7 +42,7 @@ export async function loadRubricGrade(
 	{ db = defaultDb }: { db?: Kysely<Database> } = {},
 ): Promise<CriterionGrade[]> {
 	"use cache";
-	cacheTags(...loadGradeCacheTags({ targetId, rubricId }));
+	cacheTags(...loadGradeCacheTags({ gridId, targetId, rubricId }));
 	cacheLife("values");
 	return loadRubricGradeFromDb(db, { targetId, gridId, rubricId });
 }
@@ -55,7 +57,7 @@ export async function loadGradeTargetGrades(
 	{ db = defaultDb }: { db?: Kysely<Database> } = {},
 ): Promise<Record<string, CriterionGrade[]>> {
 	"use cache";
-	cacheTags(...loadGradeCacheTags({ targetId }));
+	cacheTags(...loadGradeCacheTags({ gridId, targetId }));
 	cacheLife("values");
 	return loadGradeTargetGradesFromDb(db, { targetId, gridId });
 }

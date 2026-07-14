@@ -453,6 +453,7 @@ export async function saveRubricDefinition(
 		.execute((tx) => saveRubricDefinitionInDb(tx, { input, gridId }));
 
 	invalidateRubricDefinitionSave({
+		gridId,
 		rubricId: id,
 		previousRubricId: originalId,
 	});
@@ -484,7 +485,7 @@ export async function deleteRubricDefinition(
 ): Promise<{ deleted: boolean }> {
 	const result = await deleteRubricDefinitionInDb(db, { rubricId, gridId });
 
-	invalidateRubricDefinitionDelete({ rubricId });
+	invalidateRubricDefinitionDelete({ gridId, rubricId });
 
 	return result;
 }
@@ -546,5 +547,5 @@ export async function reorderRubrics(
 		.transaction()
 		.execute((tx) => reorderRubricsInDb(tx, { updates, gridId }));
 
-	invalidateRubricReorder();
+	invalidateRubricReorder({ gridId });
 }

@@ -254,16 +254,16 @@ test("saveCriterionGrade wrapper updates the edited tags read-your-writes and re
 
 	const updatedTags = vi.mocked(updateTag).mock.calls.map((call) => call[0]);
 	expect(updatedTags).toEqual([
-		`grades:${fixture.gradeTargetId}:${fixture.rubricId}`,
-		`grades:${fixture.gradeTargetId}`,
+		`grids:${fixture.gridId}:grades:target:${fixture.gradeTargetId}:rubric:${fixture.rubricId}`,
+		`grids:${fixture.gridId}:grades:target:${fixture.gradeTargetId}`,
 	]);
 
 	const revalidatedTags = vi
 		.mocked(revalidateTag)
 		.mock.calls.map((call) => call[0]);
 	expect(revalidatedTags).toEqual([
-		"grades",
-		`grades:rubric:${fixture.rubricId}`,
+		`grids:${fixture.gridId}:grades`,
+		`grids:${fixture.gridId}:grades:rubric:${fixture.rubricId}`,
 	]);
 });
 

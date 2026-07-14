@@ -97,7 +97,7 @@ test("loadRubricGradeFromDb returns the stored criterion values for a grade targ
 
 // Next caching is inert under vitest, so the read wrapper runs directly against the
 // injected handle. Assert it delegates to its primitive (returns the test db's rows)
-// and declares "grades:all" alongside its granular tag: bulk imports only bust
+// and declares `grids:{gridId}:grades` alongside its granular tag: bulk imports bust
 // the coarse tag, so without this declaration the per-rubric grading view would
 // serve stale data after a grade import.
 test("loadRubricGrade wrapper delegates to its primitive and declares its cache tags", async () => {
@@ -130,9 +130,9 @@ test("loadRubricGrade wrapper delegates to its primitive and declares its cache 
 	]);
 
 	const declaredTags = vi.mocked(cacheTag).mock.calls.map((call) => call[0]);
-	expect(declaredTags).toContain("grades:all");
+	expect(declaredTags).toContain(`grids:${fixture.gridId}:grades`);
 	expect(declaredTags).toContain(
-		`grades:${fixture.gradeTargetId}:${fixture.rubricId}`,
+		`grids:${fixture.gridId}:grades:target:${fixture.gradeTargetId}:rubric:${fixture.rubricId}`,
 	);
 });
 
@@ -204,7 +204,7 @@ test("loadGradeTargetGradesFromDb groups a grade target's criterion values by ru
 
 // Mirrors the loadRubricGrade wrapper test: the whole-target read must
 // declare the target-scoped tag (busted by individual saves) and
-// "grades:all" (busted by bulk imports) or the overview would serve stale data.
+// `grids:{gridId}:grades` (busted by bulk imports) or the overview would serve stale data.
 test("loadGradeTargetGrades wrapper delegates to its primitive and declares its cache tags", async () => {
 	await using db = await createTestDb();
 	await using grid = await createGrid(db, "Grade Grade Target Cache Tag Grid");
@@ -237,8 +237,10 @@ test("loadGradeTargetGrades wrapper delegates to its primitive and declares its 
 	});
 
 	const declaredTags = vi.mocked(cacheTag).mock.calls.map((call) => call[0]);
-	expect(declaredTags).toContain("grades:all");
-	expect(declaredTags).toContain(`grades:${fixture.gradeTargetId}`);
+	expect(declaredTags).toContain(`grids:${fixture.gridId}:grades`);
+	expect(declaredTags).toContain(
+		`grids:${fixture.gridId}:grades:target:${fixture.gradeTargetId}`,
+	);
 });
 
 // The reads scope by Grid ID; a mismatched Grid ID must not leak another

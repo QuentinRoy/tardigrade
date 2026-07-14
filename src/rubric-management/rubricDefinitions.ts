@@ -1,11 +1,7 @@
 import "server-only";
 import type { Kysely } from "kysely";
 import { cacheLife } from "next/cache";
-import {
-	cacheTags,
-	gradeAggregateCacheTag,
-	rubricListCacheTag,
-} from "#db/cacheTags.ts";
+import { allGradesTag, allRubricsTag, cacheTags } from "#db/cacheTags.ts";
 import type { Database } from "#db/generated/database.ts";
 import { database as defaultDb } from "#db/kysely.ts";
 import {
@@ -109,8 +105,12 @@ export async function loadRubricDefinitionsFromDb(
 	return toRubricDefinitions(rows, gradeCountByRubricId);
 }
 
-export function rubricDefinitionCacheTags(): string[] {
-	return [rubricListCacheTag(), gradeAggregateCacheTag()];
+export function rubricDefinitionCacheTags({
+	gridId,
+}: {
+	gridId: string;
+}): string[] {
+	return [allRubricsTag({ gridId }), allGradesTag({ gridId })];
 }
 
 // Canonical cached source for the rubrics-management read (Finding 4). Shares
@@ -128,7 +128,7 @@ export async function loadRubricDefinitions(
 	options?: { db?: Kysely<Database> },
 ): Promise<RubricDefinition[]> {
 	"use cache";
-	cacheTags(...rubricDefinitionCacheTags());
+	cacheTags(...rubricDefinitionCacheTags({ gridId }));
 	cacheLife("projection");
 	const [rows, gradeCountByRubricId] = await Promise.all([
 		loadRubricRows({ gridId }, options),

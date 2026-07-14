@@ -421,7 +421,7 @@ export async function saveRubrics(
 	// The transaction owner invalidates after commit. Safe only because this saver
 	// always runs from rubricsImportAction (request scope); the helper's
 	// revalidateTag calls throw outside a request.
-	invalidateRubricImport();
+	invalidateRubricImport({ gridId });
 
 	return result;
 }
