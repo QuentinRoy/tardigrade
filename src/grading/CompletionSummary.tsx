@@ -38,7 +38,7 @@ export default function CompletionSummary({
 			<Text size="xs" c="dimmed">
 				{isCompleted
 					? "(completed)"
-					: `(${criteriaLeft} criterion${criteriaLeft !== 1 ? "s" : ""} left)`}
+					: `(${criteriaLeft} ${criteriaLeft === 1 ? "criterion" : "criteria"} left)`}
 			</Text>
 		</Stack>
 	);

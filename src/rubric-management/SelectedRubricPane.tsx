@@ -95,7 +95,7 @@ export default function SelectedRubricPane({
 								<Table.Thead>
 									<Table.Tr>
 										<Table.Th>Criterion</Table.Th>
-										<Table.Th>Type</Table.Th>
+										<Table.Th>Kind</Table.Th>
 									</Table.Tr>
 								</Table.Thead>
 								<Table.Tbody>

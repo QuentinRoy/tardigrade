@@ -28,19 +28,19 @@ Finally, the invalidation primitive is a freshness policy, not plumbing. `update
 
 4. Every `"use cache"` scope declares an explicit `cacheLife`, chosen from a named policy class. The classes, not the exact numbers, are the contract:
 
-   - `definitions` — questions, rubrics: long fallback (currently one hour); writes are the freshness mechanism.
-   - `roster` — submissions, students: long fallback; imports are the freshness mechanism.
-   - `values` — individual assessment values: conservative fallback; exact-tag invalidation is the freshness mechanism.
-   - `projection` — completion, progress, overview, dashboards: short fallback (currently 60 seconds); derived and user-visible during grading.
+   - `definitions` — rubrics, criteria: long fallback (currently one hour); writes are the freshness mechanism.
+   - `roster` — grade targets, students: long fallback; imports are the freshness mechanism.
+   - `values` — individual grades: conservative fallback; exact-tag invalidation is the freshness mechanism.
+   - `projection` — completion, overview: short fallback (currently 60 seconds); derived and user-visible during grading.
    - `directory` — grid list and grid lookup: short fallback.
 
    Changing a class's duration is a one-line change in one place; a loader that needs to deviate from its class documents why at the call site.
 
 5. Cache keys must contain only domain arguments. The `{ db = defaultDb }` options object on a cached wrapper is a test-only seam (ADR 0007 rules 13–14); runtime callers never pass a handle, so nothing non-serializable enters the key. When several reads need the same expensive data, funnel them through one cached wrapper and let the others derive from it as plain (non-cached) functions, so they share a single cache entry rather than each owning a `"use cache"` scope. A deriver may forward its own optional `db` option unchanged to the shared wrapper (ADR 0007 rule 14), as long as it never resolves its own default before forwarding — an omitted option must stay `undefined` so the call collapses to the wrapper's own no-argument shape and shares its cache entry. Do not wrap a cached function in a dispatch layer that branches on whether a handle was passed and routes around the cache: a stray runtime handle, forwarded or direct, should reach the cached wrapper and fail loudly (Next throws on the non-serializable argument), not silently skip the cache.
 
-6. Mutations invalidate through semantic helpers named after the mutation, not after the mechanism: `invalidateAssessmentSave(...)`, `invalidateAssessmentImport(...)`, `invalidateQuestionDefinitionSave(...)`, and so on, colocated with `cacheTags.ts`. Wrappers and import actions call exactly one helper after commit. The helper chooses the primitive per tag class:
+6. Mutations invalidate through semantic helpers named after the mutation, not after the mechanism: `invalidateGradeSave(...)`, `invalidateGradeImport(...)`, `invalidateRubricDefinitionSave(...)`, and so on, colocated with `cacheTags.ts`. Wrappers and import actions call exactly one helper after commit. The helper chooses the primitive per tag class:
 
-   - `updateTag` (read-your-own-writes) for the tags of the entity that was just edited — the exact assessment pair, the submission's assessments, the question's definition.
+   - `updateTag` (read-your-own-writes) for the tags of the entity that was just edited — the exact grade, the target's grades, the rubric's definition.
    - `revalidateTag` (stale-while-revalidate) for derived projection tags and coarse aggregate tags, so a save never blocks the next navigation on recomputing grid-wide completion.
 
    `revalidateTag` is only callable in request scope; helpers used outside request scope must document the constraint, as the import savers do today.
