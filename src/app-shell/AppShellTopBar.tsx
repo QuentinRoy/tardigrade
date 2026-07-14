@@ -22,7 +22,7 @@ type AppShellTopBarProps =
 export default function AppShellTopBar(props: AppShellTopBarProps): ReactNode {
 	const pathname = usePathname();
 	const gridRouteContext = getGridRouteContext(pathname);
-	const title = props.showNavigation ? props.gridName : "BonPoint";
+	const title = props.showNavigation ? props.gridName : "Tardigrade";
 	const titleHref =
 		props.showNavigation && gridRouteContext != null
 			? gridOverviewPath(gridRouteContext)

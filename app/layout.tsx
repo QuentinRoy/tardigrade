@@ -13,8 +13,8 @@ import { SaveErrorsProvider } from "#design-system/SaveErrorsProvider.tsx";
 import { theme } from "#design-system/theme.ts";
 
 export const metadata = {
-	title: "Assessment",
-	description: "Simple assessment helper for criterion-based evaluation",
+	title: "Tardigrade",
+	description: "Tardigrade — a rubric grading tool.",
 };
 
 type RootLayoutProps = { children: ReactNode };
