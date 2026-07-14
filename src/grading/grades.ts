@@ -22,7 +22,7 @@ export function loadGradeCacheTags({
 	rubricId?: string | undefined;
 }) {
 	// The granular (or target-scoped) tag refreshes on individual saves;
-	// the import tag refreshes on bulk imports.
+	// the coarse grid-wide grades tag refreshes on bulk imports.
 	const scopeTag =
 		rubricId == null
 			? allTargetGradesTag({ gridId, targetId })

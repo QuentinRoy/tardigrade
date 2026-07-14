@@ -6,8 +6,8 @@ import {
 	allTargetGradesTag,
 	allTargetRubricGradesTag,
 	allTargetsTag,
+	gradeCompletionByRubricTag,
 	gridTag,
-	rubricCompletionTag,
 } from "./cacheTags.ts";
 
 // Semantic cache-invalidation helpers, one per mutation (ADR 0008 rule 6). Each
@@ -48,7 +48,7 @@ export function invalidateGradeSave({
 	updateTag(allTargetRubricGradesTag({ gridId, targetId, rubricId }));
 	updateTag(allTargetGradesTag({ gridId, targetId }));
 	revalidate(allGradesTag({ gridId }));
-	revalidate(rubricCompletionTag({ gridId, rubricId }));
+	revalidate(gradeCompletionByRubricTag({ gridId, rubricId }));
 }
 
 // Interactive rubric-definition save. Read-your-own-writes for the rubric
@@ -66,9 +66,11 @@ export function invalidateRubricDefinitionSave({
 }): void {
 	updateTag(allRubricsTag({ gridId }));
 	revalidate(allGradesTag({ gridId }));
-	revalidate(rubricCompletionTag({ gridId, rubricId }));
+	revalidate(gradeCompletionByRubricTag({ gridId, rubricId }));
 	if (previousRubricId != null && previousRubricId !== rubricId) {
-		revalidate(rubricCompletionTag({ gridId, rubricId: previousRubricId }));
+		revalidate(
+			gradeCompletionByRubricTag({ gridId, rubricId: previousRubricId }),
+		);
 	}
 }
 
@@ -84,7 +86,7 @@ export function invalidateRubricDefinitionDelete({
 }): void {
 	updateTag(allRubricsTag({ gridId }));
 	revalidate(allGradesTag({ gridId }));
-	revalidate(rubricCompletionTag({ gridId, rubricId }));
+	revalidate(gradeCompletionByRubricTag({ gridId, rubricId }));
 }
 
 // Interactive rubric reorder. Read-your-own-writes for the rubric list so the

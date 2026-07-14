@@ -6,8 +6,8 @@ import {
 	allTargetGradesTag,
 	allTargetRubricGradesTag,
 	allTargetsTag,
+	gradeCompletionByRubricTag,
 	gridTag,
-	rubricCompletionTag,
 } from "./cacheTags.ts";
 
 // The exact tag strings are pinned with inline snapshots: an unintended change
@@ -28,7 +28,7 @@ test("every tag shape", () => {
 			targetId: "t-1",
 			rubricId: "q-1",
 		}),
-		rubricCompletion: rubricCompletionTag({ gridId, rubricId: "q-1" }),
+		rubricCompletion: gradeCompletionByRubricTag({ gridId, rubricId: "q-1" }),
 	}).toMatchInlineSnapshot(`
 		{
 		  "allGrades": "grids:g-1:grades",
@@ -43,9 +43,9 @@ test("every tag shape", () => {
 	`);
 });
 
-// The literal discriminators (`target:`, `rubric:`, `all`) exist so that
-// author-chosen ids can never make two different tag shapes collide. Prove it
-// with adversarial ids: a grade target or rubric literally named "all",
+// The literal discriminators (`target:`, `rubric:`, `all`) keep tag shapes
+// distinct without relying on id formatting conventions. Prove it with
+// adversarial ids: a grade target or rubric literally named "all",
 // "rubric", or "target" still can't alias the aggregate, import, or completion
 // tags — the shapes stay distinct by construction, not by id convention.
 test("adversarial ids cannot alias distinct tag shapes", () => {
@@ -59,8 +59,8 @@ test("adversarial ids cannot alias distinct tag shapes", () => {
 		allTargetGradesTag({ gridId, targetId: "all" }),
 		allTargetGradesTag({ gridId, targetId: "rubric" }),
 		allTargetRubricGradesTag({ gridId, targetId: "all", rubricId: "all" }),
-		rubricCompletionTag({ gridId, rubricId: "all" }),
-		rubricCompletionTag({ gridId, rubricId: "target" }),
+		gradeCompletionByRubricTag({ gridId, rubricId: "all" }),
+		gradeCompletionByRubricTag({ gridId, rubricId: "target" }),
 	];
 
 	expect(new Set(tags).size).toBe(tags.length);

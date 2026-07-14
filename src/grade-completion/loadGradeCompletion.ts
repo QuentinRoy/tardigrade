@@ -6,7 +6,7 @@ import {
 	allRubricsTag,
 	allTargetsTag,
 	cacheTags,
-	rubricCompletionTag,
+	gradeCompletionByRubricTag,
 } from "#db/cacheTags.ts";
 import type { Database } from "#db/generated/database.ts";
 import { database as defaultDb } from "#db/kysely.ts";
@@ -18,8 +18,8 @@ import {
 import type { GradeCompletionSummary } from "./types.ts";
 
 // Rubric-scoped completion: saving a criterion for rubric Q busts
-// `grades:{gridId}:rubric:Q` (and the coarse aggregate), so completion for Q
-// refreshes without busting other rubrics; the import tag covers bulk imports,
+// `grids:{gridId}:grades:rubric:Q` (and the coarse aggregate), so completion for Q
+// refreshes without busting other rubrics; the coarse grades tag covers bulk imports,
 // and the list tags cover roster and definition changes.
 export function gradedCriterionCountsByTargetCacheTags({
 	gridId,
@@ -31,7 +31,7 @@ export function gradedCriterionCountsByTargetCacheTags({
 	return [
 		allTargetsTag({ gridId }),
 		allRubricsTag({ gridId }),
-		rubricCompletionTag({ gridId, rubricId }),
+		gradeCompletionByRubricTag({ gridId, rubricId }),
 		allGradesTag({ gridId }),
 	];
 }

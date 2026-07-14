@@ -3,7 +3,7 @@ import { beforeEach, expect, test, vi } from "vitest";
 import {
 	allGradesTag,
 	allRubricsTag,
-	rubricCompletionTag,
+	gradeCompletionByRubricTag,
 } from "#db/cacheTags.ts";
 import { buildTestId, createTestDb } from "#test/dbIntegration.ts";
 import { createGrid } from "#test/grids.ts";
@@ -532,7 +532,7 @@ test("saveRubricDefinition wrapper updates the rubric list read-your-writes and 
 		.mock.calls.map((call) => call[0]);
 	expect(revalidatedTags).toEqual([
 		allGradesTag({ gridId: grid.id }),
-		rubricCompletionTag({ gridId: grid.id, rubricId }),
+		gradeCompletionByRubricTag({ gridId: grid.id, rubricId }),
 	]);
 });
 
@@ -572,8 +572,8 @@ test("saveRubricDefinition wrapper revalidates the previous rubric's completion 
 		.mock.calls.map((call) => call[0]);
 	expect(revalidatedTags).toEqual([
 		allGradesTag({ gridId: grid.id }),
-		rubricCompletionTag({ gridId: grid.id, rubricId: renamedRubricId }),
-		rubricCompletionTag({ gridId: grid.id, rubricId: fixture.rubricId }),
+		gradeCompletionByRubricTag({ gridId: grid.id, rubricId: renamedRubricId }),
+		gradeCompletionByRubricTag({ gridId: grid.id, rubricId: fixture.rubricId }),
 	]);
 });
 
@@ -610,7 +610,7 @@ test("deleteRubricDefinition wrapper updates the rubric list read-your-writes an
 		.mock.calls.map((call) => call[0]);
 	expect(revalidatedTags).toEqual([
 		allGradesTag({ gridId: grid.id }),
-		rubricCompletionTag({ gridId: grid.id, rubricId: rubric.id }),
+		gradeCompletionByRubricTag({ gridId: grid.id, rubricId: rubric.id }),
 	]);
 });
 

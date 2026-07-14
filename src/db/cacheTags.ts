@@ -13,11 +13,11 @@ import { cacheTag } from "next/cache";
 // busts another grid's cached reads. Rubric and grade-target public ids are only
 // unique within a grid, so an unscoped tag would let two grids share one entry.
 //
-// One uniform grammar: `grids:{gridId}:<entity>[:<discriminator>:<id>]…`. Any
-// user-influenced id (a grade target or rubric public id — authors choose these)
-// always sits behind a literal discriminator (`target:`, `rubric:`), so no two
-// tag shapes can alias no matter what ids authors pick. This is a structural
-// guarantee, not a convention that depends on ids looking like `t-<n>`.
+// One uniform grammar: `grids:{gridId}:<entity>[:<discriminator>:<id>]…`.
+// Rubric public ids are author-chosen and always sit behind a literal
+// discriminator (`rubric:`); grade-target ids are system-generated and also
+// discriminator-delimited (`target:`). This avoids relying on id formatting
+// conventions to keep tag shapes distinct.
 
 export function allGridsTag(): string {
 	return "grids";
@@ -66,8 +66,8 @@ export function allTargetRubricGradesTag({
 	return `grids:${gridId}:grades:target:${targetId}:rubric:${rubricId}`;
 }
 
-// One rubric's grade completion across grade targets.
-export function rubricCompletionTag({
+// One rubric's completion across grade targets.
+export function gradeCompletionByRubricTag({
 	gridId,
 	rubricId,
 }: {
