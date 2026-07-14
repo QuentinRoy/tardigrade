@@ -40,7 +40,7 @@ Finally, the invalidation primitive is a freshness policy, not plumbing. `update
 
 6. Mutations invalidate through semantic helpers named after the mutation, not after the mechanism: `invalidateGradeSave(...)`, `invalidateGradeImport(...)`, `invalidateRubricDefinitionSave(...)`, and so on, colocated with `cacheTags.ts`. Wrappers and import actions call exactly one helper after commit. The helper chooses the primitive per tag class:
 
-   - `updateTag` (read-your-own-writes) for the tags of the entity that was just edited — the exact grade, the target's grades, the rubric's definition.
+   - `updateTag` (read-your-own-writes) for the tags of the entity that was just edited — the exact grade, the Grade Target's grades, the rubric's definition.
    - `revalidateTag` (stale-while-revalidate) for derived projection tags and coarse aggregate tags, so a save never blocks the next navigation on recomputing grid-wide completion.
 
    `revalidateTag` is only callable in request scope; helpers used outside request scope must document the constraint, as the import savers do today.

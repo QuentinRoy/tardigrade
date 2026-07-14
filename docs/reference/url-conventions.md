@@ -1,26 +1,12 @@
 # URL conventions
 
-Durable facts about the app's route tree and its param-naming rules. Generated route lists drift; treat `src/grids/gridPaths.ts` as the source of truth for exact path strings and this doc as the rationale for the shape.
+Durable facts about the app's route tree and its param-naming rules. Route lists are mechanical facts that drift when hand-copied — `src/grids/gridPaths.ts` is the source of truth for exact path strings; this doc covers the shape and rationale, not a maintained copy of every path.
 
-## Route tree
+## Route tree shape
 
-```
-/                                                            (redirects to the first grid's Overview, or to /grids if none exist)
-/grids/                                                      (grid picker)
-/grids/[gridId]/[gridSlug]/                                  (Overview — grid home)
-/grids/[gridId]/[gridSlug]/rubrics/                          (manage rubrics)
-/grids/[gridId]/[gridSlug]/grades/                           (Grades table)
-/grids/[gridId]/[gridSlug]/grades/[targetId]/[targetSlug]/                       (grade one student or group)
-/grids/[gridId]/[gridSlug]/grades/[targetId]/[targetSlug]/rubrics/[rubricId]/    (grade one rubric for that target)
-/grids/[gridId]/[gridSlug]/results/                          (Results — Grades + Analytics)
-/grids/[gridId]/[gridSlug]/import/rubrics/
-/grids/[gridId]/[gridSlug]/import/students/
-/grids/[gridId]/[gridSlug]/import/grades/
-/grids/[gridId]/[gridSlug]/export/rubrics/
-/grids/[gridId]/[gridSlug]/export/grades/
-```
+Grid-scoped routes nest under `/grids/[gridId]/[gridSlug]/…` (Overview at the root, then `rubrics/`, `grades/`, `results/`, `import/…`, `export/…`); a target's own routes nest one level deeper under `grades/[targetId]/[targetSlug]/…`. The `/grades/` route is a grading-navigation hub ("Grade by student or group" / "Grade by rubric"), not the Grades table — the table lives on `/results/`. For exact path strings, read the helpers in `src/grids/gridPaths.ts` (`gridOverviewPath`, `gridRubricsPath`, `gridGradesPath`, `gridGradeTargetPath`, `gridGradeTargetRubricPath`, `gridResultsPath`, `gridImport*Path`, `gridExport*Path`).
 
-Path strings are built through the helpers in `src/grids/gridPaths.ts` (`gridOverviewPath`, `gridGradesPath`, `gridGradeTargetPath`, `gridGradeTargetRubricPath`, `gridRubricsPath`, `gridImport*Path`, `gridExport*Path`); no page builds a path by hand.
+Grid-scoped entity paths are built through those helpers; a couple of top-level, non-grid-scoped routes are still written by hand (`app/page.tsx`'s `/grids` redirect, `app/grids/page.tsx`'s `/grids?error=…`) since there's no grid to scope them to.
 
 ## ID vs slug segments
 

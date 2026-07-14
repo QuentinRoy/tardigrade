@@ -55,7 +55,7 @@ The numeric value a **grade** is worth, computed from the criterion's configurat
 _Avoid_: points, value (a mark is the worth, not the entered value), grade (when meaning the number)
 
 **Name** (`name`):
-The student's or group's display label — as the Grades table's first column header and as the `name` CSV column. A fixed word, so it stays correct whether a grid contains individuals, groups, or both.
+The student's or group's display label, as the Grades table's first column header. A fixed word, so it stays correct whether a grid contains individuals, groups, or both. Also the Grades CSV's `name` column, which matches a row to its target rather than always displaying a label — see the Grades CSV format in the README for the exact per-kind matching rule.
 _Avoid_: student, group, submission (as a header), submitter
 
 **No**:

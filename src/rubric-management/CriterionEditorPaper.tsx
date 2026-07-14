@@ -9,6 +9,7 @@ import {
 	TextInput,
 } from "@mantine/core";
 import type { ReactElement, ReactNode } from "react";
+import { getCriterionKindLabel } from "#criteria/getCriterionKindLabel.ts";
 import Panel from "#design-system/Panel.tsx";
 import { assertNever } from "#utils/utils.ts";
 import type { RubricCriterionFieldErrors } from "./errors.ts";
@@ -79,11 +80,10 @@ function isCriterionKind(value: string): value is CriterionEditorValue["kind"] {
 	return CRITERION_KINDS.some((kind) => kind === value);
 }
 
-const CRITERION_KIND_DATA = [
-	{ value: "check", label: "Check" },
-	{ value: "options", label: "Options" },
-	{ value: "number", label: "Number" },
-];
+const CRITERION_KIND_DATA = CRITERION_KINDS.map((kind) => ({
+	value: kind,
+	label: getCriterionKindLabel(kind),
+}));
 
 type CriterionEditorPaperProps = {
 	criterion: CriterionEditorValue;

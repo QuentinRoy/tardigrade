@@ -108,7 +108,7 @@ function parseGradeValue(params: {
 				const labelExists = criterion.ordinalLabels.includes(value);
 				if (!labelExists) {
 					throw new Error(
-						`Invalid option value "${value}" for criterion ${criterion.id}`,
+						`Invalid option label "${value}" for criterion ${criterion.id}`,
 					);
 				}
 			}

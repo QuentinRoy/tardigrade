@@ -162,9 +162,9 @@ Rules:
 
 - `rubrics` is required and must contain unique rubric ids.
 - Each rubric requires `id` and `criteria`.
-- Criterion ids must be unique within each rubric.
+- Criterion ids must be unique across the whole grid, not just within one rubric — persistence conflicts on `(gridId, id)`, so reusing an id across two rubrics passes this parser but fails on save.
 - Check criterion: `marks` is the number of marks awarded for a Yes answer. `falseMarks` (optional) sets marks for a No answer (defaults to `0`).
-- Options criterion: `marks` must contain at least 2 label/value pairs (numbers).
+- Options criterion: `marks` must contain at least 2 label/mark entries (label to numeric marks).
 - Number criterion:
   - At least one of `minMarks` or `maxMarks` must be provided.
   - When only `maxMarks` is given, `minMarks` defaults to `0` and `maxMarks` must be `> 0`.
@@ -203,6 +203,7 @@ Rules:
 
 - Required columns: `kind`, `name`.
 - `kind` must be `individual` or `group`.
+- `name` matches a row to its grade target: for a `group` row, the group's name; for an `individual` row, the student's roster `id` (not the student's display name — student names aren't guaranteed unique, but roster ids are).
 - Grade columns use `rubricId:criterionId`.
 - For export/import round-trip, export must include grade columns (`rubricId:criterionId`). Marks-only exports (`rubricId:criterionId:marks`) do not contain importable grades.
 - Values by criterion kind:
@@ -211,7 +212,7 @@ Rules:
   - Number: a numeric value
 - Empty grade cells are ignored.
 - Unknown columns are rejected.
-- Rows with no matching grade target are skipped.
+- A row with no matching grade target blocks the entire import — nothing is written until every row matches.
 - Export-only columns like rubric totals (`rubricId:total`), `:marks` columns, and `final_total` are allowed and ignored on import.
 
 ## Notes
