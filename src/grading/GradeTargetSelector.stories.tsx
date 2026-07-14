@@ -1,7 +1,18 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import type { ComponentProps, ComponentType } from "react";
 import { expect, fn, screen, userEvent, waitFor } from "storybook/test";
 import type { GradeTarget } from "#grade-targets/types.ts";
 import GradeTargetSelector from "./GradeTargetSelector.tsx";
+
+type CompletionByTargetId = Record<
+	string,
+	{ completed: number; total: number }
+>;
+
+type StoryArgs = Omit<
+	ComponentProps<typeof GradeTargetSelector>,
+	"completionPromise"
+>;
 
 const targets: GradeTarget[] = [
 	{
@@ -24,24 +35,38 @@ const targets: GradeTarget[] = [
 
 const meta = {
 	title: "Grade/GradeTargetSelector",
-	component: GradeTargetSelector,
+	// completionPromise is a required prop, but it's supplied through the
+	// loader below rather than through args, so TS can't verify it's actually
+	// there — Storybook's Meta/StoryObj types tie a component's required props
+	// directly to args and have no notion of a loader filling the gap.
+	// biome-ignore lint/plugin/no-type-assertion: narrows the component type to StoryArgs, which omits completionPromise since it comes from the loader, not args.
+	component: GradeTargetSelector as ComponentType<StoryArgs>,
 	args: {
 		open: true,
 		onClose: fn(),
 		onSelectTarget: fn(),
 		targets,
-		completionPromise: Promise.resolve({
-			101: { completed: 1, total: 2 },
-			102: { completed: 2, total: 2 },
-		}),
 		progressLabel: "criteria",
 	},
-	argTypes: {
-		// A Promise is not a serializable control value; leaving it editable makes
-		// Storybook's Controls addon warn about a cycle while inspecting the arg.
-		completionPromise: { control: false },
+	// completionPromise isn't a serializable arg: Storybook inspects and
+	// serializes every arg, and a Promise triggers a "cycle" warning. A loader
+	// keeps it out of the args channel entirely and merges it in at render time.
+	loaders: [
+		async () => ({
+			completionPromise: Promise.resolve<CompletionByTargetId>({
+				101: { completed: 1, total: 2 },
+				102: { completed: 2, total: 2 },
+			}),
+		}),
+	],
+	render: (args, { loaded }) => {
+		const completionPromise: Promise<CompletionByTargetId> =
+			loaded["completionPromise"];
+		return (
+			<GradeTargetSelector {...args} completionPromise={completionPromise} />
+		);
 	},
-} satisfies Meta<typeof GradeTargetSelector>;
+} satisfies Meta<StoryArgs>;
 
 export default meta;
 
