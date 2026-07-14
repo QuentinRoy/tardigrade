@@ -17,7 +17,7 @@ function formatBlockingDiagnostic(
 ): string {
 	switch (diagnostic.kind) {
 		case "criterion-kind-change-blocked": {
-			return `Criterion "${diagnostic.criterionId}" of rubric "${diagnostic.rubricId}" has ${diagnostic.gradedTargetCount} linked grades and cannot change type on import. Edit it in rubric management instead.`;
+			return `Criterion "${diagnostic.criterionId}" of rubric "${diagnostic.rubricId}" has ${diagnostic.gradedTargetCount} linked grades and cannot change kind on import. Edit it in rubric management instead.`;
 		}
 		case "criterion-rubric-mismatch": {
 			return `Criterion "${diagnostic.criterionId}" already belongs to rubric "${diagnostic.existingRubricId}" and cannot be moved to rubric "${diagnostic.importRubricId}" on import.`;

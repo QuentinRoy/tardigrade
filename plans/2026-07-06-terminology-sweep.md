@@ -1,9 +1,9 @@
 # Terminology sweep: apply the settled vocabulary across code, DB, routes, and UI
 
-- **Status:** Active
+- **Status:** Completed
 - **Created:** 2026-07-06
 - **Origin:** #99 terminology convergence; `CONTEXT.md`, `docs/reference/lexicon.md`
-- **Tracked by:** #99 (open, tracks the overall sweep); #136 (submission → Grade Target normalization) — closed by stage 6's PR2 ([#269](https://github.com/QuentinRoy/tardigrade/pull/269))
+- **Tracked by:** #99 (closed by this stage's PR1, since PR2 ([#280](https://github.com/QuentinRoy/tardigrade/pull/280)) merged first — see the Stage 9 PR-split note); #136 (submission → Grade Target normalization) — closed by stage 6's PR2 ([#269](https://github.com/QuentinRoy/tardigrade/pull/269))
 
 The vocabulary is settled in `CONTEXT.md` (internal domain glossary) and `docs/reference/lexicon.md` (user-facing). This plan applies those decisions to the implementation, staged so each step is independently reviewable and shippable. Mostly mechanical application — but grilling stage 1 (2026-07-07) surfaced one genuine terminology decision the sweep had to make: the grid's summary surfaces (**Dashboard**, "Rubric overview", "Analytics") were near-synonyms. Resolved to **Overview** (grid home — retires "Dashboard") vs **Results** (the outcomes page holding the **Grades** matrix + **Analytics** breakdown); recorded in the lexicon.
 

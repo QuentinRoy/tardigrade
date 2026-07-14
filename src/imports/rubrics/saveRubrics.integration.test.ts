@@ -242,7 +242,7 @@ test("saveRubrics blocks a criterion type change when the criterion has linked g
 	await expect(
 		saveRubrics({ rubrics, gridId: grid.id }, { db }),
 	).rejects.toThrow(
-		`Criterion "${fixture.criterionId}" of rubric "${fixture.rubricId}" has 1 linked grades and cannot change type on import.`,
+		`Criterion "${fixture.criterionId}" of rubric "${fixture.rubricId}" has 1 linked grades and cannot change kind on import.`,
 	);
 
 	const criterion = await db

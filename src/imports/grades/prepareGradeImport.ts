@@ -108,7 +108,7 @@ function parseGradeValue(params: {
 				const labelExists = criterion.ordinalLabels.includes(value);
 				if (!labelExists) {
 					throw new Error(
-						`Invalid ordinal value "${value}" for criterion ${criterion.id}`,
+						`Invalid option label "${value}" for criterion ${criterion.id}`,
 					);
 				}
 			}
@@ -122,7 +122,7 @@ function parseGradeValue(params: {
 		case "number": {
 			const criterionValue = parseFloat(value);
 			if (Number.isNaN(criterionValue)) {
-				throw new Error(`Invalid numerical value "${value}"`);
+				throw new Error(`Invalid number value "${value}"`);
 			}
 
 			return {
