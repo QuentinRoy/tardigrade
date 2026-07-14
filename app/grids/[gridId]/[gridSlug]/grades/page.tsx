@@ -101,7 +101,7 @@ async function GridGradesPageContent({ gridId }: { gridId: string }) {
 								<RubricList rubrics={rubrics} />
 							) : (
 								<Text c="dimmed">
-									Add a student or group first to start grades by rubric.
+									Add a student or group first to start grading by rubric.
 								</Text>
 							)}
 						</Stack>
