@@ -65,7 +65,7 @@ describe("rubricDefinitionSchema numeric criterion fields", () => {
 		const issue = result.error?.issues.find(
 			(issue) => issue.path.join(".") === "criteria.0.falseMarks",
 		);
-		expect(issue?.message).toBe("No marks must be a valid number");
+		expect(issue?.message).toBe("Enter a valid number for No marks.");
 	});
 
 	it("reports each invalid numerical field with its own message", () => {

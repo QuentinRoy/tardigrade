@@ -21,3 +21,7 @@ export const Yes: Story = { args: { value: true } };
 export const No: Story = { args: { value: false } };
 
 export const Disabled: Story = { args: { value: true, disabled: true } };
+
+export const Reversed: Story = {
+	args: { marks: 0, falseMarks: 1, value: true },
+};
