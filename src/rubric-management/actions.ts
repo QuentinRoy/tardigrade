@@ -14,7 +14,7 @@ import {
 import type { RubricsActionState } from "./state.ts";
 
 export async function saveRubricAction(
-	projectId: string,
+	gridId: string,
 	_previousState: RubricsActionState,
 	formData: FormData,
 ): Promise<RubricsActionState> {
@@ -22,7 +22,7 @@ export async function saveRubricAction(
 
 	try {
 		const payload = parseRubricDefinitionPayload(payloadRaw);
-		const result = await saveRubricDefinition({ input: payload, projectId });
+		const result = await saveRubricDefinition({ input: payload, gridId });
 
 		return { status: "success", message: `Saved rubric ${result.id}.` };
 	} catch (error) {
@@ -32,7 +32,7 @@ export async function saveRubricAction(
 }
 
 export async function deleteRubricAction(
-	projectId: string,
+	gridId: string,
 	_previousState: RubricsActionState,
 	formData: FormData,
 ): Promise<RubricsActionState> {
@@ -56,7 +56,7 @@ export async function deleteRubricAction(
 
 		const { deleted } = await deleteRubricDefinition({
 			rubricId: payload.rubricId,
-			projectId,
+			gridId,
 		});
 
 		return {
@@ -72,8 +72,8 @@ export async function deleteRubricAction(
 }
 
 export async function reorderRubricsAction(
-	projectId: string,
+	gridId: string,
 	updates: Array<{ id: string; position: number }>,
 ): Promise<void> {
-	await reorderRubrics({ updates, projectId });
+	await reorderRubrics({ updates, gridId });
 }

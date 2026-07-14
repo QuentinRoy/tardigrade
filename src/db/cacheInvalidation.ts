@@ -6,8 +6,8 @@ import {
 	gradeForGradeTargetRubricCacheTag,
 	gradeImportCacheTag,
 	gradeTargetListCacheTag,
-	projectCacheTag,
-	projectListCacheTag,
+	gridCacheTag,
+	gridListCacheTag,
 	rubricListCacheTag,
 } from "./cacheTags.ts";
 
@@ -22,7 +22,7 @@ import {
 //
 // `revalidateTag` (stale-while-revalidate) serves stale data while refreshing in
 // the background; it is used for derived projection tags and coarse aggregate
-// tags, so a save never blocks the next navigation on recomputing project-wide
+// tags, so a save never blocks the next navigation on recomputing grid-wide
 // completion (plan Decision 3, Finding 19). `revalidateTag` throws outside request
 // scope; every helper here runs from a Server Action or import action.
 
@@ -36,7 +36,7 @@ function revalidate(tag: string): void {
 // the grade target's grades (the grader must see the value just saved);
 // stale-while-revalidate for the coarse aggregate and the rubric completion
 // projection, so navigating to the next grade target never blocks on recomputing
-// project-wide completion.
+// grid-wide completion.
 export function invalidateGradeSave({
 	targetId,
 	rubricId,
@@ -90,16 +90,12 @@ export function invalidateRubricReorder(): void {
 	updateTag(rubricListCacheTag());
 }
 
-// Project creation. Stale-while-revalidate for the project list and the new
-// project's own tag; the redirect to the project page tolerates a background
+// Grid creation. Stale-while-revalidate for the grid list and the new
+// grid's own tag; the redirect to the grid page tolerates a background
 // refresh.
-export function invalidateProjectCreate({
-	projectId,
-}: {
-	projectId: string;
-}): void {
-	revalidate(projectListCacheTag());
-	revalidate(projectCacheTag(projectId));
+export function invalidateGridCreate({ gridId }: { gridId: string }): void {
+	revalidate(gridListCacheTag());
+	revalidate(gridCacheTag(gridId));
 }
 
 // Bulk grade import. Imports land the user on a freshly rendered page, so no

@@ -2,7 +2,7 @@ import { revalidateTag, updateTag } from "next/cache";
 import { beforeEach, expect, test, vi } from "vitest";
 import { createTestDb } from "#test/dbIntegration.ts";
 import { createGradeFixture } from "#test/grades.ts";
-import { createProject } from "#test/projects.ts";
+import { createGrid } from "#test/grids.ts";
 import { saveCriterionGrade } from "./saveCriterionGrade.ts";
 
 vi.mock("next/cache", () => ({
@@ -22,8 +22,8 @@ beforeEach(() => {
 test("saveCriterionGrade returns a generic shaped error and logs once when the mutation throws", async () => {
 	const db = await createTestDb();
 	const fixture = await (async () => {
-		await using project = await createProject(db, "Save Grade Failure Project");
-		return await createGradeFixture(db, project.id);
+		await using grid = await createGrid(db, "Save Grade Failure Grid");
+		return await createGradeFixture(db, grid.id);
 	})();
 
 	try {
@@ -34,7 +34,7 @@ test("saveCriterionGrade returns a generic shaped error and logs once when the m
 
 		const result = await saveCriterionGrade(
 			{
-				projectId: fixture.projectId,
+				gridId: fixture.gridId,
 				targetId: fixture.gradeTargetId,
 				rubricId: fixture.rubricId,
 				grade: {

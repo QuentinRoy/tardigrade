@@ -8,7 +8,7 @@ import {
 import {
 	addFullGradeFixture,
 	createIndividualGradeTargetFixtures,
-	createMixedCriterionRubricFixtureProject,
+	createMixedCriterionRubricFixtureGrid,
 	createStudentFixtures,
 } from "#test/mixedCriterionGradeFixture.ts";
 import { createCsvGradeTargetExport } from "./gradeTargetExport.ts";
@@ -58,35 +58,32 @@ afterAll(async () => {
 });
 
 test("createCsvGradeTargetExport snapshots CSV for mixed criterion types and grade target states", async () => {
-	const { project, rubric } = await createMixedCriterionRubricFixtureProject(
-		db,
-		{
-			projectName: "Export Integration Project",
-			rubricId: "q-export-test",
-			checkCriterionId: "r-bool-export-test",
-			optionsCriterionId: "r-ord-export-test",
-			numberCriterionId: "r-num-export-test",
-		},
-	);
+	const { grid, rubric } = await createMixedCriterionRubricFixtureGrid(db, {
+		gridName: "Export Integration Grid",
+		rubricId: "q-export-test",
+		checkCriterionId: "r-bool-export-test",
+		optionsCriterionId: "r-ord-export-test",
+		numberCriterionId: "r-num-export-test",
+	});
 
 	const criterionRowIds = await db
 		.selectFrom("criterion")
-		.where("projectId", "=", project.rowId)
+		.where("gridRowId", "=", grid.rowId)
 		.select(["id", "rowId"])
 		.execute();
 	const criterionRowId = new Map(criterionRowIds.map((r) => [r.id, r.rowId]));
 
 	const [student1, student2, student3] = await createStudentFixtures(db, [
-		{ projectRowId: project.rowId, id: "student-export-1" },
-		{ projectRowId: project.rowId, id: "student-export-2" },
-		{ projectRowId: project.rowId, id: "student-export-3" },
+		{ gridRowId: grid.rowId, id: "student-export-1" },
+		{ gridRowId: grid.rowId, id: "student-export-2" },
+		{ gridRowId: grid.rowId, id: "student-export-3" },
 	]);
 
 	// target1: fully graded, target2: sparse (check only), target3: no grade
 	const [target1, target2] = await createIndividualGradeTargetFixtures(db, [
-		{ projectRowId: project.rowId, studentRowId: student1.rowId },
-		{ projectRowId: project.rowId, studentRowId: student2.rowId },
-		{ projectRowId: project.rowId, studentRowId: student3.rowId },
+		{ gridRowId: grid.rowId, studentRowId: student1.rowId },
+		{ gridRowId: grid.rowId, studentRowId: student2.rowId },
+		{ gridRowId: grid.rowId, studentRowId: student3.rowId },
 	]);
 
 	await Promise.all([
@@ -104,7 +101,7 @@ test("createCsvGradeTargetExport snapshots CSV for mixed criterion types and gra
 
 	const stream = await createCsvGradeTargetExport(
 		{ includeCriterionGrade: true, includeCriterionMarks: true },
-		project.id,
+		grid.id,
 		{ db },
 	);
 	const csv = await readStream(stream);

@@ -8,8 +8,8 @@ See `docs/adr/0008-cache-tags-lifetimes-and-invalidation.md` for the rules that 
 
 | Helper | Tag string | Scope |
 |---|---|---|
-| `projectListCacheTag()` | `projects` | All projects |
-| `projectCacheTag(id)` | `projects:{id}` | One project, by public Project ID |
+| `gridListCacheTag()` | `grids` | All grids |
+| `gridCacheTag(gridId)` | `grids:{gridId}` | One grid, by public Grid ID |
 | `rubricListCacheTag()` | `rubrics` | All rubrics in scope |
 | `gradeTargetListCacheTag()` | `grade-targets` | All grade targets in scope |
 | `gradeAggregateCacheTag()` | `grades` | All grades in scope (busted by every save) |
@@ -22,7 +22,7 @@ Scoping caveat: `{target}` and `{rubric}` are public ids, unique only within a g
 
 ## Mutations → tags invalidated
 
-Each mutation calls exactly one semantic helper from `src/db/cacheInvalidation.ts` after its transaction commits (ADR 0008 rule 6). The helper picks the primitive per tag class: `updateTag` (read-your-own-writes) expires the entry immediately and is used for the tags of the entity just edited, so the editor sees its own change; `revalidateTag("max")` serves stale data while refreshing in the background and is used for coarse aggregate and derived projection tags, so a save never blocks the next navigation on recomputing project-wide completion.
+Each mutation calls exactly one semantic helper from `src/db/cacheInvalidation.ts` after its transaction commits (ADR 0008 rule 6). The helper picks the primitive per tag class: `updateTag` (read-your-own-writes) expires the entry immediately and is used for the tags of the entity just edited, so the editor sees its own change; `revalidateTag("max")` serves stale data while refreshing in the background and is used for coarse aggregate and derived projection tags, so a save never blocks the next navigation on recomputing grid-wide completion.
 
 | Mutation | Helper | `updateTag` (read-your-writes) | `revalidateTag` (stale-while-revalidate) | Source |
 |---|---|---|---|---|
@@ -30,12 +30,12 @@ Each mutation calls exactly one semantic helper from `src/db/cacheInvalidation.t
 | `saveRubricDefinition` | `invalidateRubricDefinitionSave` | `rubrics` | `grades`, `grades:all`, `grades:rubric:{id}` (+ `grades:rubric:{previousId}` when id changes) | `src/rubric-management/rubricDefinitionMutations.ts` |
 | `deleteRubricDefinition` | `invalidateRubricDefinitionDelete` | `rubrics` | `grades`, `grades:all`, `grades:rubric:{id}` | `src/rubric-management/rubricDefinitionMutations.ts` |
 | `reorderRubrics` | `invalidateRubricReorder` | `rubrics` | (none) | `src/rubric-management/rubricDefinitionMutations.ts` |
-| `createProject` | `invalidateProjectCreate` | (none) | `projects`, `projects:{id}` | `src/projects/projects.ts` |
+| `createGrid` | `invalidateGridCreate` | (none) | `grids`, `grids:{gridId}` | `src/grids/grids.ts` |
 | `saveGrades` (import) | `invalidateGradeImport` | (none) | `grades`, `grades:all` | `src/imports/grades/saveGrades.ts` |
 | `saveRubrics` (import) | `invalidateRubricImport` | (none) | `rubrics`, `grades`, `grades:all` | `src/imports/rubrics/saveRubrics.ts` |
 | `saveStudents` (import) | `invalidateStudentImport` | (none) | `grade-targets`, `grades`, `grades:all` | `src/imports/students/saveStudents.ts` |
 
-Import helpers and `invalidateProjectCreate` run from request-scoped actions (import actions, the create-project action). `revalidateTag` throws outside request scope, so these helpers must not be called from background jobs.
+Import helpers and `invalidateGridCreate` run from request-scoped actions (import actions, the create-grid action). `revalidateTag` throws outside request scope, so these helpers must not be called from background jobs.
 
 ## Readers → tags registered
 
@@ -43,8 +43,8 @@ Page-level sections inherit `cacheLife` from inner cached functions; the lifetim
 
 | Cached scope | Tags registered | `cacheLife` | Source |
 |---|---|---|---|
-| `loadProjectList` | `projects` | 60 s | `src/projects/projects.ts` |
-| `loadProjectByPublicId` | `projects`, `projects:{id}` | 60 s | `src/projects/projects.ts` |
+| `loadGrids` | `grids` | 60 s | `src/grids/grids.ts` |
+| `loadGridByPublicId` | `grids`, `grids:{gridId}` | 60 s | `src/grids/grids.ts` |
 | `loadRubricRows` (shared by `loadRubricsById`, `loadRubric`, which derive from it) | `rubrics` | 1 h (`definitions`) | `src/rubrics/rubrics.ts` |
 | `loadRubricDefinitions` (composes `loadRubricRows` + grade counts) | `rubrics`, `grades` | 60 s (`projection`; counts track the coarse aggregate) | `src/rubric-management/rubricDefinitions.ts` |
 | `loadGradeTargets` | `grade-targets` | 1 h (`roster`) | `src/grade-targets/gradeTargets.ts` |
@@ -54,9 +54,9 @@ Page-level sections inherit `cacheLife` from inner cached functions; the lifetim
 | `loadCriterionGradesCount` (composed by `loadGradeCompletionSummary` alongside `loadGradeCompletionRows`) | `grades` | 60 s | `src/grade-completion/loadGradeCompletion.ts` |
 | `loadGradedCriterionCountsByTarget` | `grade-targets`, `rubrics`, `grades:rubric:{rubric}`, `grades:all` | 60 s | `src/grade-completion/loadGradeCompletion.ts` |
 | `loadResultsData` | `rubrics`, `grade-targets`, `grades` | 60 s (`projection`) | `src/results/loadResults.ts` |
-| `RubricHeaderSection` (page) | `projects:{id}`, `rubrics` | inherits | `app/.../rubrics/[rubricId]/page.tsx` |
+| `RubricHeaderSection` (page) | `grids:{gridId}`, `rubrics` | inherits | `app/.../rubrics/[rubricId]/page.tsx` |
 
-`GradeTargetCriterionSection` and `ProjectGradesPageContent` have no page-level `"use cache"` wrapper: each calls already-cached loaders directly. The per-target completion used by the on-demand lookup dialog (or, on the grades index, the inline completion badges) still comes from those cached loaders (`loadGradedCriterionCounts`, `loadGradeCompletionByTarget` — both deriving from the cached entries in the table above) — only the page-level `await` is removed, so the *page render* doesn't block on it; it streams in under Suspense instead of blocking navigation on a project-wide completion recompute (Finding 19, PR10).
+`GradeTargetCriterionSection` and `GridGradesPageContent` have no page-level `"use cache"` wrapper: each calls already-cached loaders directly. The per-target completion used by the on-demand lookup dialog (or, on the grades index, the inline completion badges) still comes from those cached loaders (`loadGradedCriterionCounts`, `loadGradeCompletionByTarget` — both deriving from the cached entries in the table above) — only the page-level `await` is removed, so the *page render* doesn't block on it; it streams in under Suspense instead of blocking navigation on a grid-wide completion recompute (Finding 19, PR10).
 
 ## Maintenance rule
 

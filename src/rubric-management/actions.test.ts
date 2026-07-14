@@ -36,7 +36,7 @@ describe("deleteRubricAction", () => {
 		deleteRubricDefinition.mockResolvedValue({ deleted: true });
 
 		const result = await deleteRubricAction(
-			"project-1",
+			"grid-1",
 			initialRubricsActionState,
 			buildDeleteFormData("q1"),
 		);
@@ -51,7 +51,7 @@ describe("deleteRubricAction", () => {
 		deleteRubricDefinition.mockResolvedValue({ deleted: false });
 
 		const result = await deleteRubricAction(
-			"project-1",
+			"grid-1",
 			initialRubricsActionState,
 			buildDeleteFormData("q1"),
 		);
@@ -66,7 +66,7 @@ describe("deleteRubricAction", () => {
 		deleteRubricDefinition.mockResolvedValue({ deleted: true });
 
 		const result = await deleteRubricAction(
-			"project-1",
+			"grid-1",
 			initialRubricsActionState,
 			buildDeleteFormData("q1"),
 		);
@@ -87,7 +87,7 @@ describe("deleteRubricAction", () => {
 		);
 
 		const result = await deleteRubricAction(
-			"project-1",
+			"grid-1",
 			initialRubricsActionState,
 			formData,
 		);

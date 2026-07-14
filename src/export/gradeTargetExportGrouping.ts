@@ -31,7 +31,7 @@ export async function* groupGradeTargetRows(
 	rows: AsyncIterable<GradeTargetExportRow>,
 ): AsyncGenerator<GroupedGradeTargetRow> {
 	// Rows are grouped and ordered by the internal `rowId` (creation order —
-	// the public `id` is a per-project text ordinal and does not sort
+	// the public `id` is a per-grid text ordinal and does not sort
 	// correctly, see the loader's ordering note); the public id is carried
 	// alongside purely to name the target in the output, never for ordering.
 	let currentGradeTargetRowId: number | null = null;

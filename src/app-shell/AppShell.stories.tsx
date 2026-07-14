@@ -7,7 +7,7 @@ const meta = {
 	component: AppShell,
 	parameters: {
 		layout: "fullscreen",
-		nextjs: { navigation: { pathname: "/projects/123/test-project" } },
+		nextjs: { navigation: { pathname: "/grids/123/test-grid" } },
 	},
 	args: { showNavigation: true, children: <p>Page content</p> },
 } satisfies Meta<typeof AppShell>;
@@ -21,7 +21,7 @@ export const WithNavigation: Story = {
 		// At the default (desktop) test viewport, the navbar is permanently
 		// visible and the burger (mobile-only) isn't rendered.
 		await expect(
-			screen.getByRole("navigation", { name: /project navigation/i }),
+			screen.getByRole("navigation", { name: /grid navigation/i }),
 		).toBeVisible();
 		expect(
 			screen.queryByRole("button", { name: /open navigation drawer/i }),

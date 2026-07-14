@@ -31,11 +31,11 @@ export type SaveCriterionGradeResult =
 	| { success: false; error: string };
 
 export type SaveCriterionGradeParams = {
-	// The grade target's public id is only unique within its project (unlike
-	// the old globally-unique numeric submission id), so the project must be
+	// The grade target's public id is only unique within its grid (unlike
+	// the old globally-unique numeric submission id), so the grid must be
 	// supplied explicitly rather than resolved from the target id alone
 	// (CONTEXT Grid Resolution Strategy).
-	projectId: string;
+	gridId: string;
 	targetId: string;
 	rubricId: string;
 	grade: CriterionGrade;
@@ -61,24 +61,24 @@ export const saveCriterionGradeErrors = {
 // The db is either the global client or a caller-supplied transaction.
 export async function saveCriterionGradeInDb(
 	db: Kysely<Database>,
-	{ projectId, targetId, rubricId, grade }: SaveCriterionGradeParams,
+	{ gridId, targetId, rubricId, grade }: SaveCriterionGradeParams,
 ): Promise<SaveCriterionGradeResult> {
 	const criterionId = grade.criterionId;
 
-	const project = await db
-		.selectFrom("project")
-		.where("id", "=", projectId)
+	const grid = await db
+		.selectFrom("grid")
+		.where("id", "=", gridId)
 		.select("rowId")
 		.executeTakeFirst();
 
-	if (project == null) {
+	if (grid == null) {
 		return { success: false, error: saveCriterionGradeErrors.contextMissing };
 	}
 
 	const target = await db
 		.selectFrom("gradeTarget")
 		.where("id", "=", targetId)
-		.where("projectId", "=", project.rowId)
+		.where("gridRowId", "=", grid.rowId)
 		.select("rowId")
 		.executeTakeFirst();
 
@@ -89,8 +89,8 @@ export async function saveCriterionGradeInDb(
 	const rubric = await db
 		.selectFrom("rubric")
 		.where("id", "=", rubricId)
-		.where("projectId", "=", project.rowId)
-		.select(["id", "rowId", "projectId"])
+		.where("gridRowId", "=", grid.rowId)
+		.select(["id", "rowId", "gridRowId"])
 		.executeTakeFirst();
 
 	if (rubric == null) {
@@ -115,7 +115,7 @@ export async function saveCriterionGradeInDb(
 			"criterion.rowId",
 		)
 		.where("criterion.id", "=", criterionId)
-		.where("criterion.projectId", "=", rubric.projectId)
+		.where("criterion.gridRowId", "=", rubric.gridRowId)
 		.select([
 			"criterion.id",
 			"criterion.rowId",

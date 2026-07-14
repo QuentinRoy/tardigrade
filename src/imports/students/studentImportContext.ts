@@ -10,15 +10,15 @@ export async function loadStudentImportContextFromDb(
 	db: Kysely<Database>,
 	{
 		targets,
-		projectId,
-	}: { targets: NormalizedImportedGradeTarget[]; projectId: string },
+		gridId,
+	}: { targets: NormalizedImportedGradeTarget[]; gridId: string },
 ): Promise<StudentImportContext> {
-	const project = await db
-		.selectFrom("project")
+	const grid = await db
+		.selectFrom("grid")
 		.select("rowId")
-		.where("id", "=", projectId)
+		.where("id", "=", gridId)
 		.executeTakeFirstOrThrow();
-	const projectRowId = project.rowId;
+	const gridRowId = grid.rowId;
 
 	const studentIds = targets.flatMap((target) =>
 		target.students.map((student) => student.id),
@@ -43,7 +43,7 @@ export async function loadStudentImportContextFromDb(
 						"student.rowId",
 					)
 					.leftJoin("group", "group.id", "studentToGroup.groupId")
-					.where("student.projectId", "=", projectRowId)
+					.where("student.gridRowId", "=", gridRowId)
 					.where("student.id", "in", studentIds)
 					.select([
 						"student.id as id",
@@ -58,7 +58,7 @@ export async function loadStudentImportContextFromDb(
 					.selectFrom("gradeTarget")
 					.innerJoin("student", "student.rowId", "gradeTarget.studentRowId")
 					.where("gradeTarget.kind", "=", "individual")
-					.where("student.projectId", "=", projectRowId)
+					.where("student.gridRowId", "=", gridRowId)
 					.where("student.id", "in", studentIds)
 					.select("student.id as studentId")
 					.execute(),
@@ -67,7 +67,7 @@ export async function loadStudentImportContextFromDb(
 			: db
 					.selectFrom("group")
 					.innerJoin("gradeTarget", "gradeTarget.groupRowId", "group.id")
-					.where("group.projectId", "=", projectRowId)
+					.where("group.gridRowId", "=", gridRowId)
 					.where("group.name", "in", groupNames)
 					.select("group.name as name")
 					.execute(),

@@ -4,15 +4,15 @@ import { Box, Burger, Flex, Title } from "@mantine/core";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import AppLink from "#design-system/AppLink.tsx";
-import { projectDashboardPath } from "#projects/projectPaths.ts";
-import { getProjectRouteContext } from "./AppShell.shared.ts";
+import { gridOverviewPath } from "#grids/gridPaths.ts";
+import { getGridRouteContext } from "./AppShell.shared.ts";
 
 const SIDE_ZONE_WIDTH = 48;
 
 type AppShellTopBarProps =
 	| {
 			showNavigation: true;
-			projectName: string;
+			gridName: string;
 			navbarOpened: boolean;
 			onToggleNavbar: () => void;
 			navbarId: string;
@@ -21,11 +21,11 @@ type AppShellTopBarProps =
 
 export default function AppShellTopBar(props: AppShellTopBarProps): ReactNode {
 	const pathname = usePathname();
-	const projectRouteContext = getProjectRouteContext(pathname);
-	const title = props.showNavigation ? props.projectName : "BonPoint";
+	const gridRouteContext = getGridRouteContext(pathname);
+	const title = props.showNavigation ? props.gridName : "BonPoint";
 	const titleHref =
-		props.showNavigation && projectRouteContext != null
-			? projectDashboardPath(projectRouteContext)
+		props.showNavigation && gridRouteContext != null
+			? gridOverviewPath(gridRouteContext)
 			: undefined;
 
 	return (

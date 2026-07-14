@@ -22,7 +22,7 @@ export type StudentImportWriteResult = {
 // plan's writes; never opens a transaction and never invalidates cache.
 export async function saveStudentImportPlanInDb(
 	db: Kysely<Database>,
-	{ plan, projectId }: { plan: StudentImportPlan; projectId: string },
+	{ plan, gridId }: { plan: StudentImportPlan; gridId: string },
 ): Promise<StudentImportWriteResult> {
 	const targets = plan.writes;
 	const targetsByOwner = targets.map((target) => {
@@ -54,12 +54,12 @@ export async function saveStudentImportPlanInDb(
 		})),
 	);
 
-	const projectRow = await db
-		.selectFrom("project")
+	const gridRow = await db
+		.selectFrom("grid")
 		.select("rowId")
-		.where("id", "=", projectId)
+		.where("id", "=", gridId)
 		.executeTakeFirstOrThrow();
-	const projectRowId = projectRow.rowId;
+	const gridRowId = gridRow.rowId;
 
 	const groupNames = new Set(
 		targetsByOwner.flatMap((t) =>
@@ -76,11 +76,11 @@ export async function saveStudentImportPlanInDb(
 			.values(
 				Array.from(groupNames).map((groupName) => ({
 					name: groupName,
-					projectId: projectRowId,
+					gridRowId,
 				})),
 			)
 			.onConflict((conflict) =>
-				conflict.columns(["name", "projectId"]).doNothing(),
+				conflict.columns(["name", "gridRowId"]).doNothing(),
 			)
 			.execute();
 
@@ -88,7 +88,7 @@ export async function saveStudentImportPlanInDb(
 			.selectFrom("group")
 			.select(["id", "name"])
 			.where("name", "in", Array.from(groupNames))
-			.where("projectId", "=", projectRowId)
+			.where("gridRowId", "=", gridRowId)
 			.execute();
 
 		for (const group of groupResults) {
@@ -104,16 +104,16 @@ export async function saveStudentImportPlanInDb(
 					id: student.id,
 					lastName: student.lastName,
 					firstName: student.firstName,
-					projectId: projectRowId,
+					gridRowId,
 				})),
 			)
 			.onConflict((conflict) =>
 				conflict
-					.columns(["projectId", "id"])
+					.columns(["gridRowId", "id"])
 					.doUpdateSet((expressionBuilder) => ({
 						lastName: expressionBuilder.ref("excluded.lastName"),
 						firstName: expressionBuilder.ref("excluded.firstName"),
-						projectId: expressionBuilder.ref("excluded.projectId"),
+						gridRowId: expressionBuilder.ref("excluded.gridRowId"),
 					})),
 			)
 			.execute();
@@ -121,7 +121,7 @@ export async function saveStudentImportPlanInDb(
 		const studentRows = await db
 			.selectFrom("student")
 			.select(["rowId", "id"])
-			.where("projectId", "=", projectRowId)
+			.where("gridRowId", "=", gridRowId)
 			.where(
 				"id",
 				"in",
@@ -226,7 +226,7 @@ export async function saveStudentImportPlanInDb(
 	// is simply never persisted — `id` is never in that clause's SET list — so
 	// this can leave gaps, never a collision (see nextGradeTargetIds).
 	const generatedIds = await nextGradeTargetIds(db, {
-		projectRowId,
+		gridRowId,
 		count: groupTargetOwners.length + individualTargetOwners.length,
 	});
 	function takeGeneratedId(index: number): string {
@@ -244,14 +244,14 @@ export async function saveStudentImportPlanInDb(
 	const groupTargets = groupTargetOwners.map((owner, index) => ({
 		id: takeGeneratedId(index),
 		kind: "group" as const,
-		projectId: projectRowId,
+		gridRowId,
 		groupRowId: owner.groupRowId,
 		studentRowId: null,
 	}));
 	const individualTargets = individualTargetOwners.map((owner, index) => ({
 		id: takeGeneratedId(groupTargetOwners.length + index),
 		kind: "individual" as const,
-		projectId: projectRowId,
+		gridRowId,
 		studentRowId: owner.studentRowId,
 		groupRowId: null,
 	}));
@@ -265,8 +265,8 @@ export async function saveStudentImportPlanInDb(
 					.column("groupRowId")
 					.doUpdateSet({
 						kind: "group",
-						projectId: (expressionBuilder) =>
-							expressionBuilder.ref("excluded.projectId"),
+						gridRowId: (expressionBuilder) =>
+							expressionBuilder.ref("excluded.gridRowId"),
 						groupRowId: (expressionBuilder) =>
 							expressionBuilder.ref("excluded.groupRowId"),
 						studentRowId: null,
@@ -284,8 +284,8 @@ export async function saveStudentImportPlanInDb(
 					.column("studentRowId")
 					.doUpdateSet({
 						kind: "individual",
-						projectId: (expressionBuilder) =>
-							expressionBuilder.ref("excluded.projectId"),
+						gridRowId: (expressionBuilder) =>
+							expressionBuilder.ref("excluded.gridRowId"),
 						studentRowId: (expressionBuilder) =>
 							expressionBuilder.ref("excluded.studentRowId"),
 						groupRowId: null,
@@ -308,18 +308,18 @@ export async function saveStudentImportPlanInDb(
 export async function saveStudents(
 	{
 		targets,
-		projectId,
-	}: { targets: NormalizedImportedGradeTarget[]; projectId: string },
+		gridId,
+	}: { targets: NormalizedImportedGradeTarget[]; gridId: string },
 	{ db = defaultDb }: { db?: Kysely<Database> } = {},
 ): Promise<StudentImportWriteResult> {
 	const result = await db.transaction().execute(async (tx) => {
 		const context = await loadStudentImportContextFromDb(tx, {
 			targets,
-			projectId,
+			gridId,
 		});
 		const plan = prepareStudentImport({ targets, context });
 
-		return saveStudentImportPlanInDb(tx, { plan, projectId });
+		return saveStudentImportPlanInDb(tx, { plan, gridId });
 	});
 
 	// The transaction owner invalidates after commit. Safe only because this saver

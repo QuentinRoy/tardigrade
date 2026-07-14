@@ -3,7 +3,7 @@ import { beforeEach, expect, test, vi } from "vitest";
 import type { NormalizedImportedGradeTarget } from "#imports/types.ts";
 import { runForcedInterleaving } from "#test/concurrency.ts";
 import { createTestDb } from "#test/dbIntegration.ts";
-import { createProject } from "#test/projects.ts";
+import { createGrid } from "#test/grids.ts";
 import { prepareStudentImport } from "./prepareStudentImport.ts";
 import { saveStudentImportPlanInDb, saveStudents } from "./saveStudents.ts";
 import { loadStudentImportContextFromDb } from "./studentImportContext.ts";
@@ -41,10 +41,10 @@ function makeTargets(
 	];
 }
 
-test("saveStudents keeps imported student ids and group names isolated per project", async () => {
+test("saveStudents keeps imported student ids and group names isolated per grid", async () => {
 	await using db = await createTestDb();
-	await using projectA = await createProject(db, "Project A");
-	await using projectB = await createProject(db, "Project B");
+	await using gridA = await createGrid(db, "Grid A");
+	await using gridB = await createGrid(db, "Grid B");
 
 	const sharedStudentId = "shared-student";
 	const sharedGroupName = "Shared Group";
@@ -52,14 +52,14 @@ test("saveStudents keeps imported student ids and group names isolated per proje
 	const resultA = await saveStudents(
 		{
 			targets: makeTargets(sharedStudentId, sharedGroupName),
-			projectId: projectA.id,
+			gridId: gridA.id,
 		},
 		{ db },
 	);
 	const resultB = await saveStudents(
 		{
 			targets: makeTargets(sharedStudentId, sharedGroupName),
-			projectId: projectB.id,
+			gridId: gridB.id,
 		},
 		{ db },
 	);
@@ -79,9 +79,9 @@ test("saveStudents keeps imported student ids and group names isolated per proje
 
 	const studentRows = await db
 		.selectFrom("student")
-		.select(["id", "rowId", "projectId"])
+		.select(["id", "rowId", "gridRowId"])
 		.where("id", "in", [sharedStudentId, `${sharedGroupName}-member`])
-		.orderBy("projectId", "asc")
+		.orderBy("gridRowId", "asc")
 		.orderBy("id", "asc")
 		.execute();
 
@@ -101,25 +101,25 @@ test("saveStudents keeps imported student ids and group names isolated per proje
 
 	const groupRows = await db
 		.selectFrom("group")
-		.select(["id", "name", "projectId"])
+		.select(["id", "name", "gridRowId"])
 		.where("name", "=", sharedGroupName)
-		.orderBy("projectId", "asc")
+		.orderBy("gridRowId", "asc")
 		.execute();
 
 	expect(groupRows).toHaveLength(2);
-	expect(new Set(groupRows.map((row) => row.projectId)).size).toBe(2);
+	expect(new Set(groupRows.map((row) => row.gridRowId)).size).toBe(2);
 
 	const individualTargets = await db
 		.selectFrom("gradeTarget")
 		.innerJoin("student", "student.rowId", "gradeTarget.studentRowId")
 		.select([
 			"gradeTarget.id as targetId",
-			"gradeTarget.projectId as projectId",
+			"gradeTarget.gridRowId as gridRowId",
 			"student.id as studentId",
 			"student.rowId as studentRowId",
 		])
 		.where("gradeTarget.kind", "=", "individual")
-		.orderBy("gradeTarget.projectId", "asc")
+		.orderBy("gradeTarget.gridRowId", "asc")
 		.execute();
 
 	expect(individualTargets).toHaveLength(2);
@@ -134,12 +134,12 @@ test("saveStudents keeps imported student ids and group names isolated per proje
 
 test("saveStudents classifies re-imported students and grade targets as updated", async () => {
 	await using db = await createTestDb();
-	await using project = await createProject(db, "Re-import Project");
+	await using grid = await createGrid(db, "Re-import Grid");
 
 	const targets = makeTargets("returning-student", "Returning Group");
 
-	await saveStudents({ targets, projectId: project.id }, { db });
-	const result = await saveStudents({ targets, projectId: project.id }, { db });
+	await saveStudents({ targets, gridId: grid.id }, { db });
+	const result = await saveStudents({ targets, gridId: grid.id }, { db });
 
 	expect(result).toEqual({
 		createdStudentCount: 0,
@@ -151,16 +151,10 @@ test("saveStudents classifies re-imported students and grade targets as updated"
 
 test("saveStudents wrapper invalidates grade-target and grade tags after the import commits", async () => {
 	await using db = await createTestDb();
-	await using project = await createProject(
-		db,
-		"Import Students Cache Project",
-	);
+	await using grid = await createGrid(db, "Import Students Cache Grid");
 
 	await saveStudents(
-		{
-			targets: makeTargets("student-cache", "Group Cache"),
-			projectId: project.id,
-		},
+		{ targets: makeTargets("student-cache", "Group Cache"), gridId: grid.id },
 		{ db },
 	);
 
@@ -179,10 +173,7 @@ test("saveStudents wrapper invalidates grade-target and grade tags after the imp
 // overlapping writes since it spans a delete and an insert on the same row.
 test("saveStudentImportPlanInDb keeps a single group membership when two imports race the same student onto different groups", async () => {
 	await using db = await createTestDb();
-	await using project = await createProject(
-		db,
-		"Concurrency Student Import Project",
-	);
+	await using grid = await createGrid(db, "Concurrency Student Import Grid");
 
 	const sharedStudentId = "shared-student";
 
@@ -205,11 +196,11 @@ test("saveStudentImportPlanInDb keeps a single group membership when two imports
 	const [contextB, contextC] = await Promise.all([
 		loadStudentImportContextFromDb(db, {
 			targets: targetsToGroupB,
-			projectId: project.id,
+			gridId: grid.id,
 		}),
 		loadStudentImportContextFromDb(db, {
 			targets: targetsToGroupC,
-			projectId: project.id,
+			gridId: grid.id,
 		}),
 	]);
 
@@ -224,15 +215,15 @@ test("saveStudentImportPlanInDb keeps a single group membership when two imports
 
 	await runForcedInterleaving(db, {
 		first: (tx) =>
-			saveStudentImportPlanInDb(tx, { plan: planB, projectId: project.id }),
+			saveStudentImportPlanInDb(tx, { plan: planB, gridId: grid.id }),
 		second: (tx) =>
-			saveStudentImportPlanInDb(tx, { plan: planC, projectId: project.id }),
+			saveStudentImportPlanInDb(tx, { plan: planC, gridId: grid.id }),
 	});
 
 	const studentRows = await db
 		.selectFrom("student")
 		.select("rowId")
-		.where("projectId", "=", project.rowId)
+		.where("gridRowId", "=", grid.rowId)
 		.where("id", "=", sharedStudentId)
 		.execute();
 	expect(studentRows).toHaveLength(1);

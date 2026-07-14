@@ -41,7 +41,7 @@ type GradeTargetSelectorProps = {
 	progressLabel: string;
 };
 
-// The dialog is opened on demand, so the project-wide completion it needs is
+// The dialog is opened on demand, so the grid-wide completion it needs is
 // passed down as a promise (not awaited by the page) and only resolved here,
 // once opened, under Suspense — looking up or saving a grade target never
 // waits on this dialog's data (Finding 19).

@@ -7,9 +7,9 @@ import { useEffect } from "react";
  * Rewrites the cosmetic slug segment of a pathname to match an authoritative
  * identity's current slug. The slug lives in the segment immediately after
  * the `id` segment, at the fixed position the caller's layout owns (not
- * discovered by searching the path for the id's value — a per-project text
+ * discovered by searching the path for the id's value — a per-grid text
  * id like a grade target's is not globally unique, so a value search could
- * match the wrong segment, e.g. a project slug that happens to equal the
+ * match the wrong segment, e.g. a grid slug that happens to equal the
  * target id). `idIndex` is a sanity check, not a lookup: it must equal
  * `id`, or the call is a structural misuse.
  *

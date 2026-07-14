@@ -11,7 +11,7 @@ type LogScope =
 	| "grades"
 	| "export"
 	| "import"
-	| "projects"
+	| "grids"
 	| "rubrics"
 	| "criteria"
 	| "grade-targets";

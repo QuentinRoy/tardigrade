@@ -19,7 +19,7 @@ export type GradeImportCriterion = {
 export type GradeImportContext = {
 	// Criterion value columns keyed `${rubricId}:${criterionId}`.
 	criteriaByColumn: Map<string, GradeImportCriterion>;
-	// Rubric ids of the project; bare rubric total columns are derived export
+	// Rubric ids of the grid; bare rubric total columns are derived export
 	// output and are ignored on import.
 	rubricIds: Set<string>;
 	// Candidate grade target ids keyed by targetLookupKey().

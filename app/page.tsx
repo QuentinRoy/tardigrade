@@ -1,19 +1,16 @@
 import { redirect } from "next/navigation";
-import { projectDashboardPath } from "#projects/projectPaths.ts";
-import { loadProjects } from "#projects/projects.ts";
+import { gridOverviewPath } from "#grids/gridPaths.ts";
+import { loadGrids } from "#grids/grids.ts";
 
 export default async function HomePage() {
-	const projects = await loadProjects();
-	const defaultProject = projects[0];
+	const grids = await loadGrids();
+	const defaultGrid = grids[0];
 
-	if (defaultProject == null) {
-		redirect("/projects");
+	if (defaultGrid == null) {
+		redirect("/grids");
 	}
 
 	redirect(
-		projectDashboardPath({
-			projectId: defaultProject.id,
-			projectSlug: defaultProject.slug,
-		}),
+		gridOverviewPath({ gridId: defaultGrid.id, gridSlug: defaultGrid.slug }),
 	);
 }

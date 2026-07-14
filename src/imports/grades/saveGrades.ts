@@ -50,10 +50,10 @@ function gradeImportBlockedError(
 export async function saveGradeImportPlanInDb(
 	db: Kysely<Database>,
 	plan: GradeImportPlan,
-	{ projectId }: { projectId: string },
+	{ gridId }: { gridId: string },
 ): Promise<void> {
 	for (const write of plan.writes) {
-		const result = await saveCriterionGradeInDb(db, { ...write, projectId });
+		const result = await saveCriterionGradeInDb(db, { ...write, gridId });
 
 		if (!result.success) {
 			throw new Error(result.error);
@@ -65,18 +65,18 @@ export async function saveGradeImportPlanInDb(
 // `db` defaults to the global client; tests pass a test database. Never pass a
 // transaction — the wrapper opens its own.
 export async function saveGrades(
-	{ rows, projectId }: { rows: ImportedGradeRow[]; projectId: string },
+	{ rows, gridId }: { rows: ImportedGradeRow[]; gridId: string },
 	{ db = defaultDb }: { db?: Kysely<Database> } = {},
 ): Promise<{ gradeCount: number; overwriteCount: number }> {
 	const result = await db.transaction().execute(async (tx) => {
-		const context = await loadGradeImportContextFromDb(tx, { rows, projectId });
+		const context = await loadGradeImportContextFromDb(tx, { rows, gridId });
 		const plan = prepareGradeImport({ rows, context });
 
 		if (plan.blockingDiagnostics.length > 0) {
 			throw gradeImportBlockedError(plan.blockingDiagnostics);
 		}
 
-		await saveGradeImportPlanInDb(tx, plan, { projectId });
+		await saveGradeImportPlanInDb(tx, plan, { gridId });
 
 		return {
 			gradeCount: plan.writes.length,

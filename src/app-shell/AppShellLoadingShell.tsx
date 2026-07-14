@@ -15,7 +15,7 @@ export default function AppShellLoadingShell({
 			<Box w={SIDE_ZONE_WIDTH} flex="0 0 auto" />
 			<Flex flex={1} justify="center">
 				<Title order={6} fz="md" fw={600}>
-					{showNavigation ? "Project" : "BonPoint"}
+					{showNavigation ? "Grid" : "BonPoint"}
 				</Title>
 			</Flex>
 			<Box w={SIDE_ZONE_WIDTH} flex="0 0 auto" aria-hidden />

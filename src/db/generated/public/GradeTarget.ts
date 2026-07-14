@@ -3,8 +3,8 @@
 
 import type { ColumnType } from "kysely";
 import type { GradeTargetKind } from "./GradeTargetKind.ts";
+import type { GridRowId } from "./Grid.ts";
 import type { GroupId } from "./Group.ts";
-import type { ProjectRowId } from "./Project.ts";
 import type { StudentRowId } from "./Student.ts";
 
 /** Identifier type for public.grade_target */
@@ -32,7 +32,7 @@ export interface GradeTargetTable {
 	groupRowId: ColumnType<GroupId | null, GroupId | null, GroupId | null>;
 
 	/** Database type: pg_catalog.int4 */
-	projectId: ColumnType<ProjectRowId, ProjectRowId, ProjectRowId>;
+	gridRowId: ColumnType<GridRowId, GridRowId, GridRowId>;
 
 	/** Database type: pg_catalog.int4 */
 	studentRowId: ColumnType<

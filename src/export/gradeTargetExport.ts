@@ -54,12 +54,12 @@ function toGradeTargetSubmitter(params: {
 
 async function assertGradeTargetInvariantsFromDb(
 	db: Kysely<Database>,
-	{ projectId }: { projectId: string },
+	{ gridId }: { gridId: string },
 ) {
 	const invalidTargets = await db
-		.selectFrom("project")
-		.where("project.id", "=", projectId)
-		.leftJoin("gradeTarget", "project.rowId", "gradeTarget.projectId")
+		.selectFrom("grid")
+		.where("grid.id", "=", gridId)
+		.leftJoin("gradeTarget", "grid.rowId", "gradeTarget.gridRowId")
 		.select((expressionBuilder) => expressionBuilder.fn.countAll().as("count"))
 		.where((expressionBuilder) =>
 			expressionBuilder.or([
@@ -86,13 +86,13 @@ async function assertGradeTargetInvariantsFromDb(
 
 function streamGradeTargetExportRowsFromDb(
 	db: Kysely<Database>,
-	{ projectId }: { projectId: string },
+	{ gridId }: { gridId: string },
 ): AsyncIterable<GradeTargetExportRow> {
 	return (
 		db
-			.selectFrom("project")
-			.where("project.id", "=", projectId)
-			.leftJoin("gradeTarget", "project.rowId", "gradeTarget.projectId")
+			.selectFrom("grid")
+			.where("grid.id", "=", gridId)
+			.leftJoin("gradeTarget", "grid.rowId", "gradeTarget.gridRowId")
 			.leftJoin("group", "group.id", "gradeTarget.groupRowId")
 			.leftJoin("student", "student.rowId", "gradeTarget.studentRowId")
 			.leftJoin(
@@ -138,15 +138,15 @@ function streamGradeTargetExportRowsFromDb(
 }
 
 export async function createGradeTargetExport(
-	projectId: string,
+	gridId: string,
 	{ db = defaultDb }: { db?: Kysely<Database> } = {},
 ): Promise<{
 	rubrics: ExportRubricPlan[];
 	rows: AsyncGenerator<GradeTargetExportDataRow>;
 }> {
-	await assertGradeTargetInvariantsFromDb(db, { projectId });
+	await assertGradeTargetInvariantsFromDb(db, { gridId });
 
-	const rubricRows = await loadRubricRowsFromDb(db, { projectId });
+	const rubricRows = await loadRubricRowsFromDb(db, { gridId });
 	const rubrics: ExportRubricPlan[] = rubricRows.map((row) => ({
 		id: row.id,
 		criteria: row.criteria.map(toCriterion),
@@ -219,7 +219,7 @@ export async function createGradeTargetExport(
 	}
 
 	async function* rows(): AsyncGenerator<GradeTargetExportDataRow> {
-		const stream = streamGradeTargetExportRowsFromDb(db, { projectId });
+		const stream = streamGradeTargetExportRowsFromDb(db, { gridId });
 		for await (const group of groupGradeTargetRows(stream)) {
 			yield buildGroupExportRow(group);
 		}
@@ -305,10 +305,10 @@ export function createCsvGradeTargetExportStream(exportData: {
 
 export async function createCsvGradeTargetExport(
 	options: ExportOptions,
-	projectId: string,
+	gridId: string,
 	{ db = defaultDb }: { db?: Kysely<Database> } = {},
 ): Promise<ReadableStream<Uint8Array>> {
-	const exportData = await createGradeTargetExport(projectId, { db });
+	const exportData = await createGradeTargetExport(gridId, { db });
 	return createCsvGradeTargetExportDataStream({
 		rubrics: exportData.rubrics,
 		rows: exportData.rows,

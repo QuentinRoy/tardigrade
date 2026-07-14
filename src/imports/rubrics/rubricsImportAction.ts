@@ -6,7 +6,7 @@ import { parseRubricsYaml } from "./parseRubrics.ts";
 import { saveRubrics } from "./saveRubrics.ts";
 
 export async function rubricsImportAction(
-	projectId: string,
+	gridId: string,
 	_previousState: ActionState,
 	formData: FormData,
 ): Promise<ActionState> {
@@ -14,7 +14,7 @@ export async function rubricsImportAction(
 
 	try {
 		const rubrics = parseRubricsYaml(rubricsYaml);
-		const result = await saveRubrics({ rubrics, projectId });
+		const result = await saveRubrics({ rubrics, gridId });
 
 		const kindChangeNote =
 			result.kindChangedCriterionCount > 0

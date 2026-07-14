@@ -10,8 +10,8 @@ import {
 
 export type SaveError = {
 	id: string;
-	projectId: string;
-	projectSlug: string;
+	gridId: string;
+	gridSlug: string;
 	rubricId: string;
 	targetId: string;
 	targetSlug: string;

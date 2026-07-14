@@ -5,7 +5,7 @@ import type { Database } from "#db/generated/database.ts";
 import { nextGradeTargetIds } from "#grade-targets/gradeTargets.ts";
 import type { ImportedGradeRow } from "#imports/types.ts";
 import { buildTestId, createTestDb } from "#test/dbIntegration.ts";
-import { createProject } from "#test/projects.ts";
+import { createGrid } from "#test/grids.ts";
 import { saveGrades } from "./saveGrades.ts";
 
 vi.mock("next/cache", () => ({ revalidateTag: vi.fn() }));
@@ -16,7 +16,7 @@ beforeEach(() => {
 
 async function createGradeFixture(
 	db: Kysely<Database>,
-	projectId: number,
+	gridRowId: number,
 ): Promise<{
 	rubricId: string;
 	studentId: string;
@@ -31,7 +31,7 @@ async function createGradeFixture(
 	await db
 		.insertInto("student")
 		.values({
-			projectId,
+			gridRowId,
 			id: studentId,
 			lastName: "Import",
 			firstName: "Student",
@@ -41,20 +41,17 @@ async function createGradeFixture(
 	const studentRow = await db
 		.selectFrom("student")
 		.select(["rowId", "id"])
-		.where("projectId", "=", projectId)
+		.where("gridRowId", "=", gridRowId)
 		.where("id", "=", studentId)
 		.executeTakeFirstOrThrow();
 
-	const [targetId] = await nextGradeTargetIds(db, {
-		projectRowId: projectId,
-		count: 1,
-	});
+	const [targetId] = await nextGradeTargetIds(db, { gridRowId, count: 1 });
 	if (targetId == null) throw new Error("Expected a generated id");
 
 	await db
 		.insertInto("gradeTarget")
 		.values({
-			projectId,
+			gridRowId,
 			id: targetId,
 			kind: "individual",
 			studentRowId: studentRow.rowId,
@@ -63,13 +60,13 @@ async function createGradeFixture(
 
 	await db
 		.insertInto("rubric")
-		.values({ projectId, id: rubricId, label: "Import rubric", position: 0 })
+		.values({ gridRowId, id: rubricId, label: "Import rubric", position: 0 })
 		.execute();
 
 	const rubric = await db
 		.selectFrom("rubric")
 		.select(["id", "rowId"])
-		.where("projectId", "=", projectId)
+		.where("gridRowId", "=", gridRowId)
 		.where("id", "=", rubricId)
 		.executeTakeFirstOrThrow();
 
@@ -77,7 +74,7 @@ async function createGradeFixture(
 		.insertInto("criterion")
 		.values({
 			id: criterionId,
-			projectId,
+			gridRowId,
 			rubricId: rubric.rowId,
 			kind: "check",
 			position: 0,
@@ -101,7 +98,7 @@ async function createGradeFixture(
 		.insertInto("criterion")
 		.values({
 			id: numberCriterionId,
-			projectId,
+			gridRowId,
 			rubricId: rubric.rowId,
 			kind: "number",
 			position: 1,
@@ -126,9 +123,9 @@ async function createGradeFixture(
 
 test("saveGrades does not persist valid rows when a later row fails validation", async () => {
 	await using db = await createTestDb();
-	await using project = await createProject(db, "Atomic Import Project");
-	const projectPublicId = project.id;
-	const fixture = await createGradeFixture(db, project.rowId);
+	await using grid = await createGrid(db, "Atomic Import Grid");
+	const gridPublicId = grid.id;
+	const fixture = await createGradeFixture(db, grid.rowId);
 
 	const rows: ImportedGradeRow[] = [
 		{
@@ -144,7 +141,7 @@ test("saveGrades does not persist valid rows when a later row fails validation",
 	];
 
 	await expect(
-		saveGrades({ rows, projectId: projectPublicId }, { db }),
+		saveGrades({ rows, gridId: gridPublicId }, { db }),
 	).rejects.toThrow("Grade import errors:");
 
 	const persistedGrades = await db
@@ -155,7 +152,7 @@ test("saveGrades does not persist valid rows when a later row fails validation",
 			"criterionGrade.gradeTargetRowId",
 		)
 		.select("criterionGrade.id")
-		.where("gradeTarget.projectId", "=", project.rowId)
+		.where("gradeTarget.gridRowId", "=", grid.rowId)
 		.execute();
 
 	expect(persistedGrades).toHaveLength(0);
@@ -163,9 +160,9 @@ test("saveGrades does not persist valid rows when a later row fails validation",
 
 test("saveGrades rejects unknown columns before writing any grade", async () => {
 	await using db = await createTestDb();
-	await using project = await createProject(db, "Unknown Column Project");
-	const projectPublicId = project.id;
-	const fixture = await createGradeFixture(db, project.rowId);
+	await using grid = await createGrid(db, "Unknown Column Grid");
+	const gridPublicId = grid.id;
+	const fixture = await createGradeFixture(db, grid.rowId);
 
 	const rows: ImportedGradeRow[] = [
 		{
@@ -177,7 +174,7 @@ test("saveGrades rejects unknown columns before writing any grade", async () => 
 	];
 
 	await expect(
-		saveGrades({ rows, projectId: projectPublicId }, { db }),
+		saveGrades({ rows, gridId: gridPublicId }, { db }),
 	).rejects.toThrow('Unrecognized column: "unknown_column"');
 
 	const persistedGrades = await db
@@ -188,7 +185,7 @@ test("saveGrades rejects unknown columns before writing any grade", async () => 
 			"criterionGrade.gradeTargetRowId",
 		)
 		.select("criterionGrade.id")
-		.where("gradeTarget.projectId", "=", project.rowId)
+		.where("gradeTarget.gridRowId", "=", grid.rowId)
 		.execute();
 
 	expect(persistedGrades).toHaveLength(0);
@@ -196,9 +193,9 @@ test("saveGrades rejects unknown columns before writing any grade", async () => 
 
 test("saveGrades blocks the import when a row has no matching student or group", async () => {
 	await using db = await createTestDb();
-	await using project = await createProject(db, "Missing Name Project");
-	const projectPublicId = project.id;
-	const fixture = await createGradeFixture(db, project.rowId);
+	await using grid = await createGrid(db, "Missing Name Grid");
+	const gridPublicId = grid.id;
+	const fixture = await createGradeFixture(db, grid.rowId);
 	const missingStudentId = buildTestId("missing-student");
 
 	const rows: ImportedGradeRow[] = [
@@ -215,7 +212,7 @@ test("saveGrades blocks the import when a row has no matching student or group",
 	];
 
 	await expect(
-		saveGrades({ rows, projectId: projectPublicId }, { db }),
+		saveGrades({ rows, gridId: gridPublicId }, { db }),
 	).rejects.toThrow(
 		`No matching individual student or group for "${missingStudentId}"`,
 	);
@@ -228,7 +225,7 @@ test("saveGrades blocks the import when a row has no matching student or group",
 			"criterionGrade.gradeTargetRowId",
 		)
 		.select("criterionGrade.id")
-		.where("gradeTarget.projectId", "=", project.rowId)
+		.where("gradeTarget.gridRowId", "=", grid.rowId)
 		.execute();
 
 	expect(persistedGrades).toHaveLength(0);
@@ -236,9 +233,9 @@ test("saveGrades blocks the import when a row has no matching student or group",
 
 test("saveGrades returns imported and overwritten counts", async () => {
 	await using db = await createTestDb();
-	await using project = await createProject(db, "Overwrite Count Project");
-	const projectPublicId = project.id;
-	const fixture = await createGradeFixture(db, project.rowId);
+	await using grid = await createGrid(db, "Overwrite Count Grid");
+	const gridPublicId = grid.id;
+	const fixture = await createGradeFixture(db, grid.rowId);
 
 	const firstImport: ImportedGradeRow[] = [
 		{
@@ -249,7 +246,7 @@ test("saveGrades returns imported and overwritten counts", async () => {
 	];
 
 	await expect(
-		saveGrades({ rows: firstImport, projectId: projectPublicId }, { db }),
+		saveGrades({ rows: firstImport, gridId: gridPublicId }, { db }),
 	).resolves.toEqual({ gradeCount: 1, overwriteCount: 0 });
 
 	const secondImport: ImportedGradeRow[] = [
@@ -262,18 +259,15 @@ test("saveGrades returns imported and overwritten counts", async () => {
 	];
 
 	await expect(
-		saveGrades({ rows: secondImport, projectId: projectPublicId }, { db }),
+		saveGrades({ rows: secondImport, gridId: gridPublicId }, { db }),
 	).resolves.toEqual({ gradeCount: 2, overwriteCount: 1 });
 });
 
 test("saveGrades rolls back all writes if a later transactional write fails", async () => {
 	await using db = await createTestDb();
-	await using project = await createProject(
-		db,
-		"Transactional Rollback Project",
-	);
-	const projectPublicId = project.id;
-	const fixture = await createGradeFixture(db, project.rowId);
+	await using grid = await createGrid(db, "Transactional Rollback Grid");
+	const gridPublicId = grid.id;
+	const fixture = await createGradeFixture(db, grid.rowId);
 
 	// The first row writes a valid boolean grade; the second row carries a
 	// numerical score outside the criterion range. saveGrades parses both rows
@@ -294,7 +288,7 @@ test("saveGrades rolls back all writes if a later transactional write fails", as
 	];
 
 	await expect(
-		saveGrades({ rows, projectId: projectPublicId }, { db }),
+		saveGrades({ rows, gridId: gridPublicId }, { db }),
 	).rejects.toThrow("Enter a score of at most 10.");
 
 	const persistedGrades = await db
@@ -305,31 +299,31 @@ test("saveGrades rolls back all writes if a later transactional write fails", as
 			"criterionGrade.gradeTargetRowId",
 		)
 		.select("criterionGrade.id")
-		.where("gradeTarget.projectId", "=", project.rowId)
+		.where("gradeTarget.gridRowId", "=", grid.rowId)
 		.execute();
 
 	expect(persistedGrades).toHaveLength(0);
 });
 
-test("saveGrades links grades only to the target project even when the same student id exists in another project", async () => {
+test("saveGrades links grades only to the target grid even when the same student id exists in another grid", async () => {
 	await using db = await createTestDb();
-	await using projectA = await createProject(db, "Cross-Project Isolation A");
-	await using projectB = await createProject(db, "Cross-Project Isolation B");
-	const projectBPublicId = projectB.id;
+	await using gridA = await createGrid(db, "Cross-Grid Isolation A");
+	await using gridB = await createGrid(db, "Cross-Grid Isolation B");
+	const gridBPublicId = gridB.id;
 
-	// The same student external id exists in both projects.
-	// Each project has its own rubric/criterion ids (to avoid saveCriterionGrade
+	// The same student external id exists in both grids.
+	// Each grid has its own rubric/criterion ids (to avoid saveCriterionGrade
 	// ambiguity on shared rubric text ids, which is a separate concern).
 	const sharedStudentId = "shared-student-cross-proj";
 
-	async function buildFixtureInProject(projectId: number) {
+	async function buildFixtureInGrid(gridRowId: number) {
 		const rubricId = buildTestId("rubric");
 		const criterionId = buildTestId("criterion");
 
 		await db
 			.insertInto("student")
 			.values({
-				projectId,
+				gridRowId,
 				id: sharedStudentId,
 				lastName: "CrossProj",
 				firstName: "Student",
@@ -339,20 +333,17 @@ test("saveGrades links grades only to the target project even when the same stud
 		const studentRow = await db
 			.selectFrom("student")
 			.select("rowId")
-			.where("projectId", "=", projectId)
+			.where("gridRowId", "=", gridRowId)
 			.where("id", "=", sharedStudentId)
 			.executeTakeFirstOrThrow();
 
-		const [targetId] = await nextGradeTargetIds(db, {
-			projectRowId: projectId,
-			count: 1,
-		});
+		const [targetId] = await nextGradeTargetIds(db, { gridRowId, count: 1 });
 		if (targetId == null) throw new Error("Expected a generated id");
 
 		await db
 			.insertInto("gradeTarget")
 			.values({
-				projectId,
+				gridRowId,
 				id: targetId,
 				kind: "individual",
 				studentRowId: studentRow.rowId,
@@ -361,13 +352,13 @@ test("saveGrades links grades only to the target project even when the same stud
 
 		await db
 			.insertInto("rubric")
-			.values({ projectId, id: rubricId, label: "Q", position: 0 })
+			.values({ gridRowId, id: rubricId, label: "Q", position: 0 })
 			.execute();
 
 		const rubric = await db
 			.selectFrom("rubric")
 			.select("rowId")
-			.where("projectId", "=", projectId)
+			.where("gridRowId", "=", gridRowId)
 			.where("id", "=", rubricId)
 			.executeTakeFirstOrThrow();
 
@@ -375,7 +366,7 @@ test("saveGrades links grades only to the target project even when the same stud
 			.insertInto("criterion")
 			.values({
 				id: criterionId,
-				projectId,
+				gridRowId,
 				rubricId: rubric.rowId,
 				kind: "check",
 				position: 0,
@@ -395,12 +386,12 @@ test("saveGrades links grades only to the target project even when the same stud
 		return { rubricId, criterionId };
 	}
 
-	// Build fixtures; only capture project B's ids for the import rows
-	await buildFixtureInProject(projectA.rowId);
+	// Build fixtures; only capture grid B's ids for the import rows
+	await buildFixtureInGrid(gridA.rowId);
 	const { rubricId: rubricBId, criterionId: criterionBId } =
-		await buildFixtureInProject(projectB.rowId);
+		await buildFixtureInGrid(gridB.rowId);
 
-	// Import grades targeting project B only using project B's criterion column
+	// Import grades targeting grid B only using grid B's criterion column
 	const rows: ImportedGradeRow[] = [
 		{
 			kind: "individual",
@@ -409,10 +400,10 @@ test("saveGrades links grades only to the target project even when the same stud
 		},
 	];
 
-	await saveGrades({ rows, projectId: projectBPublicId }, { db });
+	await saveGrades({ rows, gridId: gridBPublicId }, { db });
 
-	// Project A must have zero grades
-	const projectAGrades = await db
+	// Grid A must have zero grades
+	const gridAGrades = await db
 		.selectFrom("criterionGrade")
 		.innerJoin(
 			"gradeTarget",
@@ -420,13 +411,13 @@ test("saveGrades links grades only to the target project even when the same stud
 			"criterionGrade.gradeTargetRowId",
 		)
 		.select("criterionGrade.id")
-		.where("gradeTarget.projectId", "=", projectA.rowId)
+		.where("gradeTarget.gridRowId", "=", gridA.rowId)
 		.execute();
 
-	expect(projectAGrades).toHaveLength(0);
+	expect(gridAGrades).toHaveLength(0);
 
-	// Project B must have exactly one grade
-	const projectBGrades = await db
+	// Grid B must have exactly one grade
+	const gridBGrades = await db
 		.selectFrom("criterionGrade")
 		.innerJoin(
 			"gradeTarget",
@@ -434,16 +425,16 @@ test("saveGrades links grades only to the target project even when the same stud
 			"criterionGrade.gradeTargetRowId",
 		)
 		.select("criterionGrade.id")
-		.where("gradeTarget.projectId", "=", projectB.rowId)
+		.where("gradeTarget.gridRowId", "=", gridB.rowId)
 		.execute();
 
-	expect(projectBGrades).toHaveLength(1);
+	expect(gridBGrades).toHaveLength(1);
 });
 
 test("saveGrades invalidates the grade tags after the import commits", async () => {
 	await using db = await createTestDb();
-	await using project = await createProject(db, "Import Invalidation Project");
-	const fixture = await createGradeFixture(db, project.rowId);
+	await using grid = await createGrid(db, "Import Invalidation Grid");
+	const fixture = await createGradeFixture(db, grid.rowId);
 
 	const rows: ImportedGradeRow[] = [
 		{
@@ -453,7 +444,7 @@ test("saveGrades invalidates the grade tags after the import commits", async () 
 		},
 	];
 
-	await saveGrades({ rows, projectId: project.id }, { db });
+	await saveGrades({ rows, gridId: grid.id }, { db });
 
 	expect(vi.mocked(revalidateTag).mock.calls).toEqual([
 		["grades", "max"],
@@ -463,8 +454,8 @@ test("saveGrades invalidates the grade tags after the import commits", async () 
 
 test("saveGrades does not invalidate when the import fails", async () => {
 	await using db = await createTestDb();
-	await using project = await createProject(db, "Import Failure Project");
-	const fixture = await createGradeFixture(db, project.rowId);
+	await using grid = await createGrid(db, "Import Failure Grid");
+	const fixture = await createGradeFixture(db, grid.rowId);
 
 	const rows: ImportedGradeRow[] = [
 		{
@@ -474,9 +465,9 @@ test("saveGrades does not invalidate when the import fails", async () => {
 		},
 	];
 
-	await expect(
-		saveGrades({ rows, projectId: project.id }, { db }),
-	).rejects.toThrow("Grade import errors:");
+	await expect(saveGrades({ rows, gridId: grid.id }, { db })).rejects.toThrow(
+		"Grade import errors:",
+	);
 
 	expect(revalidateTag).not.toHaveBeenCalled();
 });

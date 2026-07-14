@@ -42,25 +42,25 @@ export function gradeCompletionRowsCacheTags(): string[] {
 }
 
 // `db` may be the global client or a caller-supplied transaction.
-// Shared rows for `buildGradeCompletion`, scoped to a single project.
+// Shared rows for `buildGradeCompletion`, scoped to a single grid.
 export async function loadGradeCompletionRowsFromDb(
 	db: Kysely<Database>,
-	{ projectId }: { projectId: string },
+	{ gridId }: { gridId: string },
 ): Promise<GradeCompletionInput> {
-	const projectRowIdQuery = db
-		.selectFrom("project")
+	const gridRowIdQuery = db
+		.selectFrom("grid")
 		.select("rowId")
-		.where("id", "=", projectId);
+		.where("id", "=", gridId);
 
 	const [targets, rubrics, gradeCounts] = await Promise.all([
 		db
 			.selectFrom("gradeTarget")
-			.where("gradeTarget.projectId", "in", projectRowIdQuery)
+			.where("gradeTarget.gridRowId", "in", gridRowIdQuery)
 			.select("id")
 			.execute(),
 		db
 			.selectFrom("rubric")
-			.where("rubric.projectId", "in", projectRowIdQuery)
+			.where("rubric.gridRowId", "in", gridRowIdQuery)
 			.leftJoin("criterion", "criterion.rubricId", "rubric.rowId")
 			.select((eb) => [
 				"rubric.id as id",
@@ -75,7 +75,7 @@ export async function loadGradeCompletionRowsFromDb(
 				"gradeTarget.rowId",
 				"criterionGrade.gradeTargetRowId",
 			)
-			.where("gradeTarget.projectId", "in", projectRowIdQuery)
+			.where("gradeTarget.gridRowId", "in", gridRowIdQuery)
 			.innerJoin("criterion", "criterion.rowId", "criterionGrade.criterionId")
 			.innerJoin("rubric", "rubric.rowId", "criterion.rubricId")
 			.select((eb) => [
@@ -121,13 +121,13 @@ function buildCompletionByTarget(
 // `db` may be the global client or a caller-supplied transaction.
 export async function loadGradeCompletionByTargetFromDb(
 	db: Kysely<Database>,
-	{ projectId }: { projectId: string },
+	{ gridId }: { gridId: string },
 ): Promise<Record<string, CompletionMetric>> {
-	const rows = await loadGradeCompletionRowsFromDb(db, { projectId });
+	const rows = await loadGradeCompletionRowsFromDb(db, { gridId });
 	return buildCompletionByTarget(rows);
 }
 
-// Canonical cached source for project-wide completion rows (Finding 8). Shared by
+// Canonical cached source for grid-wide completion rows (Finding 8). Shared by
 // `loadGradeCompletionByTarget` and `loadGradeCompletionSummary`, so
 // both projections compose one cache entry instead of each querying
 // independently.
@@ -135,13 +135,13 @@ export async function loadGradeCompletionByTargetFromDb(
 // `options` is forwarded to nothing further; it is the test-only `db` seam
 // (ADR 0007 rules 13–14). Runtime callers omit it.
 export async function loadGradeCompletionRows(
-	{ projectId }: { projectId: string },
+	{ gridId }: { gridId: string },
 	options?: { db?: Kysely<Database> },
 ): Promise<GradeCompletionInput> {
 	"use cache";
 	cacheTags(...gradeCompletionRowsCacheTags());
 	cacheLife("projection");
-	return loadGradeCompletionRowsFromDb(options?.db ?? defaultDb, { projectId });
+	return loadGradeCompletionRowsFromDb(options?.db ?? defaultDb, { gridId });
 }
 
 // Plain deriver: shares `loadGradeCompletionRows`' cache entry at runtime
@@ -150,10 +150,10 @@ export async function loadGradeCompletionRows(
 // default here before forwarding, so an omitted `db` stays `undefined` and the
 // call shares that wrapper's own no-argument cache entry.
 export async function loadGradeCompletionByTarget(
-	{ projectId }: { projectId: string },
+	{ gridId }: { gridId: string },
 	options?: { db?: Kysely<Database> },
 ): Promise<Record<string, CompletionMetric>> {
-	const rows = await loadGradeCompletionRows({ projectId }, options);
+	const rows = await loadGradeCompletionRows({ gridId }, options);
 	return buildCompletionByTarget(rows);
 }
 
@@ -163,23 +163,23 @@ export type GradedCriterionCounts = {
 };
 
 // `db` may be the global client or a caller-supplied transaction. Counts only —
-// does not load grade target ids, so a caller that already has the project's
+// does not load grade target ids, so a caller that already has the grid's
 // grade targets (for example a page that also renders the roster) can build the
 // per-target result from `buildGradedCriterionCountsByTarget` below
 // instead of querying grade targets twice (Finding 7).
 export async function loadGradedCriterionCountsFromDb(
 	db: Kysely<Database>,
-	{ rubricId, projectId }: { rubricId: string; projectId: string },
+	{ rubricId, gridId }: { rubricId: string; gridId: string },
 ): Promise<GradedCriterionCounts> {
-	const projectRowIdQuery = db
-		.selectFrom("project")
+	const gridRowIdQuery = db
+		.selectFrom("grid")
 		.select("rowId")
-		.where("id", "=", projectId);
+		.where("id", "=", gridId);
 
 	const [criterionCountRow, gradeCounts] = await Promise.all([
 		db
 			.selectFrom("criterion")
-			.where("criterion.projectId", "in", projectRowIdQuery)
+			.where("criterion.gridRowId", "in", gridRowIdQuery)
 			.innerJoin("rubric", "rubric.rowId", "criterion.rubricId")
 			.where("rubric.id", "=", rubricId)
 			.select((eb) => eb.fn.countAll<number>().as("count"))
@@ -191,7 +191,7 @@ export async function loadGradedCriterionCountsFromDb(
 				"gradeTarget.rowId",
 				"criterionGrade.gradeTargetRowId",
 			)
-			.where("gradeTarget.projectId", "in", projectRowIdQuery)
+			.where("gradeTarget.gridRowId", "in", gridRowIdQuery)
 			.innerJoin("criterion", "criterion.rowId", "criterionGrade.criterionId")
 			.innerJoin("rubric", "rubric.rowId", "criterion.rubricId")
 			.where("rubric.id", "=", rubricId)
@@ -214,10 +214,10 @@ export async function loadGradedCriterionCountsFromDb(
 // Plain wrapper exposing the default db for callers outside `src/`, such as a
 // page composing this inside its own `"use cache"` scope (ADR 0007 rule 5).
 export async function loadGradedCriterionCounts(
-	{ rubricId, projectId }: { rubricId: string; projectId: string },
+	{ rubricId, gridId }: { rubricId: string; gridId: string },
 	{ db = defaultDb }: { db?: Kysely<Database> } = {},
 ): Promise<GradedCriterionCounts> {
-	return loadGradedCriterionCountsFromDb(db, { rubricId, projectId });
+	return loadGradedCriterionCountsFromDb(db, { rubricId, gridId });
 }
 
 // Pure builder: per-target completed/total criterion counts for one rubric,
@@ -241,20 +241,20 @@ export function buildGradedCriterionCountsByTarget(
 // `db` may be the global client or a caller-supplied transaction.
 export async function loadGradedCriterionCountsByTargetFromDb(
 	db: Kysely<Database>,
-	{ rubricId, projectId }: { rubricId: string; projectId: string },
+	{ rubricId, gridId }: { rubricId: string; gridId: string },
 ): Promise<Record<string, CompletionMetric>> {
-	const projectRowIdQuery = db
-		.selectFrom("project")
+	const gridRowIdQuery = db
+		.selectFrom("grid")
 		.select("rowId")
-		.where("id", "=", projectId);
+		.where("id", "=", gridId);
 
 	const [targets, counts] = await Promise.all([
 		db
 			.selectFrom("gradeTarget")
-			.where("gradeTarget.projectId", "in", projectRowIdQuery)
+			.where("gradeTarget.gridRowId", "in", gridRowIdQuery)
 			.select("id")
 			.execute(),
-		loadGradedCriterionCountsFromDb(db, { rubricId, projectId }),
+		loadGradedCriterionCountsFromDb(db, { rubricId, gridId }),
 	]);
 
 	return buildGradedCriterionCountsByTarget(
@@ -264,25 +264,25 @@ export async function loadGradedCriterionCountsByTargetFromDb(
 }
 
 export async function loadGradedCriterionCountsByTarget(
-	{ rubricId, projectId }: { rubricId: string; projectId: string },
+	{ rubricId, gridId }: { rubricId: string; gridId: string },
 	{ db = defaultDb }: { db?: Kysely<Database> } = {},
 ): Promise<Record<string, CompletionMetric>> {
 	"use cache";
 	cacheTags(...gradedCriterionCountsByTargetCacheTags(rubricId));
 	cacheLife("projection");
 
-	return loadGradedCriterionCountsByTargetFromDb(db, { rubricId, projectId });
+	return loadGradedCriterionCountsByTargetFromDb(db, { rubricId, gridId });
 }
 
 // `db` may be the global client or a caller-supplied transaction.
 export async function loadCriterionGradesCountFromDb(
 	db: Kysely<Database>,
-	{ projectId }: { projectId: string },
+	{ gridId }: { gridId: string },
 ): Promise<number> {
-	const projectRowIdQuery = db
-		.selectFrom("project")
+	const gridRowIdQuery = db
+		.selectFrom("grid")
 		.select("rowId")
-		.where("id", "=", projectId);
+		.where("id", "=", gridId);
 
 	const row = await db
 		.selectFrom("criterionGrade")
@@ -291,7 +291,7 @@ export async function loadCriterionGradesCountFromDb(
 			"gradeTarget.rowId",
 			"criterionGrade.gradeTargetRowId",
 		)
-		.where("gradeTarget.projectId", "in", projectRowIdQuery)
+		.where("gradeTarget.gridRowId", "in", gridRowIdQuery)
 		.select((eb) => eb.fn.countAll<number>().as("count"))
 		.executeTakeFirstOrThrow();
 
@@ -302,19 +302,17 @@ export function criterionGradesCountCacheTags(): string[] {
 	return [gradeAggregateCacheTag()];
 }
 
-// Canonical cached source for the project-wide criterion-grade count, so the
-// uncached project dashboard page (`app/.../[projectSlug]/page.tsx`) doesn't run
+// Canonical cached source for the grid-wide criterion-grade count, so the
+// uncached grid overview page (`app/.../[gridSlug]/page.tsx`) doesn't run
 // this query on every request even though completion rows are cached.
 export async function loadCriterionGradesCount(
-	{ projectId }: { projectId: string },
+	{ gridId }: { gridId: string },
 	options?: { db?: Kysely<Database> },
 ): Promise<number> {
 	"use cache";
 	cacheTags(...criterionGradesCountCacheTags());
 	cacheLife("projection");
-	return loadCriterionGradesCountFromDb(options?.db ?? defaultDb, {
-		projectId,
-	});
+	return loadCriterionGradesCountFromDb(options?.db ?? defaultDb, { gridId });
 }
 
 // Pure builder: completion summary from shared completion rows plus the criterion
@@ -325,12 +323,12 @@ function buildCompletionSummary(
 ): GradeCompletionSummary {
 	const completion = buildGradeCompletion(rows);
 
-	const totalCriteriaInProject = rows.rubrics.reduce(
+	const totalCriteriaInGrid = rows.rubrics.reduce(
 		(sum, rubric) => sum + rubric.criterionCount,
 		0,
 	);
 	const totalExpectedCriterionGrades =
-		completion.totalGradeTargets * totalCriteriaInProject;
+		completion.totalGradeTargets * totalCriteriaInGrid;
 
 	return {
 		gradeTargets: {
@@ -351,11 +349,11 @@ function buildCompletionSummary(
 // `db` may be the global client or a caller-supplied transaction.
 export async function loadGradeCompletionSummaryFromDb(
 	db: Kysely<Database>,
-	{ projectId }: { projectId: string },
+	{ gridId }: { gridId: string },
 ): Promise<GradeCompletionSummary> {
 	const [rows, criterionGradesCount] = await Promise.all([
-		loadGradeCompletionRowsFromDb(db, { projectId }),
-		loadCriterionGradesCountFromDb(db, { projectId }),
+		loadGradeCompletionRowsFromDb(db, { gridId }),
+		loadCriterionGradesCountFromDb(db, { gridId }),
 	]);
 
 	return buildCompletionSummary(rows, criterionGradesCount);
@@ -367,12 +365,12 @@ export async function loadGradeCompletionSummaryFromDb(
 // default here before forwarding, so an omitted `db` stays `undefined` and the
 // call shares that wrapper's own no-argument cache entry.
 export async function loadGradeCompletionSummary(
-	{ projectId }: { projectId: string },
+	{ gridId }: { gridId: string },
 	options?: { db?: Kysely<Database> },
 ): Promise<GradeCompletionSummary> {
 	const [rows, criterionGradesCount] = await Promise.all([
-		loadGradeCompletionRows({ projectId }, options),
-		loadCriterionGradesCount({ projectId }, options),
+		loadGradeCompletionRows({ gridId }, options),
+		loadCriterionGradesCount({ gridId }, options),
 	]);
 
 	return buildCompletionSummary(rows, criterionGradesCount);

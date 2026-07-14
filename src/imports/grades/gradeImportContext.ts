@@ -11,7 +11,7 @@ import {
 
 async function loadCriteriaByColumn(
 	db: Kysely<Database>,
-	projectRowId: number,
+	gridRowId: number,
 ): Promise<Map<string, GradeImportCriterion>> {
 	const criterionRows = await db
 		.selectFrom("criterion")
@@ -26,7 +26,7 @@ async function loadCriteriaByColumn(
 			"optionsCriterionMark.optionsCriterionId",
 			"optionsCriterion.id",
 		)
-		.where("criterion.projectId", "=", projectRowId)
+		.where("criterion.gridRowId", "=", gridRowId)
 		.select([
 			"criterion.id",
 			"criterion.kind",
@@ -61,11 +61,11 @@ async function loadCriteriaByColumn(
 
 async function loadRubricIds(
 	db: Kysely<Database>,
-	projectRowId: number,
+	gridRowId: number,
 ): Promise<Set<string>> {
 	const rubrics = await db
 		.selectFrom("rubric")
-		.where("projectId", "=", projectRowId)
+		.where("gridRowId", "=", gridRowId)
 		.select("id")
 		.execute();
 
@@ -74,7 +74,7 @@ async function loadRubricIds(
 
 async function loadTargetIdsByLookup(
 	db: Kysely<Database>,
-	{ rows, projectRowId }: { rows: ImportedGradeRow[]; projectRowId: number },
+	{ rows, gridRowId }: { rows: ImportedGradeRow[]; gridRowId: number },
 ): Promise<Map<string, string[]>> {
 	const groupNames = new Set<string>();
 	const individualStudentIds = new Set<string>();
@@ -93,7 +93,7 @@ async function loadTargetIdsByLookup(
 					.selectFrom("gradeTarget")
 					.innerJoin("group", "group.id", "gradeTarget.groupRowId")
 					.where("gradeTarget.kind", "=", "group")
-					.where("gradeTarget.projectId", "=", projectRowId)
+					.where("gradeTarget.gridRowId", "=", gridRowId)
 					.where("group.name", "in", Array.from(groupNames))
 					.select(["group.name as name", "gradeTarget.id as targetId"])
 					.execute()
@@ -103,7 +103,7 @@ async function loadTargetIdsByLookup(
 					.selectFrom("gradeTarget")
 					.innerJoin("student", "student.rowId", "gradeTarget.studentRowId")
 					.where("gradeTarget.kind", "=", "individual")
-					.where("gradeTarget.projectId", "=", projectRowId)
+					.where("gradeTarget.gridRowId", "=", gridRowId)
 					.where("student.id", "in", Array.from(individualStudentIds))
 					.select(["student.id as name", "gradeTarget.id as targetId"])
 					.execute()
@@ -140,7 +140,7 @@ async function loadTargetIdsByLookup(
 
 async function loadGradedCriterionKeys(
 	db: Kysely<Database>,
-	projectRowId: number,
+	gridRowId: number,
 ): Promise<Set<string>> {
 	const gradedPairs = await db
 		.selectFrom("criterionGrade")
@@ -150,7 +150,7 @@ async function loadGradedCriterionKeys(
 			"criterionGrade.gradeTargetRowId",
 		)
 		.innerJoin("criterion", "criterion.rowId", "criterionGrade.criterionId")
-		.where("gradeTarget.projectId", "=", projectRowId)
+		.where("gradeTarget.gridRowId", "=", gridRowId)
 		.select(["gradeTarget.id as targetId", "criterion.id as criterionId"])
 		.execute();
 
@@ -168,21 +168,21 @@ async function loadGradedCriterionKeys(
 // everything prepareGradeImport() needs, driven by the parsed rows.
 export async function loadGradeImportContextFromDb(
 	db: Kysely<Database>,
-	{ rows, projectId }: { rows: ImportedGradeRow[]; projectId: string },
+	{ rows, gridId }: { rows: ImportedGradeRow[]; gridId: string },
 ): Promise<GradeImportContext> {
-	const project = await db
-		.selectFrom("project")
+	const grid = await db
+		.selectFrom("grid")
 		.select("rowId")
-		.where("id", "=", projectId)
+		.where("id", "=", gridId)
 		.executeTakeFirstOrThrow();
-	const projectRowId = project.rowId;
+	const gridRowId = grid.rowId;
 
 	const [criteriaByColumn, rubricIds, targetIdsByLookup, gradedCriterionKeys] =
 		await Promise.all([
-			loadCriteriaByColumn(db, projectRowId),
-			loadRubricIds(db, projectRowId),
-			loadTargetIdsByLookup(db, { rows, projectRowId }),
-			loadGradedCriterionKeys(db, projectRowId),
+			loadCriteriaByColumn(db, gridRowId),
+			loadRubricIds(db, gridRowId),
+			loadTargetIdsByLookup(db, { rows, gridRowId }),
+			loadGradedCriterionKeys(db, gridRowId),
 		]);
 
 	return {

@@ -8,7 +8,7 @@ export type ExistingRubricImportCriterion = {
 };
 
 export type RubricImportContext = {
-	// Existing criteria keyed by criterion id, scoped to the project.
+	// Existing criteria keyed by criterion id, scoped to the grid.
 	existingCriteriaById: Map<string, ExistingRubricImportCriterion>;
 };
 
