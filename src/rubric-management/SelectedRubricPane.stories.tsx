@@ -27,6 +27,54 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {};
 
+// Regression: the Kind column must render the canonical label (Check /
+// Options / Number), not the raw lowercase DB enum value.
+export const ShowsCanonicalKindLabels: Story = {
+	args: {
+		definition: {
+			id: "q1",
+			position: 0,
+			gradedTargetCount: 5,
+			rubric: {
+				label: "Correctness",
+				criteria: [
+					{
+						id: "c1",
+						kind: "check",
+						label: "Check item",
+						marks: 1,
+						falseMarks: 0,
+					},
+					{
+						id: "c2",
+						kind: "options",
+						label: "Options item",
+						marks: { Pass: 1, Fail: 0 },
+					},
+					{
+						id: "c3",
+						kind: "number",
+						label: "Number item",
+						minValue: 0,
+						maxValue: 1,
+						minMarks: 0,
+						maxMarks: 1,
+						reversed: false,
+					},
+				],
+			},
+		},
+	},
+	play: async () => {
+		expect(await screen.findByText("Check")).toBeInTheDocument();
+		expect(screen.getByText("Options")).toBeInTheDocument();
+		expect(screen.getByText("Number")).toBeInTheDocument();
+		expect(screen.queryByText("check")).toBeNull();
+		expect(screen.queryByText("options")).toBeNull();
+		expect(screen.queryByText("number")).toBeNull();
+	},
+};
+
 // Regression for #172: a successful delete must settle in one stable pass —
 // the dialog closes and the success callback fires exactly once, instead of
 // re-firing on every render (which drove the validation/refresh loop).
