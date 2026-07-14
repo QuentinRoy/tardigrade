@@ -113,7 +113,10 @@ test("loadRubricDefinitions wrapper delegates to its primitive through the injec
 	// Includes the nested `loadRubricRows` registration: this scope's own tags
 	// plus the full closure of everything it composes (ADR 0008 rule 3).
 	const declaredTags = vi.mocked(cacheTag).mock.calls.map((call) => call[0]);
-	expect(declaredTags).toEqual([...rubricDefinitionCacheTags(), "rubrics"]);
+	expect(declaredTags).toEqual([
+		...rubricDefinitionCacheTags({ gridId: grid.id }),
+		`grids:${grid.id}:rubrics`,
+	]);
 });
 
 test("getRubricDefinitionDeleteImpact wrapper delegates to its primitive through the injected handle", async () => {

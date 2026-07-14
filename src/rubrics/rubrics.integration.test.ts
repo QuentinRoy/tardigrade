@@ -59,7 +59,7 @@ test("loadRubricRows wrapper delegates to its primitive and declares its cache t
 	expect(rows.map((row) => row.id)).toEqual([fixture.rubricId]);
 
 	const declaredTags = vi.mocked(cacheTag).mock.calls.map((call) => call[0]);
-	expect(declaredTags).toEqual(rubricCacheTags());
+	expect(declaredTags).toEqual(rubricCacheTags({ gridId: grid.id }));
 });
 
 test("loadRubricsById forwards its db option to the shared loadRubricRows source", async () => {
@@ -75,7 +75,7 @@ test("loadRubricsById forwards its db option to the shared loadRubricRows source
 	).toEqual([fixture.criterionId]);
 
 	const declaredTags = vi.mocked(cacheTag).mock.calls.map((call) => call[0]);
-	expect(declaredTags).toEqual(rubricCacheTags());
+	expect(declaredTags).toEqual(rubricCacheTags({ gridId: grid.id }));
 });
 
 test("loadRubric forwards its db option to the shared loadRubricRows source", async () => {

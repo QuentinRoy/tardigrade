@@ -2,8 +2,8 @@ import { describe, expect, test } from "vitest";
 import type { RubricRow } from "./rubrics.ts";
 import { rubricCacheTags, toCriterion, toRubricsById } from "./rubrics.ts";
 
-test("rubricCacheTags declares the rubrics tag", () => {
-	expect(rubricCacheTags()).toEqual(["rubrics"]);
+test("rubricCacheTags declares the grid-scoped rubrics tag", () => {
+	expect(rubricCacheTags({ gridId: "g-1" })).toEqual(["grids:g-1:rubrics"]);
 });
 
 describe("toRubricsById", () => {

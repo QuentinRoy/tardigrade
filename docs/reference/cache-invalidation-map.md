@@ -6,34 +6,36 @@ See `docs/adr/0008-cache-tags-lifetimes-and-invalidation.md` for the rules that 
 
 ## Tag scopes
 
+Every tag except `gridListCacheTag` is grid-scoped under the `grids:{gridId}:…` namespace (ADR 0008 rule 8), so a mutation in one grid never invalidates another grid's reads. Author-chosen ids (grade target, rubric) always sit behind a literal discriminator (`target:`, `rubric:`), so no two tag shapes can alias. Every helper takes a named-object argument.
+
 | Helper | Tag string | Scope |
 |---|---|---|
-| `gridListCacheTag()` | `grids` | All grids |
-| `gridCacheTag(gridId)` | `grids:{gridId}` | One grid, by public Grid ID |
-| `rubricListCacheTag()` | `rubrics` | All rubrics in scope |
-| `gradeTargetListCacheTag()` | `grade-targets` | All grade targets in scope |
-| `gradeAggregateCacheTag()` | `grades` | All grades in scope (busted by every save) |
-| `gradeImportCacheTag()` | `grades:all` | Import-level aggregate (busted by imports and definition changes, not individual saves) |
-| `gradeForGradeTargetCacheTag(target)` | `grades:{target}` | All rubrics for one grade target |
-| `gradeForGradeTargetRubricCacheTag({target, rubric})` | `grades:{target}:{rubric}` | Exact grade-target/rubric pair |
-| `gradeCompletionForRubricCacheTag(rubric)` | `grades:rubric:{rubric}` | One rubric's completion across all grade targets |
-
-Scoping caveat: `{target}` and `{rubric}` are public ids, unique only within a grid, so the three id-keyed tags above collide across grids (e.g. `t-1` in two grids shares `grades:t-1`). The effect is over-invalidation — an extra rebuild in the other grid — never stale data. Grid-scoping these tags is folded into the Project→Grid stage of the terminology sweep (`plans/2026-07-06-terminology-sweep.md`, stage 6).
+| `gridListCacheTag()` | `grids` | All grids (the only grid-unscoped tag) |
+| `gridCacheTag({gridId})` | `grids:{gridId}` | One grid, by public Grid ID |
+| `rubricListCacheTag({gridId})` | `grids:{gridId}:rubrics` | All rubrics in the grid |
+| `gradeTargetListCacheTag({gridId})` | `grids:{gridId}:grade-targets` | All grade targets in the grid |
+| `gradeAggregateCacheTag({gridId})` | `grids:{gridId}:grades` | All grades in the grid (busted by every save) |
+| `gradeImportCacheTag({gridId})` | `grids:{gridId}:grades:all` | Import-level aggregate (busted by imports and definition changes, not individual saves) |
+| `gradeForGradeTargetCacheTag({gridId, targetId})` | `grids:{gridId}:grades:target:{targetId}` | All rubrics for one grade target |
+| `gradeForGradeTargetRubricCacheTag({gridId, targetId, rubricId})` | `grids:{gridId}:grades:target:{targetId}:rubric:{rubricId}` | Exact grade-target/rubric pair |
+| `gradeCompletionForRubricCacheTag({gridId, rubricId})` | `grids:{gridId}:grades:rubric:{rubricId}` | One rubric's completion across the grid's grade targets |
 
 ## Mutations → tags invalidated
+
+In the tables below, `…` abbreviates the `grids:{gridId}` prefix that scopes every mutation and read to a single grid; the leading `grids`/`grids:{gridId}` tags are shown in full.
 
 Each mutation calls exactly one semantic helper from `src/db/cacheInvalidation.ts` after its transaction commits (ADR 0008 rule 6). The helper picks the primitive per tag class: `updateTag` (read-your-own-writes) expires the entry immediately and is used for the tags of the entity just edited, so the editor sees its own change; `revalidateTag("max")` serves stale data while refreshing in the background and is used for coarse aggregate and derived projection tags, so a save never blocks the next navigation on recomputing grid-wide completion.
 
 | Mutation | Helper | `updateTag` (read-your-writes) | `revalidateTag` (stale-while-revalidate) | Source |
 |---|---|---|---|---|
-| `saveCriterionGrade` | `invalidateGradeSave` | `grades:{target}:{rubric}`, `grades:{target}` | `grades`, `grades:rubric:{rubric}` | `src/grading/gradeMutations.ts` |
-| `saveRubricDefinition` | `invalidateRubricDefinitionSave` | `rubrics` | `grades`, `grades:all`, `grades:rubric:{id}` (+ `grades:rubric:{previousId}` when id changes) | `src/rubric-management/rubricDefinitionMutations.ts` |
-| `deleteRubricDefinition` | `invalidateRubricDefinitionDelete` | `rubrics` | `grades`, `grades:all`, `grades:rubric:{id}` | `src/rubric-management/rubricDefinitionMutations.ts` |
-| `reorderRubrics` | `invalidateRubricReorder` | `rubrics` | (none) | `src/rubric-management/rubricDefinitionMutations.ts` |
+| `saveCriterionGrade` | `invalidateGradeSave` | `…:grades:target:{targetId}:rubric:{rubricId}`, `…:grades:target:{targetId}` | `…:grades`, `…:grades:rubric:{rubricId}` | `src/grading/gradeMutations.ts` |
+| `saveRubricDefinition` | `invalidateRubricDefinitionSave` | `…:rubrics` | `…:grades`, `…:grades:all`, `…:grades:rubric:{rubricId}` (+ `…:grades:rubric:{previousRubricId}` when id changes) | `src/rubric-management/rubricDefinitionMutations.ts` |
+| `deleteRubricDefinition` | `invalidateRubricDefinitionDelete` | `…:rubrics` | `…:grades`, `…:grades:all`, `…:grades:rubric:{rubricId}` | `src/rubric-management/rubricDefinitionMutations.ts` |
+| `reorderRubrics` | `invalidateRubricReorder` | `…:rubrics` | (none) | `src/rubric-management/rubricDefinitionMutations.ts` |
 | `createGrid` | `invalidateGridCreate` | (none) | `grids`, `grids:{gridId}` | `src/grids/grids.ts` |
-| `saveGrades` (import) | `invalidateGradeImport` | (none) | `grades`, `grades:all` | `src/imports/grades/saveGrades.ts` |
-| `saveRubrics` (import) | `invalidateRubricImport` | (none) | `rubrics`, `grades`, `grades:all` | `src/imports/rubrics/saveRubrics.ts` |
-| `saveStudents` (import) | `invalidateStudentImport` | (none) | `grade-targets`, `grades`, `grades:all` | `src/imports/students/saveStudents.ts` |
+| `saveGrades` (import) | `invalidateGradeImport` | (none) | `…:grades`, `…:grades:all` | `src/imports/grades/saveGrades.ts` |
+| `saveRubrics` (import) | `invalidateRubricImport` | (none) | `…:rubrics`, `…:grades`, `…:grades:all` | `src/imports/rubrics/saveRubrics.ts` |
+| `saveStudents` (import) | `invalidateStudentImport` | (none) | `…:grade-targets`, `…:grades`, `…:grades:all` | `src/imports/students/saveStudents.ts` |
 
 Import helpers and `invalidateGridCreate` run from request-scoped actions (import actions, the create-grid action). `revalidateTag` throws outside request scope, so these helpers must not be called from background jobs.
 
@@ -45,16 +47,16 @@ Page-level sections inherit `cacheLife` from inner cached functions; the lifetim
 |---|---|---|---|
 | `loadGrids` | `grids` | 60 s | `src/grids/grids.ts` |
 | `loadGridByPublicId` | `grids`, `grids:{gridId}` | 60 s | `src/grids/grids.ts` |
-| `loadRubricRows` (shared by `loadRubricsById`, `loadRubric`, which derive from it) | `rubrics` | 1 h (`definitions`) | `src/rubrics/rubrics.ts` |
-| `loadRubricDefinitions` (composes `loadRubricRows` + grade counts) | `rubrics`, `grades` | 60 s (`projection`; counts track the coarse aggregate) | `src/rubric-management/rubricDefinitions.ts` |
-| `loadGradeTargets` | `grade-targets` | 1 h (`roster`) | `src/grade-targets/gradeTargets.ts` |
-| `loadRubricGrade` | `grades:{target}:{rubric}`, `grades:all` | 5 min (`values`) | `src/grading/grades.ts` |
-| `loadGradeTargetGrades` | `grades:{target}`, `grades:all` | 5 min (`values`) | `src/grading/grades.ts` |
-| `loadGradeCompletionRows` (shared by `loadGradeCompletionByTarget` and `loadGradeCompletionSummary`, plain derivers that compose it) | `grade-targets`, `rubrics`, `grades` | 60 s | `src/grade-completion/loadGradeCompletion.ts` |
-| `loadCriterionGradesCount` (composed by `loadGradeCompletionSummary` alongside `loadGradeCompletionRows`) | `grades` | 60 s | `src/grade-completion/loadGradeCompletion.ts` |
-| `loadGradedCriterionCountsByTarget` | `grade-targets`, `rubrics`, `grades:rubric:{rubric}`, `grades:all` | 60 s | `src/grade-completion/loadGradeCompletion.ts` |
-| `loadResultsData` | `rubrics`, `grade-targets`, `grades` | 60 s (`projection`) | `src/results/loadResults.ts` |
-| `RubricHeaderSection` (page) | `grids:{gridId}`, `rubrics` | inherits | `app/.../rubrics/[rubricId]/page.tsx` |
+| `loadRubricRows` (shared by `loadRubricsById`, `loadRubric`, which derive from it) | `…:rubrics` | 1 h (`definitions`) | `src/rubrics/rubrics.ts` |
+| `loadRubricDefinitions` (composes `loadRubricRows` + grade counts) | `…:rubrics`, `…:grades` | 60 s (`projection`; counts track the coarse aggregate) | `src/rubric-management/rubricDefinitions.ts` |
+| `loadGradeTargets` | `…:grade-targets` | 1 h (`roster`) | `src/grade-targets/gradeTargets.ts` |
+| `loadRubricGrade` | `…:grades:target:{targetId}:rubric:{rubricId}`, `…:grades:all` | 5 min (`values`) | `src/grading/grades.ts` |
+| `loadGradeTargetGrades` | `…:grades:target:{targetId}`, `…:grades:all` | 5 min (`values`) | `src/grading/grades.ts` |
+| `loadGradeCompletionRows` (shared by `loadGradeCompletionByTarget` and `loadGradeCompletionSummary`, plain derivers that compose it) | `…:grade-targets`, `…:rubrics`, `…:grades` | 60 s | `src/grade-completion/loadGradeCompletion.ts` |
+| `loadCriterionGradesCount` (composed by `loadGradeCompletionSummary` alongside `loadGradeCompletionRows`) | `…:grades` | 60 s | `src/grade-completion/loadGradeCompletion.ts` |
+| `loadGradedCriterionCountsByTarget` | `…:grade-targets`, `…:rubrics`, `…:grades:rubric:{rubricId}`, `…:grades:all` | 60 s | `src/grade-completion/loadGradeCompletion.ts` |
+| `loadResultsData` | `…:rubrics`, `…:grade-targets`, `…:grades` | 60 s (`projection`) | `src/results/loadResults.ts` |
+| `RubricHeaderSection` (page) | `grids:{gridId}`, `…:rubrics` | inherits | `app/.../rubrics/[rubricId]/page.tsx` |
 
 `GradeTargetCriterionSection` and `GridGradesPageContent` have no page-level `"use cache"` wrapper: each calls already-cached loaders directly. The per-target completion used by the on-demand lookup dialog (or, on the grades index, the inline completion badges) still comes from those cached loaders (`loadGradedCriterionCounts`, `loadGradeCompletionByTarget` — both deriving from the cached entries in the table above) — only the page-level `await` is removed, so the *page render* doesn't block on it; it streams in under Suspense instead of blocking navigation on a grid-wide completion recompute (Finding 19, PR10).
 

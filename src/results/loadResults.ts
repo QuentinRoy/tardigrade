@@ -17,11 +17,11 @@ import {
 	type ResultsGradeRecord,
 } from "./resultsBuilder.ts";
 
-export function resultsCacheTags(): string[] {
+export function resultsCacheTags({ gridId }: { gridId: string }): string[] {
 	return [
-		rubricListCacheTag(),
-		gradeTargetListCacheTag(),
-		gradeAggregateCacheTag(),
+		rubricListCacheTag({ gridId }),
+		gradeTargetListCacheTag({ gridId }),
+		gradeAggregateCacheTag({ gridId }),
 	];
 }
 
@@ -81,7 +81,7 @@ export async function loadResultsData(
 	options?: { db?: Kysely<Database> },
 ): Promise<ResultsData> {
 	"use cache";
-	cacheTags(...resultsCacheTags());
+	cacheTags(...resultsCacheTags({ gridId }));
 	cacheLife("projection");
 
 	const [targets, rubricsById, gradeRecords] = await Promise.all([

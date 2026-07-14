@@ -17,6 +17,10 @@ beforeEach(() => {
 	vi.clearAllMocks();
 });
 
+// The tags each mutation busts, and whether via `updateTag` (read-your-writes)
+// or `revalidateTag` (stale-while-revalidate), are pinned with inline snapshots:
+// a shape or primitive change fails here (both silently break freshness), while
+// a deliberate change is a one-line `vitest -u`.
 function updatedTags(): string[] {
 	return vi.mocked(updateTag).mock.calls.map((call) => call[0]);
 }
@@ -26,96 +30,160 @@ function revalidatedTags(): string[] {
 }
 
 test("invalidateGradeSave updates the edited tags and revalidates the derived tags", () => {
-	invalidateGradeSave({ targetId: "t-1", rubricId: "q-1" });
+	invalidateGradeSave({ gridId: "g-1", targetId: "t-1", rubricId: "q-1" });
 
-	expect(updatedTags()).toEqual(["grades:t-1:q-1", "grades:t-1"]);
-	expect(revalidatedTags()).toEqual(["grades", "grades:rubric:q-1"]);
+	expect(updatedTags()).toMatchInlineSnapshot(`
+		[
+		  "grids:g-1:grades:target:t-1:rubric:q-1",
+		  "grids:g-1:grades:target:t-1",
+		]
+	`);
+	expect(revalidatedTags()).toMatchInlineSnapshot(`
+		[
+		  "grids:g-1:grades",
+		  "grids:g-1:grades:rubric:q-1",
+		]
+	`);
 });
 
 test("invalidateRubricDefinitionSave updates the rubric list and revalidates grade tags", () => {
-	invalidateRubricDefinitionSave({ rubricId: "q-1" });
+	invalidateRubricDefinitionSave({ gridId: "g-1", rubricId: "q-1" });
 
-	expect(updatedTags()).toEqual(["rubrics"]);
-	expect(revalidatedTags()).toEqual([
-		"grades",
-		"grades:all",
-		"grades:rubric:q-1",
-	]);
+	expect(updatedTags()).toMatchInlineSnapshot(`
+		[
+		  "grids:g-1:rubrics",
+		]
+	`);
+	expect(revalidatedTags()).toMatchInlineSnapshot(`
+		[
+		  "grids:g-1:grades",
+		  "grids:g-1:grades:all",
+		  "grids:g-1:grades:rubric:q-1",
+		]
+	`);
 });
 
 test("invalidateRubricDefinitionSave revalidates the previous rubric's completion when the id changes", () => {
-	invalidateRubricDefinitionSave({ rubricId: "q-2", previousRubricId: "q-1" });
+	invalidateRubricDefinitionSave({
+		gridId: "g-1",
+		rubricId: "q-2",
+		previousRubricId: "q-1",
+	});
 
-	expect(updatedTags()).toEqual(["rubrics"]);
-	expect(revalidatedTags()).toEqual([
-		"grades",
-		"grades:all",
-		"grades:rubric:q-2",
-		"grades:rubric:q-1",
-	]);
+	expect(updatedTags()).toMatchInlineSnapshot(`
+		[
+		  "grids:g-1:rubrics",
+		]
+	`);
+	expect(revalidatedTags()).toMatchInlineSnapshot(`
+		[
+		  "grids:g-1:grades",
+		  "grids:g-1:grades:all",
+		  "grids:g-1:grades:rubric:q-2",
+		  "grids:g-1:grades:rubric:q-1",
+		]
+	`);
 });
 
 test("invalidateRubricDefinitionSave ignores an unchanged previous id", () => {
-	invalidateRubricDefinitionSave({ rubricId: "q-1", previousRubricId: "q-1" });
+	invalidateRubricDefinitionSave({
+		gridId: "g-1",
+		rubricId: "q-1",
+		previousRubricId: "q-1",
+	});
 
-	expect(revalidatedTags()).toEqual([
-		"grades",
-		"grades:all",
-		"grades:rubric:q-1",
-	]);
+	expect(revalidatedTags()).toMatchInlineSnapshot(`
+		[
+		  "grids:g-1:grades",
+		  "grids:g-1:grades:all",
+		  "grids:g-1:grades:rubric:q-1",
+		]
+	`);
 });
 
 test("invalidateRubricDefinitionDelete updates the rubric list and revalidates grade tags", () => {
-	invalidateRubricDefinitionDelete({ rubricId: "q-1" });
+	invalidateRubricDefinitionDelete({ gridId: "g-1", rubricId: "q-1" });
 
-	expect(updatedTags()).toEqual(["rubrics"]);
-	expect(revalidatedTags()).toEqual([
-		"grades",
-		"grades:all",
-		"grades:rubric:q-1",
-	]);
+	expect(updatedTags()).toMatchInlineSnapshot(`
+		[
+		  "grids:g-1:rubrics",
+		]
+	`);
+	expect(revalidatedTags()).toMatchInlineSnapshot(`
+		[
+		  "grids:g-1:grades",
+		  "grids:g-1:grades:all",
+		  "grids:g-1:grades:rubric:q-1",
+		]
+	`);
 });
 
 test("invalidateRubricReorder only updates the rubric list read-your-writes", () => {
-	invalidateRubricReorder();
+	invalidateRubricReorder({ gridId: "g-1" });
 
-	expect(updatedTags()).toEqual(["rubrics"]);
+	expect(updatedTags()).toMatchInlineSnapshot(`
+		[
+		  "grids:g-1:rubrics",
+		]
+	`);
 	expect(revalidateTag).not.toHaveBeenCalled();
 });
 
 test("invalidateGridCreate revalidates the grid list and the new grid tag", () => {
-	invalidateGridCreate({ gridId: "p-1" });
+	invalidateGridCreate({ gridId: "g-1" });
 
 	expect(updateTag).not.toHaveBeenCalled();
-	expect(revalidatedTags()).toEqual(["grids", "grids:p-1"]);
+	expect(revalidatedTags()).toMatchInlineSnapshot(`
+		[
+		  "grids",
+		  "grids:g-1",
+		]
+	`);
 });
 
 test("invalidateGradeImport revalidates the grade aggregates", () => {
-	invalidateGradeImport();
+	invalidateGradeImport({ gridId: "g-1" });
 
 	expect(updateTag).not.toHaveBeenCalled();
-	expect(revalidatedTags()).toEqual(["grades", "grades:all"]);
+	expect(revalidatedTags()).toMatchInlineSnapshot(`
+		[
+		  "grids:g-1:grades",
+		  "grids:g-1:grades:all",
+		]
+	`);
 });
 
 test("invalidateRubricImport revalidates the rubric list and grade aggregates", () => {
-	invalidateRubricImport();
+	invalidateRubricImport({ gridId: "g-1" });
 
 	expect(updateTag).not.toHaveBeenCalled();
-	expect(revalidatedTags()).toEqual(["rubrics", "grades", "grades:all"]);
+	expect(revalidatedTags()).toMatchInlineSnapshot(`
+		[
+		  "grids:g-1:rubrics",
+		  "grids:g-1:grades",
+		  "grids:g-1:grades:all",
+		]
+	`);
 });
 
 test("invalidateStudentImport revalidates the grade-target list and grade aggregates", () => {
-	invalidateStudentImport();
+	invalidateStudentImport({ gridId: "g-1" });
 
 	expect(updateTag).not.toHaveBeenCalled();
-	expect(revalidatedTags()).toEqual(["grade-targets", "grades", "grades:all"]);
+	expect(revalidatedTags()).toMatchInlineSnapshot(`
+		[
+		  "grids:g-1:grade-targets",
+		  "grids:g-1:grades",
+		  "grids:g-1:grades:all",
+		]
+	`);
 });
 
 test("import and grid helpers revalidate with the max profile", () => {
-	invalidateGridCreate({ gridId: "p-1" });
-	invalidateGradeImport();
-	invalidateRubricImport();
-	invalidateStudentImport();
+	invalidateGridCreate({ gridId: "g-1" });
+	invalidateGradeImport({ gridId: "g-1" });
+	invalidateRubricImport({ gridId: "g-1" });
+	invalidateStudentImport({ gridId: "g-1" });
 
 	const profiles = vi.mocked(revalidateTag).mock.calls.map((call) => call[1]);
 	expect(profiles.every((profile) => profile === "max")).toBe(true);

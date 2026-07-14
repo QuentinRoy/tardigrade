@@ -325,7 +325,7 @@ export async function saveStudents(
 	// The transaction owner invalidates after commit. Safe only because this saver
 	// always runs from studentsImportAction (request scope); the helper's
 	// revalidateTag calls throw outside a request.
-	invalidateStudentImport();
+	invalidateStudentImport({ gridId });
 
 	return result;
 }

@@ -251,7 +251,10 @@ test("loadGradedCriterionCountsByTarget wrapper delegates to its primitive and d
 
 	const declaredTags = vi.mocked(cacheTag).mock.calls.map((call) => call[0]);
 	expect(declaredTags).toEqual(
-		gradedCriterionCountsByTargetCacheTags(sharedRubricId),
+		gradedCriterionCountsByTargetCacheTags({
+			gridId: grid.id,
+			rubricId: sharedRubricId,
+		}),
 	);
 });
 
@@ -298,7 +301,9 @@ test("loadGradeCompletionByTarget is a plain deriver that shares loadGradeComple
 	// No own cache scope (ADR 0008 rule 5): only `loadGradeCompletionRows`
 	// registers tags.
 	const declaredTags = vi.mocked(cacheTag).mock.calls.map((call) => call[0]);
-	expect(declaredTags).toEqual(gradeCompletionRowsCacheTags());
+	expect(declaredTags).toEqual(
+		gradeCompletionRowsCacheTags({ gridId: grid.id }),
+	);
 });
 
 test("a zero-criterion rubric counts as complete per target and consistently with the summary", async () => {
@@ -384,7 +389,7 @@ test("loadGradeCompletionSummary is a plain deriver that shares loadGradeComplet
 	// `loadCriterionGradesCount`.
 	const declaredTags = vi.mocked(cacheTag).mock.calls.map((call) => call[0]);
 	expect(declaredTags).toEqual([
-		...gradeCompletionRowsCacheTags(),
-		...criterionGradesCountCacheTags(),
+		...gradeCompletionRowsCacheTags({ gridId: grid.id }),
+		...criterionGradesCountCacheTags({ gridId: grid.id }),
 	]);
 });

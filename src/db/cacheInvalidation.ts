@@ -38,16 +38,18 @@ function revalidate(tag: string): void {
 // projection, so navigating to the next grade target never blocks on recomputing
 // grid-wide completion.
 export function invalidateGradeSave({
+	gridId,
 	targetId,
 	rubricId,
 }: {
+	gridId: string;
 	targetId: string;
 	rubricId: string;
 }): void {
-	updateTag(gradeForGradeTargetRubricCacheTag({ targetId, rubricId }));
-	updateTag(gradeForGradeTargetCacheTag(targetId));
-	revalidate(gradeAggregateCacheTag());
-	revalidate(gradeCompletionForRubricCacheTag(rubricId));
+	updateTag(gradeForGradeTargetRubricCacheTag({ gridId, targetId, rubricId }));
+	updateTag(gradeForGradeTargetCacheTag({ gridId, targetId }));
+	revalidate(gradeAggregateCacheTag({ gridId }));
+	revalidate(gradeCompletionForRubricCacheTag({ gridId, rubricId }));
 }
 
 // Interactive rubric-definition save. Read-your-own-writes for the rubric
@@ -55,18 +57,22 @@ export function invalidateGradeSave({
 // grade aggregates and the rubric completion projection. When the rubric's
 // public id changed, the previous id's completion projection is refreshed too.
 export function invalidateRubricDefinitionSave({
+	gridId,
 	rubricId,
 	previousRubricId,
 }: {
+	gridId: string;
 	rubricId: string;
 	previousRubricId?: string | undefined;
 }): void {
-	updateTag(rubricListCacheTag());
-	revalidate(gradeAggregateCacheTag());
-	revalidate(gradeImportCacheTag());
-	revalidate(gradeCompletionForRubricCacheTag(rubricId));
+	updateTag(rubricListCacheTag({ gridId }));
+	revalidate(gradeAggregateCacheTag({ gridId }));
+	revalidate(gradeImportCacheTag({ gridId }));
+	revalidate(gradeCompletionForRubricCacheTag({ gridId, rubricId }));
 	if (previousRubricId != null && previousRubricId !== rubricId) {
-		revalidate(gradeCompletionForRubricCacheTag(previousRubricId));
+		revalidate(
+			gradeCompletionForRubricCacheTag({ gridId, rubricId: previousRubricId }),
+		);
 	}
 }
 
@@ -74,20 +80,22 @@ export function invalidateRubricDefinitionSave({
 // list (the author must see the deletion); stale-while-revalidate for the
 // grade aggregates and the rubric completion projection.
 export function invalidateRubricDefinitionDelete({
+	gridId,
 	rubricId,
 }: {
+	gridId: string;
 	rubricId: string;
 }): void {
-	updateTag(rubricListCacheTag());
-	revalidate(gradeAggregateCacheTag());
-	revalidate(gradeImportCacheTag());
-	revalidate(gradeCompletionForRubricCacheTag(rubricId));
+	updateTag(rubricListCacheTag({ gridId }));
+	revalidate(gradeAggregateCacheTag({ gridId }));
+	revalidate(gradeImportCacheTag({ gridId }));
+	revalidate(gradeCompletionForRubricCacheTag({ gridId, rubricId }));
 }
 
 // Interactive rubric reorder. Read-your-own-writes for the rubric list so the
 // author sees the new order immediately.
-export function invalidateRubricReorder(): void {
-	updateTag(rubricListCacheTag());
+export function invalidateRubricReorder({ gridId }: { gridId: string }): void {
+	updateTag(rubricListCacheTag({ gridId }));
 }
 
 // Grid creation. Stale-while-revalidate for the grid list and the new
@@ -95,28 +103,28 @@ export function invalidateRubricReorder(): void {
 // refresh.
 export function invalidateGridCreate({ gridId }: { gridId: string }): void {
 	revalidate(gridListCacheTag());
-	revalidate(gridCacheTag(gridId));
+	revalidate(gridCacheTag({ gridId }));
 }
 
 // Bulk grade import. Imports land the user on a freshly rendered page, so no
 // tag needs read-your-own-writes; every tag uses stale-while-revalidate.
-export function invalidateGradeImport(): void {
-	revalidate(gradeAggregateCacheTag());
-	revalidate(gradeImportCacheTag());
+export function invalidateGradeImport({ gridId }: { gridId: string }): void {
+	revalidate(gradeAggregateCacheTag({ gridId }));
+	revalidate(gradeImportCacheTag({ gridId }));
 }
 
 // Bulk rubric import. Stale-while-revalidate for the rubric list and the
 // grade aggregates the imported rubrics affect.
-export function invalidateRubricImport(): void {
-	revalidate(rubricListCacheTag());
-	revalidate(gradeAggregateCacheTag());
-	revalidate(gradeImportCacheTag());
+export function invalidateRubricImport({ gridId }: { gridId: string }): void {
+	revalidate(rubricListCacheTag({ gridId }));
+	revalidate(gradeAggregateCacheTag({ gridId }));
+	revalidate(gradeImportCacheTag({ gridId }));
 }
 
 // Bulk student (roster) import. Stale-while-revalidate for the grade-target list
 // and the grade aggregates the new roster affects.
-export function invalidateStudentImport(): void {
-	revalidate(gradeTargetListCacheTag());
-	revalidate(gradeAggregateCacheTag());
-	revalidate(gradeImportCacheTag());
+export function invalidateStudentImport({ gridId }: { gridId: string }): void {
+	revalidate(gradeTargetListCacheTag({ gridId }));
+	revalidate(gradeAggregateCacheTag({ gridId }));
+	revalidate(gradeImportCacheTag({ gridId }));
 }

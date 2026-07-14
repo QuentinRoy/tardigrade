@@ -62,7 +62,7 @@ async function RubricHeaderSection({
 	rubricId: string;
 }) {
 	"use cache";
-	cacheTags(gridCacheTag(gridId), rubricListCacheTag());
+	cacheTags(gridCacheTag({ gridId }), rubricListCacheTag({ gridId }));
 
 	const grid = await loadGridByPublicId(gridId, { required: true });
 

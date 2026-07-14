@@ -526,15 +526,15 @@ test("saveRubricDefinition wrapper updates the rubric list read-your-writes and 
 	);
 
 	const updatedTags = vi.mocked(updateTag).mock.calls.map((call) => call[0]);
-	expect(updatedTags).toEqual([rubricListCacheTag()]);
+	expect(updatedTags).toEqual([rubricListCacheTag({ gridId: grid.id })]);
 
 	const revalidatedTags = vi
 		.mocked(revalidateTag)
 		.mock.calls.map((call) => call[0]);
 	expect(revalidatedTags).toEqual([
-		gradeAggregateCacheTag(),
-		gradeImportCacheTag(),
-		gradeCompletionForRubricCacheTag(rubricId),
+		gradeAggregateCacheTag({ gridId: grid.id }),
+		gradeImportCacheTag({ gridId: grid.id }),
+		gradeCompletionForRubricCacheTag({ gridId: grid.id, rubricId }),
 	]);
 });
 
@@ -567,16 +567,22 @@ test("saveRubricDefinition wrapper revalidates the previous rubric's completion 
 	);
 
 	const updatedTags = vi.mocked(updateTag).mock.calls.map((call) => call[0]);
-	expect(updatedTags).toEqual([rubricListCacheTag()]);
+	expect(updatedTags).toEqual([rubricListCacheTag({ gridId: grid.id })]);
 
 	const revalidatedTags = vi
 		.mocked(revalidateTag)
 		.mock.calls.map((call) => call[0]);
 	expect(revalidatedTags).toEqual([
-		gradeAggregateCacheTag(),
-		gradeImportCacheTag(),
-		gradeCompletionForRubricCacheTag(renamedRubricId),
-		gradeCompletionForRubricCacheTag(fixture.rubricId),
+		gradeAggregateCacheTag({ gridId: grid.id }),
+		gradeImportCacheTag({ gridId: grid.id }),
+		gradeCompletionForRubricCacheTag({
+			gridId: grid.id,
+			rubricId: renamedRubricId,
+		}),
+		gradeCompletionForRubricCacheTag({
+			gridId: grid.id,
+			rubricId: fixture.rubricId,
+		}),
 	]);
 });
 
@@ -606,15 +612,15 @@ test("deleteRubricDefinition wrapper updates the rubric list read-your-writes an
 	);
 
 	const updatedTags = vi.mocked(updateTag).mock.calls.map((call) => call[0]);
-	expect(updatedTags).toEqual([rubricListCacheTag()]);
+	expect(updatedTags).toEqual([rubricListCacheTag({ gridId: grid.id })]);
 
 	const revalidatedTags = vi
 		.mocked(revalidateTag)
 		.mock.calls.map((call) => call[0]);
 	expect(revalidatedTags).toEqual([
-		gradeAggregateCacheTag(),
-		gradeImportCacheTag(),
-		gradeCompletionForRubricCacheTag(rubric.id),
+		gradeAggregateCacheTag({ gridId: grid.id }),
+		gradeImportCacheTag({ gridId: grid.id }),
+		gradeCompletionForRubricCacheTag({ gridId: grid.id, rubricId: rubric.id }),
 	]);
 });
 
@@ -636,6 +642,6 @@ test("reorderRubrics wrapper updates the rubrics tag read-your-writes after comm
 	);
 
 	const updatedTags = vi.mocked(updateTag).mock.calls.map((call) => call[0]);
-	expect(updatedTags).toEqual([rubricListCacheTag()]);
+	expect(updatedTags).toEqual([rubricListCacheTag({ gridId: grid.id })]);
 	expect(revalidateTag).not.toHaveBeenCalled();
 });

@@ -13,9 +13,11 @@ import { database as defaultDb } from "#db/kysely.ts";
 import { assertNever, nonNull } from "#utils/utils.ts";
 
 export function loadGradeCacheTags({
+	gridId,
 	targetId,
 	rubricId,
 }: {
+	gridId: string;
 	targetId: string;
 	rubricId?: string | undefined;
 }) {
@@ -23,9 +25,9 @@ export function loadGradeCacheTags({
 	// the import tag refreshes on bulk imports.
 	const scopeTag =
 		rubricId == null
-			? gradeForGradeTargetCacheTag(targetId)
-			: gradeForGradeTargetRubricCacheTag({ targetId, rubricId });
-	return [scopeTag, gradeImportCacheTag()];
+			? gradeForGradeTargetCacheTag({ gridId, targetId })
+			: gradeForGradeTargetRubricCacheTag({ gridId, targetId, rubricId });
+	return [scopeTag, gradeImportCacheTag({ gridId })];
 }
 
 // Returns the typed criterion values for a single grade-target/rubric grade.
@@ -40,7 +42,7 @@ export async function loadRubricGrade(
 	{ db = defaultDb }: { db?: Kysely<Database> } = {},
 ): Promise<CriterionGrade[]> {
 	"use cache";
-	cacheTags(...loadGradeCacheTags({ targetId, rubricId }));
+	cacheTags(...loadGradeCacheTags({ gridId, targetId, rubricId }));
 	cacheLife("values");
 	return loadRubricGradeFromDb(db, { targetId, gridId, rubricId });
 }
@@ -55,7 +57,7 @@ export async function loadGradeTargetGrades(
 	{ db = defaultDb }: { db?: Kysely<Database> } = {},
 ): Promise<Record<string, CriterionGrade[]>> {
 	"use cache";
-	cacheTags(...loadGradeCacheTags({ targetId }));
+	cacheTags(...loadGradeCacheTags({ gridId, targetId }));
 	cacheLife("values");
 	return loadGradeTargetGradesFromDb(db, { targetId, gridId });
 }

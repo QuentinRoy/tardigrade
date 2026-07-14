@@ -109,8 +109,12 @@ export async function loadRubricDefinitionsFromDb(
 	return toRubricDefinitions(rows, gradeCountByRubricId);
 }
 
-export function rubricDefinitionCacheTags(): string[] {
-	return [rubricListCacheTag(), gradeAggregateCacheTag()];
+export function rubricDefinitionCacheTags({
+	gridId,
+}: {
+	gridId: string;
+}): string[] {
+	return [rubricListCacheTag({ gridId }), gradeAggregateCacheTag({ gridId })];
 }
 
 // Canonical cached source for the rubrics-management read (Finding 4). Shares
@@ -128,7 +132,7 @@ export async function loadRubricDefinitions(
 	options?: { db?: Kysely<Database> },
 ): Promise<RubricDefinition[]> {
 	"use cache";
-	cacheTags(...rubricDefinitionCacheTags());
+	cacheTags(...rubricDefinitionCacheTags({ gridId }));
 	cacheLife("projection");
 	const [rows, gradeCountByRubricId] = await Promise.all([
 		loadRubricRows({ gridId }, options),

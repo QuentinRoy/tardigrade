@@ -265,8 +265,8 @@ export async function loadRubricRowsFromDb(
 	});
 }
 
-export function rubricCacheTags(): string[] {
-	return [rubricListCacheTag()];
+export function rubricCacheTags({ gridId }: { gridId: string }): string[] {
+	return [rubricListCacheTag({ gridId })];
 }
 
 export function toRubricsById(rows: RubricRow[]): RubricsById {
@@ -294,7 +294,7 @@ export async function loadRubricRows(
 	{ db = defaultDb }: { db?: Kysely<Database> } = {},
 ): Promise<RubricRow[]> {
 	"use cache";
-	cacheTags(...rubricCacheTags());
+	cacheTags(...rubricCacheTags({ gridId }));
 	cacheLife("definitions");
 	return loadRubricRowsFromDb(db, { gridId });
 }

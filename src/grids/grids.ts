@@ -57,7 +57,7 @@ async function loadGridCached(
 	publicId: string,
 ): Promise<GridSummary | undefined> {
 	"use cache";
-	cacheTags(gridListCacheTag(), gridCacheTag(publicId));
+	cacheTags(gridListCacheTag(), gridCacheTag({ gridId: publicId }));
 	cacheLife("directory");
 
 	const row = await database
