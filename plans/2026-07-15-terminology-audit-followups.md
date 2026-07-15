@@ -11,9 +11,11 @@ After #99 closed (2026-07-14), a repo-wide audit checked that the terminology sw
 
 ## Work streams
 
-Four independent streams — no ordering constraints between them; each is separately reviewable and shippable. Streams A and B are one PR each. Stream C is GitHub-only (no PR). Stream D is deferred to issue #288 (see Open questions).
+Four independent streams — no ordering constraints between them; each is separately reviewable and shippable. Streams A and B are one PR each (**A completed via #287**). Stream C is GitHub-only (no PR). Stream D is deferred to issue #288 (see Open questions).
 
 ### Stream A — docs fixes (one PR, no code)
+
+**Completed 2026-07-15: merged via [#287](https://github.com/QuentinRoy/tardigrade/pull/287).** The bullets below are kept as the historical record of what was fixed.
 
 Three documents contain stale prose the sweep's stage-9 doc audit missed. All are prose-only edits; no code, schema, or UI changes, so the validation gate is `pnpm run check --fix` (markdown lint) only.
 
