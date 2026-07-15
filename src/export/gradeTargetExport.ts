@@ -6,7 +6,7 @@ import { attachGrade, markCriterion } from "#criteria/criterion.ts";
 import type { CriterionGrade, GradedCriterion } from "#criteria/types.ts";
 import type { Database } from "#db/generated/database.ts";
 import { database as defaultDb } from "#db/kysely.ts";
-import type { GradeTargetSubmitter } from "#grade-targets/types.ts";
+import type { GradeTargetIdentity } from "#grade-targets/types.ts";
 import { loadRubricRowsFromDb, toCriterion } from "#rubrics/rubrics.ts";
 import { assertNever } from "#utils/utils.ts";
 import {
@@ -27,12 +27,12 @@ import {
 	groupGradeTargetRows,
 } from "./gradeTargetExportGrouping.ts";
 
-function toGradeTargetSubmitter(params: {
+function toGradeTargetIdentity(params: {
 	id: string;
 	kind: "group" | "individual";
 	groupName: string | null;
 	studentId: string | null;
-}): GradeTargetSubmitter {
+}): GradeTargetIdentity {
 	if (params.kind === "group") {
 		if (params.groupName == null || params.groupName.length === 0) {
 			throw new Error(
@@ -208,7 +208,7 @@ export async function createGradeTargetExport(
 		group: GroupedGradeTargetRow,
 	): GradeTargetExportDataRow {
 		return {
-			target: toGradeTargetSubmitter({
+			target: toGradeTargetIdentity({
 				id: group.gradeTargetId,
 				kind: group.gradeTargetKind,
 				groupName: group.groupName,

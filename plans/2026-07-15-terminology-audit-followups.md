@@ -1,9 +1,10 @@
 # Terminology audit follow-ups: close the gaps the sweep left behind
 
-- **Status:** Active
+- **Status:** Completed
 - **Created:** 2026-07-15
 - **Origin:** post-closure audit of #99; `plans/2026-07-06-terminology-sweep.md` (Completed), `CONTEXT.md`, `docs/reference/lexicon.md`
 - **Tracked by:** #285
+- **Implemented by:** #287 (Stream A), #289 (Stream B), Stream C (issue triage, no PR), #290 (Stream D)
 
 After #99 closed (2026-07-14), a repo-wide audit checked that the terminology sweep left nothing behind. The sweep landed thoroughly in code, UI, routes, DB schema, GitHub labels, and the main docs — but the audit found six gaps, none release-blocking, all worth closing so retired vocabulary stops leaking back through docs, tests, and old issues. This plan records the findings with enough context to execute each work stream independently, plus what was checked and deliberately *not* flagged (so future audits don't re-litigate it).
 
@@ -11,7 +12,7 @@ After #99 closed (2026-07-14), a repo-wide audit checked that the terminology sw
 
 ## Work streams
 
-Four independent streams — no ordering constraints between them; each is separately reviewable and shippable. Streams A and B are one PR each (**A completed via #287**). Stream C is GitHub-only (no PR). Stream D is deferred to issue #288 (see Open questions).
+Four independent streams — no ordering constraints between them; each is separately reviewable and shippable. Streams A and B are one PR each (**A completed via #287**, **B completed via #289**). Stream C is GitHub-only (no PR, **completed**). Stream D was deferred to issue #288, then **completed via #290** (see Open questions).
 
 ### Stream A — docs fixes (one PR, no code)
 
@@ -32,6 +33,8 @@ Three documents contain stale prose the sweep's stage-9 doc audit missed. All ar
    - If any of these corrections raises a genuine glossary question rather than a factual fix, use the domain-modeling skill and update `CONTEXT.md` inline — but none is expected to; the glossary entries (Value, Total) are already final.
 
 ### Stream B — test/fixture/comment/identifier sweep (one PR, behavior-preserving)
+
+**Completed 2026-07-15: merged via [#289](https://github.com/QuentinRoy/tardigrade/pull/289).** The bullets below are kept as the historical record of what was found and swept.
 
 Retired criterion-kind vocabulary (`boolean`/`ordinal`/`numerical`, and "type" as the classifier) survives in test names, fixture keys, sample ids, sample labels, and production comments/error strings/identifiers. The original audit's premise — "identifiers in shipped code all moved in sweep stage 2a/2b" — turned out to be **only partially true**: a 2026-07-15 grilling/domain-modeling session held before executing this stream re-verified it with a repo-wide grep and found retired vocabulary still in *production* function, variable, and field names across grading, rubric-management, and imports, plus a third shared test fixture file the original audit missed entirely. Everything below (including the 2026-07-15 additions, each marked) is behavior-preserving renaming — no schema, route, or UI change.
 
@@ -85,34 +88,36 @@ Retired criterion-kind vocabulary (`boolean`/`ordinal`/`numerical`, and "type" a
 
 ### Stream C — GitHub issue triage (no PR)
 
+**Completed 2026-07-15** (2026-07-15 grilling/domain-modeling session): all 20 issues below were retitled to current vocabulary with a clarifying comment (retitle + comment, per the recommended treatment — bodies left as historical record); #90 was closed as obsolete (its target surface, the "Class average" strip, was removed in sweep stage 1, and the surviving Criterion Analytics average already excludes unassessed grades correctly — verified against `src/results/resultsBuilder.ts` before closing); #108's title was already current, comment-only. No umbrella tracking issue was created — tracked here in the plan instead. The bullets below are kept as the historical record of what was found; new titles are noted inline.
+
 ~20 open issues predate the sweep and use retired vocabulary. Because `rubric` and `question` changed meaning, several are now **actively inverted** — an agent or contributor reading them today would build the wrong thing (AGENTS.md routes agents to issues as work input, which is what makes this the highest-risk finding). Follow `docs/guides/issue-and-pr-conventions.md`; per AGENTS.md, do not touch milestones, priorities, or project boards.
 
 **Suggested treatment per issue:** retitle to current vocabulary + add one clarifying comment ("Terminology updated after #99: this issue's original text used X for what is now Y; body references may cite renamed files"), rather than silently rewriting bodies — bodies are historical discussion context, and dead file paths in them are discoverable via the comment. *Open decision for the user before executing: retitle+comment (recommended) vs. full body rewrite.* Re-check each issue's premise against current code while touching it — some may be obsolete, not just misworded.
 
 Inventory (state at audit time, 2026-07-15):
 
-| Issue | Problem | Notes |
-| --- | --- | --- |
-| #50 "Add destructive confirmation when deleting rubrics" | **Inverted**: "rubrics" = today's **criteria**; body cites dead `src/questions/RubricEditorList.tsx` and says "question deletion" has the confirmation dialog (that is today's *rubric* deletion, `DeleteRubricDialog`) | Verify whether criterion removal in the rubric editor still lacks confirmation before retitling |
-| #66 "Allow reordering rubrics within questions" | **Inverted**: means criteria within rubrics | |
-| #6 "…question/rubric visibility filtering" | **Inverted**: means rubric/criterion | |
-| #37 "…YAML editor for importing questions and editing rubrics" | **Partially inverted** | |
-| #111 "Question YAML import preview…" | Stale: Question → Rubric | Part of the #108 preview family |
-| #44 "Add rating rubric type" | Two rejected words: "rating" is on the Criterion entry's _Avoid_ list (scale/rating/levels imply an order the model doesn't have), classifier is "kind" | Retitle needs care: the *feature* may still be wanted; name it per what it actually proposes (likely an Options-kind preset or a new kind) |
-| #90 "Ignore unassessed submissions in rubric overview class average" | Four retired terms **and a deleted premise**: the "Class average" summary strip was removed in sweep stage 1 (PR #245) | **Re-triage, not reword**: check whether any surviving surface (Criterion Analytics per-criterion averages) still has the reported problem; close as obsolete otherwise. *User decision.* |
-| #89 "Make submission matrix entries navigate to assessments" | Stale: Grades table / grading pages | |
-| #79 "Add total average rows to submission matrix and rubric analysis" | Stale: Grades table / Criterion Analytics | |
-| #173 "assessments: round displayed total grade" | Stale + vocabulary violation: the aggregate is **Total**, never "grade" | |
-| #109 "Assessment CSV import preview…" | Stale: Grades CSV | Part of the #108 family |
-| #86 "Centralize user-facing assessment messages for i18n…" | Stale: grade messages | |
-| #84 "Assessment save errors are not visible on iPad" | Stale: grade save errors | |
-| #92 "…manual apply-defaults action for rubric assessment" | Stale: grading | |
-| #61 "Dynamic assessment target creation during grading" | Stale: Grade Target (code-only word — title should name Student/Group creation) | Linked from CONTEXT.md's Grade Target entry; keep the link intact |
-| #43 "…viewing student work alongside assessment" | Stale: grading | |
-| #133 "batch assessment saves during import" | Stale: grade saves | |
-| #38 "Remove implicit default project behavior" | Stale: grid | Verify premise still exists |
-| #12 "Add portable project import/export…" | Stale: grid | |
-| #108 "Preview and configure imports before applying changes" | Body likely stale (umbrella for #109/#110/#111) | Title itself is clean |
+| Issue | Problem | Notes | Outcome (2026-07-15) |
+| --- | --- | --- | --- |
+| #50 "Add destructive confirmation when deleting rubrics" | **Inverted**: "rubrics" = today's **criteria**; body cites dead `src/questions/RubricEditorList.tsx` and says "question deletion" has the confirmation dialog (that is today's *rubric* deletion, `DeleteRubricDialog`) | Verify whether criterion removal in the rubric editor still lacks confirmation before retitling | Verified: criterion delete has no confirmation, rubric delete already does. Retitled "Add destructive confirmation when deleting criteria" + comment |
+| #66 "Allow reordering rubrics within questions" | **Inverted**: means criteria within rubrics | | Retitled "Allow reordering criteria within rubrics" + comment |
+| #6 "…question/rubric visibility filtering" | **Inverted**: means rubric/criterion | | Retitled "Add focused grading workflow through rubric/criterion visibility filtering" + comment |
+| #37 "…YAML editor for importing questions and editing rubrics" | **Partially inverted** | | Retitled "Add schema-aware YAML editor for importing rubrics and editing criteria" + comment (also flagged stale MUI refs, out of scope) |
+| #111 "Question YAML import preview…" | Stale: Question → Rubric | Part of the #108 preview family | Retitled "Rubric YAML import preview and structural diff" + comment |
+| #44 "Add rating rubric type" | Two rejected words: "rating" is on the Criterion entry's _Avoid_ list (scale/rating/levels imply an order the model doesn't have), classifier is "kind" | Retitle needs care: the *feature* may still be wanted; name it per what it actually proposes (likely an Options-kind preset or a new kind) | Retitled "Add rating criterion kind" + comment; "rating" itself left untouched on the user's call (it names Mantine's `Rating` widget, and re-scoping isn't this stream's job) |
+| #90 "Ignore unassessed submissions in rubric overview class average" | Four retired terms **and a deleted premise**: the "Class average" summary strip was removed in sweep stage 1 (PR #245) | **Re-triage, not reword**: check whether any surviving surface (Criterion Analytics per-criterion averages) still has the reported problem; close as obsolete otherwise. *User decision.* | Verified against `resultsBuilder.ts`: Criterion Analytics' average already excludes unassessed grades from both numerator and denominator. Closed as obsolete + comment |
+| #89 "Make submission matrix entries navigate to assessments" | Stale: Grades table / grading pages | | Retitled "Make Grades table entries navigate to grading pages" + comment |
+| #79 "Add total average rows to submission matrix and rubric analysis" | Stale: Grades table / Criterion Analytics | | Retitled "Add total average rows to Grades table and Criterion Analytics" + comment |
+| #173 "assessments: round displayed total grade" | Stale + vocabulary violation: the aggregate is **Total**, never "grade" | | Retitled "grading: round displayed Total" + comment |
+| #109 "Assessment CSV import preview…" | Stale: Grades CSV | Part of the #108 family | Retitled "Grade CSV import preview and column mapping" + comment |
+| #86 "Centralize user-facing assessment messages for i18n…" | Stale: grade messages | | Retitled "Centralize user-facing grade messages for i18n readiness" + comment |
+| #84 "Assessment save errors are not visible on iPad" | Stale: grade save errors | | Retitled "Grade save errors are not visible on iPad" + comment |
+| #92 "…manual apply-defaults action for rubric assessment" | Stale: grading | | Retitled "Consider manual apply-defaults action during rubric grading" + comment |
+| #61 "Dynamic assessment target creation during grading" | Stale: Grade Target (code-only word — title should name Student/Group creation) | Linked from CONTEXT.md's Grade Target entry; keep the link intact | Retitled "Dynamic student/group creation during grading" + comment; verified the `#61` link in CONTEXT.md is number-based, unaffected by the retitle. Verified no dynamic creation exists yet — issue remains fully open |
+| #43 "…viewing student work alongside assessment" | Stale: grading | | Retitled "Explore importing and viewing student work alongside grading" + comment |
+| #133 "batch assessment saves during import" | Stale: grade saves | | Retitled "import-export: batch grade saves during import" + comment |
+| #38 "Remove implicit default project behavior" | Stale: grid | Verify premise still exists | Verified: implicit default-grid *selection* still exists (`app/page.tsx:7-15`); no implicit creation. Retitled "Remove implicit default grid behavior" + comment |
+| #12 "Add portable project import/export…" | Stale: grid | | Retitled "Add portable grid import/export and backup format" + comment |
+| #108 "Preview and configure imports before applying changes" | Body likely stale (umbrella for #109/#110/#111) | Title itself is clean | Comment only, noting the sub-issues' old titles in its body now map to #109/#111's new titles |
 
 Issues checked and *clean or already tracked*: #278 (ADR 0010 staleness — filed by the sweep itself), #132, #283, #273, #267, #243, #45, #47, #110 and the rest of the open list use current vocabulary in their titles (bodies not exhaustively audited — spot-check while triaging anything you touch).
 
@@ -122,11 +127,13 @@ Issues checked and *clean or already tracked*: #278 (ADR 0010 staleness — file
 
 ### Stream D — `GradeTargetSubmitter` (decision, then a small PR or a deferral)
 
+**Completed 2026-07-15: merged via [#290](https://github.com/QuentinRoy/tardigrade/pull/290).** The bullets below are kept as the historical record of the original finding and decision.
+
 `src/grade-targets/types.ts` exports `GradeTargetSubmitter` (~line 41), consumed by `src/export/gradeTargetExport.ts`, `gradeTargetExportCsv.ts`, and their tests. "Submitter" is the retired submission-family word — sweep stage 4 renamed the grades-CSV `submitter` column to `name` but this type kept the word. An existing `FIXME` in the same file (~line 18) already flags the type design as awkward independently of naming: the `GradeTargetDisplay` part is UI-facing and arguably misplaced, `GradeTarget` vs `GradeTargetSubmitter` is unclear, and the types should derive from the generated Kysely types (`Selectable`) per the Schema Alignment Rule.
 
 **Decision for the user:** (a) quick rename now (something like `GradeTargetIdentity` — it carries the student id / group name used for export matching; pick the name against `CONTEXT.md`, and note bare "target" is on the _Avoid_ list) leaving the FIXME's structural cleanup for later, or (b) resolve the FIXME properly in one go (restructure + derive from generated types + the rename falls out), or (c) file an issue and defer. Option (a) folded into stream B is the cheapest way to finish the vocabulary; option (b) is a genuinely separate design task — if chosen, it likely warrants its own short grilling session first.
 
-**Decided 2026-07-15: option (c)** — deferred to issue [#288](https://github.com/QuentinRoy/tardigrade/issues/288). Not part of Stream B's execution; `GradeTargetSubmitter` is left untouched for now.
+**Decided 2026-07-15: option (c)** — deferred to issue [#288](https://github.com/QuentinRoy/tardigrade/issues/288), not folded into Stream B's execution. A later grilling/domain-modeling session on #288 chose option (b) (full FIXME resolution, not just the rename): `GradeTargetSubmitter` → `GradeTargetIdentity`, and `GradeTargetBase` now derives `id`/`kind` from `Selectable<Database["gradeTarget"]>` instead of a hand-written duplicate. Landed via [#290](https://github.com/QuentinRoy/tardigrade/pull/290).
 
 ## Checked and deliberately NOT flagged
 
@@ -149,10 +156,10 @@ GitHub labels renamed (`grading` created, `rubrics` redescribed; no `assessment`
 
 ## Open questions (resolve with the user before or during execution)
 
-1. **Stream C treatment:** retitle + clarifying comment (recommended) vs. full body rewrites.
-2. **Tracking:** one umbrella issue for this plan (sweep precedent) vs. per-stream issues vs. none.
-3. **#90:** close as obsolete (its target surface was deleted in stage 1) or re-scope to Criterion Analytics.
-4. **Stream D:** quick rename, full FIXME resolution, or defer via issue. **Resolved 2026-07-15: deferred via issue [#288](https://github.com/QuentinRoy/tardigrade/issues/288).**
+1. **Stream C treatment:** retitle + clarifying comment (recommended) vs. full body rewrites. **Resolved 2026-07-15: retitle + comment**, applied to all 20 issues.
+2. **Tracking:** one umbrella issue for this plan (sweep precedent) vs. per-stream issues vs. none. **Resolved 2026-07-15: tracked in this plan doc**, no new GitHub tracking issue created for Stream C.
+3. **#90:** close as obsolete (its target surface was deleted in stage 1) or re-scope to Criterion Analytics. **Resolved 2026-07-15: closed as obsolete**, verified against `resultsBuilder.ts`.
+4. **Stream D:** quick rename, full FIXME resolution, or defer via issue. **Resolved 2026-07-15: deferred via issue [#288](https://github.com/QuentinRoy/tardigrade/issues/288)**, which itself resolved to full FIXME resolution, **completed via [#290](https://github.com/QuentinRoy/tardigrade/pull/290)**.
 
 ## Out of scope
 

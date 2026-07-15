@@ -1,9 +1,12 @@
+import type { Selectable } from "kysely";
+import type { Database } from "#db/generated/database.ts";
 import type { GradeTargetKind } from "#db/generated/public/GradeTargetKind.ts";
 import type { Simplify } from "#utils/utils.ts";
 
 export type { GradeTargetKind };
 
-type GradeTargetBase = { id: string; kind: GradeTargetKind };
+// Native grade_target columns, shared by the display and identity shapes below.
+type GradeTargetBase = Pick<Selectable<Database["gradeTarget"]>, "id" | "kind">;
 
 type GradeTargetDisplay = {
 	displayLabel?: string | undefined;
@@ -15,11 +18,8 @@ type GradeTargetDisplay = {
 	searchKeys?: string[] | undefined;
 };
 
-// FIXME: GradeTargetDisplay part doesn't seem like it belongs here
-// since it's mostly UI facing. GradeTarget vs GradeTargetSubmitter
-// is awkward (unclear what's what). Also we should strive
-// to derive from Kysely types (e.g. using Selectable) instead of
-// defining new ones.
+// UI-facing shape: label, slug, and search metadata for rendering a grade
+// target in lists and pickers.
 export type GradeTarget =
 	| Simplify<
 			GradeTargetDisplay &
@@ -38,7 +38,11 @@ export type GradeTarget =
 				}
 	  >;
 
-export type GradeTargetSubmitter =
+// Identity-only shape: which student or group a grade target belongs to.
+// studentId/groupName come from joining the student/group tables in queries,
+// not from native grade_target columns, so they're hand-written here rather
+// than derived from Selectable<Database["gradeTarget"]>.
+export type GradeTargetIdentity =
 	| Simplify<
 			GradeTargetBase & {
 				kind: "individual";

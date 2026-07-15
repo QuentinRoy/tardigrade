@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { GradeTargetSubmitter } from "#grade-targets/types.ts";
+import type { GradeTargetIdentity } from "#grade-targets/types.ts";
 import {
 	buildGradeTargetExportHeaders,
 	buildGradeTargetExportRecord,
@@ -156,13 +156,13 @@ describe("grade target CSV ordering", () => {
 	});
 
 	it("requires student id for individual targets at the type level", () => {
-		type IndividualSubmitter = Extract<
-			GradeTargetSubmitter,
+		type IndividualIdentity = Extract<
+			GradeTargetIdentity,
 			{ kind: "individual" }
 		>;
 
 		// @ts-expect-error missing studentId for individual grade target
-		const _invalidIndividualSubmitter: IndividualSubmitter = {
+		const _invalidIndividualIdentity: IndividualIdentity = {
 			id: "t-ind-1",
 			kind: "individual",
 		};
