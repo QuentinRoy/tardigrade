@@ -237,21 +237,21 @@ async function addNumberGrade(
 		.execute();
 }
 
-test("loadCriterionGradeRecordsFromDb maps the per-type value column for boolean, ordinal and numerical grades", async () => {
+test("loadCriterionGradeRecordsFromDb maps the per-kind value column for check, options and number grades", async () => {
 	await using db = await createTestDb();
 	await using grid = await createGrid(db, "Rubric Overview Types");
 
 	const target = await createGradeTarget(db, grid.rowId);
 	const rubricRowId = await createRubric(db, grid.rowId, buildTestId("rubric"));
 
-	const booleanRubricId = buildTestId("rubric-boolean");
-	const optionsCriterionId = buildTestId("rubric-ordinal");
-	const numericalRubricId = buildTestId("rubric-numerical");
+	const checkCriterionId = buildTestId("criterion-check");
+	const optionsCriterionId = buildTestId("criterion-options");
+	const numberCriterionId = buildTestId("criterion-number");
 
 	const checkCriterionRowId = await createCheckCriterion(db, {
 		gridRowId: grid.rowId,
 		rubricRowId,
-		criterionId: booleanRubricId,
+		criterionId: checkCriterionId,
 	});
 	const optionsCriterionRowId = await createOptionsCriterion(db, {
 		gridRowId: grid.rowId,
@@ -261,7 +261,7 @@ test("loadCriterionGradeRecordsFromDb maps the per-type value column for boolean
 	const numberCriterionRowId = await createNumberCriterion(db, {
 		gridRowId: grid.rowId,
 		rubricRowId,
-		criterionId: numericalRubricId,
+		criterionId: numberCriterionId,
 	});
 
 	await addCheckGrade(db, {
@@ -290,9 +290,9 @@ test("loadCriterionGradeRecordsFromDb maps the per-type value column for boolean
 		records.map((record) => [record.criterionId, record]),
 	);
 
-	expect(byCriterionId.get(booleanRubricId)).toEqual({
+	expect(byCriterionId.get(checkCriterionId)).toEqual({
 		gradeTargetId: target.id,
-		criterionId: booleanRubricId,
+		criterionId: checkCriterionId,
 		kind: "check",
 		passed: true,
 		selectedLabel: null,
@@ -306,9 +306,9 @@ test("loadCriterionGradeRecordsFromDb maps the per-type value column for boolean
 		selectedLabel: "high",
 		value: null,
 	});
-	expect(byCriterionId.get(numericalRubricId)).toEqual({
+	expect(byCriterionId.get(numberCriterionId)).toEqual({
 		gradeTargetId: target.id,
-		criterionId: numericalRubricId,
+		criterionId: numberCriterionId,
 		kind: "number",
 		passed: null,
 		selectedLabel: null,

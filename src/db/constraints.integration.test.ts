@@ -5,7 +5,7 @@ import { buildTestId, createTestDb } from "#test/dbIntegration.ts";
 import { createGrid } from "#test/grids.ts";
 import type { Database } from "./generated/database.ts";
 
-type CriterionRowIds = { boolean: number; ordinal: number; numerical: number };
+type CriterionRowIds = { check: number; options: number; number: number };
 
 type GradeConstraintFixture = {
 	optionsCriterionGradeIds: { primary: number; secondary: number };
@@ -47,27 +47,27 @@ async function createGradeConstraintFixture(
 		.values([
 			{
 				gridRowId: gridRowId,
-				id: buildTestId("criterion-boolean"),
+				id: buildTestId("criterion-check"),
 				rubricId: rubric.rowId,
 				kind: "check",
 				position: 0,
-				label: "Boolean criterion",
+				label: "Check criterion",
 			},
 			{
 				gridRowId: gridRowId,
-				id: buildTestId("criterion-ordinal"),
+				id: buildTestId("criterion-options"),
 				rubricId: rubric.rowId,
 				kind: "options",
 				position: 1,
-				label: "Ordinal criterion",
+				label: "Options criterion",
 			},
 			{
 				gridRowId: gridRowId,
-				id: buildTestId("criterion-numerical"),
+				id: buildTestId("criterion-number"),
 				rubricId: rubric.rowId,
 				kind: "number",
 				position: 2,
-				label: "Numerical criterion",
+				label: "Number criterion",
 			},
 		])
 		.returning(["id", "rowId", "kind"])
@@ -187,17 +187,17 @@ async function createGradeConstraintFixture(
 		(criterionGrade) => criterionGrade.criterionId === numberCriterionId,
 	);
 
-	const [ordinalPrimary, ordinalSecondary] = optionsCriterionGrades;
-	const [numericalPrimary, numericalSecondary] = numberCriterionGrades;
+	const [optionsPrimary, optionsSecondary] = optionsCriterionGrades;
+	const [numberPrimary, numberSecondary] = numberCriterionGrades;
 
 	if (
-		ordinalPrimary == null ||
-		ordinalSecondary == null ||
-		numericalPrimary == null ||
-		numericalSecondary == null
+		optionsPrimary == null ||
+		optionsSecondary == null ||
+		numberPrimary == null ||
+		numberSecondary == null
 	) {
 		throw new Error(
-			"Expected criterion grade rows for ordinal and numerical criteria.",
+			"Expected criterion grade rows for options and number criteria.",
 		);
 	}
 
@@ -229,12 +229,12 @@ async function createGradeConstraintFixture(
 
 	return {
 		optionsCriterionGradeIds: {
-			primary: ordinalPrimary.id,
-			secondary: ordinalSecondary.id,
+			primary: optionsPrimary.id,
+			secondary: optionsSecondary.id,
 		},
 		numberCriterionGradeIds: {
-			primary: numericalPrimary.id,
-			secondary: numericalSecondary.id,
+			primary: numberPrimary.id,
+			secondary: numberSecondary.id,
 		},
 	};
 }
@@ -274,27 +274,27 @@ async function createSubtypeConstraintFixture(
 		.values([
 			{
 				gridRowId: gridRowId,
-				id: buildTestId("subtype-criterion-boolean"),
+				id: buildTestId("subtype-criterion-check"),
 				rubricId: rubric.rowId,
 				kind: "check",
 				position: 0,
-				label: "Subtype boolean criterion",
+				label: "Subtype check criterion",
 			},
 			{
 				gridRowId: gridRowId,
-				id: buildTestId("subtype-criterion-ordinal"),
+				id: buildTestId("subtype-criterion-options"),
 				rubricId: rubric.rowId,
 				kind: "options",
 				position: 1,
-				label: "Subtype ordinal criterion",
+				label: "Subtype options criterion",
 			},
 			{
 				gridRowId: gridRowId,
-				id: buildTestId("subtype-criterion-numerical"),
+				id: buildTestId("subtype-criterion-number"),
 				rubricId: rubric.rowId,
 				kind: "number",
 				position: 2,
-				label: "Subtype numerical criterion",
+				label: "Subtype number criterion",
 			},
 		])
 		.returning(["kind", "rowId"])
@@ -319,15 +319,15 @@ async function createSubtypeConstraintFixture(
 	}
 
 	return {
-		boolean: checkCriterionId,
-		ordinal: optionsCriterionId,
-		numerical: numberCriterionId,
+		check: checkCriterionId,
+		options: optionsCriterionId,
+		number: numberCriterionId,
 	};
 }
 
-test("ordinal criterion grades accept valid labels and roll back failed transactional writes", async () => {
+test("options criterion grades accept valid labels and roll back failed transactional writes", async () => {
 	await using db = await createTestDb();
-	await using grid = await createGrid(db, "Constraint Ordinal Grid");
+	await using grid = await createGrid(db, "Constraint Options Grid");
 	const fixture = await createGradeConstraintFixture(db, grid.id);
 
 	await db
@@ -376,9 +376,9 @@ test("ordinal criterion grades accept valid labels and roll back failed transact
 	]);
 });
 
-test("numerical criterion grades enforce value bounds and roll back failed transactional writes", async () => {
+test("number criterion grades enforce value bounds and roll back failed transactional writes", async () => {
 	await using db = await createTestDb();
-	await using grid = await createGrid(db, "Constraint Numerical Grid");
+	await using grid = await createGrid(db, "Constraint Number Grid");
 	const fixture = await createGradeConstraintFixture(db, grid.id);
 
 	await db
@@ -528,20 +528,20 @@ test("criterion subtype triggers reject mismatched subtype rows and roll back tr
 
 	await db
 		.insertInto("checkCriterion")
-		.values({ criterionId: criterionRowIds.boolean, marks: 2, falseMarks: 0 })
+		.values({ criterionId: criterionRowIds.check, marks: 2, falseMarks: 0 })
 		.execute();
 
 	await expect(
 		db.transaction().execute(async (trx) => {
 			await trx
 				.insertInto("optionsCriterion")
-				.values({ criterionId: criterionRowIds.ordinal })
+				.values({ criterionId: criterionRowIds.options })
 				.execute();
 
 			await trx
 				.insertInto("checkCriterion")
 				.values({
-					criterionId: criterionRowIds.ordinal,
+					criterionId: criterionRowIds.options,
 					marks: 2,
 					falseMarks: 0,
 				})
@@ -549,42 +549,39 @@ test("criterion subtype triggers reject mismatched subtype rows and roll back tr
 		}),
 	).rejects.toThrow("requires Criterion.kind check");
 
-	const booleanRows = await db
+	const checkRows = await db
 		.selectFrom("checkCriterion")
 		.select("criterionId")
-		.where("criterionId", "=", criterionRowIds.ordinal)
+		.where("criterionId", "=", criterionRowIds.options)
 		.execute();
 
-	const ordinalRows = await db
+	const optionsRows = await db
 		.selectFrom("optionsCriterion")
 		.select("criterionId")
-		.where("criterionId", "=", criterionRowIds.ordinal)
+		.where("criterionId", "=", criterionRowIds.options)
 		.execute();
 
-	const baselineBooleanRows = await db
+	const baselineCheckRows = await db
 		.selectFrom("checkCriterion")
 		.select("criterionId")
-		.where("criterionId", "=", criterionRowIds.boolean)
+		.where("criterionId", "=", criterionRowIds.check)
 		.execute();
 
-	expect(booleanRows).toHaveLength(0);
-	expect(ordinalRows).toHaveLength(0);
-	expect(baselineBooleanRows).toHaveLength(1);
+	expect(checkRows).toHaveLength(0);
+	expect(optionsRows).toHaveLength(0);
+	expect(baselineCheckRows).toHaveLength(1);
 });
 
-test("numerical criterion value range check rejects a collapsed or inverted range and rolls back transactional writes", async () => {
+test("number criterion value range check rejects a collapsed or inverted range and rolls back transactional writes", async () => {
 	await using db = await createTestDb();
-	await using grid = await createGrid(
-		db,
-		"Constraint Numerical Value Range Grid",
-	);
+	await using grid = await createGrid(db, "Constraint Number Value Range Grid");
 	const criterionRowIds = await createSubtypeConstraintFixture(db, grid.id);
 
 	await expect(
 		db
 			.insertInto("numberCriterion")
 			.values({
-				criterionId: criterionRowIds.numerical,
+				criterionId: criterionRowIds.number,
 				minValue: 5,
 				maxValue: 5,
 				minMarks: 0,
@@ -598,7 +595,7 @@ test("numerical criterion value range check rejects a collapsed or inverted rang
 		db
 			.insertInto("numberCriterion")
 			.values({
-				criterionId: criterionRowIds.numerical,
+				criterionId: criterionRowIds.number,
 				minValue: 10,
 				maxValue: 5,
 				minMarks: 0,
@@ -611,25 +608,22 @@ test("numerical criterion value range check rejects a collapsed or inverted rang
 	const persisted = await db
 		.selectFrom("numberCriterion")
 		.select("criterionId")
-		.where("criterionId", "=", criterionRowIds.numerical)
+		.where("criterionId", "=", criterionRowIds.number)
 		.execute();
 
 	expect(persisted).toHaveLength(0);
 });
 
-test("numerical criterion marks range check rejects inverted marks and rolls back transactional writes", async () => {
+test("number criterion marks range check rejects inverted marks and rolls back transactional writes", async () => {
 	await using db = await createTestDb();
-	await using grid = await createGrid(
-		db,
-		"Constraint Numerical Marks Range Grid",
-	);
+	await using grid = await createGrid(db, "Constraint Number Marks Range Grid");
 	const criterionRowIds = await createSubtypeConstraintFixture(db, grid.id);
 
 	await expect(
 		db
 			.insertInto("numberCriterion")
 			.values({
-				criterionId: criterionRowIds.numerical,
+				criterionId: criterionRowIds.number,
 				minValue: 0,
 				maxValue: 10,
 				minMarks: 10,
@@ -642,7 +636,7 @@ test("numerical criterion marks range check rejects inverted marks and rolls bac
 	await db
 		.insertInto("numberCriterion")
 		.values({
-			criterionId: criterionRowIds.numerical,
+			criterionId: criterionRowIds.number,
 			minValue: 0,
 			maxValue: 10,
 			minMarks: 5,
@@ -654,7 +648,7 @@ test("numerical criterion marks range check rejects inverted marks and rolls bac
 	const persisted = await db
 		.selectFrom("numberCriterion")
 		.select(["criterionId", "minMarks", "maxMarks"])
-		.where("criterionId", "=", criterionRowIds.numerical)
+		.where("criterionId", "=", criterionRowIds.number)
 		.execute();
 
 	const normalizedPersisted = persisted.map((row) => ({
@@ -664,6 +658,6 @@ test("numerical criterion marks range check rejects inverted marks and rolls bac
 	}));
 
 	expect(normalizedPersisted).toEqual([
-		{ criterionId: criterionRowIds.numerical, minMarks: 5, maxMarks: 5 },
+		{ criterionId: criterionRowIds.number, minMarks: 5, maxMarks: 5 },
 	]);
 });

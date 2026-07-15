@@ -41,7 +41,7 @@ describe("grade target CSV ordering", () => {
 		{ rubricId: "q2", criteria: [{ criterionId: "r3", grade: 8, marks: 4 }] },
 	];
 
-	const failedBooleanRubrics = [
+	const failedCheckRubrics = [
 		{
 			rubricId: "q1",
 			criteria: [
@@ -111,7 +111,7 @@ describe("grade target CSV ordering", () => {
 		const row = buildGradeTargetExportRecord({
 			row: {
 				target: { id: "t-1", kind: "individual", studentId: "stu-123" },
-				rubrics: failedBooleanRubrics,
+				rubrics: failedCheckRubrics,
 			},
 			options: { includeCriterionGrade: true, includeCriterionMarks: true },
 		});

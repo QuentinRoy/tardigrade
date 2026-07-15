@@ -124,7 +124,7 @@ export async function loadRubricRowsFromDb(
 ): Promise<RubricRow[]> {
 	const gridRowId = await resolveGridRowId(db, gridId);
 
-	const [rubrics, criteria, checkCriterions, numberCriterions, ordinalMarks] =
+	const [rubrics, criteria, checkCriterions, numberCriterions, optionsMarks] =
 		await Promise.all([
 			db
 				.selectFrom("rubric")
@@ -216,16 +216,16 @@ export async function loadRubricRowsFromDb(
 		]),
 	);
 
-	const ordinalMarksByCriterionId = new Map<
+	const optionsMarksByCriterionId = new Map<
 		string,
 		{ label: string; marks: number }[]
 	>();
-	for (const row of ordinalMarks) {
-		const list = ordinalMarksByCriterionId.get(row.criterionId) ?? [];
+	for (const row of optionsMarks) {
+		const list = optionsMarksByCriterionId.get(row.criterionId) ?? [];
 		if (row.label != null && row.marks != null) {
 			list.push({ label: row.label, marks: toNumber(row.marks) });
 		}
-		ordinalMarksByCriterionId.set(row.criterionId, list);
+		optionsMarksByCriterionId.set(row.criterionId, list);
 	}
 
 	const criteriaByRubricId = new Map<
@@ -256,8 +256,8 @@ export async function loadRubricRowsFromDb(
 				description: criterion.description,
 				label: criterion.label,
 				checkCriterion: checkCriterionById.get(criterion.id) ?? null,
-				optionsCriterion: ordinalMarksByCriterionId.has(criterion.id)
-					? { marks: ordinalMarksByCriterionId.get(criterion.id) ?? [] }
+				optionsCriterion: optionsMarksByCriterionId.has(criterion.id)
+					? { marks: optionsMarksByCriterionId.get(criterion.id) ?? [] }
 					: null,
 				numberCriterion: numberCriterionById.get(criterion.id) ?? null,
 			})),

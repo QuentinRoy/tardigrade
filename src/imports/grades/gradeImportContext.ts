@@ -46,13 +46,13 @@ async function loadCriteriaByColumn(
 				id: row.id,
 				kind: row.kind,
 				rubricId: row.rubricId,
-				ordinalLabels: row.label == null ? [] : [row.label],
+				optionsLabels: row.label == null ? [] : [row.label],
 			});
 		} else if (
 			row.label != null &&
-			!existing.ordinalLabels.includes(row.label)
+			!existing.optionsLabels.includes(row.label)
 		) {
-			existing.ordinalLabels.push(row.label);
+			existing.optionsLabels.push(row.label);
 		}
 	}
 

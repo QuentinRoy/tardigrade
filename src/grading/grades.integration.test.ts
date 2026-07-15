@@ -4,7 +4,7 @@ import { saveCriterionGradeInDb } from "#grade-persistence/gradeMutations.ts";
 import { createTestDb } from "#test/dbIntegration.ts";
 import { createGradeFixture } from "#test/grades.ts";
 import { createGrid } from "#test/grids.ts";
-import { createBooleanRubricFixture } from "#test/rubrics.ts";
+import { createCheckRubricFixture } from "#test/rubrics.ts";
 import {
 	loadGradeTargetGrades,
 	loadGradeTargetGradesFromDb,
@@ -42,7 +42,7 @@ test("loadRubricGradeFromDb returns the stored criterion values for a grade targ
 		targetId: fixture.gradeTargetId,
 		rubricId: fixture.rubricId,
 		grade: {
-			criterionId: fixture.criterionIds.boolean,
+			criterionId: fixture.criterionIds.check,
 			kind: "check",
 			passed: true,
 		},
@@ -52,7 +52,7 @@ test("loadRubricGradeFromDb returns the stored criterion values for a grade targ
 		targetId: fixture.gradeTargetId,
 		rubricId: fixture.rubricId,
 		grade: {
-			criterionId: fixture.criterionIds.ordinal,
+			criterionId: fixture.criterionIds.options,
 			kind: "options",
 			selectedLabel: "B",
 		},
@@ -62,7 +62,7 @@ test("loadRubricGradeFromDb returns the stored criterion values for a grade targ
 		targetId: fixture.gradeTargetId,
 		rubricId: fixture.rubricId,
 		grade: {
-			criterionId: fixture.criterionIds.numerical,
+			criterionId: fixture.criterionIds.number,
 			kind: "number",
 			value: 7.5,
 		},
@@ -78,18 +78,18 @@ test("loadRubricGradeFromDb returns the stored criterion values for a grade targ
 		loaded.map((value) => [value.criterionId, value]),
 	);
 
-	expect(byCriterionId.get(fixture.criterionIds.boolean)).toEqual({
-		criterionId: fixture.criterionIds.boolean,
+	expect(byCriterionId.get(fixture.criterionIds.check)).toEqual({
+		criterionId: fixture.criterionIds.check,
 		kind: "check",
 		passed: true,
 	});
-	expect(byCriterionId.get(fixture.criterionIds.ordinal)).toEqual({
-		criterionId: fixture.criterionIds.ordinal,
+	expect(byCriterionId.get(fixture.criterionIds.options)).toEqual({
+		criterionId: fixture.criterionIds.options,
 		kind: "options",
 		selectedLabel: "B",
 	});
-	expect(byCriterionId.get(fixture.criterionIds.numerical)).toEqual({
-		criterionId: fixture.criterionIds.numerical,
+	expect(byCriterionId.get(fixture.criterionIds.number)).toEqual({
+		criterionId: fixture.criterionIds.number,
 		kind: "number",
 		value: 7.5,
 	});
@@ -110,7 +110,7 @@ test("loadRubricGrade wrapper delegates to its primitive and declares its cache 
 		targetId: fixture.gradeTargetId,
 		rubricId: fixture.rubricId,
 		grade: {
-			criterionId: fixture.criterionIds.boolean,
+			criterionId: fixture.criterionIds.check,
 			kind: "check",
 			passed: true,
 		},
@@ -126,7 +126,7 @@ test("loadRubricGrade wrapper delegates to its primitive and declares its cache 
 	);
 
 	expect(loaded).toEqual([
-		{ criterionId: fixture.criterionIds.boolean, kind: "check", passed: true },
+		{ criterionId: fixture.criterionIds.check, kind: "check", passed: true },
 	]);
 
 	const declaredTags = vi.mocked(cacheTag).mock.calls.map((call) => call[0]);
@@ -142,14 +142,14 @@ test("loadGradeTargetGradesFromDb groups a grade target's criterion values by ru
 	const fixture = await createGradeFixture(db, grid.id);
 	// Second rubric on the same target's grid, so the grouping across
 	// rubrics is observable.
-	const secondRubric = await createBooleanRubricFixture(db, grid.rowId, 1);
+	const secondRubric = await createCheckRubricFixture(db, grid.rowId, 1);
 
 	await saveCriterionGradeInDb(db, {
 		gridId: fixture.gridId,
 		targetId: fixture.gradeTargetId,
 		rubricId: fixture.rubricId,
 		grade: {
-			criterionId: fixture.criterionIds.boolean,
+			criterionId: fixture.criterionIds.check,
 			kind: "check",
 			passed: true,
 		},
@@ -159,7 +159,7 @@ test("loadGradeTargetGradesFromDb groups a grade target's criterion values by ru
 		targetId: fixture.gradeTargetId,
 		rubricId: fixture.rubricId,
 		grade: {
-			criterionId: fixture.criterionIds.numerical,
+			criterionId: fixture.criterionIds.number,
 			kind: "number",
 			value: 7.5,
 		},
@@ -185,16 +185,8 @@ test("loadGradeTargetGradesFromDb groups a grade target's criterion values by ru
 	);
 	expect(byRubricId[fixture.rubricId]).toEqual(
 		expect.arrayContaining([
-			{
-				criterionId: fixture.criterionIds.boolean,
-				kind: "check",
-				passed: true,
-			},
-			{
-				criterionId: fixture.criterionIds.numerical,
-				kind: "number",
-				value: 7.5,
-			},
+			{ criterionId: fixture.criterionIds.check, kind: "check", passed: true },
+			{ criterionId: fixture.criterionIds.number, kind: "number", value: 7.5 },
 		]),
 	);
 	expect(byRubricId[secondRubric.rubricId]).toEqual([
@@ -215,7 +207,7 @@ test("loadGradeTargetGrades wrapper delegates to its primitive and declares its 
 		targetId: fixture.gradeTargetId,
 		rubricId: fixture.rubricId,
 		grade: {
-			criterionId: fixture.criterionIds.boolean,
+			criterionId: fixture.criterionIds.check,
 			kind: "check",
 			passed: true,
 		},
@@ -228,11 +220,7 @@ test("loadGradeTargetGrades wrapper delegates to its primitive and declares its 
 
 	expect(loaded).toEqual({
 		[fixture.rubricId]: [
-			{
-				criterionId: fixture.criterionIds.boolean,
-				kind: "check",
-				passed: true,
-			},
+			{ criterionId: fixture.criterionIds.check, kind: "check", passed: true },
 		],
 	});
 
@@ -256,7 +244,7 @@ test("grade reads return nothing when the Grid ID does not match the grade targe
 		targetId: fixture.gradeTargetId,
 		rubricId: fixture.rubricId,
 		grade: {
-			criterionId: fixture.criterionIds.boolean,
+			criterionId: fixture.criterionIds.check,
 			kind: "check",
 			passed: true,
 		},

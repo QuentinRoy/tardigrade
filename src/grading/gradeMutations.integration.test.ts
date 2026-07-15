@@ -37,7 +37,7 @@ async function gradeTargetRowId(
 	return row.rowId;
 }
 
-test("saveCriterionGradeInDb round-trips boolean, ordinal and numerical grades", async () => {
+test("saveCriterionGradeInDb round-trips check, options and number grades", async () => {
 	await using db = await createTestDb();
 	await using grid = await createGrid(db, "Grade Write Grid");
 	const fixture = await createGradeFixture(db, grid.id);
@@ -48,7 +48,7 @@ test("saveCriterionGradeInDb round-trips boolean, ordinal and numerical grades",
 			targetId: fixture.gradeTargetId,
 			rubricId: fixture.rubricId,
 			grade: {
-				criterionId: fixture.criterionIds.boolean,
+				criterionId: fixture.criterionIds.check,
 				kind: "check",
 				passed: true,
 			},
@@ -58,7 +58,7 @@ test("saveCriterionGradeInDb round-trips boolean, ordinal and numerical grades",
 			targetId: fixture.gradeTargetId,
 			rubricId: fixture.rubricId,
 			grade: {
-				criterionId: fixture.criterionIds.ordinal,
+				criterionId: fixture.criterionIds.options,
 				kind: "options",
 				selectedLabel: "B",
 			},
@@ -68,7 +68,7 @@ test("saveCriterionGradeInDb round-trips boolean, ordinal and numerical grades",
 			targetId: fixture.gradeTargetId,
 			rubricId: fixture.rubricId,
 			grade: {
-				criterionId: fixture.criterionIds.numerical,
+				criterionId: fixture.criterionIds.number,
 				kind: "number",
 				value: 7.5,
 			},
@@ -90,26 +90,26 @@ test("saveCriterionGradeInDb round-trips boolean, ordinal and numerical grades",
 		loaded.map((value) => [value.criterionId, value]),
 	);
 
-	expect(byCriterionId.get(fixture.criterionIds.boolean)).toEqual({
-		criterionId: fixture.criterionIds.boolean,
+	expect(byCriterionId.get(fixture.criterionIds.check)).toEqual({
+		criterionId: fixture.criterionIds.check,
 		kind: "check",
 		passed: true,
 	});
-	expect(byCriterionId.get(fixture.criterionIds.ordinal)).toEqual({
-		criterionId: fixture.criterionIds.ordinal,
+	expect(byCriterionId.get(fixture.criterionIds.options)).toEqual({
+		criterionId: fixture.criterionIds.options,
 		kind: "options",
 		selectedLabel: "B",
 	});
-	expect(byCriterionId.get(fixture.criterionIds.numerical)).toEqual({
-		criterionId: fixture.criterionIds.numerical,
+	expect(byCriterionId.get(fixture.criterionIds.number)).toEqual({
+		criterionId: fixture.criterionIds.number,
 		kind: "number",
 		value: 7.5,
 	});
 });
 
-test("saveCriterionGradeInDb returns a validation error for an invalid ordinal label", async () => {
+test("saveCriterionGradeInDb returns a validation error for an invalid options label", async () => {
 	await using db = await createTestDb();
-	await using grid = await createGrid(db, "Grade Ordinal Error Grid");
+	await using grid = await createGrid(db, "Grade Options Error Grid");
 	const fixture = await createGradeFixture(db, grid.id);
 
 	const result = await saveCriterionGradeInDb(db, {
@@ -117,7 +117,7 @@ test("saveCriterionGradeInDb returns a validation error for an invalid ordinal l
 		targetId: fixture.gradeTargetId,
 		rubricId: fixture.rubricId,
 		grade: {
-			criterionId: fixture.criterionIds.ordinal,
+			criterionId: fixture.criterionIds.options,
 			kind: "options",
 			selectedLabel: "Z",
 		},
@@ -130,9 +130,9 @@ test("saveCriterionGradeInDb returns a validation error for an invalid ordinal l
 	});
 });
 
-test("saveCriterionGradeInDb returns a validation error for an out-of-range numerical value", async () => {
+test("saveCriterionGradeInDb returns a validation error for an out-of-range number value", async () => {
 	await using db = await createTestDb();
-	await using grid = await createGrid(db, "Grade Numerical Error Grid");
+	await using grid = await createGrid(db, "Grade Number Error Grid");
 	const fixture = await createGradeFixture(db, grid.id);
 
 	const result = await saveCriterionGradeInDb(db, {
@@ -140,7 +140,7 @@ test("saveCriterionGradeInDb returns a validation error for an out-of-range nume
 		targetId: fixture.gradeTargetId,
 		rubricId: fixture.rubricId,
 		grade: {
-			criterionId: fixture.criterionIds.numerical,
+			criterionId: fixture.criterionIds.number,
 			kind: "number",
 			value: 11,
 		},
@@ -159,9 +159,9 @@ test("saveCriterionGradeInDb saves in the correct grid when rubric and criterion
 
 	const sharedRubricId = buildTestId("shared-rubric");
 	const sharedCriterionIds = {
-		boolean: buildTestId("shared-criterion-boolean"),
-		ordinal: buildTestId("shared-criterion-ordinal"),
-		numerical: buildTestId("shared-criterion-numerical"),
+		check: buildTestId("shared-criterion-check"),
+		options: buildTestId("shared-criterion-options"),
+		number: buildTestId("shared-criterion-number"),
 	};
 
 	const fixtureA = await createGradeFixture(db, gridA.id, {
@@ -178,7 +178,7 @@ test("saveCriterionGradeInDb saves in the correct grid when rubric and criterion
 		targetId: fixtureB.gradeTargetId,
 		rubricId: fixtureB.rubricId,
 		grade: {
-			criterionId: fixtureB.criterionIds.boolean,
+			criterionId: fixtureB.criterionIds.check,
 			kind: "check",
 			passed: true,
 		},
@@ -192,7 +192,7 @@ test("saveCriterionGradeInDb saves in the correct grid when rubric and criterion
 		rubricId: fixtureB.rubricId,
 	});
 	expect(gridBGrade).toEqual([
-		{ criterionId: fixtureB.criterionIds.boolean, kind: "check", passed: true },
+		{ criterionId: fixtureB.criterionIds.check, kind: "check", passed: true },
 	]);
 
 	const gridAGrade = await loadRubricGradeFromDb(db, {
@@ -218,7 +218,7 @@ test("saveCriterionGradeInDb rejects cross-grid grade target and rubric combinat
 		targetId: fixtureA.gradeTargetId,
 		rubricId: fixtureB.rubricId,
 		grade: {
-			criterionId: fixtureB.criterionIds.boolean,
+			criterionId: fixtureB.criterionIds.check,
 			kind: "check",
 			passed: true,
 		},
@@ -242,7 +242,7 @@ test("saveCriterionGrade wrapper updates the edited tags read-your-writes and re
 			targetId: fixture.gradeTargetId,
 			rubricId: fixture.rubricId,
 			grade: {
-				criterionId: fixture.criterionIds.boolean,
+				criterionId: fixture.criterionIds.check,
 				kind: "check",
 				passed: true,
 			},
@@ -278,7 +278,7 @@ test("saveCriterionGrade wrapper does not invalidate when the save fails validat
 			targetId: fixture.gradeTargetId,
 			rubricId: fixture.rubricId,
 			grade: {
-				criterionId: fixture.criterionIds.ordinal,
+				criterionId: fixture.criterionIds.options,
 				kind: "options",
 				selectedLabel: "Z",
 			},
@@ -308,7 +308,7 @@ test("saveCriterionGradeInDb keeps a single untorn value when two writers race t
 				targetId: fixture.gradeTargetId,
 				rubricId: fixture.rubricId,
 				grade: {
-					criterionId: fixture.criterionIds.boolean,
+					criterionId: fixture.criterionIds.check,
 					kind: "check",
 					passed: true,
 				},
@@ -319,7 +319,7 @@ test("saveCriterionGradeInDb keeps a single untorn value when two writers race t
 				targetId: fixture.gradeTargetId,
 				rubricId: fixture.rubricId,
 				grade: {
-					criterionId: fixture.criterionIds.boolean,
+					criterionId: fixture.criterionIds.check,
 					kind: "check",
 					passed: false,
 				},
@@ -338,7 +338,7 @@ test("saveCriterionGradeInDb keeps a single untorn value when two writers race t
 	expect(criterionGradeQueryRows).toHaveLength(1);
 
 	const criterionGradeId = criterionGradeQueryRows[0]?.id ?? assertFound();
-	const [booleanRows, ordinalRows, numericalRows] = await Promise.all([
+	const [checkRows, optionsRows, numberRows] = await Promise.all([
 		db
 			.selectFrom("checkCriterionGrade")
 			.select("passed")
@@ -356,15 +356,15 @@ test("saveCriterionGradeInDb keeps a single untorn value when two writers race t
 			.execute(),
 	]);
 
-	expect(booleanRows).toHaveLength(1);
-	expect(ordinalRows).toHaveLength(0);
-	expect(numericalRows).toHaveLength(0);
-	expect([true, false]).toContain(booleanRows[0]?.passed);
+	expect(checkRows).toHaveLength(1);
+	expect(optionsRows).toHaveLength(0);
+	expect(numberRows).toHaveLength(0);
+	expect([true, false]).toContain(checkRows[0]?.passed);
 
 	// Documents current behavior, not a committed policy: the writer that
 	// commits last (the second writer, here) wins. This is not a contract a
 	// future multi-user concurrency policy is obligated to preserve.
-	expect(booleanRows[0]?.passed).toBe(false);
+	expect(checkRows[0]?.passed).toBe(false);
 });
 
 // Scenario B: two writers target the same grade target but different criteria —
@@ -386,7 +386,7 @@ test("saveCriterionGradeInDb keeps both criterion grades when two writers race d
 			targetId: fixture.gradeTargetId,
 			rubricId: fixture.rubricId,
 			grade: {
-				criterionId: fixture.criterionIds.boolean,
+				criterionId: fixture.criterionIds.check,
 				kind: "check",
 				passed: true,
 			},
@@ -396,7 +396,7 @@ test("saveCriterionGradeInDb keeps both criterion grades when two writers race d
 			targetId: fixture.gradeTargetId,
 			rubricId: fixture.rubricId,
 			grade: {
-				criterionId: fixture.criterionIds.ordinal,
+				criterionId: fixture.criterionIds.options,
 				kind: "options",
 				selectedLabel: "A",
 			},
@@ -423,13 +423,13 @@ test("saveCriterionGradeInDb keeps both criterion grades when two writers race d
 		loaded.map((value) => [value.criterionId, value]),
 	);
 
-	expect(byCriterionId.get(fixture.criterionIds.boolean)).toEqual({
-		criterionId: fixture.criterionIds.boolean,
+	expect(byCriterionId.get(fixture.criterionIds.check)).toEqual({
+		criterionId: fixture.criterionIds.check,
 		kind: "check",
 		passed: true,
 	});
-	expect(byCriterionId.get(fixture.criterionIds.ordinal)).toEqual({
-		criterionId: fixture.criterionIds.ordinal,
+	expect(byCriterionId.get(fixture.criterionIds.options)).toEqual({
+		criterionId: fixture.criterionIds.options,
 		kind: "options",
 		selectedLabel: "A",
 	});
@@ -451,7 +451,7 @@ test("saveCriterionGrade wrapper does not error under naive parallel saves", asy
 				targetId: fixture.gradeTargetId,
 				rubricId: fixture.rubricId,
 				grade: {
-					criterionId: fixture.criterionIds.boolean,
+					criterionId: fixture.criterionIds.check,
 					kind: "check",
 					passed: true,
 				},
@@ -464,7 +464,7 @@ test("saveCriterionGrade wrapper does not error under naive parallel saves", asy
 				targetId: fixture.gradeTargetId,
 				rubricId: fixture.rubricId,
 				grade: {
-					criterionId: fixture.criterionIds.ordinal,
+					criterionId: fixture.criterionIds.options,
 					kind: "options",
 					selectedLabel: "A",
 				},
@@ -477,7 +477,7 @@ test("saveCriterionGrade wrapper does not error under naive parallel saves", asy
 				targetId: fixture.gradeTargetId,
 				rubricId: fixture.rubricId,
 				grade: {
-					criterionId: fixture.criterionIds.numerical,
+					criterionId: fixture.criterionIds.number,
 					kind: "number",
 					value: 5,
 				},

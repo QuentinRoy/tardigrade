@@ -57,7 +57,7 @@ afterAll(async () => {
 	await db[Symbol.asyncDispose]();
 });
 
-test("createCsvGradeTargetExport snapshots CSV for mixed criterion types and grade target states", async () => {
+test("createCsvGradeTargetExport snapshots CSV for mixed criterion kinds and grade target states", async () => {
 	const { grid, rubric } = await createMixedCriterionRubricFixtureGrid(db, {
 		gridName: "Export Integration Grid",
 		rubricId: "q-export-test",
@@ -89,13 +89,13 @@ test("createCsvGradeTargetExport snapshots CSV for mixed criterion types and gra
 	await Promise.all([
 		addFullGradeFixture(db, {
 			gradeTargetRowId: target1.rowId,
-			checkCriterionRowId: criterionRowId.get(rubric.criteria.booleanId)!,
-			optionsCriterionRowId: criterionRowId.get(rubric.criteria.ordinalId)!,
-			numberCriterionRowId: criterionRowId.get(rubric.criteria.numericalId)!,
+			checkCriterionRowId: criterionRowId.get(rubric.criteria.checkId)!,
+			optionsCriterionRowId: criterionRowId.get(rubric.criteria.optionsId)!,
+			numberCriterionRowId: criterionRowId.get(rubric.criteria.numberId)!,
 		}),
 		addSparseGrade(db, {
 			gradeTargetRowId: target2.rowId,
-			checkCriterionRowId: criterionRowId.get(rubric.criteria.booleanId)!,
+			checkCriterionRowId: criterionRowId.get(rubric.criteria.checkId)!,
 		}),
 	]);
 

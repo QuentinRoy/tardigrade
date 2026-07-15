@@ -13,7 +13,7 @@ export type GradeImportCriterion = {
 	id: string;
 	kind: CriterionKind;
 	rubricId: string;
-	ordinalLabels: string[];
+	optionsLabels: string[];
 };
 
 export type GradeImportContext = {
@@ -104,8 +104,8 @@ function parseGradeValue(params: {
 			};
 		}
 		case "options": {
-			if (criterion.ordinalLabels.length > 0) {
-				const labelExists = criterion.ordinalLabels.includes(value);
+			if (criterion.optionsLabels.length > 0) {
+				const labelExists = criterion.optionsLabels.includes(value);
 				if (!labelExists) {
 					throw new Error(
 						`Invalid option label "${value}" for criterion ${criterion.id}`,

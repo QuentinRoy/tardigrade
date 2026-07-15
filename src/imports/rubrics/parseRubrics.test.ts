@@ -16,7 +16,7 @@ describe("parseRubricsYaml", () => {
 		expect(rubrics[0]?.criteria[0]?.id).toBe("r1");
 	});
 
-	it("parses reversed numerical criteria", () => {
+	it("parses reversed number criteria", () => {
 		const rubrics = parseRubricsYaml(`rubrics:
   - id: q1
     criteria:
@@ -80,7 +80,7 @@ describe("parseRubricsYaml", () => {
 		expect(rubrics[0]?.criteria[0]?.description).toBe("A helpful description");
 	});
 
-	it("parses boolean falseMarks", () => {
+	it("parses check falseMarks", () => {
 		const rubrics = parseRubricsYaml(`rubrics:
   - id: q1
     criteria:

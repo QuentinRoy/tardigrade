@@ -26,7 +26,7 @@ async function createGradeFixture(
 	const rubricId = buildTestId("rubric");
 	const studentId = buildTestId("student");
 	const criterionId = buildTestId("criterion");
-	const numberCriterionId = buildTestId("criterion-numerical");
+	const numberCriterionId = buildTestId("criterion-number");
 
 	await db
 		.insertInto("student")
@@ -269,8 +269,8 @@ test("saveGrades rolls back all writes if a later transactional write fails", as
 	const gridPublicId = grid.id;
 	const fixture = await createGradeFixture(db, grid.rowId);
 
-	// The first row writes a valid boolean grade; the second row carries a
-	// numerical value outside the criterion range. saveGrades parses both rows
+	// The first row writes a valid check grade; the second row carries a
+	// number value outside the criterion range. saveGrades parses both rows
 	// before the transaction, so the out-of-range value only fails inside
 	// saveCriterionGradeInDb — after the first write has already happened in the same
 	// transaction. A genuine in-transaction failure, no primitive mock required.

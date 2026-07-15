@@ -3,7 +3,7 @@ import type { RubricsById } from "#rubrics/types.ts";
 import { exportRubricsToYaml } from "./rubricsExport.ts";
 
 describe("exportRubricsToYaml", () => {
-	it("exports a boolean criterion rubric", () => {
+	it("exports a check criterion rubric", () => {
 		const rubrics: RubricsById = {
 			q1: {
 				label: "Rubric 1",
@@ -36,7 +36,7 @@ describe("exportRubricsToYaml", () => {
     `);
 	});
 
-	it("exports an ordinal criterion rubric", () => {
+	it("exports an options criterion rubric", () => {
 		const rubrics: RubricsById = {
 			q1: {
 				label: "Rubric 1",
@@ -69,7 +69,7 @@ describe("exportRubricsToYaml", () => {
     `);
 	});
 
-	it("exports a numerical criterion rubric", () => {
+	it("exports a number criterion rubric", () => {
 		const rubrics: RubricsById = {
 			q1: {
 				label: "Rubric 1",
@@ -107,7 +107,7 @@ describe("exportRubricsToYaml", () => {
     `);
 	});
 
-	it("exports a numerical criterion with reversed true", () => {
+	it("exports a number criterion with reversed true", () => {
 		const rubrics: RubricsById = {
 			q1: {
 				criteria: [

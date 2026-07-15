@@ -28,7 +28,7 @@ describe("buildResultsData", () => {
 			label: "Rubric 1",
 			criteria: [
 				{
-					id: "r-boolean",
+					id: "r-check",
 					kind: "check",
 					marks: 2,
 					falseMarks: 0,
@@ -41,7 +41,7 @@ describe("buildResultsData", () => {
 			label: "Rubric 2",
 			criteria: [
 				{
-					id: "r-numerical",
+					id: "r-number",
 					kind: "number",
 					minValue: 0,
 					maxValue: 10,
@@ -59,8 +59,8 @@ describe("buildResultsData", () => {
 		const data = buildResultsData({ targets, rubricsById, gradeRecords: [] });
 
 		expect(data.criteria.map((criterion) => criterion.criterionId)).toEqual([
-			"r-boolean",
-			"r-numerical",
+			"r-check",
+			"r-number",
 		]);
 	});
 
@@ -68,7 +68,7 @@ describe("buildResultsData", () => {
 		const records: ResultsGradeRecord[] = [
 			{
 				gradeTargetId: "1",
-				criterionId: "r-boolean",
+				criterionId: "r-check",
 				kind: "check",
 				passed: true,
 				selectedLabel: null,
@@ -76,7 +76,7 @@ describe("buildResultsData", () => {
 			},
 			{
 				gradeTargetId: "2",
-				criterionId: "r-boolean",
+				criterionId: "r-check",
 				kind: "check",
 				passed: false,
 				selectedLabel: null,
@@ -84,7 +84,7 @@ describe("buildResultsData", () => {
 			},
 			{
 				gradeTargetId: "1",
-				criterionId: "r-numerical",
+				criterionId: "r-number",
 				kind: "number",
 				passed: null,
 				selectedLabel: null,
@@ -98,14 +98,14 @@ describe("buildResultsData", () => {
 			gradeRecords: records,
 		});
 
-		const booleanCriterion = data.criteria.find(
-			(criterion) => criterion.criterionId === "r-boolean",
+		const checkCriterion = data.criteria.find(
+			(criterion) => criterion.criterionId === "r-check",
 		);
-		const numericalCriterion = data.criteria.find(
-			(criterion) => criterion.criterionId === "r-numerical",
+		const numberCriterion = data.criteria.find(
+			(criterion) => criterion.criterionId === "r-number",
 		);
 
-		expect(booleanCriterion).toMatchObject({
+		expect(checkCriterion).toMatchObject({
 			gradedCount: 2,
 			totalCount: 2,
 			completionPercent: 100,
@@ -113,7 +113,7 @@ describe("buildResultsData", () => {
 			averagePercent: 50,
 		});
 
-		expect(numericalCriterion).toMatchObject({
+		expect(numberCriterion).toMatchObject({
 			gradedCount: 1,
 			totalCount: 2,
 			completionPercent: 50,
@@ -151,7 +151,7 @@ describe("buildResultsData", () => {
 		const records: ResultsGradeRecord[] = [
 			{
 				gradeTargetId: "1",
-				criterionId: "r-boolean",
+				criterionId: "r-check",
 				kind: "check",
 				passed: true,
 				selectedLabel: null,
@@ -159,7 +159,7 @@ describe("buildResultsData", () => {
 			},
 			{
 				gradeTargetId: "1",
-				criterionId: "r-boolean",
+				criterionId: "r-check",
 				kind: "check",
 				passed: false,
 				selectedLabel: null,
@@ -173,11 +173,11 @@ describe("buildResultsData", () => {
 			gradeRecords: records,
 		});
 
-		const booleanCriterion = data.criteria.find(
-			(criterion) => criterion.criterionId === "r-boolean",
+		const checkCriterion = data.criteria.find(
+			(criterion) => criterion.criterionId === "r-check",
 		);
 
-		expect(booleanCriterion).toMatchObject({ gradedCount: 1, averageMarks: 2 });
+		expect(checkCriterion).toMatchObject({ gradedCount: 1, averageMarks: 2 });
 
 		const gradeTargetOne = data.gradeTargetRows.find(
 			(gradeTargetRow) => gradeTargetRow.gradeTargetId === "1",
@@ -187,12 +187,12 @@ describe("buildResultsData", () => {
 	});
 
 	it("treats a null value field as ungraded for each criterion kind", () => {
-		const ordinalGrid: RubricsById = {
+		const optionsGrid: RubricsById = {
 			q1: {
 				label: "Rubric 1",
 				criteria: [
 					{
-						id: "r-boolean",
+						id: "r-check",
 						kind: "check",
 						marks: 2,
 						falseMarks: 0,
@@ -205,7 +205,7 @@ describe("buildResultsData", () => {
 				label: "Rubric 2",
 				criteria: [
 					{
-						id: "r-ordinal",
+						id: "r-options",
 						kind: "options",
 						marks: { low: 1, high: 3 },
 						label: "Rating",
@@ -217,7 +217,7 @@ describe("buildResultsData", () => {
 				label: "Rubric 3",
 				criteria: [
 					{
-						id: "r-numerical",
+						id: "r-number",
 						kind: "number",
 						minValue: 0,
 						maxValue: 10,
@@ -234,7 +234,7 @@ describe("buildResultsData", () => {
 		const records: ResultsGradeRecord[] = [
 			{
 				gradeTargetId: "1",
-				criterionId: "r-boolean",
+				criterionId: "r-check",
 				kind: "check",
 				passed: null,
 				selectedLabel: null,
@@ -242,7 +242,7 @@ describe("buildResultsData", () => {
 			},
 			{
 				gradeTargetId: "1",
-				criterionId: "r-ordinal",
+				criterionId: "r-options",
 				kind: "options",
 				passed: null,
 				selectedLabel: null,
@@ -250,7 +250,7 @@ describe("buildResultsData", () => {
 			},
 			{
 				gradeTargetId: "1",
-				criterionId: "r-numerical",
+				criterionId: "r-number",
 				kind: "number",
 				passed: null,
 				selectedLabel: null,
@@ -260,7 +260,7 @@ describe("buildResultsData", () => {
 
 		const data = buildResultsData({
 			targets,
-			rubricsById: ordinalGrid,
+			rubricsById: optionsGrid,
 			gradeRecords: records,
 		});
 
@@ -287,7 +287,7 @@ describe("buildResultsData", () => {
 			},
 			{
 				gradeTargetId: "999",
-				criterionId: "r-boolean",
+				criterionId: "r-check",
 				kind: "check",
 				passed: true,
 				selectedLabel: null,
@@ -301,10 +301,10 @@ describe("buildResultsData", () => {
 			gradeRecords: records,
 		});
 
-		const booleanCriterion = data.criteria.find(
-			(criterion) => criterion.criterionId === "r-boolean",
+		const checkCriterion = data.criteria.find(
+			(criterion) => criterion.criterionId === "r-check",
 		);
-		expect(booleanCriterion?.gradedCount).toBe(0);
+		expect(checkCriterion?.gradedCount).toBe(0);
 		expect(
 			data.gradeTargetRows.every(
 				(gradeTargetRow) => gradeTargetRow.completedCriteria === 0,

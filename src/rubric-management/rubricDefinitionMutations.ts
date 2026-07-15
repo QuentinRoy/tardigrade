@@ -260,7 +260,7 @@ export async function saveRubricDefinitionInDb(
 		criterionRows.map((criterion) => [criterion.id, criterion.rowId]),
 	);
 
-	const booleanRows = input.criteria.flatMap((criterion) =>
+	const checkRows = input.criteria.flatMap((criterion) =>
 		criterion.kind === "check"
 			? (() => {
 					const criterionRowId = criterionRowIdById.get(criterion.id);
@@ -280,7 +280,7 @@ export async function saveRubricDefinitionInDb(
 				})()
 			: [],
 	);
-	const numericalRows = input.criteria.flatMap((criterion) =>
+	const numberRows = input.criteria.flatMap((criterion) =>
 		criterion.kind === "number"
 			? (() => {
 					const criterionRowId = criterionRowIdById.get(criterion.id);
@@ -303,7 +303,7 @@ export async function saveRubricDefinitionInDb(
 				})()
 			: [],
 	);
-	const ordinalSources = input.criteria.flatMap((criterion) =>
+	const optionsSources = input.criteria.flatMap((criterion) =>
 		criterion.kind === "options"
 			? (() => {
 					const criterionRowId = criterionRowIdById.get(criterion.id);
@@ -318,10 +318,10 @@ export async function saveRubricDefinitionInDb(
 			: [],
 	);
 
-	if (booleanRows.length > 0) {
+	if (checkRows.length > 0) {
 		await db
 			.insertInto("checkCriterion")
-			.values(booleanRows)
+			.values(checkRows)
 			.onConflict((conflict) =>
 				conflict
 					.column("criterionId")
@@ -333,10 +333,10 @@ export async function saveRubricDefinitionInDb(
 			.execute();
 	}
 
-	if (numericalRows.length > 0) {
+	if (numberRows.length > 0) {
 		await db
 			.insertInto("numberCriterion")
-			.values(numericalRows)
+			.values(numberRows)
 			.onConflict((conflict) =>
 				conflict
 					.column("criterionId")
@@ -351,11 +351,11 @@ export async function saveRubricDefinitionInDb(
 			.execute();
 	}
 
-	if (ordinalSources.length > 0) {
+	if (optionsSources.length > 0) {
 		await db
 			.insertInto("optionsCriterion")
 			.values(
-				ordinalSources.map((source) => ({ criterionId: source.criterionId })),
+				optionsSources.map((source) => ({ criterionId: source.criterionId })),
 			)
 			.onConflict((conflict) => conflict.column("criterionId").doNothing())
 			.execute();
@@ -366,7 +366,7 @@ export async function saveRubricDefinitionInDb(
 			.where(
 				"criterionId",
 				"in",
-				ordinalSources.map((source) => source.criterionId),
+				optionsSources.map((source) => source.criterionId),
 			)
 			.execute();
 
@@ -375,7 +375,7 @@ export async function saveRubricDefinitionInDb(
 		);
 		const optionsCriterionIds = optionsCriterions.map((row) => row.id);
 
-		const existingOrdinalValues =
+		const existingOptionsValues =
 			optionsCriterionIds.length === 0
 				? []
 				: await db
@@ -385,7 +385,7 @@ export async function saveRubricDefinitionInDb(
 						.execute();
 
 		const validKeys = new Set(
-			ordinalSources.flatMap((source) => {
+			optionsSources.flatMap((source) => {
 				const optionsCriterionId = optionsCriterionIdByCriterionId.get(
 					source.criterionId,
 				);
@@ -399,7 +399,7 @@ export async function saveRubricDefinitionInDb(
 			}),
 		);
 
-		const staleIds = existingOrdinalValues
+		const staleIds = existingOptionsValues
 			.filter(
 				(value) =>
 					!validKeys.has(`${value.optionsCriterionId}::${value.label}`),
@@ -413,7 +413,7 @@ export async function saveRubricDefinitionInDb(
 				.execute();
 		}
 
-		const ordinalValueRows = ordinalSources.flatMap((source) => {
+		const optionsValueRows = optionsSources.flatMap((source) => {
 			const optionsCriterionId = optionsCriterionIdByCriterionId.get(
 				source.criterionId,
 			);
@@ -428,10 +428,10 @@ export async function saveRubricDefinitionInDb(
 			}));
 		});
 
-		if (ordinalValueRows.length > 0) {
+		if (optionsValueRows.length > 0) {
 			await db
 				.insertInto("optionsCriterionMark")
-				.values(ordinalValueRows)
+				.values(optionsValueRows)
 				.onConflict((conflict) =>
 					conflict
 						.columns(["optionsCriterionId", "label"])
