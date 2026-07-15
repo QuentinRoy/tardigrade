@@ -3,6 +3,7 @@
 - **Status:** Active
 - **Created:** 2026-07-15
 - **Origin:** post-closure audit of #99; `plans/2026-07-06-terminology-sweep.md` (Completed), `CONTEXT.md`, `docs/reference/lexicon.md`
+- **Tracked by:** #285
 
 After #99 closed (2026-07-14), a repo-wide audit checked that the terminology sweep left nothing behind. The sweep landed thoroughly in code, UI, routes, DB schema, GitHub labels, and the main docs — but the audit found six gaps, none release-blocking, all worth closing so retired vocabulary stops leaking back through docs, tests, and old issues. This plan records the findings with enough context to execute each work stream independently, plus what was checked and deliberately *not* flagged (so future audits don't re-litigate it).
 
