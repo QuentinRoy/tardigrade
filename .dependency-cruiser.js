@@ -1,9 +1,8 @@
 /** @type {import('dependency-cruiser').IConfiguration} */
 const VERTICALS =
-	"export|assessment-capture|assessment-completion|rubric-analytics|question-management|imports|app-shell";
+	"export|grading|grade-completion|results|rubric-management|imports|app-shell";
 const NON_SHARED = VERTICALS;
-const SHARED_DOMAIN =
-	"rubrics|submissions|projects|assessment-persistence|questions";
+const SHARED_DOMAIN = "criteria|grade-persistence|grade-targets|grids|rubrics";
 // Tests and stories legitimately exercise more than one vertical (e.g. an
 // import/export round-trip integration test, or a story rendering a
 // component plus a sibling vertical's display surface); only production
@@ -21,7 +20,7 @@ export default {
 		{
 			name: "shared-domain-no-up",
 			comment:
-				"rubrics/submissions/projects/assessment-persistence/questions import only design-system + infra (+ intra shared-domain)",
+				"criteria/grade-persistence/grade-targets/grids/rubrics import only design-system + infra (+ intra shared-domain)",
 			severity: "error",
 			from: { path: `^src/(${SHARED_DOMAIN})/`, pathNot: TEST_FILE },
 			to: { path: `^src/(${NON_SHARED})/` },
