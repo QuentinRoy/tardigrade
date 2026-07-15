@@ -11,7 +11,7 @@ After #99 closed (2026-07-14), a repo-wide audit checked that the terminology sw
 
 ## Work streams
 
-Four independent streams — no ordering constraints between them; each is separately reviewable and shippable. Streams A and B are one PR each. Stream C is GitHub-only (no PR). Stream D needs a small decision first.
+Four independent streams — no ordering constraints between them; each is separately reviewable and shippable. Streams A and B are one PR each. Stream C is GitHub-only (no PR). Stream D is deferred to issue #288 (see Open questions).
 
 ### Stream A — docs fixes (one PR, no code)
 
@@ -29,14 +29,15 @@ Three documents contain stale prose the sweep's stage-9 doc audit missed. All ar
    - Same class, lower priority, fold into the same PR: `docs/investigations/2026-05-20-domain-terminology-audit.md` (Completed) — its `Resolution` metadata line says "Score/Mark kept, Points avoided", superseded by 7b's full Score retirement. A one-line correction ("Score later retired for Value, see CONTEXT.md") keeps the Completed doc's resolution truthful without rewriting history.
    - If any of these corrections raises a genuine glossary question rather than a factual fix, use the domain-modeling skill and update `CONTEXT.md` inline — but none is expected to; the glossary entries (Value, Total) are already final.
 
-### Stream B — test/fixture/comment sweep (one PR, behavior-preserving)
+### Stream B — test/fixture/comment/identifier sweep (one PR, behavior-preserving)
 
-Retired criterion-kind vocabulary (`boolean`/`ordinal`/`numerical`, and "type" as the classifier) survives in test names, fixture keys, sample ids, sample labels, and a few production comments/error strings. Identifiers in *shipped* code all moved in sweep stage 2a/2b; what's left is the layer around them. Everything below is behavior-preserving renaming — no schema, route, or UI change.
+Retired criterion-kind vocabulary (`boolean`/`ordinal`/`numerical`, and "type" as the classifier) survives in test names, fixture keys, sample ids, sample labels, and production comments/error strings/identifiers. The original audit's premise — "identifiers in shipped code all moved in sweep stage 2a/2b" — turned out to be **only partially true**: a 2026-07-15 grilling/domain-modeling session held before executing this stream re-verified it with a repo-wide grep and found retired vocabulary still in *production* function, variable, and field names across grading, rubric-management, and imports, plus a third shared test fixture file the original audit missed entirely. Everything below (including the 2026-07-15 additions, each marked) is behavior-preserving renaming — no schema, route, or UI change.
 
 **Shared fixtures first** (they fan out — rename the keys and every consumer in the same commit or nothing compiles):
 
 - `src/test/grades.ts` — the fixture contract `criterionIds: { boolean: string; ordinal: string; numerical: string }` (declared ~lines 10, 15; defaults ~lines 40–42; sample labels "Ordinal criterion"/"Numerical criterion" ~lines 106, 114; result keys ~lines 173–174) → `{ check, options, number }` with Check/Options/Number labels. Consumers found: `src/grading/gradeMutations.integration.test.ts`, `src/grading/grades.integration.test.ts`, `src/db/constraints.integration.test.ts` (its own local `CriterionRowIds = { boolean; ordinal; numerical }` too).
-- `src/test/mixedCriterionGradeFixture.ts` — comments ~lines 25 ("one criterion of each **type** (boolean/ordinal/numerical)") and 229, labels ~lines 75, 83.
+- `src/test/mixedCriterionGradeFixture.ts` — comments ~lines 25 ("one criterion of each **type** (boolean/ordinal/numerical)") and 229, labels ~lines 75, 83; also the `criteria: { booleanId: string; ordinalId: string; numericalId: string }` field contract (~line 20) and its assignments (~lines 133–134) → `{ checkId, optionsId, numberId }` — the original bullet only named the comments/labels, not this contract (see grep-driven scope note below).
+- `src/test/rubrics.ts` (**found in the 2026-07-15 re-audit — not in the original list**) — exports `BooleanRubricFixture`, `GradedBooleanFixture`, `createBooleanRubricFixture`, `createGradedBooleanRubricFixture`, `createOrdinalRubricFixture` (~lines 5–23, 59, 138) → Check/Options naming (`CheckRubricFixture`, `GradedCheckFixture`, `createCheckRubricFixture`, `createGradedCheckRubricFixture`, `createOptionsRubricFixture`); also the `"Boolean rubric"`/`"Ordinal rubric"`/`"Ordinal"` sample labels and the `buildTestId("criterion-boolean")`/`buildTestId("rubric-ordinal")`/`buildTestId("criterion-ordinal")` slugs. Consumers: `src/grading/grades.integration.test.ts`, `src/imports/rubrics/saveRubrics.integration.test.ts`, `src/rubrics/rubrics.integration.test.ts`, `src/rubric-management/rubricDefinitions.integration.test.ts` (**not otherwise in this stream's file list**), `src/rubric-management/rubricDefinitionMutations.integration.test.ts`.
 
 **Per-file leftovers** (test names, sample ids, labels — a case-insensitive grep for `boolean|ordinal|numerical` scoped to each file finds them all; TS `boolean` type annotations are noise, skip those):
 
@@ -46,29 +47,39 @@ Retired criterion-kind vocabulary (`boolean`/`ordinal`/`numerical`, and "type" a
 - `src/rubric-management/schemas.test.ts` — describe/it names: "ordinal marks", "numerical criterion bounds", "boolean criterion whose false marks…", etc.
 - `src/rubric-management/rubricDefinitionMutations.integration.test.ts` — "replaces **ordinal** criterion values…", `buildTestId("criterion-numerical")`, "Save Ordinal Values Grid", labels.
 - `src/rubrics/rubrics.integration.test.ts` — "Ordinal Empty Marks Grid", "Ordinal rubric"/"Ordinal" labels.
-- `src/rubrics/rubrics.test.ts` — ~line 68: test name says `maps to { kind: 'ordinal', marks: {} }` while the assertion is `kind: "options"` — the one *outright wrong* name (stale description of renamed behavior), worth calling out in the PR.
+- `src/rubrics/rubrics.test.ts` — ~line 68: test name says `maps to { kind: 'ordinal', marks: {} }` while the assertion is `kind: "options"` — the one *outright wrong* name (stale description of renamed behavior), worth calling out in the PR. Also (found via grep, not in the original bullet): the shared `booleanRow` fixture variable (~lines 10, 31, 41, 45) → `checkRow`; its `kind` is already `"check"`, only the identifier is stale. A full-file read on 2026-07-15 checked the rest of the `toCriterion` describe block (`options`/`number`/`check` sub-blocks) for the same description/assertion drift — none found beyond line 68.
+- `src/export/gradeTargetExportCsv.test.ts` (**found in the 2026-07-15 re-audit**) — `failedBooleanRubrics` variable (~lines 44, 114) → `failedCheckRubrics`.
+- `src/rubric-management/rubricDefinitions.integration.test.ts` (**found in the 2026-07-15 re-audit**) — no vocabulary of its own beyond consuming `src/test/rubrics.ts`'s fixture (`createGradedBooleanRubricFixture` calls, `"Boolean rubric"` label reference ~line 40); falls out automatically once that shared fixture is renamed.
 - `src/export/rubricsExport.test.ts` — it-names "exports an ordinal criterion rubric", "exports a numerical criterion…" ×2.
 - `src/imports/rubrics/parseRubrics.test.ts` — ~line 19 "parses reversed numerical criteria".
 - `src/imports/rubrics/saveRubrics.integration.test.ts` — comment ~line 367 "(boolean/ordinal/numerical criterion)", plus the "criterion **type** change" test names (~lines 222, 259, 369).
 - `src/imports/grades/saveGrades.integration.test.ts` — `buildTestId("criterion-numerical")` ~line 29, comment ~line 273.
 
-**Production (non-test) leftovers** — small but they're the only retired words left in shipped `src/` code:
+**Production (non-test) leftovers** — the original audit found only comments/error strings here; the 2026-07-15 re-audit found this was significantly larger, including production function, variable, and field names:
 
 - `src/imports/rubrics/saveRubrics.ts` — comment ~line 112: "Criteria whose **type** changed … so subtype tables (**boolean/numerical/ordinal** criterion) never hold stale rows for the previous **type**" → kind / Check/Options/Number. Two thrown error strings ~lines 251, 289: "Imported **numerical** criterion '…' could not be resolved." / "Imported **ordinal** criterion '…' could not be resolved." → Number/Options wording. These are internal invariant errors (resolution map inconsistency, not user input errors), but they can surface in logs/error states, and the sweep's rule was one vocabulary end to end.
 - "criterion **type** change" prose in comments: `src/imports/rubrics/prepareRubricImport.ts` ~line 39, `src/imports/importErrors.ts` ~line 3. (The *identifiers* around them — `criterionKindChanges`, `RubricImportCriterionKindChange` — were renamed in stage 2b; the surrounding prose wasn't.)
 - `src/export/gradeTargetExport.integration.test.ts` ~line 60: "mixed criterion **types**" → kinds.
 - `src/rubric-management/rubricDefinitionMutations.integration.test.ts` ~line 129: "when criterion **type** changes" → kind.
+- `src/grade-persistence/gradeMutations.ts` (**found in the 2026-07-15 re-audit**) — `saveOrdinalGrade`/`ordinalGrade`/`ordinalLabels` (~lines 203–231) → `saveOptionsGrade`/`optionsGrade`/`optionsLabels`; `saveNumericalGrade`/`numericalGrade` (~lines 240–303) → `saveNumberGrade`/`numberGrade`.
+- `src/rubric-management/OptionsEditorPaper.tsx` (**found in the 2026-07-15 re-audit**) — `ordinalMarksToText`/`parseOrdinalMarks` (~lines 18, 24) → `optionsMarksToText`/`parseOptionsMarks`.
+- `src/rubric-management/rubricDefinitionMutations.ts`, production side (**found in the 2026-07-15 re-audit** — only its integration test was in the original list) — `numericalRows`, `ordinalSources`, `existingOrdinalValues`, `ordinalValueRows` (~lines 283–434) → `numberRows`, `optionsSources`, `existingOptionsValues`, `optionsValueRows`.
+- `src/rubrics/rubrics.ts`, production side (**found in the 2026-07-15 re-audit**) — `ordinalMarks`, `ordinalMarksByCriterionId` (~lines 127, 219–260) → `optionsMarks`, `optionsMarksByCriterionId`.
+- `src/imports/grades/gradeImportContext.ts` and `src/imports/grades/prepareGradeImport.ts` (**found in the 2026-07-15 re-audit**) — `ordinalLabels` field (`gradeImportContext.ts` ~lines 49–55; `prepareGradeImport.ts` ~lines 16, 107–108) → `optionsLabels`; fans into `src/imports/grades/prepareGradeImport.integration.test.ts` and `prepareGradeImport.test.ts` (**neither in the original file list**), both with heavy `ordinalLabels`/`criterionIds.ordinalId`/`.numericalId` usage.
 
-**Optional cosmetic rider** (same PR, same precedent as the sweep's `Team A` → `Group A` and `"Score"` → `"Value"` fixture renames): sample names on the progress→Completion axis in `src/grade-completion/loadGradeCompletion.integration.test.ts` — grid names "Progress Isolation A/B", "Overview Progress Isolation A/B", "Rubric Progress Wrapper/Split", "Overview Progress Wrapper" and the fixture `lastName: "Progress"` → Completion-worded equivalents.
+**Confirmed out of scope** (2026-07-15 re-audit — a different sense of "ordinal": positional index, not the criterion kind): `src/export/gradeTargetExportGrouping.ts` ~line 34, `src/grade-completion/loadGradeCompletion.integration.test.ts` ~lines 181/229, `src/grade-targets/gradeTargets.ts` ~line 104 and its `.integration.test.ts` ~lines 153/199 — all describe per-grid id ordinals (1st/2nd/3rd), unrelated to the retired Options criterion kind; leave these untouched. Also `z.boolean()` (`src/imports/schemas.ts` ~line 61, `src/rubric-management/schemas.ts` ~line 41) and `GradeTargetExportValue`'s `boolean` union member (`src/export/gradeTargetExportCsv.ts` ~line 57) — genuine data-type uses, not the retired kind.
+
+**Cosmetic rider — decided 2026-07-15: include in this PR** (same precedent as the sweep's `Team A` → `Group A` and `"Score"` → `"Value"` fixture renames): sample names on the progress→Completion axis in `src/grade-completion/loadGradeCompletion.integration.test.ts` — grid names "Progress Isolation A/B", "Overview Progress Isolation A/B", "Rubric Progress Wrapper/Split", "Overview Progress Wrapper" and the fixture `lastName: "Progress"` → Completion-worded equivalents. (This file also has unrelated `ordinal` hits describing per-grid id ordinals — see "Confirmed out of scope" above; don't touch those.)
 
 **Sweep-craft rules carried over from the terminology sweep** (hard-won there, apply here):
 
+- The per-file bullets above are illustrative, not exhaustive — grep each file case-insensitively for `boolean|ordinal|numerical` yourself and fix every genuine hit (skip only TS `boolean` type annotations and the "positional ordinal" sense noted above). Decided 2026-07-15: the original list is grep-driven in principle but wasn't exhaustively re-verified — the re-audit found real misses in files that already had a bullet (e.g. `rubrics.test.ts`'s `booleanRow`) as well as whole files and identifiers missing from the list entirely.
 - Case-sensitive find-and-replace misses ALL-CAPS constants; grep the upper-cased term afterward (no ALL-CAPS hits are known in this scope, but verify).
 - A mechanical noun rename breaks a/an article agreement ("an ordinal" → "a options" is wrong twice); grep `\ban? (options|check|number)\b` after sweeping.
 - Don't leak this plan's own labels ("stream B", finding numbers) into code comments — comments must be self-contained.
-- Keep the axis discipline: this stream renames *retired-vocabulary prose and fixtures only*; don't opportunistically rename unrelated symbols while in the files.
+- Keep the axis discipline: this stream renames *retired criterion-kind vocabulary only* (prose, fixtures, and the identifiers carrying it); don't opportunistically rename unrelated symbols while in the files.
 
-**Validation:** `pnpm run check --fix`, `pnpm run check-types`, then the vitest projects covering the touched files — full `vitest` is simplest since most of the diff *is* tests (unit + integration; integration needs the testcontainer Postgres). No production `build` or `test:e2e` needed: no route, schema, or UI-label change (`e2e/` was verified clean in the audit). Run the simplify pass on touched files per AGENTS.md.
+**Validation:** `pnpm run check --fix`, `pnpm run check-types`, then the vitest projects covering the touched files — full `vitest` is simplest since most of the diff *is* tests (unit + integration; integration needs the testcontainer Postgres). Decided 2026-07-15: run the full suite including integration/testcontainer tests — cheapest way to confirm the expanded identifier renames (not just prose) didn't miss a consumer, given the diff is now bigger than the original scope. No production `build` or `test:e2e` needed: no route, schema, or UI-label change (`e2e/` was verified clean in the audit). Run the simplify pass on touched files per AGENTS.md.
 
 ### Stream C — GitHub issue triage (no PR)
 
@@ -113,6 +124,8 @@ Issues checked and *clean or already tracked*: #278 (ADR 0010 staleness — file
 
 **Decision for the user:** (a) quick rename now (something like `GradeTargetIdentity` — it carries the student id / group name used for export matching; pick the name against `CONTEXT.md`, and note bare "target" is on the _Avoid_ list) leaving the FIXME's structural cleanup for later, or (b) resolve the FIXME properly in one go (restructure + derive from generated types + the rename falls out), or (c) file an issue and defer. Option (a) folded into stream B is the cheapest way to finish the vocabulary; option (b) is a genuinely separate design task — if chosen, it likely warrants its own short grilling session first.
 
+**Decided 2026-07-15: option (c)** — deferred to issue [#288](https://github.com/QuentinRoy/tardigrade/issues/288). Not part of Stream B's execution; `GradeTargetSubmitter` is left untouched for now.
+
 ## Checked and deliberately NOT flagged
 
 Recorded so future audits don't re-litigate these. None of the following is a gap:
@@ -137,7 +150,7 @@ GitHub labels renamed (`grading` created, `rubrics` redescribed; no `assessment`
 1. **Stream C treatment:** retitle + clarifying comment (recommended) vs. full body rewrites.
 2. **Tracking:** one umbrella issue for this plan (sweep precedent) vs. per-stream issues vs. none.
 3. **#90:** close as obsolete (its target surface was deleted in stage 1) or re-scope to Criterion Analytics.
-4. **Stream D:** quick rename, full FIXME resolution, or defer via issue.
+4. **Stream D:** quick rename, full FIXME resolution, or defer via issue. **Resolved 2026-07-15: deferred via issue [#288](https://github.com/QuentinRoy/tardigrade/issues/288).**
 
 ## Out of scope
 
