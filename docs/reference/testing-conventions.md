@@ -6,7 +6,7 @@ This document records project-specific testing conventions that should remain st
 
 - Unit and integration test cases are **co-located** with the module they test,
   next to the source file (for example
-  `src/assessment-completion/assessmentCompletion.test.ts`). The Vitest unit
+  `src/grade-completion/gradeCompletion.test.ts`). The Vitest unit
   project discovers them via the `src/**/*.{test,spec}.{ts,tsx,js,jsx}` and
   `app/**/*.{test,spec}.{ts,tsx}` globs in `vitest.config.ts`.
 - Integration test cases use the `<name>.integration.test.ts` suffix and are
@@ -71,8 +71,8 @@ Vitest runs Storybook in headless mode via Playwright, so no separate Storybook 
 ## End-to-end tier
 
 `e2e/grading-workflow.spec.ts` is a single, narrow Playwright smoke test for the
-happy-path grading workflow (create project → import questions/students/assessments
-→ dashboard completion → reload → export). It is separate from the Storybook
+happy-path grading workflow (create grid → import rubrics/students/grades →
+overview completion → reload → results → export). It is separate from the Storybook
 Vitest browser project and from `test:unit`/`test:integration`: it drives a real
 browser against a production `next build` + `next start` server and a real
 Postgres, so it is the only tier that exercises browser UI, server actions/routes,

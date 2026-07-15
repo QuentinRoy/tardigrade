@@ -17,7 +17,7 @@ When reasoning about "why was this stale" or "why did this show a skeleton", ide
 3. **The client router cache** — the browser keeps recently rendered segments and reuses them on navigation. Server actions that call `updateTag`/`revalidateTag` refresh affected segments in the action response.
 4. **Link prefetch** — `next/link` prefetches what can be known ahead of time, which under `cacheComponents` is the cached/static part of the target route. A fully dynamic page body gives prefetch almost nothing to fetch; `router.push` prefetches nothing at all.
 
-A practical consequence in this repo: the question-specific grading page (cached sections, explicit prefetch on prev/next) navigates fast; the submission overview page (dynamic body, `router.push` quick-jump) shows the root skeleton. Same data layer underneath — different topology and prefetch.
+A practical consequence in this repo: the rubric grading page (`app/grids/[gridId]/[gridSlug]/grades/[targetId]/[targetSlug]/rubrics/[rubricId]/page.tsx`) has a cached `RubricHeaderSection` and no blocking top-level await, so it navigates fast with explicit prefetch on prev/next. The grade-target grading page (`app/grids/[gridId]/[gridSlug]/grades/[targetId]/[targetSlug]/page.tsx`) has no cached section at all and blocks on uncached `loadGridByPublicId`/`loadGradeTargets` before rendering anything, so it falls back to the root `loading.tsx` skeleton. Same data layer underneath — different topology and prefetch.
 
 ## `"use cache"` mechanics
 
@@ -28,7 +28,7 @@ Placing `"use cache"` at the top of an async function or component makes its res
 - A non-serializable argument (a Kysely handle, a class instance) is not hashed — it becomes an opaque reference that the cached function cannot actually use. This is why ADR 0007 forbids passing a `db` handle to a cached wrapper at runtime: it is not just impure, it does not work.
 - Module-level values referenced inside the function (like the global `db` client) are not arguments and not captured per-call, so they are fine. `{ db = defaultDb } = {}` works at runtime precisely because runtime callers never pass the option, so nothing non-serializable enters the key.
 
-**Granularity.** A cached *function* caches data. A cached *component* caches rendered output (its RSC payload), keyed by its serialized props. This repo uses both: data loaders in `src/**` and page sections like `SubmissionRubricSection` in `app/**`. A cached component whose props include `submissionId` has one entry per submission — useful, but it means the first visit to each submission is a miss by construction.
+**Granularity.** A cached *function* caches data. A cached *component* caches rendered output (its RSC payload), keyed by its serialized props. This repo uses both: data loaders in `src/**` and page sections like `RubricHeaderSection` in `app/**`. A cached component whose props include `rubricId` has one entry per rubric — useful, but it means the first visit to each rubric is a miss by construction.
 
 **Nesting.** Cached scopes nest. If the outer entry is fresh, inner functions never run. If the outer entry is stale but inner entries are fresh, the outer re-render is served from inner caches. Two propagation behaviors matter:
 
