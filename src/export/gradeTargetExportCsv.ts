@@ -1,5 +1,5 @@
 import type { Criterion } from "#criteria/types.ts";
-import type { GradeTargetSubmitter } from "#grade-targets/types.ts";
+import type { GradeTargetIdentity } from "#grade-targets/types.ts";
 
 export type ExportOptions = {
 	includeCriterionGrade: boolean;
@@ -47,7 +47,7 @@ export type GradeTargetExportRubricData = {
 };
 
 export type GradeTargetExportDataRow = {
-	target: GradeTargetSubmitter;
+	target: GradeTargetIdentity;
 	rubrics: GradeTargetExportRubricData[];
 };
 
@@ -67,7 +67,7 @@ export function buildGradeKey(rubricId: string, criterionId: string): string {
 }
 
 export function getGradeTargetExportIdentifier(
-	target: GradeTargetSubmitter,
+	target: GradeTargetIdentity,
 ): string {
 	if (target.kind === "group") {
 		if (target.groupName == null || target.groupName.length === 0) {
