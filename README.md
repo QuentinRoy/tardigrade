@@ -15,16 +15,18 @@ A Next.js app for rubric-based grading:
 - Mantine v9
 - PostgreSQL
 - Kysely (query + migrations)
-- Vitest
+- Vitest (unit, integration, and Storybook tests) + Playwright (end-to-end)
 - Biome (format/lint)
 
 ## Prerequisites
 
-- Node.js 22+
+- Node.js 26+
 - pnpm 11+
 - Docker (for local PostgreSQL and containerized tests)
 
 ## Quick Start
+
+Local development environment variables are committed in [`.env.development`](.env.development) and loaded automatically through dotenvx, so no environment setup is needed. To override a value, create a gitignored `.env.local` (or `.env.development.local`) at the repository root — dotenvx's flow convention gives those files precedence.
 
 1. Install dependencies.
 
@@ -32,35 +34,25 @@ A Next.js app for rubric-based grading:
 pnpm install
 ```
 
-2. Create `.env` at the repository root.
-
-```bash
-POSTGRES_USER=grading
-POSTGRES_PASSWORD=<local-password>
-POSTGRES_DB=grading
-POSTGRES_PORT=5432
-DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:${POSTGRES_PORT}/${POSTGRES_DB}
-```
-
-3. Start PostgreSQL.
+2. Start PostgreSQL.
 
 ```bash
 pnpm db:up
 ```
 
-4. Run database migrations.
+3. Run database migrations.
 
 ```bash
 pnpm db:migrate:up
 ```
 
-5. Start the app.
+4. Start the app.
 
 ```bash
 pnpm dev
 ```
 
-6. Open http://localhost:3000.
+5. Open http://localhost:3000.
 
 When finished:
 
@@ -92,9 +84,11 @@ pnpm test:unit                      # Run unit tests only.
 pnpm test:integration               # Run integration tests only.
 pnpm test:storybook                 # Run Storybook component tests only.
 pnpm test:watch                     # Run tests in watch mode.
+pnpm test:e2e                       # Run the Playwright end-to-end smoke test.
+pnpm lint:boundaries                # Check layer boundaries with dependency-cruiser.
 ```
 
-See [Running integration tests](docs/guides/running-integration-tests.md) for local and CI database behavior.
+See [Running integration tests](docs/guides/running-integration-tests.md) for local and CI database behavior. `pnpm test:e2e` needs a production build first (`pnpm build`) and Docker for its ephemeral PostgreSQL; see [Testing conventions](docs/reference/testing-conventions.md) for the full test-tier map.
 
 ### Database
 
@@ -217,6 +211,6 @@ Rules:
 
 ## Notes
 
-- Environment variables are loaded through dotenvx in package scripts.
+- Environment variables are loaded through dotenvx in package scripts. Local development defaults live in `.env.development`; override them in a gitignored `.env.local` or `.env.development.local`.
 - Database migrations are handled by Kysely in `src/db/migrate.ts`; see [Database migrations](docs/reference/database-migrations.md) for migration conventions.
 - Storybook component tests run with the normal Vitest suite via `pnpm test`; use `pnpm test:storybook` for the Storybook project alone.
