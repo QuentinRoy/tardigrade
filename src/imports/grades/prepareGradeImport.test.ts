@@ -24,11 +24,11 @@ test("prepareGradeImport plans one write per non-empty criterion cell of a match
 		criteriaByColumn: new Map([
 			[
 				"q1:r-bool",
-				{ id: "r-bool", kind: "check", rubricId: "q1", ordinalLabels: [] },
+				{ id: "r-bool", kind: "check", rubricId: "q1", optionsLabels: [] },
 			],
 			[
 				"q1:r-num",
-				{ id: "r-num", kind: "number", rubricId: "q1", ordinalLabels: [] },
+				{ id: "r-num", kind: "number", rubricId: "q1", optionsLabels: [] },
 			],
 			[
 				"q2:r-ord",
@@ -36,7 +36,7 @@ test("prepareGradeImport plans one write per non-empty criterion cell of a match
 					id: "r-ord",
 					kind: "options",
 					rubricId: "q2",
-					ordinalLabels: ["good", "bad"],
+					optionsLabels: ["good", "bad"],
 				},
 			],
 		]),
@@ -79,7 +79,7 @@ test("prepareGradeImport reports an unmatched target as a blocking diagnostic", 
 		criteriaByColumn: new Map([
 			[
 				"q1:r-bool",
-				{ id: "r-bool", kind: "check", rubricId: "q1", ordinalLabels: [] },
+				{ id: "r-bool", kind: "check", rubricId: "q1", optionsLabels: [] },
 			],
 		]),
 	});
@@ -106,7 +106,7 @@ test("prepareGradeImport reports an ambiguous target as a blocking diagnostic", 
 		criteriaByColumn: new Map([
 			[
 				"q1:r-bool",
-				{ id: "r-bool", kind: "check", rubricId: "q1", ordinalLabels: [] },
+				{ id: "r-bool", kind: "check", rubricId: "q1", optionsLabels: [] },
 			],
 		]),
 		targetIdsByLookup: new Map([
@@ -131,7 +131,7 @@ test("prepareGradeImport reports an invalid cell value as a blocking diagnostic"
 		criteriaByColumn: new Map([
 			[
 				"q1:r-bool",
-				{ id: "r-bool", kind: "check", rubricId: "q1", ordinalLabels: [] },
+				{ id: "r-bool", kind: "check", rubricId: "q1", optionsLabels: [] },
 			],
 		]),
 		targetIdsByLookup: new Map([
@@ -165,7 +165,7 @@ test("prepareGradeImport reports an unknown column as a blocking diagnostic", ()
 		criteriaByColumn: new Map([
 			[
 				"q1:r-bool",
-				{ id: "r-bool", kind: "check", rubricId: "q1", ordinalLabels: [] },
+				{ id: "r-bool", kind: "check", rubricId: "q1", optionsLabels: [] },
 			],
 		]),
 		targetIdsByLookup: new Map([
@@ -197,7 +197,7 @@ test("prepareGradeImport reports derived export columns as ignored, never blocki
 		criteriaByColumn: new Map([
 			[
 				"q1:r-bool",
-				{ id: "r-bool", kind: "check", rubricId: "q1", ordinalLabels: [] },
+				{ id: "r-bool", kind: "check", rubricId: "q1", optionsLabels: [] },
 			],
 		]),
 		rubricIds: new Set(["q1"]),
@@ -236,11 +236,11 @@ test("prepareGradeImport lists existing values of targeted pairs as overwrites",
 		criteriaByColumn: new Map([
 			[
 				"q1:r-bool",
-				{ id: "r-bool", kind: "check", rubricId: "q1", ordinalLabels: [] },
+				{ id: "r-bool", kind: "check", rubricId: "q1", optionsLabels: [] },
 			],
 			[
 				"q1:r-num",
-				{ id: "r-num", kind: "number", rubricId: "q1", ordinalLabels: [] },
+				{ id: "r-num", kind: "number", rubricId: "q1", optionsLabels: [] },
 			],
 		]),
 		targetIdsByLookup: new Map([
@@ -274,7 +274,7 @@ test("prepareGradeImport blocks with no-grade-columns when the header has only d
 		criteriaByColumn: new Map([
 			[
 				"q1:r-bool",
-				{ id: "r-bool", kind: "check", rubricId: "q1", ordinalLabels: [] },
+				{ id: "r-bool", kind: "check", rubricId: "q1", optionsLabels: [] },
 			],
 		]),
 		rubricIds: new Set(["q1"]),
@@ -307,7 +307,7 @@ test("prepareGradeImport blocks with no-grade-columns on an empty CSV", () => {
 		criteriaByColumn: new Map([
 			[
 				"q1:r-bool",
-				{ id: "r-bool", kind: "check", rubricId: "q1", ordinalLabels: [] },
+				{ id: "r-bool", kind: "check", rubricId: "q1", optionsLabels: [] },
 			],
 		]),
 	});
@@ -323,7 +323,7 @@ test("prepareGradeImport does not block when the header has a grade column with 
 		criteriaByColumn: new Map([
 			[
 				"q1:r-bool",
-				{ id: "r-bool", kind: "check", rubricId: "q1", ordinalLabels: [] },
+				{ id: "r-bool", kind: "check", rubricId: "q1", optionsLabels: [] },
 			],
 		]),
 		targetIdsByLookup: new Map([

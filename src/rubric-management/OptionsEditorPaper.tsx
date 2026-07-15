@@ -15,13 +15,13 @@ type OptionsCriterionEditorPaperProps = {
 	fieldErrors?: RubricCriterionFieldErrors | undefined;
 };
 
-function ordinalMarksToText(value: Record<string, number>): string {
+function optionsMarksToText(value: Record<string, number>): string {
 	return Object.entries(value)
 		.map(([label, marks]) => `${label}=${marks}`)
 		.join("\n");
 }
 
-function parseOrdinalMarks(value: string): Record<string, number> {
+function parseOptionsMarks(value: string): Record<string, number> {
 	return Object.fromEntries(
 		value
 			.split("\n")
@@ -60,11 +60,11 @@ export default function OptionsCriterionEditorPaper({
 						: undefined
 				}
 				error={fieldErrors?.marks}
-				value={ordinalMarksToText(criterion.marks)}
+				value={optionsMarksToText(criterion.marks)}
 				onChange={(event) =>
 					onChange({
 						...criterion,
-						marks: parseOrdinalMarks(event.currentTarget.value),
+						marks: parseOptionsMarks(event.currentTarget.value),
 					})
 				}
 				minRows={4}

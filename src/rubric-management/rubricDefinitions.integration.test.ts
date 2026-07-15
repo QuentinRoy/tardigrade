@@ -2,10 +2,7 @@ import { cacheTag } from "next/cache";
 import { beforeEach, expect, test, vi } from "vitest";
 import { createTestDb } from "#test/dbIntegration.ts";
 import { createGrid } from "#test/grids.ts";
-import {
-	createGradedBooleanRubricFixture,
-	createRubric,
-} from "#test/rubrics.ts";
+import { createGradedCheckRubricFixture, createRubric } from "#test/rubrics.ts";
 import {
 	getRubricDefinitionDeleteImpact,
 	getRubricDefinitionDeleteImpactFromDb,
@@ -24,8 +21,8 @@ test("loadRubricDefinitionsFromDb returns scoped definitions with grade counts",
 	await using db = await createTestDb();
 	await using grid = await createGrid(db, "Definition Read Grid");
 	await using otherGrid = await createGrid(db, "Definition Read Other Grid");
-	const fixture = await createGradedBooleanRubricFixture(db, grid.rowId);
-	await createGradedBooleanRubricFixture(db, otherGrid.rowId);
+	const fixture = await createGradedCheckRubricFixture(db, grid.rowId);
+	await createGradedCheckRubricFixture(db, otherGrid.rowId);
 
 	const definitions = await loadRubricDefinitionsFromDb(db, {
 		gridId: grid.id,
@@ -37,7 +34,7 @@ test("loadRubricDefinitionsFromDb returns scoped definitions with grade counts",
 			position: 0,
 			gradedTargetCount: 1,
 			rubric: {
-				label: "Boolean rubric",
+				label: "Check rubric",
 				criteria: [
 					{
 						id: fixture.criterionId,
@@ -75,7 +72,7 @@ test("loadRubricDefinitionsFromDb returns zero grade count for ungraded rubrics"
 test("getRubricDefinitionDeleteImpactFromDb reports the linked grade count", async () => {
 	await using db = await createTestDb();
 	await using grid = await createGrid(db, "Definition Impact Grid");
-	const fixture = await createGradedBooleanRubricFixture(db, grid.rowId);
+	const fixture = await createGradedCheckRubricFixture(db, grid.rowId);
 
 	const impact = await getRubricDefinitionDeleteImpactFromDb(db, {
 		rubricId: fixture.rubricId,
@@ -101,7 +98,7 @@ test("getRubricDefinitionDeleteImpactFromDb reports zero for an ungraded rubric"
 test("loadRubricDefinitions wrapper delegates to its primitive through the injected handle", async () => {
 	await using db = await createTestDb();
 	await using grid = await createGrid(db, "Definition Wrapper Grid");
-	const fixture = await createGradedBooleanRubricFixture(db, grid.rowId);
+	const fixture = await createGradedCheckRubricFixture(db, grid.rowId);
 
 	const definitions = await loadRubricDefinitions({ gridId: grid.id }, { db });
 
@@ -122,7 +119,7 @@ test("loadRubricDefinitions wrapper delegates to its primitive through the injec
 test("getRubricDefinitionDeleteImpact wrapper delegates to its primitive through the injected handle", async () => {
 	await using db = await createTestDb();
 	await using grid = await createGrid(db, "Impact Wrapper Grid");
-	const fixture = await createGradedBooleanRubricFixture(db, grid.rowId);
+	const fixture = await createGradedCheckRubricFixture(db, grid.rowId);
 
 	const impact = await getRubricDefinitionDeleteImpact(
 		{ rubricId: fixture.rubricId, gridId: grid.id },

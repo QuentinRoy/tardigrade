@@ -7,12 +7,12 @@ export type GradeFixture = {
 	rubricId: string;
 	studentId: string;
 	gradeTargetId: string;
-	criterionIds: { boolean: string; ordinal: string; numerical: string };
+	criterionIds: { check: string; options: string; number: string };
 };
 
 export type GradeFixtureOptions = {
 	rubricId?: string;
-	criterionIds?: { boolean: string; ordinal: string; numerical: string };
+	criterionIds?: { check: string; options: string; number: string };
 };
 
 // Creates a grade target with a rubric carrying one criterion of each type, ready for
@@ -35,11 +35,11 @@ export async function createGradeFixture(
 	const rubricId = options?.rubricId ?? buildTestId("q");
 	const studentId = buildTestId("student");
 	const checkCriterionId =
-		options?.criterionIds?.boolean ?? buildTestId("criterion-boolean");
+		options?.criterionIds?.check ?? buildTestId("criterion-check");
 	const optionsCriterionId =
-		options?.criterionIds?.ordinal ?? buildTestId("criterion-ordinal");
+		options?.criterionIds?.options ?? buildTestId("criterion-options");
 	const numberCriterionId =
-		options?.criterionIds?.numerical ?? buildTestId("criterion-numerical");
+		options?.criterionIds?.number ?? buildTestId("criterion-number");
 
 	await db
 		.insertInto("student")
@@ -95,7 +95,7 @@ export async function createGradeFixture(
 				rubricId: rubric.rowId,
 				kind: "check",
 				position: 0,
-				label: "Boolean criterion",
+				label: "Check criterion",
 			},
 			{
 				id: optionsCriterionId,
@@ -103,7 +103,7 @@ export async function createGradeFixture(
 				rubricId: rubric.rowId,
 				kind: "options",
 				position: 1,
-				label: "Ordinal criterion",
+				label: "Options criterion",
 			},
 			{
 				id: numberCriterionId,
@@ -111,7 +111,7 @@ export async function createGradeFixture(
 				rubricId: rubric.rowId,
 				kind: "number",
 				position: 2,
-				label: "Numerical criterion",
+				label: "Number criterion",
 			},
 		])
 		.returning(["id", "rowId"])
@@ -169,9 +169,9 @@ export async function createGradeFixture(
 		studentId,
 		gradeTargetId: target.id,
 		criterionIds: {
-			boolean: checkCriterionId,
-			ordinal: optionsCriterionId,
-			numerical: numberCriterionId,
+			check: checkCriterionId,
+			options: optionsCriterionId,
+			number: numberCriterionId,
 		},
 	};
 }

@@ -7,7 +7,7 @@ test("rubricCacheTags declares the grid-scoped rubrics tag", () => {
 });
 
 describe("toRubricsById", () => {
-	const booleanRow: RubricRow = {
+	const checkRow: RubricRow = {
 		id: "q1",
 		label: "Rubric 1",
 		criteria: [
@@ -28,7 +28,7 @@ describe("toRubricsById", () => {
 	});
 
 	test("uses rubric id as key", () => {
-		const rubricsById = toRubricsById([booleanRow]);
+		const rubricsById = toRubricsById([checkRow]);
 		expect(Object.keys(rubricsById)).toEqual(["q1"]);
 	});
 
@@ -38,11 +38,11 @@ describe("toRubricsById", () => {
 	});
 
 	test("preserves non-null label", () => {
-		expect(toRubricsById([booleanRow])["q1"]?.label).toBe("Rubric 1");
+		expect(toRubricsById([checkRow])["q1"]?.label).toBe("Rubric 1");
 	});
 
 	test("converts criterion rows via toCriterion", () => {
-		const rubricsById = toRubricsById([booleanRow]);
+		const rubricsById = toRubricsById([checkRow]);
 		expect(rubricsById["q1"]?.criteria).toHaveLength(1);
 		expect(rubricsById["q1"]?.criteria[0]?.id).toBe("r1");
 	});
@@ -65,7 +65,7 @@ describe("toCriterion", () => {
 			).toThrow();
 		});
 
-		test("maps to { kind: 'ordinal', marks: {} } when optionsCriterion row exists with zero values", () => {
+		test("maps to { kind: 'options', marks: {} } when optionsCriterion row exists with zero values", () => {
 			expect(
 				toCriterion({
 					...base,

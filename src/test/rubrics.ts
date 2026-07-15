@@ -2,31 +2,31 @@ import type { Kysely } from "kysely";
 import type { Database } from "#db/generated/database.ts";
 import { buildTestId } from "./dbIntegration.ts";
 
-export type GradedBooleanFixture = BooleanRubricFixture & {
+export type GradedCheckFixture = CheckRubricFixture & {
 	gradeTargetRowId: number;
 	criterionGradeId: number;
 };
 
-export type BooleanRubricFixture = {
+export type CheckRubricFixture = {
 	rubricId: string;
 	rubricRowId: number;
 	criterionId: string;
 	criterionRowId: number;
 };
 
-// Creates a rubric carrying a single boolean criterion, without any grade target
+// Creates a rubric carrying a single check criterion, without any grade target
 // or grade.
-export async function createBooleanRubricFixture(
+export async function createCheckRubricFixture(
 	db: Kysely<Database>,
 	gridRowId: number,
 	position = 0,
-): Promise<BooleanRubricFixture> {
+): Promise<CheckRubricFixture> {
 	const rubricId = buildTestId("rubric");
-	const criterionId = buildTestId("criterion-boolean");
+	const criterionId = buildTestId("criterion-check");
 
 	const rubric = await db
 		.insertInto("rubric")
-		.values({ gridRowId, id: rubricId, label: "Boolean rubric", position })
+		.values({ gridRowId, id: rubricId, label: "Check rubric", position })
 		.returning("rowId")
 		.executeTakeFirstOrThrow();
 
@@ -56,11 +56,11 @@ export async function createBooleanRubricFixture(
 	};
 }
 
-export async function createGradedBooleanRubricFixture(
+export async function createGradedCheckRubricFixture(
 	db: Kysely<Database>,
 	gridRowId: number,
-): Promise<GradedBooleanFixture> {
-	const rubric = await createBooleanRubricFixture(db, gridRowId);
+): Promise<GradedCheckFixture> {
+	const rubric = await createCheckRubricFixture(db, gridRowId);
 	const studentId = buildTestId("student");
 
 	const student = await db
@@ -135,16 +135,16 @@ export async function getRubricPositions(
 	return Object.fromEntries(rows.map((row) => [row.id, row.position]));
 }
 
-export async function createOrdinalRubricFixture(
+export async function createOptionsRubricFixture(
 	db: Kysely<Database>,
 	gridRowId: number,
 ): Promise<{ rubricId: string; criterionId: string }> {
-	const rubricId = buildTestId("rubric-ordinal");
-	const criterionId = buildTestId("criterion-ordinal");
+	const rubricId = buildTestId("rubric-options");
+	const criterionId = buildTestId("criterion-options");
 
 	const rubric = await db
 		.insertInto("rubric")
-		.values({ gridRowId, id: rubricId, label: "Ordinal rubric", position: 0 })
+		.values({ gridRowId, id: rubricId, label: "Options rubric", position: 0 })
 		.returning("rowId")
 		.executeTakeFirstOrThrow();
 
@@ -156,7 +156,7 @@ export async function createOrdinalRubricFixture(
 			rubricId: rubric.rowId,
 			kind: "options",
 			position: 0,
-			label: "Ordinal",
+			label: "Options",
 		})
 		.returning("rowId")
 		.executeTakeFirstOrThrow();

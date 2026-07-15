@@ -109,9 +109,9 @@ export async function saveRubricImportPlanInDb(
 		.executeTakeFirstOrThrow();
 	const gridRowId = gridRow.rowId;
 
-	// Criteria whose type changed (no linked grades, per the prepared plan)
-	// are deleted and recreated so subtype tables (boolean/numerical/ordinal
-	// criterion) never hold stale rows for the previous type.
+	// Criteria whose kind changed (no linked grades, per the prepared plan)
+	// are deleted and recreated so subtype tables (check/number/options
+	// criterion) never hold stale rows for the previous kind.
 	const criteriaToRecreate = plan.criterionKindChanges.map(
 		(change) => change.criterionId,
 	);
@@ -215,7 +215,7 @@ export async function saveRubricImportPlanInDb(
 
 		if (criterionRowId == null) {
 			throw new Error(
-				`Imported boolean criterion '${criterion.criterionId}' could not be resolved.`,
+				`Imported check criterion '${criterion.criterionId}' could not be resolved.`,
 			);
 		}
 
@@ -248,7 +248,7 @@ export async function saveRubricImportPlanInDb(
 
 		if (criterionRowId == null) {
 			throw new Error(
-				`Imported numerical criterion '${criterion.criterionId}' could not be resolved.`,
+				`Imported number criterion '${criterion.criterionId}' could not be resolved.`,
 			);
 		}
 
@@ -286,7 +286,7 @@ export async function saveRubricImportPlanInDb(
 
 			if (criterionRowId == null) {
 				throw new Error(
-					`Imported ordinal criterion '${source.criterionId}' could not be resolved.`,
+					`Imported options criterion '${source.criterionId}' could not be resolved.`,
 				);
 			}
 
@@ -332,7 +332,7 @@ export async function saveRubricImportPlanInDb(
 			}),
 		);
 
-		const existingOrdinalValues =
+		const existingOptionsValues =
 			optionsCriterionIds.length === 0
 				? []
 				: await db
@@ -341,21 +341,21 @@ export async function saveRubricImportPlanInDb(
 						.where("optionsCriterionId", "in", optionsCriterionIds)
 						.execute();
 
-		const staleOrdinalValueIds = existingOrdinalValues
+		const staleOptionsValueIds = existingOptionsValues
 			.filter(
 				(value) =>
 					!validPairKeys.has(`${value.optionsCriterionId}::${value.label}`),
 			)
 			.map((value) => value.id);
 
-		if (staleOrdinalValueIds.length > 0) {
+		if (staleOptionsValueIds.length > 0) {
 			await db
 				.deleteFrom("optionsCriterionMark")
-				.where("id", "in", staleOrdinalValueIds)
+				.where("id", "in", staleOptionsValueIds)
 				.execute();
 		}
 
-		const ordinalValueRows = optionsCriterionSources.flatMap((source) => {
+		const optionsValueRows = optionsCriterionSources.flatMap((source) => {
 			const criterionRowId = criterionRowIdByBusinessId.get(source.criterionId);
 			if (criterionRowId == null) return [];
 
@@ -370,10 +370,10 @@ export async function saveRubricImportPlanInDb(
 			}));
 		});
 
-		if (ordinalValueRows.length > 0) {
+		if (optionsValueRows.length > 0) {
 			await db
 				.insertInto("optionsCriterionMark")
-				.values(ordinalValueRows)
+				.values(optionsValueRows)
 				.onConflict((conflict) =>
 					conflict
 						.columns(["optionsCriterionId", "label"])

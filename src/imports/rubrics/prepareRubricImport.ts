@@ -36,7 +36,7 @@ export type RubricImportBlockingDiagnostic =
 export type RubricImportPlan = {
 	writes: ImportedRubrics;
 	blockingDiagnostics: RubricImportBlockingDiagnostic[];
-	// Criterion type changes that proceed (no linked grades), reported for the
+	// Criterion kind changes that proceed (no linked grades), reported for the
 	// success message.
 	criterionKindChanges: RubricImportCriterionKindChange[];
 };

@@ -38,7 +38,7 @@ test("saveCriterionGrade returns a generic shaped error and logs once when the m
 				targetId: fixture.gradeTargetId,
 				rubricId: fixture.rubricId,
 				grade: {
-					criterionId: fixture.criterionIds.boolean,
+					criterionId: fixture.criterionIds.check,
 					kind: "check",
 					passed: true,
 				},

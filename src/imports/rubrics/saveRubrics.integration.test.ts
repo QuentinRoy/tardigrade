@@ -5,8 +5,8 @@ import { runForcedInterleaving } from "#test/concurrency.ts";
 import { createTestDb } from "#test/dbIntegration.ts";
 import { createGrid } from "#test/grids.ts";
 import {
-	createBooleanRubricFixture,
-	createGradedBooleanRubricFixture,
+	createCheckRubricFixture,
+	createGradedCheckRubricFixture,
 } from "#test/rubrics.ts";
 import { prepareRubricImport } from "./prepareRubricImport.ts";
 import { loadRubricImportContextFromDb } from "./rubricImportContext.ts";
@@ -219,15 +219,15 @@ test("saveRubrics still upserts duplicate ids within the same grid", async () =>
 	expect(criteria[0]?.label).toBe("Criterion after");
 });
 
-test("saveRubrics blocks a criterion type change when the criterion has linked grades", async () => {
+test("saveRubrics blocks a criterion kind change when the criterion has linked grades", async () => {
 	await using db = await createTestDb();
 	await using grid = await createGrid(db, "Type Change Blocked Grid");
-	const fixture = await createGradedBooleanRubricFixture(db, grid.rowId);
+	const fixture = await createGradedCheckRubricFixture(db, grid.rowId);
 
 	const rubrics: ImportedRubrics = [
 		{
 			id: fixture.rubricId,
-			label: "Boolean rubric",
+			label: "Check rubric",
 			criteria: [
 				{
 					id: fixture.criterionId,
@@ -256,15 +256,15 @@ test("saveRubrics blocks a criterion type change when the criterion has linked g
 	expect(revalidateTag).not.toHaveBeenCalled();
 });
 
-test("saveRubrics allows a criterion type change when the criterion has no linked grades", async () => {
+test("saveRubrics allows a criterion kind change when the criterion has no linked grades", async () => {
 	await using db = await createTestDb();
 	await using grid = await createGrid(db, "Type Change Allowed Grid");
-	const fixture = await createBooleanRubricFixture(db, grid.rowId);
+	const fixture = await createCheckRubricFixture(db, grid.rowId);
 
 	const rubrics: ImportedRubrics = [
 		{
 			id: fixture.rubricId,
-			label: "Boolean rubric",
+			label: "Check rubric",
 			criteria: [
 				{
 					id: fixture.criterionId,
@@ -314,7 +314,7 @@ test("saveRubrics allows a criterion type change when the criterion has no linke
 test("saveRubrics blocks an imported criterion id that already belongs to another rubric", async () => {
 	await using db = await createTestDb();
 	await using grid = await createGrid(db, "Criterion Mismatch Grid");
-	const fixture = await createBooleanRubricFixture(db, grid.rowId);
+	const fixture = await createCheckRubricFixture(db, grid.rowId);
 
 	const rubrics: ImportedRubrics = [
 		{
@@ -364,18 +364,18 @@ test("saveRubrics wrapper invalidates rubric and grade tags after the import com
 // contract only (no corruption, no thrown error, last-write-wins), not
 // reported counts. Targets the criterion delete-then-recreate path on a type
 // change (`saveRubrics.ts`), the spot most plausible to misbehave since the
-// subtype tables (boolean/ordinal/numerical criterion) must never end up with
+// subtype tables (check/options/number criterion) must never end up with
 // stale rows for the previous type.
-test("saveRubricImportPlanInDb keeps a single criterion definition when two imports race the same criterion type change", async () => {
+test("saveRubricImportPlanInDb keeps a single criterion definition when two imports race the same criterion kind change", async () => {
 	await using db = await createTestDb();
 	await using grid = await createGrid(db, "Concurrency Rubric Import Grid");
-	const fixture = await createBooleanRubricFixture(db, grid.rowId);
+	const fixture = await createCheckRubricFixture(db, grid.rowId);
 
-	function makeOrdinalImport(marks: Record<string, number>): ImportedRubrics {
+	function makeOptionsImport(marks: Record<string, number>): ImportedRubrics {
 		return [
 			{
 				id: fixture.rubricId,
-				label: "Boolean rubric",
+				label: "Check rubric",
 				criteria: [
 					{ id: fixture.criterionId, kind: "options", label: "Correct", marks },
 				],
@@ -383,11 +383,11 @@ test("saveRubricImportPlanInDb keeps a single criterion definition when two impo
 		];
 	}
 
-	const rubricsToMarksAB = makeOrdinalImport({ good: 1, bad: 0 });
-	const rubricsToMarksXY = makeOrdinalImport({ yes: 2, no: 0 });
+	const rubricsToMarksAB = makeOptionsImport({ good: 1, bad: 0 });
+	const rubricsToMarksXY = makeOptionsImport({ yes: 2, no: 0 });
 
 	// Both plans are built against the same pre-race snapshot (criterion still
-	// boolean, no linked grades), mirroring two graders importing the
+	// check, no linked grades), mirroring two graders importing the
 	// same in-flight change before either write lands.
 	const [contextAB, contextXY] = await Promise.all([
 		loadRubricImportContextFromDb(db, {
@@ -426,7 +426,7 @@ test("saveRubricImportPlanInDb keeps a single criterion definition when two impo
 	expect(criterionRows[0]?.kind).toBe("options");
 	const criterionRowId = criterionRows[0]?.rowId;
 
-	const [booleanRows, optionsCriterionRows] = await Promise.all([
+	const [checkRows, optionsCriterionRows] = await Promise.all([
 		db
 			.selectFrom("checkCriterion")
 			.select("criterionId")
@@ -438,15 +438,15 @@ test("saveRubricImportPlanInDb keeps a single criterion definition when two impo
 			.where("criterionId", "=", criterionRowId ?? -1)
 			.execute(),
 	]);
-	expect(booleanRows).toHaveLength(0);
+	expect(checkRows).toHaveLength(0);
 	expect(optionsCriterionRows).toHaveLength(1);
 
-	const ordinalValues = await db
+	const optionsValues = await db
 		.selectFrom("optionsCriterionMark")
 		.select("label")
 		.where("optionsCriterionId", "=", optionsCriterionRows[0]?.id ?? -1)
 		.execute();
-	const labels = ordinalValues.map((value) => value.label).sort();
+	const labels = optionsValues.map((value) => value.label).sort();
 
 	expect([
 		["bad", "good"],

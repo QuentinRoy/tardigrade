@@ -3,8 +3,8 @@ import { beforeEach, expect, test, vi } from "vitest";
 import { createTestDb } from "#test/dbIntegration.ts";
 import { createGrid } from "#test/grids.ts";
 import {
-	createGradedBooleanRubricFixture,
-	createOrdinalRubricFixture,
+	createGradedCheckRubricFixture,
+	createOptionsRubricFixture,
 } from "#test/rubrics.ts";
 import {
 	loadRubric,
@@ -25,15 +25,15 @@ test("loadRubricRowsFromDb returns only the rows scoped to the given grid", asyn
 
 	await using grid = await createGrid(db, "Read Seam Grid");
 	await using otherGrid = await createGrid(db, "Read Seam Other Grid");
-	const fixture = await createGradedBooleanRubricFixture(db, grid.rowId);
-	await createGradedBooleanRubricFixture(db, otherGrid.rowId);
+	const fixture = await createGradedCheckRubricFixture(db, grid.rowId);
+	await createGradedCheckRubricFixture(db, otherGrid.rowId);
 
 	const rows = await loadRubricRowsFromDb(db, { gridId: grid.id });
 
 	expect(rows).toEqual([
 		{
 			id: fixture.rubricId,
-			label: "Boolean rubric",
+			label: "Check rubric",
 			criteria: [
 				{
 					id: fixture.criterionId,
@@ -52,7 +52,7 @@ test("loadRubricRowsFromDb returns only the rows scoped to the given grid", asyn
 test("loadRubricRows wrapper delegates to its primitive and declares its cache tags", async () => {
 	await using db = await createTestDb();
 	await using grid = await createGrid(db, "Rows Wrapper Grid");
-	const fixture = await createGradedBooleanRubricFixture(db, grid.rowId);
+	const fixture = await createGradedCheckRubricFixture(db, grid.rowId);
 
 	const rows = await loadRubricRows({ gridId: grid.id }, { db });
 
@@ -65,7 +65,7 @@ test("loadRubricRows wrapper delegates to its primitive and declares its cache t
 test("loadRubricsById forwards its db option to the shared loadRubricRows source", async () => {
 	await using db = await createTestDb();
 	await using grid = await createGrid(db, "RubricsById Forwarding Grid");
-	const fixture = await createGradedBooleanRubricFixture(db, grid.rowId);
+	const fixture = await createGradedCheckRubricFixture(db, grid.rowId);
 
 	const rubricsById = await loadRubricsById({ gridId: grid.id }, { db });
 
@@ -81,7 +81,7 @@ test("loadRubricsById forwards its db option to the shared loadRubricRows source
 test("loadRubric forwards its db option to the shared loadRubricRows source", async () => {
 	await using db = await createTestDb();
 	await using grid = await createGrid(db, "Rubric Forwarding Grid");
-	const fixture = await createGradedBooleanRubricFixture(db, grid.rowId);
+	const fixture = await createGradedCheckRubricFixture(db, grid.rowId);
 
 	const rubric = await loadRubric(
 		{ gridId: grid.id, rubricId: fixture.rubricId },
@@ -95,9 +95,9 @@ test("loadRubric forwards its db option to the shared loadRubricRows source", as
 
 test("loadRubricRowsFromDb returns optionsCriterion with empty marks when the optionsCriterion row exists but has no optionsCriterionMark rows", async () => {
 	await using db = await createTestDb();
-	await using grid = await createGrid(db, "Ordinal Empty Marks Grid");
+	await using grid = await createGrid(db, "Options Empty Marks Grid");
 
-	const { rubricId, criterionId } = await createOrdinalRubricFixture(
+	const { rubricId, criterionId } = await createOptionsRubricFixture(
 		db,
 		grid.rowId,
 	);
@@ -124,13 +124,13 @@ test("loadRubricRowsFromDb returns optionsCriterion with empty marks when the op
 	expect(rows).toEqual([
 		{
 			id: rubricId,
-			label: "Ordinal rubric",
+			label: "Options rubric",
 			criteria: [
 				{
 					id: criterionId,
 					kind: "options",
 					description: null,
-					label: "Ordinal",
+					label: "Options",
 					checkCriterion: null,
 					optionsCriterion: { marks: [] },
 					numberCriterion: null,

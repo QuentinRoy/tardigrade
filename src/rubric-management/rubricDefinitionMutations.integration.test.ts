@@ -8,8 +8,8 @@ import {
 import { buildTestId, createTestDb } from "#test/dbIntegration.ts";
 import { createGrid } from "#test/grids.ts";
 import {
-	createGradedBooleanRubricFixture,
-	createOrdinalRubricFixture,
+	createGradedCheckRubricFixture,
+	createOptionsRubricFixture,
 	createRubric,
 	getRubricPositions,
 } from "#test/rubrics.ts";
@@ -80,7 +80,7 @@ test("saveRubricDefinitionInDb renames rubric id while preserving linked grades"
 	await using db = await createTestDb();
 	const { updateTag } = await import("next/cache");
 	await using grid = await createGrid(db, "Save Rename Grid");
-	const fixture = await createGradedBooleanRubricFixture(db, grid.rowId);
+	const fixture = await createGradedCheckRubricFixture(db, grid.rowId);
 	const renamedRubricId = buildTestId("rubric-renamed");
 
 	const result = await saveRubricDefinitionInDb(db, {
@@ -126,12 +126,12 @@ test("saveRubricDefinitionInDb renames rubric id while preserving linked grades"
 	expect(criterionGrade.criterionId).toBe(fixture.criterionRowId);
 });
 
-test("saveRubricDefinitionInDb replaces criterion subtype data when criterion type changes", async () => {
+test("saveRubricDefinitionInDb replaces criterion subtype data when criterion kind changes", async () => {
 	await using db = await createTestDb();
 	await using grid = await createGrid(db, "Save Type Change Grid");
-	const fixture = await createGradedBooleanRubricFixture(db, grid.rowId);
+	const fixture = await createGradedCheckRubricFixture(db, grid.rowId);
 
-	const replacedCriterionId = buildTestId("criterion-numerical");
+	const replacedCriterionId = buildTestId("criterion-number");
 
 	await saveRubricDefinitionInDb(db, {
 		input: {
@@ -173,13 +173,13 @@ test("saveRubricDefinitionInDb replaces criterion subtype data when criterion ty
 
 	expect(newCriterion.kind).toBe("number");
 
-	const booleanSubtypeRows = await db
+	const checkSubtypeRows = await db
 		.selectFrom("checkCriterion")
 		.select("id")
 		.where("criterionId", "=", fixture.criterionRowId)
 		.execute();
 
-	const numericalSubtypeRows = await db
+	const numberSubtypeRows = await db
 		.selectFrom("numberCriterion")
 		.select(["criterionId", "minValue", "maxValue"])
 		.where("criterionId", "=", newCriterion.rowId)
@@ -191,15 +191,15 @@ test("saveRubricDefinitionInDb replaces criterion subtype data when criterion ty
 		.where("criterionId", "=", fixture.criterionRowId)
 		.execute();
 
-	expect(booleanSubtypeRows).toHaveLength(0);
-	expect(numericalSubtypeRows).toHaveLength(1);
+	expect(checkSubtypeRows).toHaveLength(0);
+	expect(numberSubtypeRows).toHaveLength(1);
 	expect(linkedCriterionGrades).toHaveLength(0);
 });
 
 test("saveRubricDefinitionInDb removes stale criteria that are no longer referenced", async () => {
 	await using db = await createTestDb();
 	await using grid = await createGrid(db, "Save Stale Criterion Grid");
-	const fixture = await createGradedBooleanRubricFixture(db, grid.rowId);
+	const fixture = await createGradedCheckRubricFixture(db, grid.rowId);
 
 	const staleCriterionId = buildTestId("criterion-stale");
 
@@ -268,22 +268,22 @@ test("saveRubricDefinitionInDb removes stale criteria that are no longer referen
 	]);
 });
 
-test("saveRubricDefinitionInDb replaces ordinal criterion values using the provided label set", async () => {
+test("saveRubricDefinitionInDb replaces options criterion values using the provided label set", async () => {
 	await using db = await createTestDb();
-	await using grid = await createGrid(db, "Save Ordinal Values Grid");
-	const fixture = await createOrdinalRubricFixture(db, grid.rowId);
+	await using grid = await createGrid(db, "Save Options Values Grid");
+	const fixture = await createOptionsRubricFixture(db, grid.rowId);
 
 	await saveRubricDefinitionInDb(db, {
 		input: {
 			originalId: fixture.rubricId,
 			id: fixture.rubricId,
-			label: "Ordinal updated",
+			label: "Options updated",
 			criteria: [
 				{
 					previousId: fixture.criterionId,
 					id: fixture.criterionId,
 					kind: "options",
-					label: "Ordinal",
+					label: "Options",
 					marks: { B: 2.5, C: 1 },
 				},
 			],
@@ -325,7 +325,7 @@ test("saveRubricDefinitionInDb replaces ordinal criterion values using the provi
 test("deleteRubricDefinitionInDb reports deletion and cascades linked grades", async () => {
 	await using db = await createTestDb();
 	await using grid = await createGrid(db, "Delete Cascade Grid");
-	const fixture = await createGradedBooleanRubricFixture(db, grid.rowId);
+	const fixture = await createGradedCheckRubricFixture(db, grid.rowId);
 
 	const result = await deleteRubricDefinitionInDb(db, {
 		rubricId: fixture.rubricId,
@@ -539,7 +539,7 @@ test("saveRubricDefinition wrapper updates the rubric list read-your-writes and 
 test("saveRubricDefinition wrapper revalidates the previous rubric's completion when the id changes", async () => {
 	await using db = await createTestDb();
 	await using grid = await createGrid(db, "Save Rename Cache Grid");
-	const fixture = await createGradedBooleanRubricFixture(db, grid.rowId);
+	const fixture = await createGradedCheckRubricFixture(db, grid.rowId);
 	const renamedRubricId = buildTestId("rubric-renamed");
 
 	await saveRubricDefinition(

@@ -36,7 +36,7 @@ async function createGradeTarget(
 		.values({
 			gridRowId: gridRowId,
 			id: studentId,
-			lastName: "Progress",
+			lastName: "Completion",
 			firstName: "Test",
 		})
 		.execute();
@@ -137,8 +137,8 @@ async function addGrade(
 
 test("loadGradedCriterionCountsByTargetFromDb counts only grades within the requested grid when rubric ids collide across grids", async () => {
 	await using db = await createTestDb();
-	await using gridA = await createGrid(db, "Progress Isolation A");
-	await using gridB = await createGrid(db, "Progress Isolation B");
+	await using gridA = await createGrid(db, "Completion Isolation A");
+	await using gridB = await createGrid(db, "Completion Isolation B");
 
 	const sharedRubricId = "shared-q-completion-iso";
 	const sharedCriterionId = "shared-criterion-completion-iso";
@@ -187,8 +187,8 @@ test("loadGradedCriterionCountsByTargetFromDb counts only grades within the requ
 
 test("loadGradeCompletionByTargetFromDb counts only rubrics and grades within the requested grid when rubric ids collide across grids", async () => {
 	await using db = await createTestDb();
-	await using gridA = await createGrid(db, "Overview Progress Isolation A");
-	await using gridB = await createGrid(db, "Overview Progress Isolation B");
+	await using gridA = await createGrid(db, "Overview Completion Isolation A");
+	await using gridB = await createGrid(db, "Overview Completion Isolation B");
 
 	const sharedRubricId = "shared-q-overview-iso";
 	const sharedCriterionId = "shared-criterion-overview-iso";
@@ -235,7 +235,7 @@ test("loadGradeCompletionByTargetFromDb counts only rubrics and grades within th
 
 test("loadGradedCriterionCountsByTarget wrapper delegates to its primitive and declares its cache tags", async () => {
 	await using db = await createTestDb();
-	await using grid = await createGrid(db, "Rubric Progress Wrapper");
+	await using grid = await createGrid(db, "Rubric Completion Wrapper");
 	const sharedRubricId = buildTestId("rubric");
 	const target = await createGradeTarget(db, grid.rowId);
 	await createRubric(db, grid.rowId, sharedRubricId, {
@@ -260,7 +260,7 @@ test("loadGradedCriterionCountsByTarget wrapper delegates to its primitive and d
 
 test("loadGradedCriterionCounts plus buildGradedCriterionCountsByTarget matches the combined primitive, given the same target ids", async () => {
 	await using db = await createTestDb();
-	await using grid = await createGrid(db, "Rubric Progress Split");
+	await using grid = await createGrid(db, "Rubric Completion Split");
 	const rubricId = buildTestId("rubric");
 	const target = await createGradeTarget(db, grid.rowId);
 	await createRubric(db, grid.rowId, rubricId, {
@@ -285,7 +285,7 @@ test("loadGradedCriterionCounts plus buildGradedCriterionCountsByTarget matches 
 
 test("loadGradeCompletionByTarget is a plain deriver that shares loadGradeCompletionRows' cache entry", async () => {
 	await using db = await createTestDb();
-	await using grid = await createGrid(db, "Overview Progress Wrapper");
+	await using grid = await createGrid(db, "Overview Completion Wrapper");
 	const target = await createGradeTarget(db, grid.rowId);
 	await createRubric(db, grid.rowId, buildTestId("rubric"), {
 		criterionId: buildTestId("criterion"),

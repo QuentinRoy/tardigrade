@@ -179,19 +179,19 @@ export async function saveCriterionGradeInDb(
 	// value and clears the other two kinds, so a criterion never carries stale
 	// values from a previous kind. A non-undefined return is a validation failure
 	// that aborts the save before any write.
-	async function saveBooleanGrade(
-		booleanGrade: Extract<CriterionGrade, { kind: "check" }>,
+	async function saveCheckGrade(
+		checkGrade: Extract<CriterionGrade, { kind: "check" }>,
 	): Promise<SaveCriterionGradeResult | undefined> {
 		const criterionGradeId = await upsertCriterionGrade();
 
 		await Promise.all([
 			db
 				.insertInto("checkCriterionGrade")
-				.values({ criterionGradeId, passed: booleanGrade.passed })
+				.values({ criterionGradeId, passed: checkGrade.passed })
 				.onConflict((conflict) =>
 					conflict
 						.column("criterionGradeId")
-						.doUpdateSet({ passed: booleanGrade.passed }),
+						.doUpdateSet({ passed: checkGrade.passed }),
 				)
 				.execute(),
 			clearOtherSubtypeValues(criterionGradeId, "check"),
@@ -200,10 +200,10 @@ export async function saveCriterionGradeInDb(
 		return undefined;
 	}
 
-	async function saveOrdinalGrade(
-		ordinalGrade: Extract<CriterionGrade, { kind: "options" }>,
+	async function saveOptionsGrade(
+		optionsGrade: Extract<CriterionGrade, { kind: "options" }>,
 	): Promise<SaveCriterionGradeResult | undefined> {
-		const ordinalLabels = await db
+		const optionsLabels = await db
 			.selectFrom("optionsCriterionMark")
 			.innerJoin(
 				"optionsCriterion",
@@ -214,8 +214,8 @@ export async function saveCriterionGradeInDb(
 			.select("optionsCriterionMark.label")
 			.execute();
 
-		const allowedValues = ordinalLabels.map((item) => item.label);
-		if (!allowedValues.includes(ordinalGrade.selectedLabel)) {
+		const allowedValues = optionsLabels.map((item) => item.label);
+		if (!allowedValues.includes(optionsGrade.selectedLabel)) {
 			return { success: false, error: saveCriterionGradeErrors.invalidOption };
 		}
 
@@ -224,11 +224,11 @@ export async function saveCriterionGradeInDb(
 		await Promise.all([
 			db
 				.insertInto("optionsCriterionGrade")
-				.values({ criterionGradeId, selectedLabel: ordinalGrade.selectedLabel })
+				.values({ criterionGradeId, selectedLabel: optionsGrade.selectedLabel })
 				.onConflict((conflict) =>
 					conflict
 						.column("criterionGradeId")
-						.doUpdateSet({ selectedLabel: ordinalGrade.selectedLabel }),
+						.doUpdateSet({ selectedLabel: optionsGrade.selectedLabel }),
 				)
 				.execute(),
 			clearOtherSubtypeValues(criterionGradeId, "options"),
@@ -237,10 +237,10 @@ export async function saveCriterionGradeInDb(
 		return undefined;
 	}
 
-	async function saveNumericalGrade(
-		numericalGrade: Extract<CriterionGrade, { kind: "number" }>,
+	async function saveNumberGrade(
+		numberGrade: Extract<CriterionGrade, { kind: "number" }>,
 	): Promise<SaveCriterionGradeResult | undefined> {
-		const parsed = numericalGrade.value;
+		const parsed = numberGrade.value;
 		if (!Number.isFinite(parsed)) {
 			return { success: false, error: saveCriterionGradeErrors.invalidValue };
 		}
@@ -296,11 +296,11 @@ export async function saveCriterionGradeInDb(
 	const result = await ((): Promise<SaveCriterionGradeResult | undefined> => {
 		switch (grade.kind) {
 			case "check":
-				return saveBooleanGrade(grade);
+				return saveCheckGrade(grade);
 			case "options":
-				return saveOrdinalGrade(grade);
+				return saveOptionsGrade(grade);
 			case "number":
-				return saveNumericalGrade(grade);
+				return saveNumberGrade(grade);
 			default:
 				return assertNever(grade);
 		}

@@ -17,12 +17,12 @@ export type MixedCriterionRubricFixture = {
 	rubric: {
 		id: string;
 		rowId: number;
-		criteria: { booleanId: string; ordinalId: string; numericalId: string };
+		criteria: { checkId: string; optionsId: string; numberId: string };
 	};
 };
 
 // Shared by export and import integration tests: a grid with one rubric
-// that has one criterion of each type (boolean/ordinal/numerical). Criterion and
+// that has one criterion of each kind (check/options/number). Criterion and
 // rubric ids are grid-scoped, so each caller can pick its own ids
 // without colliding with other tests' grids.
 export async function createMixedCriterionRubricFixtureGrid(
@@ -64,7 +64,7 @@ export async function createMixedCriterionRubricFixtureGrid(
 				rubricId: rubricRow.rowId,
 				kind: "check",
 				position: 0,
-				label: "Boolean",
+				label: "Check",
 			},
 			{
 				id: optionsCriterionId,
@@ -72,7 +72,7 @@ export async function createMixedCriterionRubricFixtureGrid(
 				rubricId: rubricRow.rowId,
 				kind: "options",
 				position: 1,
-				label: "Ordinal",
+				label: "Options",
 			},
 			{
 				id: numberCriterionId,
@@ -80,7 +80,7 @@ export async function createMixedCriterionRubricFixtureGrid(
 				rubricId: rubricRow.rowId,
 				kind: "number",
 				position: 2,
-				label: "Numerical",
+				label: "Number",
 			},
 		])
 		.returning(["id", "rowId"])
@@ -129,9 +129,9 @@ export async function createMixedCriterionRubricFixtureGrid(
 			id: rubricId,
 			rowId: rubricRow.rowId,
 			criteria: {
-				booleanId: checkCriterionId,
-				ordinalId: optionsCriterionId,
-				numericalId: numberCriterionId,
+				checkId: checkCriterionId,
+				optionsId: optionsCriterionId,
+				numberId: numberCriterionId,
 			},
 		},
 	};
@@ -225,8 +225,8 @@ export async function createIndividualGradeTargetFixtures<
 	})) as GradeTargetFixtureTuple<TFixtures>;
 }
 
-// Inserts one criterion grade per criterion kind for a grade target: boolean
-// passed, ordinal "A", numerical 7.5.
+// Inserts one criterion grade per criterion kind for a grade target: check
+// passed, options "A", number 7.5.
 export async function addFullGradeFixture(
 	db: Kysely<Database>,
 	params: {

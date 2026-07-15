@@ -54,9 +54,9 @@ async function createRoundtripFixtureGrid(db: DisposableTestDatabase) {
 	]);
 	await addFullGradeFixture(db, {
 		gradeTargetRowId: target.rowId,
-		checkCriterionRowId: criterionRowId.get(rubric.criteria.booleanId)!,
-		optionsCriterionRowId: criterionRowId.get(rubric.criteria.ordinalId)!,
-		numberCriterionRowId: criterionRowId.get(rubric.criteria.numericalId)!,
+		checkCriterionRowId: criterionRowId.get(rubric.criteria.checkId)!,
+		optionsCriterionRowId: criterionRowId.get(rubric.criteria.optionsId)!,
+		numberCriterionRowId: criterionRowId.get(rubric.criteria.numberId)!,
 	});
 
 	const targetRow = await db
@@ -119,7 +119,7 @@ describe.each<{ name: string; options: ExportOptions }>([
 					targetId: fixture.targetId,
 					rubricId: fixture.rubricId,
 					grade: {
-						criterionId: fixture.criterionIds.booleanId,
+						criterionId: fixture.criterionIds.checkId,
 						kind: "check",
 						passed: true,
 					},
@@ -128,7 +128,7 @@ describe.each<{ name: string; options: ExportOptions }>([
 					targetId: fixture.targetId,
 					rubricId: fixture.rubricId,
 					grade: {
-						criterionId: fixture.criterionIds.ordinalId,
+						criterionId: fixture.criterionIds.optionsId,
 						kind: "options",
 						selectedLabel: "A",
 					},
@@ -137,7 +137,7 @@ describe.each<{ name: string; options: ExportOptions }>([
 					targetId: fixture.targetId,
 					rubricId: fixture.rubricId,
 					grade: {
-						criterionId: fixture.criterionIds.numericalId,
+						criterionId: fixture.criterionIds.numberId,
 						kind: "number",
 						value: 7.5,
 					},
