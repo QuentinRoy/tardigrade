@@ -112,4 +112,8 @@ export async function saveQuestions(
 
 - Migration is incremental. The questions read/write modules and the assessment write path adopt the pattern first; other modules migrate when nearby code is touched, not in one mechanical pass.
 
+## Changelog
+
+- 2026-07-16: Write primitives (`...InDb`) retyped from `Kysely<DB>` to `Transaction<DB>`, enforcing rule 9 at compile time instead of by convention; read primitives (`...FromDb`) unchanged. Rule 1's rationale, rules 9–10, the example, and the considered options rewritten accordingly. No structural decision changed; see #296.
+
 - Every mutating `...InDb` primitive is typed `Transaction<DB>` uniformly, rather than deciding per primitive whether its writes have a genuine multi-statement atomicity invariant. A single-statement write primitive pays a small cost (its direct tests wrap the call in a transaction), but the alternative reintroduces a per-primitive judgment call the type system cannot check, which is the exact gap this change closes. A shared `inTransaction(db, (tx) => primitive(tx, …))` test helper keeps that wrapping to one line per call site.
