@@ -5,6 +5,7 @@ import {
 	importNonEmptyString as nonEmptyString,
 	importNumericValue as numericValue,
 } from "#criteria/criterionSchemaAtoms.ts";
+import { numberCriterionImportSchema } from "#criteria/number/numberSchemas.ts";
 
 const optionsMarksSchema = z
 	.record(nonEmptyString, numericValue)
@@ -16,48 +17,10 @@ export const optionsCriterionSchema = baseImportCriterionSchema
 	.extend({ kind: z.literal("options"), marks: optionsMarksSchema })
 	.strict();
 
-export const numberCriterionSchema = baseImportCriterionSchema
-	.extend({
-		kind: z.literal("number"),
-		minValue: numericValue.optional(),
-		maxValue: numericValue.optional(),
-		minMarks: numericValue.optional(),
-		maxMarks: numericValue.optional(),
-		reversed: z.boolean().optional(),
-	})
-	.strict()
-	.refine((r) => r.minMarks != null || r.maxMarks != null, {
-		message:
-			"Number criterion must provide at least one of minMarks or maxMarks",
-	})
-	.refine((r) => r.minValue == null || r.maxValue != null, {
-		message: "maxValue must be provided when minValue is provided",
-	})
-	.refine((r) => r.minMarks != null || (r.maxMarks ?? 0) > 0, {
-		message: "When minMarks is omitted, maxMarks must be greater than 0",
-	})
-	.refine((r) => r.maxMarks != null || (r.minMarks ?? 0) < 0, {
-		message: "When maxMarks is omitted, minMarks must be less than 0",
-	})
-	.transform((r) => ({
-		...r,
-		minValue: r.minValue ?? 0,
-		maxValue: r.maxValue ?? 1,
-		minMarks: r.minMarks ?? 0,
-		maxMarks: r.maxMarks ?? 0,
-		reversed: r.reversed ?? false,
-	}))
-	.refine((r) => r.minMarks <= r.maxMarks, {
-		message: "minMarks must be less than or equal to maxMarks",
-	})
-	.refine((r) => r.minValue < r.maxValue, {
-		message: "minValue must be less than maxValue",
-	});
-
 const criterionSchema = z.discriminatedUnion("kind", [
 	checkCriterionImportSchema,
 	optionsCriterionSchema,
-	numberCriterionSchema,
+	numberCriterionImportSchema,
 ]);
 
 export const rubricSchema = z.object({

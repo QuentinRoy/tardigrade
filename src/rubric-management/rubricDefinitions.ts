@@ -2,6 +2,7 @@ import "server-only";
 import type { Kysely } from "kysely";
 import { cacheLife } from "next/cache";
 import type { CheckCriterionEditorValue } from "#criteria/check/checkSchemas.ts";
+import type { NumberCriterionEditorValue } from "#criteria/number/numberSchemas.ts";
 import { allGradesTag, allRubricsTag, cacheTags } from "#db/cacheTags.ts";
 import type { Database } from "#db/generated/database.ts";
 import { database as defaultDb } from "#db/kysely.ts";
@@ -24,18 +25,7 @@ export type CriterionDefinitionInput =
 			kind: "options";
 			marks: Record<string, number>;
 	  }
-	| {
-			previousId?: string | undefined;
-			id: string;
-			description?: string | undefined;
-			label?: string | undefined;
-			kind: "number";
-			minValue: number;
-			maxValue: number;
-			minMarks: number;
-			maxMarks: number;
-			reversed: boolean;
-	  };
+	| NumberCriterionEditorValue;
 
 export type RubricDefinitionInput = {
 	originalId?: string | undefined;

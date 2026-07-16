@@ -3,6 +3,11 @@ import type { Transaction } from "kysely";
 import type { Database } from "#db/generated/database.ts";
 import { upsertCheckSubtypeRowsInDb } from "./check/checkPersistence.ts";
 import type { CheckCriterionEditorValue } from "./check/checkSchemas.ts";
+import {
+	type NumberSubtypeRow,
+	upsertNumberSubtypeRowsInDb,
+} from "./number/numberPersistence.ts";
+import type { NumberCriterionEditorValue } from "./number/numberSchemas.ts";
 import type { CriterionForKind } from "./types.ts";
 
 // Generic criterion-definition subtype coordinator (ADR 0013). It resolves the
@@ -13,16 +18,25 @@ import type { CriterionForKind } from "./types.ts";
 // transactions and own cache invalidation.
 //
 // It handles all three kinds from day one so PR1 deletes the duplicated subtype
-// code from both callers. Only the `check` adapter lives in its folder yet;
-// `number`/`options` writers are private helpers here and move into their folders
-// in PR2/PR3 as pure moves.
+// code from both callers. The `check` and `number` adapters live in their
+// folders; the `options` writer is a private helper here and moves into its
+// folder in PR3 as a pure move.
 
-// The Check variant honestly sources Check's optional `falseMarks` from the
-// editor schema output; Number/Options derive from the domain union (their
-// subtype fields match exactly). Both callers' values are already assignable.
+// Check and Number source their subtype fields from their editor schema outputs;
+// Options derives from the domain union (its subtype fields match exactly). Both
+// callers' values are already assignable.
 type CriterionSubtypeInput =
 	| Pick<CheckCriterionEditorValue, "id" | "kind" | "marks" | "falseMarks">
-	| Omit<CriterionForKind<"number">, "description" | "label">
+	| Pick<
+			NumberCriterionEditorValue,
+			| "id"
+			| "kind"
+			| "minValue"
+			| "maxValue"
+			| "minMarks"
+			| "maxMarks"
+			| "reversed"
+	  >
 	| Omit<CriterionForKind<"options">, "description" | "label">;
 
 export async function saveCriterionSubtypesInDb(
@@ -107,50 +121,6 @@ export async function saveCriterionSubtypesInDb(
 		upsertNumberSubtypeRowsInDb(db, numberRows),
 		upsertOptionsSubtypeRowsInDb(db, optionsRows),
 	]);
-}
-
-type NumberSubtypeRow = {
-	criterionRowId: number;
-	minValue: number;
-	maxValue: number;
-	minMarks: number;
-	maxMarks: number;
-	reversed: boolean;
-};
-
-// Private until PR2 relocates it into `criteria/number/` as a pure move.
-async function upsertNumberSubtypeRowsInDb(
-	db: Transaction<Database>,
-	rows: NumberSubtypeRow[],
-): Promise<void> {
-	if (rows.length === 0) {
-		return;
-	}
-
-	await db
-		.insertInto("numberCriterion")
-		.values(
-			rows.map((row) => ({
-				criterionId: row.criterionRowId,
-				minValue: row.minValue,
-				maxValue: row.maxValue,
-				minMarks: row.minMarks,
-				maxMarks: row.maxMarks,
-				reversed: row.reversed,
-			})),
-		)
-		.onConflict((conflict) =>
-			conflict
-				.column("criterionId")
-				.doUpdateSet((eb) => ({
-					minValue: eb.ref("excluded.minValue"),
-					maxValue: eb.ref("excluded.maxValue"),
-					minMarks: eb.ref("excluded.minMarks"),
-					maxMarks: eb.ref("excluded.maxMarks"),
-					reversed: eb.ref("excluded.reversed"),
-				})),
-		)
-		.execute();
 }
 
 type OptionsSubtypeRow = {

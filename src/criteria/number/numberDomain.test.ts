@@ -1,12 +1,20 @@
 import { describe, expect, it } from "vitest";
-import { markNumberCriterion } from "./criterion.ts";
+import type { NumberCriterion } from "./numberDomain.ts";
+import {
+	describeNumber,
+	encodeNumberCriterion,
+	exportNumberGradeValue,
+	getNumberCriterionMaxMarks,
+	getNumberCriterionMinMarks,
+	markNumberCriterion,
+} from "./numberDomain.ts";
 
 function numberCriterion(
-	overrides: Partial<Parameters<typeof markNumberCriterion>[0]> = {},
-) {
+	overrides: Partial<NumberCriterion> = {},
+): NumberCriterion {
 	return {
 		id: "r1",
-		kind: "number" as const,
+		kind: "number",
 		minValue: 0,
 		maxValue: 10,
 		minMarks: 0,
@@ -105,5 +113,64 @@ describe("markNumberCriterion", () => {
 
 	it("extrapolates a value below minValue instead of throwing", () => {
 		expect(markNumberCriterion(numberCriterion(), -2)).toBe(-1);
+	});
+});
+
+describe("number criterion marks bounds", () => {
+	it("reports maxMarks as the max and minMarks as the min", () => {
+		const criterion = numberCriterion({ minMarks: -3, maxMarks: 7 });
+		expect(getNumberCriterionMaxMarks(criterion)).toBe(7);
+		expect(getNumberCriterionMinMarks(criterion)).toBe(-3);
+	});
+});
+
+describe("describeNumber", () => {
+	it("projects the bounds as neutral display facts", () => {
+		expect(describeNumber(numberCriterion({ reversed: true }))).toEqual({
+			kind: "number",
+			minValue: 0,
+			maxValue: 10,
+			minMarks: 0,
+			maxMarks: 5,
+			reversed: true,
+		});
+	});
+});
+
+describe("exportNumberGradeValue", () => {
+	it("projects the graded value as the CSV cell value", () => {
+		expect(exportNumberGradeValue({ value: 3.5 })).toBe(3.5);
+	});
+});
+
+describe("encodeNumberCriterion", () => {
+	it("emits the bounds and omits absent optional text", () => {
+		expect(encodeNumberCriterion(numberCriterion())).toEqual({
+			id: "r1",
+			kind: "number",
+			minValue: 0,
+			maxValue: 10,
+			minMarks: 0,
+			maxMarks: 5,
+			reversed: false,
+		});
+	});
+
+	it("includes label and description when present", () => {
+		expect(
+			encodeNumberCriterion(
+				numberCriterion({ label: "Value", description: "How much" }),
+			),
+		).toEqual({
+			id: "r1",
+			kind: "number",
+			minValue: 0,
+			maxValue: 10,
+			minMarks: 0,
+			maxMarks: 5,
+			reversed: false,
+			label: "Value",
+			description: "How much",
+		});
 	});
 });

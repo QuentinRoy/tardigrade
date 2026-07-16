@@ -11,6 +11,7 @@ import {
 import type { ReactElement, ReactNode } from "react";
 import { createCheckCriterion } from "#criteria/check/checkDomain.ts";
 import { getCriterionKindLabel } from "#criteria/getCriterionKindLabel.ts";
+import { createNumberCriterion } from "#criteria/number/numberDomain.ts";
 import Panel from "#design-system/Panel.tsx";
 import { assertNever } from "#utils/utils.ts";
 import type { RubricCriterionFieldErrors } from "./errors.ts";
@@ -26,23 +27,6 @@ function createOptionsCriterion(): Extract<
 		label: "",
 		description: "",
 		marks: { Pass: 1, Fail: 0 },
-	};
-}
-
-function createNumberCriterion(): Extract<
-	CriterionEditorValue,
-	{ kind: "number" }
-> {
-	return {
-		id: "",
-		kind: "number",
-		label: "",
-		description: "",
-		minValue: 0,
-		maxValue: 1,
-		minMarks: 0,
-		maxMarks: 1,
-		reversed: false,
 	};
 }
 

@@ -1,9 +1,9 @@
 import type { z } from "zod";
 import type { checkCriterionImportSchema } from "#criteria/check/checkSchemas.ts";
+import type { numberCriterionImportSchema } from "#criteria/number/numberSchemas.ts";
 import type { GradeTargetKind } from "#grade-targets/types.ts";
 import type {
 	gradeRowSchema,
-	numberCriterionSchema,
 	optionsCriterionSchema,
 	rubricSchema,
 	studentRowSchema,
@@ -12,7 +12,7 @@ import type {
 export type ImportedCriterion =
 	| z.output<typeof checkCriterionImportSchema>
 	| z.output<typeof optionsCriterionSchema>
-	| z.output<typeof numberCriterionSchema>;
+	| z.output<typeof numberCriterionImportSchema>;
 export type ImportedRubric = z.output<typeof rubricSchema>;
 export type ImportedRubrics = ImportedRubric[];
 export type ImportedStudent = z.output<typeof studentRowSchema>;
