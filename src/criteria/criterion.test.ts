@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { markCheckCriterion, markNumberCriterion } from "./criterion.ts";
+import { markNumberCriterion } from "./criterion.ts";
 
 function numberCriterion(
 	overrides: Partial<Parameters<typeof markNumberCriterion>[0]> = {},
@@ -105,25 +105,5 @@ describe("markNumberCriterion", () => {
 
 	it("extrapolates a value below minValue instead of throwing", () => {
 		expect(markNumberCriterion(numberCriterion(), -2)).toBe(-1);
-	});
-});
-
-describe("markCheckCriterion", () => {
-	it("returns marks when passed", () => {
-		expect(
-			markCheckCriterion(
-				{ id: "r1", kind: "check", marks: 2, falseMarks: -1 },
-				true,
-			),
-		).toBe(2);
-	});
-
-	it("returns falseMarks when not passed", () => {
-		expect(
-			markCheckCriterion(
-				{ id: "r1", kind: "check", marks: 2, falseMarks: -1 },
-				false,
-			),
-		).toBe(-1);
 	});
 });

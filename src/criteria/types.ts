@@ -1,11 +1,19 @@
 import type { CriterionKind } from "#db/generated/public/CriterionKind.ts";
 import type { Simplify } from "#utils/utils.ts";
+import type {
+	CheckCriterion,
+	CheckCriterionGrade,
+} from "./check/checkDomain.ts";
 
 export type { CriterionKind };
 
+// The `Criterion`/`CriterionGrade` unions are assembled from each kind's content.
+// The `check` members come from `criteria/check/`; `options`/`number` are still
+// inline here until PR2/PR3 stand up their folders (ADR 0013).
+
 type CriterionGradeBase = { criterionId: string; kind: CriterionKind };
 export type CriterionGrade =
-	| Simplify<CriterionGradeBase & { kind: "check"; passed: boolean }>
+	| CheckCriterionGrade
 	| Simplify<CriterionGradeBase & { kind: "options"; selectedLabel: string }>
 	| Simplify<CriterionGradeBase & { kind: "number"; value: number }>;
 
@@ -17,9 +25,7 @@ type CriterionBase = {
 };
 
 export type Criterion =
-	| Simplify<
-			CriterionBase & { kind: "check"; marks: number; falseMarks: number }
-	  >
+	| CheckCriterion
 	| Simplify<CriterionBase & { kind: "options"; marks: Record<string, number> }>
 	| Simplify<
 			CriterionBase & {

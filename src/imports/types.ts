@@ -1,7 +1,7 @@
 import type { z } from "zod";
+import type { checkCriterionImportSchema } from "#criteria/check/checkSchemas.ts";
 import type { GradeTargetKind } from "#grade-targets/types.ts";
 import type {
-	checkCriterionSchema,
 	gradeRowSchema,
 	numberCriterionSchema,
 	optionsCriterionSchema,
@@ -10,7 +10,7 @@ import type {
 } from "./schemas.ts";
 
 export type ImportedCriterion =
-	| z.output<typeof checkCriterionSchema>
+	| z.output<typeof checkCriterionImportSchema>
 	| z.output<typeof optionsCriterionSchema>
 	| z.output<typeof numberCriterionSchema>;
 export type ImportedRubric = z.output<typeof rubricSchema>;

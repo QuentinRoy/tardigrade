@@ -1,6 +1,7 @@
 import "server-only";
 import type { Kysely } from "kysely";
 import { cacheLife } from "next/cache";
+import type { CheckCriterionEditorValue } from "#criteria/check/checkSchemas.ts";
 import { allGradesTag, allRubricsTag, cacheTags } from "#db/cacheTags.ts";
 import type { Database } from "#db/generated/database.ts";
 import { database as defaultDb } from "#db/kysely.ts";
@@ -14,15 +15,7 @@ import {
 import type { RubricDefinition } from "./types.ts";
 
 export type CriterionDefinitionInput =
-	| {
-			previousId?: string | undefined;
-			id: string;
-			description?: string | undefined;
-			label?: string | undefined;
-			kind: "check";
-			marks: number;
-			falseMarks?: number | undefined;
-	  }
+	| CheckCriterionEditorValue
 	| {
 			previousId?: string | undefined;
 			id: string;

@@ -9,25 +9,12 @@ import {
 	TextInput,
 } from "@mantine/core";
 import type { ReactElement, ReactNode } from "react";
+import { createCheckCriterion } from "#criteria/check/checkSchemas.ts";
 import { getCriterionKindLabel } from "#criteria/getCriterionKindLabel.ts";
 import Panel from "#design-system/Panel.tsx";
 import { assertNever } from "#utils/utils.ts";
 import type { RubricCriterionFieldErrors } from "./errors.ts";
 import type { CriterionEditorValue } from "./types.ts";
-
-function createCheckCriterion(): Extract<
-	CriterionEditorValue,
-	{ kind: "check" }
-> {
-	return {
-		id: "",
-		kind: "check",
-		label: "",
-		description: "",
-		marks: 1,
-		falseMarks: 0,
-	};
-}
 
 function createOptionsCriterion(): Extract<
 	CriterionEditorValue,

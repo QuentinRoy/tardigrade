@@ -1,6 +1,7 @@
 import "server-only";
 import type { Kysely } from "kysely";
 import { cacheLife } from "next/cache";
+import { toCriterionGrade } from "#criteria/criterionGradeHydration.ts";
 import type { CriterionGrade } from "#criteria/types.ts";
 import {
 	allGradesTag,
@@ -10,7 +11,7 @@ import {
 } from "#db/cacheTags.ts";
 import type { Database } from "#db/generated/database.ts";
 import { database as defaultDb } from "#db/kysely.ts";
-import { assertNever, nonNull } from "#utils/utils.ts";
+import { nonNull } from "#utils/utils.ts";
 
 export function loadGradeCacheTags({
 	gridId,
@@ -165,45 +166,4 @@ async function loadCriterionGradeQueryRows(
 			"numberCriterionGrade.value as value",
 		])
 		.execute();
-}
-
-function toCriterionGrade(row: CriterionGradeQueryRow): CriterionGrade | null {
-	switch (row.kind) {
-		case "check": {
-			if (row.passed == null) {
-				return null;
-			}
-			return {
-				criterionId: row.criterionId,
-				kind: "check",
-				passed: row.passed,
-			};
-		}
-		case "options": {
-			if (row.selectedLabel == null) {
-				return null;
-			}
-			return {
-				criterionId: row.criterionId,
-				kind: "options",
-				selectedLabel: row.selectedLabel,
-			};
-		}
-		case "number": {
-			if (row.value == null) {
-				return null;
-			}
-			return {
-				criterionId: row.criterionId,
-				kind: "number",
-				value:
-					typeof row.value === "number"
-						? row.value
-						: parseFloat(String(row.value)),
-			};
-		}
-		default: {
-			return assertNever(row.kind);
-		}
-	}
 }

@@ -3,33 +3,15 @@ import {
 	getCriterionMaxMarks,
 	markCriterion,
 } from "#criteria/criterion.ts";
-import type {
-	Criterion,
-	CriterionGrade,
-	CriterionKind,
-} from "#criteria/types.ts";
+import {
+	type CriterionDetails,
+	getCriterionDetails,
+} from "#criteria/criterionDetails.ts";
+import { toCriterionGrade } from "#criteria/criterionGradeHydration.ts";
+import type { Criterion, CriterionKind } from "#criteria/types.ts";
 import { getGradeTargetLabel } from "#grade-targets/getGradeTargetLabel.ts";
 import type { GradeTarget } from "#grade-targets/types.ts";
 import type { RubricsById } from "#rubrics/types.ts";
-
-type CriterionPropertyDetails =
-	| { kind: "check"; trueMarks: number; falseMarks: number }
-	| { kind: "options"; marksByLabel: Array<{ label: string; marks: number }> }
-	| {
-			kind: "number";
-			minValue: number;
-			maxValue: number;
-			minMarks: number;
-			maxMarks: number;
-			reversed: boolean;
-	  };
-
-export type CriterionDetails = {
-	label?: string | undefined;
-	description?: string | undefined;
-	kind: CriterionKind;
-	properties: CriterionPropertyDetails;
-};
 
 export type CriterionRow = {
 	criterionId: string;
@@ -83,82 +65,6 @@ type OrderedCriterion = {
 	rubricLabel: string;
 	maxMarks: number;
 };
-
-function toCriterionGrade(record: ResultsGradeRecord): CriterionGrade | null {
-	switch (record.kind) {
-		case "check":
-			if (record.passed == null) {
-				return null;
-			}
-			return {
-				criterionId: record.criterionId,
-				kind: "check",
-				passed: record.passed,
-			};
-		case "options":
-			if (record.selectedLabel == null) {
-				return null;
-			}
-			return {
-				criterionId: record.criterionId,
-				kind: "options",
-				selectedLabel: record.selectedLabel,
-			};
-		case "number":
-			if (record.value == null) {
-				return null;
-			}
-			return {
-				criterionId: record.criterionId,
-				kind: "number",
-				value: record.value,
-			};
-		default:
-			return null;
-	}
-}
-
-function toCriterionDetails(criterion: Criterion): CriterionDetails {
-	switch (criterion.kind) {
-		case "check":
-			return {
-				label: criterion.label,
-				description: criterion.description,
-				kind: criterion.kind,
-				properties: {
-					kind: "check",
-					trueMarks: criterion.marks,
-					falseMarks: criterion.falseMarks,
-				},
-			};
-		case "options":
-			return {
-				label: criterion.label,
-				description: criterion.description,
-				kind: criterion.kind,
-				properties: {
-					kind: "options",
-					marksByLabel: Object.entries(criterion.marks).map(
-						([label, marks]) => ({ label, marks }),
-					),
-				},
-			};
-		case "number":
-			return {
-				label: criterion.label,
-				description: criterion.description,
-				kind: criterion.kind,
-				properties: {
-					kind: "number",
-					minValue: criterion.minValue,
-					maxValue: criterion.maxValue,
-					minMarks: criterion.minMarks,
-					maxMarks: criterion.maxMarks,
-					reversed: criterion.reversed,
-				},
-			};
-	}
-}
 
 export function buildResultsData({
 	targets,
@@ -296,7 +202,7 @@ export function buildResultsData({
 			totalCount: targets.length,
 			completionPercent:
 				targets.length > 0 ? (gradedCount / targets.length) * 100 : 0,
-			details: toCriterionDetails(entry.criterion),
+			details: getCriterionDetails(entry.criterion),
 		};
 	});
 

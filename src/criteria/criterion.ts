@@ -1,4 +1,9 @@
 import { assertNever } from "#utils/utils.ts";
+import {
+	getCheckCriterionMaxMarks,
+	getCheckCriterionMinMarks,
+	markCheckCriterion,
+} from "./check/checkDomain.ts";
 import type {
 	Criterion,
 	CriterionForKind,
@@ -10,7 +15,7 @@ import type {
 export function getCriterionMaxMarks(criterion: Criterion): number {
 	switch (criterion.kind) {
 		case "check":
-			return Math.max(criterion.marks, criterion.falseMarks);
+			return getCheckCriterionMaxMarks(criterion);
 		case "options":
 			return Math.max(0, ...Object.values(criterion.marks));
 		case "number":
@@ -23,7 +28,7 @@ export function getCriterionMaxMarks(criterion: Criterion): number {
 export function getCriterionMinMarks(criterion: Criterion): number {
 	switch (criterion.kind) {
 		case "check":
-			return Math.min(criterion.marks, criterion.falseMarks);
+			return getCheckCriterionMinMarks(criterion);
 		case "options":
 			return Math.min(0, ...Object.values(criterion.marks));
 		case "number":
@@ -52,13 +57,6 @@ export function markNumberCriterion(
 		criterion.minMarks +
 		(valueOffset * (criterion.maxMarks - criterion.minMarks)) / valueRange
 	);
-}
-
-export function markCheckCriterion(
-	criterion: CriterionForKind<"check">,
-	passed: boolean,
-): number {
-	return passed ? criterion.marks : criterion.falseMarks;
 }
 
 export function markOptionsCriterion(

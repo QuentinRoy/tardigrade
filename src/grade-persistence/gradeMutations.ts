@@ -1,5 +1,6 @@
 import "server-only";
 import type { Kysely } from "kysely";
+import { writeCheckGradeInDb } from "#criteria/check/checkPersistence.ts";
 import type { CriterionGrade } from "#criteria/types.ts";
 import type { Database } from "#db/generated/database.ts";
 import { assertNever } from "#utils/utils.ts";
@@ -185,15 +186,7 @@ export async function saveCriterionGradeInDb(
 		const criterionGradeId = await upsertCriterionGrade();
 
 		await Promise.all([
-			db
-				.insertInto("checkCriterionGrade")
-				.values({ criterionGradeId, passed: checkGrade.passed })
-				.onConflict((conflict) =>
-					conflict
-						.column("criterionGradeId")
-						.doUpdateSet({ passed: checkGrade.passed }),
-				)
-				.execute(),
+			writeCheckGradeInDb(db, criterionGradeId, { passed: checkGrade.passed }),
 			clearOtherSubtypeValues(criterionGradeId, "check"),
 		]);
 

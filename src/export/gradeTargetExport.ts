@@ -3,12 +3,12 @@ import { once } from "node:events";
 import { stringify } from "csv-stringify";
 import type { Kysely } from "kysely";
 import { attachGrade, markCriterion } from "#criteria/criterion.ts";
-import type { CriterionGrade, GradedCriterion } from "#criteria/types.ts";
+import { getCriterionExportGradeValue } from "#criteria/criterionExport.ts";
+import type { CriterionGrade } from "#criteria/types.ts";
 import type { Database } from "#db/generated/database.ts";
 import { database as defaultDb } from "#db/kysely.ts";
 import type { GradeTargetIdentity } from "#grade-targets/types.ts";
 import { loadRubricRowsFromDb, toCriterion } from "#rubrics/rubrics.ts";
-import { assertNever } from "#utils/utils.ts";
 import {
 	buildGradeKey,
 	buildGradeTargetExportHeaders,
@@ -17,7 +17,6 @@ import {
 	type ExportRubricPlan,
 	type GradeTargetExportCriterionData,
 	type GradeTargetExportDataRow,
-	type GradeTargetExportGradeValue,
 	type GradeTargetExportRecord,
 	type GradeTargetExportRubricData,
 } from "./gradeTargetExportCsv.ts";
@@ -152,29 +151,6 @@ export async function createGradeTargetExport(
 		criteria: row.criteria.map(toCriterion),
 	}));
 
-	function getGradeValue(
-		criterion: GradedCriterion,
-	): GradeTargetExportGradeValue | undefined {
-		if (criterion.grade == null) {
-			return undefined;
-		}
-
-		switch (criterion.kind) {
-			case "check": {
-				return criterion.grade.passed;
-			}
-			case "options": {
-				return criterion.grade.selectedLabel;
-			}
-			case "number": {
-				return criterion.grade.value;
-			}
-			default: {
-				return assertNever(criterion);
-			}
-		}
-	}
-
 	function buildRubricData(
 		valuesByKey: Map<string, CriterionGrade>,
 	): GradeTargetExportRubricData[] {
@@ -190,7 +166,7 @@ export async function createGradeTargetExport(
 					criterionId: criterion.id,
 				};
 
-				const grade = getGradeValue(gradedCriterion);
+				const grade = getCriterionExportGradeValue(gradedCriterion);
 				if (grade != null) {
 					rowCriterion.grade = grade;
 				}
