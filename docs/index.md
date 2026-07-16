@@ -51,6 +51,7 @@ Open-ended audits and option analysis. Investigations may contain hypotheses and
 - [Domain terminology audit](investigations/2026-05-20-domain-terminology-audit.md) — vocabulary converged into `CONTEXT.md` + `docs/reference/lexicon.md`; application staged in `plans/2026-07-06-terminology-sweep.md`.
 - [Commit message conventions](investigations/2026-05-20-commit-message-conventions.md)
 - [Source structure around product verticals](investigations/2026-06-28-source-structure-product-verticals.md) — direction accepted in ADR 0010; execution staged via a follow-up plan.
+- [Localising criterion-kind behavior and persistence](investigations/2026-07-16-criterion-kind-ownership-and-persistence.md) — direction accepted in ADR 0013 (criterion-kind vertical modules); execution staged in `plans/2026-07-16-criterion-kind-vertical-modules.md`.
 
 ## ADRs
 
@@ -68,6 +69,7 @@ Short records of durable architecture decisions.
 - [0010 Organize `src/` as enforced vertical layers](adr/0010-organize-src-as-enforced-vertical-layers.md) (supersedes ADR 0006)
 - [0011 Adopt Mantine with a constrained, app-owned design system](adr/0011-adopt-mantine-constrained-design-system.md)
 - [0012 Converge the domain vocabulary; keep separate internal and user-facing glossaries](adr/0012-converged-domain-vocabulary-and-two-glossaries.md)
+- [0013 Organise each criterion kind as a vertical module under `src/criteria`](adr/0013-criterion-kind-vertical-modules.md)
 - Add new ADRs under `docs/adr/`.
 
 ## Designs
