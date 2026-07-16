@@ -1,9 +1,13 @@
 import { dump } from "js-yaml";
-import type { Criterion } from "#criteria/types.ts";
+import { encodeCriterion } from "#criteria/criterionYaml.ts";
 import type { RubricsById } from "#rubrics/types.ts";
 
 type ExportFormat = {
-	rubrics: Array<{ id: string; label?: string; criteria: Criterion[] }>;
+	rubrics: Array<{
+		id: string;
+		label?: string;
+		criteria: Record<string, unknown>[];
+	}>;
 };
 
 export function exportRubricsToYaml(rubrics: RubricsById): string {
@@ -11,7 +15,7 @@ export function exportRubricsToYaml(rubrics: RubricsById): string {
 		rubrics: Object.entries(rubrics).map(([id, rubric]) => ({
 			id,
 			...(rubric.label != null && { label: rubric.label }),
-			criteria: rubric.criteria,
+			criteria: rubric.criteria.map(encodeCriterion),
 		})),
 	};
 

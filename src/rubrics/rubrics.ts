@@ -1,6 +1,7 @@
 import "server-only";
 import type { Kysely } from "kysely";
 import { cacheLife } from "next/cache";
+import { toCheckCriterion } from "#criteria/check/checkPersistence.ts";
 import type { Criterion, CriterionKind } from "#criteria/types.ts";
 import { allRubricsTag, cacheTags } from "#db/cacheTags.ts";
 import type { Database } from "#db/generated/database.ts";
@@ -66,19 +67,7 @@ export function toCriterion(data: {
 		};
 	}
 
-	if (data.checkCriterion == null) {
-		throw new Error(
-			`Criterion Subtype Invariant violation: missing checkCriterion row for criterion ${data.id}.`,
-		);
-	}
-	return {
-		id: data.id,
-		description: data.description ?? undefined,
-		label: data.label ?? undefined,
-		kind: "check",
-		marks: toNumber(data.checkCriterion.marks),
-		falseMarks: toNumber(data.checkCriterion.falseMarks),
-	};
+	return toCheckCriterion(data);
 }
 
 export type RubricRow = {

@@ -1,45 +1,10 @@
 import { z } from "zod";
-
-const nonEmptyString = z.string().trim().min(1);
-const numericValue = z.number();
-
-// Turns Zod's terse "Unrecognized key" error into an actionable message.
-function unrecognizedKeysMessage(subject: string, keys: string[]): string {
-	const names = keys.map((key) => `"${key}"`).join(", ");
-	const plural = keys.length > 1;
-	return `Unexpected ${plural ? "fields" : "field"} ${names} in ${subject}. Remove ${plural ? "them" : "it"} or fix the spelling, then import again.`;
-}
-
-const baseCriterionSchema = z.object(
-	{
-		id: nonEmptyString,
-		description: nonEmptyString.optional(),
-		label: nonEmptyString.optional(),
-		kind: z.string(),
-	},
-	{
-		// `.extend()`/`.strict()` preserve this error map, so every criterion kind inherits it.
-		error: (issue) => {
-			if (issue.code !== "unrecognized_keys") {
-				return undefined;
-			}
-			const id = issue.input?.["id"];
-			const subject =
-				typeof id === "string" && id.length > 0
-					? `criterion "${id}"`
-					: "this criterion";
-			return unrecognizedKeysMessage(subject, issue.keys);
-		},
-	},
-);
-
-export const checkCriterionSchema = baseCriterionSchema
-	.extend({
-		kind: z.literal("check"),
-		marks: numericValue,
-		falseMarks: numericValue.optional(),
-	})
-	.strict();
+import { checkCriterionImportSchema } from "#criteria/check/checkSchemas.ts";
+import {
+	baseImportCriterionSchema,
+	importNonEmptyString as nonEmptyString,
+	importNumericValue as numericValue,
+} from "#criteria/criterionSchemaAtoms.ts";
 
 const optionsMarksSchema = z
 	.record(nonEmptyString, numericValue)
@@ -47,11 +12,11 @@ const optionsMarksSchema = z
 		message: "Options criterion must have at least 2 mark entries",
 	});
 
-export const optionsCriterionSchema = baseCriterionSchema
+export const optionsCriterionSchema = baseImportCriterionSchema
 	.extend({ kind: z.literal("options"), marks: optionsMarksSchema })
 	.strict();
 
-export const numberCriterionSchema = baseCriterionSchema
+export const numberCriterionSchema = baseImportCriterionSchema
 	.extend({
 		kind: z.literal("number"),
 		minValue: numericValue.optional(),
@@ -90,7 +55,7 @@ export const numberCriterionSchema = baseCriterionSchema
 	});
 
 const criterionSchema = z.discriminatedUnion("kind", [
-	checkCriterionSchema,
+	checkCriterionImportSchema,
 	optionsCriterionSchema,
 	numberCriterionSchema,
 ]);

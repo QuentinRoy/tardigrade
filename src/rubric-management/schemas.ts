@@ -1,19 +1,9 @@
 import { z } from "zod";
-
-const idSchema = z.string().trim().min(1, "Id is required");
-const previousIdSchema = idSchema.optional();
-
-const checkCriterionDefinitionSchema = z.object({
-	previousId: previousIdSchema,
-	id: idSchema,
-	description: z.string().trim().optional(),
-	label: z.string().trim().optional(),
-	kind: z.literal("check"),
-	marks: z.number({ error: "Marks must be a valid number" }),
-	falseMarks: z
-		.number({ error: "Enter a valid number for No marks." })
-		.optional(),
-});
+import { checkCriterionEditorSchema } from "#criteria/check/checkSchemas.ts";
+import {
+	editorIdSchema as idSchema,
+	editorPreviousIdSchema as previousIdSchema,
+} from "#criteria/criterionSchemaAtoms.ts";
 
 const optionsCriterionDefinitionSchema = z.object({
 	previousId: previousIdSchema,
@@ -42,7 +32,7 @@ const numberCriterionDefinitionSchema = z.object({
 });
 
 const criterionDefinitionSchema = z.discriminatedUnion("kind", [
-	checkCriterionDefinitionSchema,
+	checkCriterionEditorSchema,
 	optionsCriterionDefinitionSchema,
 	numberCriterionDefinitionSchema,
 ]);

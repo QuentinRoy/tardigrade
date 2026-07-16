@@ -1,8 +1,7 @@
 "use client";
 
-import { Group } from "@mantine/core";
 import type { ReactElement } from "react";
-import UncontrolledNumberInput from "#design-system/UncontrolledNumberInput.tsx";
+import CheckEditorFields from "#criteria/check/CheckEditorFields.tsx";
 import CriterionEditorPaper from "./CriterionEditorPaper.tsx";
 import type { RubricCriterionFieldErrors } from "./errors.ts";
 import type { CriterionEditorValue } from "./types.ts";
@@ -29,20 +28,11 @@ export default function CheckCriterionEditorPaper({
 			onRemove={onRemove}
 			fieldErrors={fieldErrors}
 		>
-			<Group wrap="wrap">
-				<UncontrolledNumberInput
-					label="Yes marks"
-					defaultValue={criterion.marks}
-					onChange={(value) => onChange({ ...criterion, marks: value })}
-					error={fieldErrors?.marks}
-				/>
-				<UncontrolledNumberInput
-					label="No marks"
-					defaultValue={criterion.falseMarks ?? 0}
-					onChange={(value) => onChange({ ...criterion, falseMarks: value })}
-					error={fieldErrors?.falseMarks}
-				/>
-			</Group>
+			<CheckEditorFields
+				criterion={criterion}
+				onChange={onChange}
+				fieldErrors={fieldErrors}
+			/>
 		</CriterionEditorPaper>
 	);
 }

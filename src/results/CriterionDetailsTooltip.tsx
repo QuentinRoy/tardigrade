@@ -3,8 +3,8 @@
 import { Box, Group, Stack, Text, Tooltip } from "@mantine/core";
 import { IconInfoCircle } from "@tabler/icons-react";
 import type { ReactElement } from "react";
+import type { CriterionDetails } from "#criteria/criterionDetails.ts";
 import { getCriterionKindLabel } from "#criteria/getCriterionKindLabel.ts";
-import type { CriterionDetails } from "./resultsBuilder.ts";
 
 type CriterionDetailsTooltipProps = {
 	criterionId: string;

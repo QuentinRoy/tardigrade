@@ -1,3 +1,4 @@
+import type { CheckCriterionEditorValue } from "#criteria/check/checkSchemas.ts";
 import type { Rubric } from "#rubrics/types.ts";
 
 export type RubricEditorValue = {
@@ -7,15 +8,7 @@ export type RubricEditorValue = {
 };
 
 export type CriterionEditorValue =
-	| {
-			previousId?: string | undefined;
-			id: string;
-			description?: string | undefined;
-			label?: string | undefined;
-			kind: "check";
-			marks: number;
-			falseMarks?: number | undefined;
-	  }
+	| CheckCriterionEditorValue
 	| {
 			previousId?: string | undefined;
 			id: string;

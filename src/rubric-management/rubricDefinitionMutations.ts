@@ -1,5 +1,6 @@
 import "server-only";
 import { type Kysely, sql } from "kysely";
+import { saveCriterionSubtypesInDb } from "#criteria/criterionSubtypePersistence.ts";
 import type { CriterionKind } from "#criteria/types.ts";
 import {
 	invalidateRubricDefinitionDelete,
@@ -244,202 +245,15 @@ export async function saveRubricDefinitionInDb(
 			.execute();
 	}
 
-	const criterionRows = await db
-		.selectFrom("criterion")
-		.select(["id", "rowId"])
-		.where(
-			"id",
-			"in",
-			input.criteria.map((criterion) => criterion.id),
-		)
-		.where("rubricId", "=", persistedRubric.rowId)
-		.where("criterion.gridRowId", "=", gridRowId)
-		.execute();
-
-	const criterionRowIdById = new Map(
-		criterionRows.map((criterion) => [criterion.id, criterion.rowId]),
-	);
-
-	const checkRows = input.criteria.flatMap((criterion) =>
-		criterion.kind === "check"
-			? (() => {
-					const criterionRowId = criterionRowIdById.get(criterion.id);
-					if (criterionRowId == null) {
-						throw new Error(
-							`Criterion '${criterion.id}' could not be resolved.`,
-						);
-					}
-
-					return [
-						{
-							criterionId: criterionRowId,
-							marks: criterion.marks,
-							falseMarks: criterion.falseMarks ?? 0,
-						},
-					];
-				})()
-			: [],
-	);
-	const numberRows = input.criteria.flatMap((criterion) =>
-		criterion.kind === "number"
-			? (() => {
-					const criterionRowId = criterionRowIdById.get(criterion.id);
-					if (criterionRowId == null) {
-						throw new Error(
-							`Criterion '${criterion.id}' could not be resolved.`,
-						);
-					}
-
-					return [
-						{
-							criterionId: criterionRowId,
-							minValue: criterion.minValue,
-							maxValue: criterion.maxValue,
-							minMarks: criterion.minMarks,
-							maxMarks: criterion.maxMarks,
-							reversed: criterion.reversed,
-						},
-					];
-				})()
-			: [],
-	);
-	const optionsSources = input.criteria.flatMap((criterion) =>
-		criterion.kind === "options"
-			? (() => {
-					const criterionRowId = criterionRowIdById.get(criterion.id);
-					if (criterionRowId == null) {
-						throw new Error(
-							`Criterion '${criterion.id}' could not be resolved.`,
-						);
-					}
-
-					return [{ criterionId: criterionRowId, marks: criterion.marks }];
-				})()
-			: [],
-	);
-
-	if (checkRows.length > 0) {
-		await db
-			.insertInto("checkCriterion")
-			.values(checkRows)
-			.onConflict((conflict) =>
-				conflict
-					.column("criterionId")
-					.doUpdateSet((eb) => ({
-						marks: eb.ref("excluded.marks"),
-						falseMarks: eb.ref("excluded.falseMarks"),
-					})),
-			)
-			.execute();
-	}
-
-	if (numberRows.length > 0) {
-		await db
-			.insertInto("numberCriterion")
-			.values(numberRows)
-			.onConflict((conflict) =>
-				conflict
-					.column("criterionId")
-					.doUpdateSet((eb) => ({
-						minValue: eb.ref("excluded.minValue"),
-						maxValue: eb.ref("excluded.maxValue"),
-						minMarks: eb.ref("excluded.minMarks"),
-						maxMarks: eb.ref("excluded.maxMarks"),
-						reversed: eb.ref("excluded.reversed"),
-					})),
-			)
-			.execute();
-	}
-
-	if (optionsSources.length > 0) {
-		await db
-			.insertInto("optionsCriterion")
-			.values(
-				optionsSources.map((source) => ({ criterionId: source.criterionId })),
-			)
-			.onConflict((conflict) => conflict.column("criterionId").doNothing())
-			.execute();
-
-		const optionsCriterions = await db
-			.selectFrom("optionsCriterion")
-			.select(["id", "criterionId"])
-			.where(
-				"criterionId",
-				"in",
-				optionsSources.map((source) => source.criterionId),
-			)
-			.execute();
-
-		const optionsCriterionIdByCriterionId = new Map(
-			optionsCriterions.map((row) => [row.criterionId, row.id]),
-		);
-		const optionsCriterionIds = optionsCriterions.map((row) => row.id);
-
-		const existingOptionsValues =
-			optionsCriterionIds.length === 0
-				? []
-				: await db
-						.selectFrom("optionsCriterionMark")
-						.select(["id", "optionsCriterionId", "label"])
-						.where("optionsCriterionId", "in", optionsCriterionIds)
-						.execute();
-
-		const validKeys = new Set(
-			optionsSources.flatMap((source) => {
-				const optionsCriterionId = optionsCriterionIdByCriterionId.get(
-					source.criterionId,
-				);
-				if (optionsCriterionId == null) {
-					return [];
-				}
-
-				return Object.keys(source.marks).map(
-					(label) => `${optionsCriterionId}::${label}`,
-				);
-			}),
-		);
-
-		const staleIds = existingOptionsValues
-			.filter(
-				(value) =>
-					!validKeys.has(`${value.optionsCriterionId}::${value.label}`),
-			)
-			.map((value) => value.id);
-
-		if (staleIds.length > 0) {
-			await db
-				.deleteFrom("optionsCriterionMark")
-				.where("id", "in", staleIds)
-				.execute();
-		}
-
-		const optionsValueRows = optionsSources.flatMap((source) => {
-			const optionsCriterionId = optionsCriterionIdByCriterionId.get(
-				source.criterionId,
-			);
-			if (optionsCriterionId == null) {
-				return [];
-			}
-
-			return Object.entries(source.marks).map(([label, marks]) => ({
-				optionsCriterionId,
-				label,
-				marks,
-			}));
-		});
-
-		if (optionsValueRows.length > 0) {
-			await db
-				.insertInto("optionsCriterionMark")
-				.values(optionsValueRows)
-				.onConflict((conflict) =>
-					conflict
-						.columns(["optionsCriterionId", "label"])
-						.doUpdateSet((eb) => ({ marks: eb.ref("excluded.marks") })),
-				)
-				.execute();
-		}
-	}
+	// The generic coordinator resolves criterion row ids, groups by kind, and
+	// dispatches to each kind's batched subtype adapter (ADR 0013). This vertical
+	// keeps its own criterion base-row rename-by-`previousId` loop above and its
+	// transaction/cache ownership.
+	await saveCriterionSubtypesInDb(db, {
+		criteria: input.criteria,
+		gridRowId,
+		rubricRowId: persistedRubric.rowId,
+	});
 
 	return { id: requestedId, originalId };
 }
