@@ -1,5 +1,5 @@
 import "server-only";
-import type { Kysely } from "kysely";
+import type { Transaction } from "kysely";
 import type { Database } from "#db/generated/database.ts";
 import type {
 	CheckCriterion,
@@ -8,7 +8,8 @@ import type {
 
 // Server-only persistence adapters for the Check criterion kind: batched
 // definition-subtype upsert, grade-subtype write, and row→config read mapping
-// (ADR 0013). `db` is the global client or a caller-supplied transaction.
+// (ADR 0013). `db` is a caller-supplied transaction; these are write primitives
+// and cannot run on the global client.
 
 export type CheckSubtypeRow = {
 	criterionRowId: number;
@@ -19,7 +20,7 @@ export type CheckSubtypeRow = {
 // Batched upsert of Check definition subtype rows. The coordinator resolves each
 // `criterionRowId` and groups by kind before calling this.
 export async function upsertCheckSubtypeRowsInDb(
-	db: Kysely<Database>,
+	db: Transaction<Database>,
 	rows: CheckSubtypeRow[],
 ): Promise<void> {
 	if (rows.length === 0) {
@@ -50,7 +51,7 @@ export async function upsertCheckSubtypeRowsInDb(
 // parent `criterionGrade` and passes its id, so this never runs before the
 // parent row exists.
 export async function writeCheckGradeInDb(
-	db: Kysely<Database>,
+	db: Transaction<Database>,
 	criterionGradeId: number,
 	grade: CheckCriterionGradeContent,
 ): Promise<void> {

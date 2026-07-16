@@ -1,5 +1,5 @@
 import "server-only";
-import type { Kysely } from "kysely";
+import type { Transaction } from "kysely";
 import { writeCheckGradeInDb } from "#criteria/check/checkPersistence.ts";
 import type { CriterionGrade } from "#criteria/types.ts";
 import type { Database } from "#db/generated/database.ts";
@@ -59,9 +59,10 @@ export const saveCriterionGradeErrors = {
 };
 
 // Performs all validation + persistence against the given db. No cache work.
-// The db is either the global client or a caller-supplied transaction.
+// The db is a caller-supplied transaction; this write primitive cannot run on
+// the global client.
 export async function saveCriterionGradeInDb(
-	db: Kysely<Database>,
+	db: Transaction<Database>,
 	{ gridId, targetId, rubricId, grade }: SaveCriterionGradeParams,
 ): Promise<SaveCriterionGradeResult> {
 	const criterionId = grade.criterionId;

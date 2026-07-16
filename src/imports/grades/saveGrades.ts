@@ -1,5 +1,5 @@
 import "server-only";
-import type { Kysely } from "kysely";
+import type { Kysely, Transaction } from "kysely";
 import { invalidateGradeImport } from "#db/cacheInvalidation.ts";
 import type { Database } from "#db/generated/database.ts";
 import { database as defaultDb } from "#db/kysely.ts";
@@ -45,10 +45,11 @@ function gradeImportBlockedError(
 	);
 }
 
-// `db` may be the global client or a caller-supplied transaction. Executes a
-// plan's writes; never opens a transaction and never invalidates cache.
+// `db` is a caller-supplied transaction; this write primitive cannot run on
+// the global client. Executes a plan's writes; never opens a transaction and
+// never invalidates cache.
 export async function saveGradeImportPlanInDb(
-	db: Kysely<Database>,
+	db: Transaction<Database>,
 	plan: GradeImportPlan,
 	{ gridId }: { gridId: string },
 ): Promise<void> {

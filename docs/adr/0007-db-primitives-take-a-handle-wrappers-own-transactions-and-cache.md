@@ -3,7 +3,7 @@
 - **Status:** Accepted
 - **Created:** 2026-06-05
 
-A feature's persistence is split into two layers. A **DB Primitive** performs database work only and accepts a required `Kysely<DB>` handle, either the global client or a caller-supplied transaction. An **App-Level Wrapper** owns the global `db`, the transaction boundary, and cache invalidation, delegating database work to one or more primitives. The wrapper that owns a transaction invalidates cache tags after it commits. A primitive never opens a transaction and never invalidates cache.
+A feature's persistence is split into two layers. A **DB Primitive** performs database work only. A read primitive (`...FromDb`) accepts a required `Kysely<DB>` handle, either the global client or a caller-supplied transaction. A write primitive (`...InDb`) accepts a required `Transaction<DB>` handle: it can only run inside a transaction, never on the auto-committing global client. An **App-Level Wrapper** owns the global `db`, the transaction boundary, and cache invalidation, delegating database work to one or more primitives. The wrapper that owns a transaction invalidates cache tags after it commits. A primitive never opens a transaction and never invalidates cache.
 
 ## Why
 
@@ -13,9 +13,11 @@ Mixing cache invalidation into low-level persistence is also unsafe. Invalidatio
 
 The shipped assessment code already gestured at this with an optional `options.db` handle. However, an optional handle on a low-level primitive leaves two call shapes alive and lets a caller forget to pass the transaction. A required handle removes that ambiguity: the only way to run a primitive is to hand it an executor. The wrapper is the one place that decides whether that executor is the global client or a transaction.
 
+A required `Kysely<DB>` handle still let a write primitive run on the auto-committing global client: nothing enforced rule 9 below, so a write primitive whose correctness spans multiple statements was only atomic if its caller happened to wrap it in a transaction. Typing write primitives' handle as `Transaction<DB>` instead closes that gap at compile time. Kysely's `Transaction<DB>` is nominally distinct (a private brand plus `isTransaction: true`), so a plain `Kysely<DB>` is not assignable to it — `tsc` rejects a write primitive called on the global client, and points at each site that needs a wrapper-opened transaction or a test wrap. `Transaction<DB>` still extends `Kysely<DB>`, so a write primitive can freely call a read primitive or another write primitive with the same handle.
+
 ## Rules
 
-1. A **DB Primitive** takes the executor as its first positional parameter, named `db` and typed `Kysely<DB>`. No custom union is used: `Transaction<DB>` already extends `Kysely<DB>`, so `Kysely<DB>` accepts both. Because the bare name `db` can read as "only the global client", each primitive carries a short comment noting that `db` may be the global client or a caller-supplied transaction.
+1. A **DB Primitive** takes the executor as its first positional parameter, named `db`. A read primitive (`...FromDb`) types it `Kysely<DB>`: `Transaction<DB>` already extends `Kysely<DB>`, so `Kysely<DB>` accepts both the global client and a caller-supplied transaction, and no custom union is needed. Because the bare name `db` can read as "only the global client", a read primitive carries a short comment noting that `db` may be the global client or a caller-supplied transaction. A write primitive (`...InDb`) types it `Transaction<DB>`: it can only run inside a transaction, so its comment says that instead — the type itself already rules out the global client.
 
 2. Domain arguments follow the executor. Use a named object for domain arguments, per `.agents/skills/typescript-api-design/SKILL.md`. A single obvious domain argument may stay positional.
 
@@ -37,9 +39,9 @@ The shipped assessment code already gestured at this with an optional `options.d
 
 8. Do not pass a transaction to an app-level wrapper. Transactions are valid primitive handles, not wrapper handles. A write wrapper opens its own transaction on the handle it receives, so passing a transaction to a wrapper is invalid. Code that already owns a transaction should call primitives directly.
 
-9. A write wrapper owns its transaction boundary. It opens the transaction, calls one or more primitives inside it, waits for the transaction to commit, and only then invalidates cache tags.
+9. A write wrapper owns its transaction boundary. It opens the transaction, calls one or more primitives inside it, waits for the transaction to commit, and only then invalidates cache tags. Because a write primitive's handle is typed `Transaction<DB>`, calling it on the global client is a compile error, not just a convention — a wrapper that only did one statement without a transaction must now open one to type-check.
 
-10. Multi-step write callers, such as imports or batch edits, compose primitives inside their own transaction and own the post-commit invalidation themselves.
+10. Multi-step write callers, such as imports or batch edits, compose primitives inside their own transaction and own the post-commit invalidation themselves. The `Transaction<DB>` handle they hold is exactly what a write primitive requires, so no extra wrapping is needed at the call site.
 
 11. Write wrappers should compose primitives, not other write wrappers. This avoids nested transaction ambiguity and duplicate invalidation. If a write operation needs reusable database behavior, extract that behavior into a primitive and call it from both wrappers.
 
@@ -59,10 +61,10 @@ The shipped assessment code already gestured at this with an optional `options.d
 
 ```ts
 export async function saveQuestionsInDb(
-  db: Kysely<DB>,
+  db: Transaction<DB>,
   { questions, projectId }: { questions: ImportedQuestions; projectId: string },
 ): Promise<{ questionCount: number; rubricCount: number }> {
-  // `db` may be the global client or a caller-supplied transaction.
+  // `db` is always a transaction: the type forbids the auto-committing global client.
   // Perform database work only.
 }
 
@@ -84,7 +86,9 @@ export async function saveQuestions(
 
 - **Keep the optional `options.db` handle on primitives**, as in the assessment path status quo. Rejected: on a primitive, an optional handle keeps two call shapes and lets a caller silently skip a transaction. A required handle makes composition explicit. This rejection is scoped to primitives. A wrapper opens its own transaction on whatever handle it receives, so an optional handle there cannot silently escape a transaction; it is allowed as a test seam.
 
-- **Introduce a `DbClient` / `DbHandle` union type** such as `Kysely<DB> | Transaction<DB>`. Rejected as redundant: `Transaction<DB>` already extends `Kysely<DB>`, so the union equals `Kysely<DB>` and reads as a mistake. Use `Kysely<DB>` for parameters that accept either the global client or a transaction.
+- **Type every primitive's handle `Kysely<DB>`**, relying on convention (rule 9) for write primitives to only ever be called inside a transaction. This was the original shape of this ADR. Rejected: nothing stopped a write primitive from compiling against the auto-committing global client, so a multi-statement write's atomicity depended on every caller remembering to open a transaction. Read primitives keep `Kysely<DB>` (they have no atomicity requirement and cached wrappers call them with the global client); write primitives (`...InDb`) are typed `Transaction<DB>` instead, so a non-transaction handle is a compile error. `Transaction<DB>` still extends `Kysely<DB>`, so this is not the union rejected below — it is a narrower, correct type for a parameter that must never be the global client.
+
+- **Introduce a `DbClient` / `DbHandle` union type** such as `Kysely<DB> | Transaction<DB>`. Rejected as redundant: `Transaction<DB>` already extends `Kysely<DB>`, so the union equals `Kysely<DB>` and reads as a mistake. Use `Kysely<DB>` for a read primitive's parameter, which accepts either the global client or a transaction; use `Transaction<DB>` for a write primitive's parameter, which accepts only a transaction.
 
 - **Invalidate cache at the server-action or route boundary instead of in the transaction owner**. Rejected as a second rule: it splits "who invalidates" between wrappers and orchestrators. One rule is easier to apply consistently: the transaction owner invalidates after commit.
 
@@ -107,3 +111,5 @@ export async function saveQuestions(
 - `CONTEXT.md` gains **DB Primitive** and **App-Level Wrapper**.
 
 - Migration is incremental. The questions read/write modules and the assessment write path adopt the pattern first; other modules migrate when nearby code is touched, not in one mechanical pass.
+
+- Every mutating `...InDb` primitive is typed `Transaction<DB>` uniformly, rather than deciding per primitive whether its writes have a genuine multi-statement atomicity invariant. A single-statement write primitive pays a small cost (its direct tests wrap the call in a transaction), but the alternative reintroduces a per-primitive judgment call the type system cannot check, which is the exact gap this change closes. A shared `inTransaction(db, (tx) => primitive(tx, …))` test helper keeps that wrapping to one line per call site.

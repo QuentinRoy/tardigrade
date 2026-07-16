@@ -1,5 +1,5 @@
 import "server-only";
-import type { Kysely } from "kysely";
+import type { Kysely, Transaction } from "kysely";
 import { saveCriterionSubtypesInDb } from "#criteria/criterionSubtypePersistence.ts";
 import { invalidateRubricImport } from "#db/cacheInvalidation.ts";
 import type { Database } from "#db/generated/database.ts";
@@ -36,10 +36,11 @@ function rubricImportBlockedError(
 	);
 }
 
-// `db` may be the global client or a caller-supplied transaction. Executes a
-// plan's writes; never opens a transaction and never invalidates cache.
+// `db` is a caller-supplied transaction; this write primitive cannot run on
+// the global client. Executes a plan's writes; never opens a transaction and
+// never invalidates cache.
 export async function saveRubricImportPlanInDb(
-	db: Kysely<Database>,
+	db: Transaction<Database>,
 	{ plan, gridId }: { plan: RubricImportPlan; gridId: string },
 ): Promise<{ rubricCount: number; criterionCount: number }> {
 	const rubrics: ImportedRubrics = plan.writes;
