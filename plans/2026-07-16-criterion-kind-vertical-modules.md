@@ -25,7 +25,14 @@ Convert **one kind end-to-end first**, standing up the generic scaffolding it ne
 
 ## Sequence
 
-### PR1 — Generic scaffolding + Check pilot
+### PR1 — Generic scaffolding + Check pilot — **Landed in [#295](https://github.com/QuentinRoy/tardigrade/pull/295)**
+
+**As-built deviations (all behavior-preserving):**
+
+- `attachCheckGrade` stayed in `criteria/criterion.ts` as exhaustive dispatch above the folder, not in `criteria/check/`: moving it would create a `types.ts`↔`check/` cycle since `GradedCriterion` lives in `types.ts`. Only the grade **content** type (`CheckCriterionGradeContent`) moved down. This matches the ADR's "generic `attachGrade` unchanged".
+- The coordinator dispatches the three kind adapters via `Promise.all` (independent subtype tables) rather than the callers' original sequential order — behavior-equivalent, satisfies the repo's parallelism guidance.
+- Test-seam migration was done for the one **required** moved symbol (`markCheckCriterion` → `criteria/check/checkDomain.test.ts`) plus new focused seam tests (`checkDomain.test.ts`, `checkPersistence.integration.test.ts`). The Check-specific cases in `schemas.test.ts`, `parseRubrics.test.ts`, `rubrics.test.ts`, `resultsBuilder.test.ts`, and `rubricsExport.test.ts` were **left in place** — they stay green and now exercise the new seams indirectly. Fully relocating them is churn without a coverage change; folded into the PR4 test revision.
+- Check YAML **encode** is an explicit per-kind projection (`encodeCheckCriterion`); `options`/`number` pass through the `encodeCriterion` dispatcher unchanged until their folders land. Test snapshots preserved; production check-criterion YAML key order is now normalized (semantically identical, untested).
 
 Stand up the above-folder generic surface and migrate Check fully:
 
