@@ -1,5 +1,5 @@
 import "server-only";
-import { type Kysely, sql } from "kysely";
+import { type Kysely, sql, type Transaction } from "kysely";
 import { saveCriterionSubtypesInDb } from "#criteria/criterionSubtypePersistence.ts";
 import type { CriterionKind } from "#criteria/types.ts";
 import {
@@ -71,10 +71,10 @@ function assertUniqueIds(label: string, ids: string[]): void {
 	throw new RubricsValidationError({ fieldErrors: { criteria } });
 }
 
-// `db` may be the global client or a caller-supplied transaction, so callers can
-// compose this inside their own transaction (e.g. a batch edit).
+// `db` is a caller-supplied transaction, so callers can compose this inside
+// their own transaction (e.g. a batch edit).
 export async function saveRubricDefinitionInDb(
-	db: Kysely<Database>,
+	db: Transaction<Database>,
 	{ input, gridId }: { input: RubricDefinitionInput; gridId: string },
 ): Promise<{ id: string; originalId: string }> {
 	const gridRowId = await resolveGridRowId(db, gridId);
@@ -275,9 +275,10 @@ export async function saveRubricDefinition(
 	return { id };
 }
 
-// `db` may be the global client or a caller-supplied transaction.
+// `db` is a caller-supplied transaction; this write primitive cannot run on
+// the global client.
 export async function deleteRubricDefinitionInDb(
-	db: Kysely<Database>,
+	db: Transaction<Database>,
 	{ rubricId, gridId }: { rubricId: string; gridId: string },
 ): Promise<{ deleted: boolean }> {
 	const result = await db
@@ -297,16 +298,19 @@ export async function deleteRubricDefinition(
 	{ rubricId, gridId }: { rubricId: string; gridId: string },
 	{ db = defaultDb }: { db?: Kysely<Database> } = {},
 ): Promise<{ deleted: boolean }> {
-	const result = await deleteRubricDefinitionInDb(db, { rubricId, gridId });
+	const result = await db
+		.transaction()
+		.execute((tx) => deleteRubricDefinitionInDb(tx, { rubricId, gridId }));
 
 	invalidateRubricDefinitionDelete({ gridId, rubricId });
 
 	return result;
 }
 
-// `db` may be the global client or a caller-supplied transaction.
+// `db` is a caller-supplied transaction; this write primitive cannot run on
+// the global client.
 export async function reorderRubricsInDb(
-	db: Kysely<Database>,
+	db: Transaction<Database>,
 	{
 		updates,
 		gridId,

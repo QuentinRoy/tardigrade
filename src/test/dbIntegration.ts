@@ -2,7 +2,12 @@ import { randomUUID } from "node:crypto";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { CamelCasePlugin, Kysely, PostgresDialect } from "kysely";
+import {
+	CamelCasePlugin,
+	Kysely,
+	PostgresDialect,
+	type Transaction,
+} from "kysely";
 import { FileMigrationProvider, Migrator } from "kysely/migration";
 import { Pool } from "pg";
 import Cursor from "pg-cursor";
@@ -306,6 +311,17 @@ export async function stopTestDatabase({
 	if (cleanup != null) {
 		await cleanup();
 	}
+}
+
+// Write primitives (ADR 0007) require a `Transaction<Database>` handle. Tests
+// exercising a primitive directly (not through its wrapper) wrap the call with
+// this helper instead of spelling out `db.transaction().execute(...)` at each
+// call site.
+export function inTransaction<T>(
+	db: Kysely<Database>,
+	fn: (tx: Transaction<Database>) => Promise<T>,
+): Promise<T> {
+	return db.transaction().execute(fn);
 }
 
 export async function createTestDb(): Promise<DisposableTestDatabase> {

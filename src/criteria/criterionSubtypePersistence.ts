@@ -1,5 +1,5 @@
 import "server-only";
-import type { Kysely } from "kysely";
+import type { Transaction } from "kysely";
 import type { Database } from "#db/generated/database.ts";
 import { upsertCheckSubtypeRowsInDb } from "./check/checkPersistence.ts";
 import type { CheckCriterionEditorValue } from "./check/checkSchemas.ts";
@@ -26,7 +26,7 @@ type CriterionSubtypeInput =
 	| Omit<CriterionForKind<"options">, "description" | "label">;
 
 export async function saveCriterionSubtypesInDb(
-	db: Kysely<Database>,
+	db: Transaction<Database>,
 	{
 		criteria,
 		gridRowId,
@@ -120,7 +120,7 @@ type NumberSubtypeRow = {
 
 // Private until PR2 relocates it into `criteria/number/` as a pure move.
 async function upsertNumberSubtypeRowsInDb(
-	db: Kysely<Database>,
+	db: Transaction<Database>,
 	rows: NumberSubtypeRow[],
 ): Promise<void> {
 	if (rows.length === 0) {
@@ -161,7 +161,7 @@ type OptionsSubtypeRow = {
 // Private until PR3 relocates it (with its mark reconciliation) into
 // `criteria/options/` as a pure move.
 async function upsertOptionsSubtypeRowsInDb(
-	db: Kysely<Database>,
+	db: Transaction<Database>,
 	rows: OptionsSubtypeRow[],
 ): Promise<void> {
 	if (rows.length === 0) {

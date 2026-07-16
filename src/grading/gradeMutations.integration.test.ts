@@ -4,7 +4,11 @@ import { beforeEach, expect, test, vi } from "vitest";
 import type { Database } from "#db/generated/database.ts";
 import { saveCriterionGradeInDb } from "#grade-persistence/gradeMutations.ts";
 import { runForcedInterleaving } from "#test/concurrency.ts";
-import { buildTestId, createTestDb } from "#test/dbIntegration.ts";
+import {
+	buildTestId,
+	createTestDb,
+	inTransaction,
+} from "#test/dbIntegration.ts";
 import { createGradeFixture } from "#test/grades.ts";
 import { createGrid } from "#test/grids.ts";
 import { saveCriterionGrade } from "./gradeMutations.ts";
@@ -42,38 +46,40 @@ test("saveCriterionGradeInDb round-trips check, options and number grades", asyn
 	await using grid = await createGrid(db, "Grade Write Grid");
 	const fixture = await createGradeFixture(db, grid.id);
 
-	const results = await Promise.all([
-		saveCriterionGradeInDb(db, {
-			gridId: fixture.gridId,
-			targetId: fixture.gradeTargetId,
-			rubricId: fixture.rubricId,
-			grade: {
-				criterionId: fixture.criterionIds.check,
-				kind: "check",
-				passed: true,
-			},
-		}),
-		saveCriterionGradeInDb(db, {
-			gridId: fixture.gridId,
-			targetId: fixture.gradeTargetId,
-			rubricId: fixture.rubricId,
-			grade: {
-				criterionId: fixture.criterionIds.options,
-				kind: "options",
-				selectedLabel: "B",
-			},
-		}),
-		saveCriterionGradeInDb(db, {
-			gridId: fixture.gridId,
-			targetId: fixture.gradeTargetId,
-			rubricId: fixture.rubricId,
-			grade: {
-				criterionId: fixture.criterionIds.number,
-				kind: "number",
-				value: 7.5,
-			},
-		}),
-	]);
+	const results = await inTransaction(db, (tx) =>
+		Promise.all([
+			saveCriterionGradeInDb(tx, {
+				gridId: fixture.gridId,
+				targetId: fixture.gradeTargetId,
+				rubricId: fixture.rubricId,
+				grade: {
+					criterionId: fixture.criterionIds.check,
+					kind: "check",
+					passed: true,
+				},
+			}),
+			saveCriterionGradeInDb(tx, {
+				gridId: fixture.gridId,
+				targetId: fixture.gradeTargetId,
+				rubricId: fixture.rubricId,
+				grade: {
+					criterionId: fixture.criterionIds.options,
+					kind: "options",
+					selectedLabel: "B",
+				},
+			}),
+			saveCriterionGradeInDb(tx, {
+				gridId: fixture.gridId,
+				targetId: fixture.gradeTargetId,
+				rubricId: fixture.rubricId,
+				grade: {
+					criterionId: fixture.criterionIds.number,
+					kind: "number",
+					value: 7.5,
+				},
+			}),
+		]),
+	);
 
 	expect(results).toEqual([
 		{ success: true },
@@ -112,16 +118,18 @@ test("saveCriterionGradeInDb returns a validation error for an invalid options l
 	await using grid = await createGrid(db, "Grade Options Error Grid");
 	const fixture = await createGradeFixture(db, grid.id);
 
-	const result = await saveCriterionGradeInDb(db, {
-		gridId: fixture.gridId,
-		targetId: fixture.gradeTargetId,
-		rubricId: fixture.rubricId,
-		grade: {
-			criterionId: fixture.criterionIds.options,
-			kind: "options",
-			selectedLabel: "Z",
-		},
-	});
+	const result = await inTransaction(db, (tx) =>
+		saveCriterionGradeInDb(tx, {
+			gridId: fixture.gridId,
+			targetId: fixture.gradeTargetId,
+			rubricId: fixture.rubricId,
+			grade: {
+				criterionId: fixture.criterionIds.options,
+				kind: "options",
+				selectedLabel: "Z",
+			},
+		}),
+	);
 
 	expect(result).toEqual({
 		success: false,
@@ -135,16 +143,18 @@ test("saveCriterionGradeInDb returns a validation error for an out-of-range numb
 	await using grid = await createGrid(db, "Grade Number Error Grid");
 	const fixture = await createGradeFixture(db, grid.id);
 
-	const result = await saveCriterionGradeInDb(db, {
-		gridId: fixture.gridId,
-		targetId: fixture.gradeTargetId,
-		rubricId: fixture.rubricId,
-		grade: {
-			criterionId: fixture.criterionIds.number,
-			kind: "number",
-			value: 11,
-		},
-	});
+	const result = await inTransaction(db, (tx) =>
+		saveCriterionGradeInDb(tx, {
+			gridId: fixture.gridId,
+			targetId: fixture.gradeTargetId,
+			rubricId: fixture.rubricId,
+			grade: {
+				criterionId: fixture.criterionIds.number,
+				kind: "number",
+				value: 11,
+			},
+		}),
+	);
 
 	expect(result).toEqual({
 		success: false,
@@ -173,16 +183,18 @@ test("saveCriterionGradeInDb saves in the correct grid when rubric and criterion
 		criterionIds: sharedCriterionIds,
 	});
 
-	const result = await saveCriterionGradeInDb(db, {
-		gridId: fixtureB.gridId,
-		targetId: fixtureB.gradeTargetId,
-		rubricId: fixtureB.rubricId,
-		grade: {
-			criterionId: fixtureB.criterionIds.check,
-			kind: "check",
-			passed: true,
-		},
-	});
+	const result = await inTransaction(db, (tx) =>
+		saveCriterionGradeInDb(tx, {
+			gridId: fixtureB.gridId,
+			targetId: fixtureB.gradeTargetId,
+			rubricId: fixtureB.rubricId,
+			grade: {
+				criterionId: fixtureB.criterionIds.check,
+				kind: "check",
+				passed: true,
+			},
+		}),
+	);
 
 	expect(result).toEqual({ success: true });
 
@@ -213,16 +225,18 @@ test("saveCriterionGradeInDb rejects cross-grid grade target and rubric combinat
 
 	// Grid A's own grid id, but B's rubric: the rubric lookup is scoped to
 	// grid A and must not find grid B's rubric.
-	const result = await saveCriterionGradeInDb(db, {
-		gridId: fixtureA.gridId,
-		targetId: fixtureA.gradeTargetId,
-		rubricId: fixtureB.rubricId,
-		grade: {
-			criterionId: fixtureB.criterionIds.check,
-			kind: "check",
-			passed: true,
-		},
-	});
+	const result = await inTransaction(db, (tx) =>
+		saveCriterionGradeInDb(tx, {
+			gridId: fixtureA.gridId,
+			targetId: fixtureA.gradeTargetId,
+			rubricId: fixtureB.rubricId,
+			grade: {
+				criterionId: fixtureB.criterionIds.check,
+				kind: "check",
+				passed: true,
+			},
+		}),
+	);
 
 	expect(result).toEqual({
 		success: false,
@@ -369,9 +383,10 @@ test("saveCriterionGradeInDb keeps a single untorn value when two writers race t
 
 // Scenario B: two writers target the same grade target but different criteria —
 // the common real race from optimistic-UI saves of several criteria on one
-// rubric. Each writer now upserts its own (grade target, criterion) row with no
-// shared parent, so the writes touch disjoint tuples and never contend; a plain
-// parallel run is enough to prove both criterion grades coexist.
+// rubric. Each writer upserts its own (grade target, criterion) row with no
+// shared parent, so the writes touch disjoint tuples and never contend; a
+// concurrent Promise.all is enough to prove both criterion grades coexist,
+// with no need for separate transactions.
 test("saveCriterionGradeInDb keeps both criterion grades when two writers race different criteria on the same rubric", async () => {
 	await using db = await createTestDb();
 	await using grid = await createGrid(
@@ -380,28 +395,30 @@ test("saveCriterionGradeInDb keeps both criterion grades when two writers race d
 	);
 	const fixture = await createGradeFixture(db, grid.id);
 
-	const [firstResult, secondResult] = await Promise.all([
-		saveCriterionGradeInDb(db, {
-			gridId: fixture.gridId,
-			targetId: fixture.gradeTargetId,
-			rubricId: fixture.rubricId,
-			grade: {
-				criterionId: fixture.criterionIds.check,
-				kind: "check",
-				passed: true,
-			},
-		}),
-		saveCriterionGradeInDb(db, {
-			gridId: fixture.gridId,
-			targetId: fixture.gradeTargetId,
-			rubricId: fixture.rubricId,
-			grade: {
-				criterionId: fixture.criterionIds.options,
-				kind: "options",
-				selectedLabel: "A",
-			},
-		}),
-	]);
+	const [firstResult, secondResult] = await inTransaction(db, (tx) =>
+		Promise.all([
+			saveCriterionGradeInDb(tx, {
+				gridId: fixture.gridId,
+				targetId: fixture.gradeTargetId,
+				rubricId: fixture.rubricId,
+				grade: {
+					criterionId: fixture.criterionIds.check,
+					kind: "check",
+					passed: true,
+				},
+			}),
+			saveCriterionGradeInDb(tx, {
+				gridId: fixture.gridId,
+				targetId: fixture.gradeTargetId,
+				rubricId: fixture.rubricId,
+				grade: {
+					criterionId: fixture.criterionIds.options,
+					kind: "options",
+					selectedLabel: "A",
+				},
+			}),
+		]),
+	);
 
 	expect(firstResult).toEqual({ success: true });
 	expect(secondResult).toEqual({ success: true });

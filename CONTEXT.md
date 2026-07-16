@@ -75,7 +75,7 @@ _Avoid_: temporary number-or-string APIs that prolong identifier ambiguity
 ### Persistence layer
 
 **DB Primitive**:
-A feature persistence function that performs database work only, against a required Kysely handle (the global client or a transaction). Reads use the `…FromDb` suffix, writes the `…InDb` suffix. It never opens a transaction and never invalidates cache.
+A feature persistence function that performs database work only, against a required Kysely handle. Reads use the `…FromDb` suffix and accept `Kysely<DB>` (the global client or a transaction); writes use the `…InDb` suffix and require `Transaction<DB>`, so they can only run inside a transaction. It never opens a transaction and never invalidates cache.
 _Avoid_: repository, dao, data-access object
 
 **App-Level Wrapper**:
