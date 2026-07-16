@@ -9,7 +9,7 @@ import {
 	TextInput,
 } from "@mantine/core";
 import type { ReactElement, ReactNode } from "react";
-import { createCheckCriterion } from "#criteria/check/checkSchemas.ts";
+import { createCheckCriterion } from "#criteria/check/checkDomain.ts";
 import { getCriterionKindLabel } from "#criteria/getCriterionKindLabel.ts";
 import Panel from "#design-system/Panel.tsx";
 import { assertNever } from "#utils/utils.ts";

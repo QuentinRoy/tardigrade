@@ -1,4 +1,5 @@
 import type { Simplify } from "#utils/utils.ts";
+import type { CheckCriterionEditorValue } from "./checkSchemas.ts";
 
 // Canonical config and grade-content shapes for the Check criterion kind. The
 // generic `Criterion`/`CriterionGrade` unions in ../types.ts assemble their
@@ -22,6 +23,21 @@ export type CheckCriterionGrade = {
 };
 
 export type CheckCriterionGradeContent = { passed: boolean };
+
+// Default value the authoring UI seeds a new Check criterion with. Lives here
+// (not in checkSchemas.ts) so client editors importing it don't pull zod into
+// the browser bundle; the return type is still the schema output, imported
+// type-only.
+export function createCheckCriterion(): CheckCriterionEditorValue {
+	return {
+		id: "",
+		kind: "check",
+		label: "",
+		description: "",
+		marks: 1,
+		falseMarks: 0,
+	};
+}
 
 export function markCheckCriterion(
 	criterion: CheckCriterion,

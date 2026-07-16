@@ -35,15 +35,3 @@ export const checkCriterionImportSchema = baseImportCriterionSchema
 		falseMarks: importNumericValue.optional(),
 	})
 	.strict();
-
-// Default value the authoring UI seeds a new Check criterion with.
-export function createCheckCriterion(): CheckCriterionEditorValue {
-	return {
-		id: "",
-		kind: "check",
-		label: "",
-		description: "",
-		marks: 1,
-		falseMarks: 0,
-	};
-}
