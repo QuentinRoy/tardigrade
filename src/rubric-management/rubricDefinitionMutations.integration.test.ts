@@ -211,8 +211,8 @@ test("saveRubricDefinitionInDb removes stale criteria that are no longer referen
 
 	const staleCriterionId = buildTestId("criterion-stale");
 
-	await inTransaction(db, (tx) =>
-		saveRubricDefinitionInDb(tx, {
+	await inTransaction(db, async (tx) => {
+		await saveRubricDefinitionInDb(tx, {
 			input: {
 				originalId: fixture.rubricId,
 				id: fixture.rubricId,
@@ -236,11 +236,9 @@ test("saveRubricDefinitionInDb removes stale criteria that are no longer referen
 				],
 			},
 			gridId: grid.id,
-		}),
-	);
+		});
 
-	await inTransaction(db, (tx) =>
-		saveRubricDefinitionInDb(tx, {
+		await saveRubricDefinitionInDb(tx, {
 			input: {
 				originalId: fixture.rubricId,
 				id: fixture.rubricId,
@@ -257,8 +255,8 @@ test("saveRubricDefinitionInDb removes stale criteria that are no longer referen
 				],
 			},
 			gridId: grid.id,
-		}),
-	);
+		});
+	});
 
 	const staleCriterionRows = await db
 		.selectFrom("criterion")

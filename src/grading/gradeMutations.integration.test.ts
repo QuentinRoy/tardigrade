@@ -383,9 +383,10 @@ test("saveCriterionGradeInDb keeps a single untorn value when two writers race t
 
 // Scenario B: two writers target the same grade target but different criteria —
 // the common real race from optimistic-UI saves of several criteria on one
-// rubric. Each writer now upserts its own (grade target, criterion) row with no
-// shared parent, so the writes touch disjoint tuples and never contend; a plain
-// parallel run is enough to prove both criterion grades coexist.
+// rubric. Each writer upserts its own (grade target, criterion) row with no
+// shared parent, so the writes touch disjoint tuples and never contend; a
+// concurrent Promise.all is enough to prove both criterion grades coexist,
+// with no need for separate transactions.
 test("saveCriterionGradeInDb keeps both criterion grades when two writers race different criteria on the same rubric", async () => {
 	await using db = await createTestDb();
 	await using grid = await createGrid(
@@ -394,8 +395,8 @@ test("saveCriterionGradeInDb keeps both criterion grades when two writers race d
 	);
 	const fixture = await createGradeFixture(db, grid.id);
 
-	const [firstResult, secondResult] = await Promise.all([
-		inTransaction(db, (tx) =>
+	const [firstResult, secondResult] = await inTransaction(db, (tx) =>
+		Promise.all([
 			saveCriterionGradeInDb(tx, {
 				gridId: fixture.gridId,
 				targetId: fixture.gradeTargetId,
@@ -406,8 +407,6 @@ test("saveCriterionGradeInDb keeps both criterion grades when two writers race d
 					passed: true,
 				},
 			}),
-		),
-		inTransaction(db, (tx) =>
 			saveCriterionGradeInDb(tx, {
 				gridId: fixture.gridId,
 				targetId: fixture.gradeTargetId,
@@ -418,8 +417,8 @@ test("saveCriterionGradeInDb keeps both criterion grades when two writers race d
 					selectedLabel: "A",
 				},
 			}),
-		),
-	]);
+		]),
+	);
 
 	expect(firstResult).toEqual({ success: true });
 	expect(secondResult).toEqual({ success: true });

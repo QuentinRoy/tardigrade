@@ -37,8 +37,8 @@ test("loadRubricGradeFromDb returns the stored criterion values for a grade targ
 	await using grid = await createGrid(db, "Grade Read Grid");
 	const fixture = await createGradeFixture(db, grid.id);
 
-	await inTransaction(db, (tx) =>
-		saveCriterionGradeInDb(tx, {
+	await inTransaction(db, async (tx) => {
+		await saveCriterionGradeInDb(tx, {
 			gridId: fixture.gridId,
 			targetId: fixture.gradeTargetId,
 			rubricId: fixture.rubricId,
@@ -47,10 +47,8 @@ test("loadRubricGradeFromDb returns the stored criterion values for a grade targ
 				kind: "check",
 				passed: true,
 			},
-		}),
-	);
-	await inTransaction(db, (tx) =>
-		saveCriterionGradeInDb(tx, {
+		});
+		await saveCriterionGradeInDb(tx, {
 			gridId: fixture.gridId,
 			targetId: fixture.gradeTargetId,
 			rubricId: fixture.rubricId,
@@ -59,10 +57,8 @@ test("loadRubricGradeFromDb returns the stored criterion values for a grade targ
 				kind: "options",
 				selectedLabel: "B",
 			},
-		}),
-	);
-	await inTransaction(db, (tx) =>
-		saveCriterionGradeInDb(tx, {
+		});
+		await saveCriterionGradeInDb(tx, {
 			gridId: fixture.gridId,
 			targetId: fixture.gradeTargetId,
 			rubricId: fixture.rubricId,
@@ -71,8 +67,8 @@ test("loadRubricGradeFromDb returns the stored criterion values for a grade targ
 				kind: "number",
 				value: 7.5,
 			},
-		}),
-	);
+		});
+	});
 
 	const loaded = await loadRubricGradeFromDb(db, {
 		targetId: fixture.gradeTargetId,
@@ -152,8 +148,8 @@ test("loadGradeTargetGradesFromDb groups a grade target's criterion values by ru
 	// rubrics is observable.
 	const secondRubric = await createCheckRubricFixture(db, grid.rowId, 1);
 
-	await inTransaction(db, (tx) =>
-		saveCriterionGradeInDb(tx, {
+	await inTransaction(db, async (tx) => {
+		await saveCriterionGradeInDb(tx, {
 			gridId: fixture.gridId,
 			targetId: fixture.gradeTargetId,
 			rubricId: fixture.rubricId,
@@ -162,10 +158,8 @@ test("loadGradeTargetGradesFromDb groups a grade target's criterion values by ru
 				kind: "check",
 				passed: true,
 			},
-		}),
-	);
-	await inTransaction(db, (tx) =>
-		saveCriterionGradeInDb(tx, {
+		});
+		await saveCriterionGradeInDb(tx, {
 			gridId: fixture.gridId,
 			targetId: fixture.gradeTargetId,
 			rubricId: fixture.rubricId,
@@ -174,10 +168,8 @@ test("loadGradeTargetGradesFromDb groups a grade target's criterion values by ru
 				kind: "number",
 				value: 7.5,
 			},
-		}),
-	);
-	await inTransaction(db, (tx) =>
-		saveCriterionGradeInDb(tx, {
+		});
+		await saveCriterionGradeInDb(tx, {
 			gridId: fixture.gridId,
 			targetId: fixture.gradeTargetId,
 			rubricId: secondRubric.rubricId,
@@ -186,8 +178,8 @@ test("loadGradeTargetGradesFromDb groups a grade target's criterion values by ru
 				kind: "check",
 				passed: false,
 			},
-		}),
-	);
+		});
+	});
 
 	const byRubricId = await loadGradeTargetGradesFromDb(db, {
 		targetId: fixture.gradeTargetId,
