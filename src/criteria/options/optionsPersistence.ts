@@ -74,15 +74,19 @@ export async function upsertOptionsSubtypeRowsInDb(
 			: [{ optionsCriterionId, marks: row.marks }];
 	});
 
-	const validKeys = new Set(
-		resolvedRows.flatMap(({ optionsCriterionId, marks }) =>
-			Object.keys(marks).map((label) => `${optionsCriterionId}::${label}`),
-		),
+	const validLabelsByCriterionId = new Map(
+		resolvedRows.map(({ optionsCriterionId, marks }) => [
+			optionsCriterionId,
+			new Set(Object.keys(marks)),
+		]),
 	);
 
 	const staleIds = existingOptionsValues
 		.filter(
-			(value) => !validKeys.has(`${value.optionsCriterionId}::${value.label}`),
+			(value) =>
+				!validLabelsByCriterionId
+					.get(value.optionsCriterionId)
+					?.has(value.label),
 		)
 		.map((value) => value.id);
 
