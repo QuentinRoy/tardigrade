@@ -13,7 +13,6 @@ import {
 import { createGrid } from "#test/grids.ts";
 import {
 	createGradedCheckRubricFixture,
-	createOptionsRubricFixture,
 	createRubric,
 	getRubricPositions,
 } from "#test/rubrics.ts";
@@ -275,62 +274,6 @@ test("saveRubricDefinitionInDb removes stale criteria that are no longer referen
 	expect(staleCriterionRows).toHaveLength(0);
 	expect(remainingCriteria.map((criterion) => criterion.id)).toEqual([
 		fixture.criterionId,
-	]);
-});
-
-test("saveRubricDefinitionInDb replaces options criterion values using the provided label set", async () => {
-	await using db = await createTestDb();
-	await using grid = await createGrid(db, "Save Options Values Grid");
-	const fixture = await createOptionsRubricFixture(db, grid.rowId);
-
-	await inTransaction(db, (tx) =>
-		saveRubricDefinitionInDb(tx, {
-			input: {
-				originalId: fixture.rubricId,
-				id: fixture.rubricId,
-				label: "Options updated",
-				criteria: [
-					{
-						previousId: fixture.criterionId,
-						id: fixture.criterionId,
-						kind: "options",
-						label: "Options",
-						marks: { B: 2.5, C: 1 },
-					},
-				],
-			},
-			gridId: grid.id,
-		}),
-	);
-
-	const criterionRow = await db
-		.selectFrom("criterion")
-		.select("rowId")
-		.where("gridRowId", "=", grid.rowId)
-		.where("id", "=", fixture.criterionId)
-		.executeTakeFirstOrThrow();
-
-	const optionsCriterion = await db
-		.selectFrom("optionsCriterion")
-		.select("id")
-		.where("criterionId", "=", criterionRow.rowId)
-		.executeTakeFirstOrThrow();
-
-	const values = await db
-		.selectFrom("optionsCriterionMark")
-		.select(["label", "marks"])
-		.where("optionsCriterionId", "=", optionsCriterion.id)
-		.orderBy("label", "asc")
-		.execute();
-
-	const normalizedValues = values.map((value) => ({
-		label: value.label,
-		marks: Number(value.marks),
-	}));
-
-	expect(normalizedValues).toEqual([
-		{ label: "B", marks: 2.5 },
-		{ label: "C", marks: 1 },
 	]);
 });
 

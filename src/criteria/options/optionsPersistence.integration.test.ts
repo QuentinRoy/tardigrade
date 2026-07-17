@@ -9,7 +9,10 @@ import {
 } from "#test/dbIntegration.ts";
 import { createGrid } from "#test/grids.ts";
 import type { OptionsMarks } from "./optionsDomain.ts";
-import { upsertOptionsSubtypeRowsInDb } from "./optionsPersistence.ts";
+import {
+	upsertOptionsSubtypeRowsInDb,
+	validateOptionsGradeInDb,
+} from "./optionsPersistence.ts";
 
 async function createRubricRow(
 	db: Kysely<Database>,
@@ -211,4 +214,56 @@ test("saveCriterionSubtypesInDb resolves row ids and dispatches the Options upse
 		Pass: 3,
 		Fail: 0,
 	});
+});
+
+test("validateOptionsGradeInDb accepts a label the criterion currently offers", async () => {
+	await using db = await createTestDb();
+	await using grid = await createGrid(db, "Options validation grid");
+	const rubricRowId = await createRubricRow(db, grid.rowId);
+	const criterion = await createOptionsCriterionRow(
+		db,
+		grid.rowId,
+		rubricRowId,
+		0,
+	);
+
+	await inTransaction(db, (tx) =>
+		upsertOptionsSubtypeRowsInDb(tx, [
+			{ criterionRowId: criterion.rowId, marks: { Pass: 1, Fail: 0 } },
+		]),
+	);
+
+	const error = await inTransaction(db, (tx) =>
+		validateOptionsGradeInDb(tx, criterion.rowId, { selectedLabel: "Pass" }),
+	);
+
+	expect(error).toBeUndefined();
+});
+
+test("validateOptionsGradeInDb rejects a label the criterion no longer offers", async () => {
+	await using db = await createTestDb();
+	await using grid = await createGrid(db, "Options validation rejection grid");
+	const rubricRowId = await createRubricRow(db, grid.rowId);
+	const criterion = await createOptionsCriterionRow(
+		db,
+		grid.rowId,
+		rubricRowId,
+		0,
+	);
+
+	await inTransaction(db, (tx) =>
+		upsertOptionsSubtypeRowsInDb(tx, [
+			{ criterionRowId: criterion.rowId, marks: { Pass: 1, Fail: 0 } },
+		]),
+	);
+
+	const error = await inTransaction(db, (tx) =>
+		validateOptionsGradeInDb(tx, criterion.rowId, {
+			selectedLabel: "Withdrawn",
+		}),
+	);
+
+	expect(error).toBe(
+		"That option is no longer available. Reload and choose another option.",
+	);
 });

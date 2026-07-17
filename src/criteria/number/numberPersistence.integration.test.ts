@@ -8,7 +8,10 @@ import {
 	inTransaction,
 } from "#test/dbIntegration.ts";
 import { createGrid } from "#test/grids.ts";
-import { upsertNumberSubtypeRowsInDb } from "./numberPersistence.ts";
+import {
+	upsertNumberSubtypeRowsInDb,
+	validateNumberGradeInDb,
+} from "./numberPersistence.ts";
 
 async function createRubricRow(
 	db: Kysely<Database>,
@@ -162,4 +165,122 @@ test("saveCriterionSubtypesInDb resolves row ids and dispatches the Number upser
 		maxMarks: 10,
 		reversed: false,
 	});
+});
+
+test("validateNumberGradeInDb accepts a value inside the criterion's range", async () => {
+	await using db = await createTestDb();
+	await using grid = await createGrid(db, "Number validation grid");
+	const rubricRowId = await createRubricRow(db, grid.rowId);
+	const criterion = await createNumberCriterionRow(
+		db,
+		grid.rowId,
+		rubricRowId,
+		0,
+	);
+
+	await inTransaction(db, (tx) =>
+		upsertNumberSubtypeRowsInDb(tx, [
+			{
+				criterionRowId: criterion.rowId,
+				minValue: 0,
+				maxValue: 10,
+				minMarks: 0,
+				maxMarks: 5,
+				reversed: false,
+			},
+		]),
+	);
+
+	const error = await inTransaction(db, (tx) =>
+		validateNumberGradeInDb(tx, criterion.rowId, { value: 7 }),
+	);
+
+	expect(error).toBeUndefined();
+});
+
+test("validateNumberGradeInDb rejects a value outside the criterion's range", async () => {
+	await using db = await createTestDb();
+	await using grid = await createGrid(db, "Number validation range grid");
+	const rubricRowId = await createRubricRow(db, grid.rowId);
+	const criterion = await createNumberCriterionRow(
+		db,
+		grid.rowId,
+		rubricRowId,
+		0,
+	);
+
+	await inTransaction(db, (tx) =>
+		upsertNumberSubtypeRowsInDb(tx, [
+			{
+				criterionRowId: criterion.rowId,
+				minValue: 0,
+				maxValue: 10,
+				minMarks: 0,
+				maxMarks: 5,
+				reversed: false,
+			},
+		]),
+	);
+
+	expect(
+		await inTransaction(db, (tx) =>
+			validateNumberGradeInDb(tx, criterion.rowId, { value: -1 }),
+		),
+	).toBe("Enter a value of at least 0.");
+	expect(
+		await inTransaction(db, (tx) =>
+			validateNumberGradeInDb(tx, criterion.rowId, { value: 11 }),
+		),
+	).toBe("Enter a value of at most 10.");
+});
+
+test("validateNumberGradeInDb rejects a non-finite value", async () => {
+	await using db = await createTestDb();
+	await using grid = await createGrid(db, "Number validation non-finite grid");
+	const rubricRowId = await createRubricRow(db, grid.rowId);
+	const criterion = await createNumberCriterionRow(
+		db,
+		grid.rowId,
+		rubricRowId,
+		0,
+	);
+
+	await inTransaction(db, (tx) =>
+		upsertNumberSubtypeRowsInDb(tx, [
+			{
+				criterionRowId: criterion.rowId,
+				minValue: 0,
+				maxValue: 10,
+				minMarks: 0,
+				maxMarks: 5,
+				reversed: false,
+			},
+		]),
+	);
+
+	const error = await inTransaction(db, (tx) =>
+		validateNumberGradeInDb(tx, criterion.rowId, { value: Number.NaN }),
+	);
+
+	expect(error).toBe("Enter a valid value and try again.");
+});
+
+test("validateNumberGradeInDb rejects when the criterion has no subtype row", async () => {
+	await using db = await createTestDb();
+	await using grid = await createGrid(db, "Number validation missing row grid");
+	const rubricRowId = await createRubricRow(db, grid.rowId);
+	const criterion = await createNumberCriterionRow(
+		db,
+		grid.rowId,
+		rubricRowId,
+		0,
+	);
+
+	const error = await inTransaction(db, (tx) =>
+		validateNumberGradeInDb(tx, criterion.rowId, { value: 5 }),
+	);
+
+	expect(error).toBe(
+		"This value range is currently unavailable. Reload and try again. If it still fails, report this issue.",
+	);
 });

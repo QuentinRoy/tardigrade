@@ -117,6 +117,40 @@ export async function upsertOptionsSubtypeRowsInDb(
 	}
 }
 
+// User-facing message for an Options grade selecting a label the criterion no
+// longer offers (ADR 0013: kind owns the fact and the message; grade-persistence
+// keeps only messages that aren't kind-specific).
+const optionsInvalidLabelMessage =
+	"That option is no longer available. Reload and choose another option.";
+
+// Validates an Options grade against the criterion's current marks. Returns an
+// error message when invalid, `undefined` when valid (ADR 0013 pinned adapter
+// signature: validate(db, criterionRowId, gradeContent)). The coordinator calls
+// this before upserting the parent `criterionGrade` row.
+export async function validateOptionsGradeInDb(
+	db: Transaction<Database>,
+	criterionRowId: number,
+	grade: OptionsCriterionGradeContent,
+): Promise<string | undefined> {
+	const optionsLabels = await db
+		.selectFrom("optionsCriterionMark")
+		.innerJoin(
+			"optionsCriterion",
+			"optionsCriterion.id",
+			"optionsCriterionMark.optionsCriterionId",
+		)
+		.where("optionsCriterion.criterionId", "=", criterionRowId)
+		.select("optionsCriterionMark.label")
+		.execute();
+
+	const allowedLabels = optionsLabels.map((row) => row.label);
+	if (!allowedLabels.includes(grade.selectedLabel)) {
+		return optionsInvalidLabelMessage;
+	}
+
+	return undefined;
+}
+
 // Writes an Options criterion grade's subtype row. The coordinator validates the
 // selected label against the criterion's marks and upserts the parent
 // `criterionGrade` first, so this never runs before the parent row exists.

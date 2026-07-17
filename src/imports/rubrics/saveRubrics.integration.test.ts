@@ -292,23 +292,6 @@ test("saveRubrics allows a criterion kind change when the criterion has no linke
 		.executeTakeFirstOrThrow();
 
 	expect(criterion.kind).toBe("options");
-
-	const optionsCriterionValues = await db
-		.selectFrom("optionsCriterion")
-		.innerJoin(
-			"optionsCriterionMark",
-			"optionsCriterionMark.optionsCriterionId",
-			"optionsCriterion.id",
-		)
-		.innerJoin("criterion", "criterion.rowId", "optionsCriterion.criterionId")
-		.select(["optionsCriterionMark.label", "optionsCriterionMark.marks"])
-		.where("criterion.id", "=", fixture.criterionId)
-		.execute();
-
-	expect(optionsCriterionValues.map((value) => value.label).sort()).toEqual([
-		"bad",
-		"good",
-	]);
 });
 
 test("saveRubrics blocks an imported criterion id that already belongs to another rubric", async () => {

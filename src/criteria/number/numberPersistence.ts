@@ -1,6 +1,7 @@
 import "server-only";
 import type { Transaction } from "kysely";
 import type { Database } from "#db/generated/database.ts";
+import { isNumberValueRangeValid } from "./numberBounds.ts";
 import type {
 	NumberCriterion,
 	NumberCriterionGradeContent,
@@ -54,6 +55,58 @@ export async function upsertNumberSubtypeRowsInDb(
 				})),
 		)
 		.execute();
+}
+
+// User-facing messages for a Number grade (ADR 0013: kind owns the fact and the
+// message; grade-persistence keeps only messages that aren't kind-specific).
+const numberInvalidValueMessage = "Enter a valid value and try again.";
+const numberInvalidValueRangeMessage =
+	"This value range is currently unavailable. Reload and try again. If it still fails, report this issue.";
+
+// Validates a Number grade against the criterion's current value range. Returns
+// an error message when invalid, `undefined` when valid (ADR 0013 pinned
+// adapter signature: validate(db, criterionRowId, gradeContent)). The
+// coordinator calls this before upserting the parent `criterionGrade` row.
+export async function validateNumberGradeInDb(
+	db: Transaction<Database>,
+	criterionRowId: number,
+	grade: NumberCriterionGradeContent,
+): Promise<string | undefined> {
+	if (!Number.isFinite(grade.value)) {
+		return numberInvalidValueMessage;
+	}
+
+	const numberCriterionRow = await db
+		.selectFrom("numberCriterion")
+		.where("criterionId", "=", criterionRowId)
+		.select(["minValue", "maxValue"])
+		.executeTakeFirst();
+
+	const minValue =
+		numberCriterionRow?.minValue != null
+			? Number(numberCriterionRow.minValue)
+			: null;
+	const maxValue =
+		numberCriterionRow?.maxValue != null
+			? Number(numberCriterionRow.maxValue)
+			: null;
+
+	if (
+		minValue == null ||
+		maxValue == null ||
+		!isNumberValueRangeValid({ minValue, maxValue })
+	) {
+		return numberInvalidValueRangeMessage;
+	}
+
+	if (grade.value < minValue) {
+		return `Enter a value of at least ${minValue}.`;
+	}
+	if (grade.value > maxValue) {
+		return `Enter a value of at most ${maxValue}.`;
+	}
+
+	return undefined;
 }
 
 // Writes a Number criterion grade's subtype row. The coordinator upserts the
