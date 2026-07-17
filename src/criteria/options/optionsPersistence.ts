@@ -38,7 +38,7 @@ export async function upsertOptionsSubtypeRowsInDb(
 		.onConflict((conflict) => conflict.column("criterionId").doNothing())
 		.execute();
 
-	const optionsCriterions = await db
+	const optionsCriterionRows = await db
 		.selectFrom("optionsCriterion")
 		.select(["id", "criterionId"])
 		.where(
@@ -49,9 +49,9 @@ export async function upsertOptionsSubtypeRowsInDb(
 		.execute();
 
 	const optionsCriterionIdByCriterionId = new Map(
-		optionsCriterions.map((row) => [row.criterionId, row.id]),
+		optionsCriterionRows.map((row) => [row.criterionId, row.id]),
 	);
-	const optionsCriterionIds = optionsCriterions.map((row) => row.id);
+	const optionsCriterionIds = optionsCriterionRows.map((row) => row.id);
 
 	const existingOptionsValues =
 		optionsCriterionIds.length === 0
