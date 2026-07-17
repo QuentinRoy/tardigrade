@@ -2,6 +2,7 @@
 
 import { Textarea } from "@mantine/core";
 import type { ReactElement } from "react";
+import type { OptionsMarks } from "./optionsDomain.ts";
 import type { OptionsCriterionEditorValue } from "./optionsSchemas.ts";
 
 // Kind-owned authoring inputs for an Options criterion. The rubric-management
@@ -19,13 +20,13 @@ type OptionsEditorFieldsProps = {
 	fieldErrors?: OptionsEditorFieldErrors | undefined;
 };
 
-function optionsMarksToText(value: Record<string, number>): string {
+function optionsMarksToText(value: OptionsMarks): string {
 	return Object.entries(value)
 		.map(([label, marks]) => `${label}=${marks}`)
 		.join("\n");
 }
 
-function parseOptionsMarks(value: string): Record<string, number> {
+function parseOptionsMarks(value: string): OptionsMarks {
 	return Object.fromEntries(
 		value
 			.split("\n")

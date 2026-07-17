@@ -4,6 +4,7 @@ import type { Database } from "#db/generated/database.ts";
 import type {
 	OptionsCriterion,
 	OptionsCriterionGradeContent,
+	OptionsMarks,
 } from "./optionsDomain.ts";
 
 // Server-only persistence adapters for the Options criterion kind: batched
@@ -11,10 +12,7 @@ import type {
 // write, and row→config read mapping (ADR 0013). `db` is a caller-supplied
 // transaction; these are write primitives and cannot run on the global client.
 
-export type OptionsSubtypeRow = {
-	criterionRowId: number;
-	marks: Record<string, number>;
-};
+export type OptionsSubtypeRow = { criterionRowId: number; marks: OptionsMarks };
 
 // Batched upsert of Options definition subtype rows. The coordinator resolves
 // each `criterionRowId` and groups by kind before calling this.

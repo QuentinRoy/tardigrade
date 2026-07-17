@@ -8,6 +8,7 @@ import {
 	inTransaction,
 } from "#test/dbIntegration.ts";
 import { createGrid } from "#test/grids.ts";
+import type { OptionsMarks } from "./optionsDomain.ts";
 import { upsertOptionsSubtypeRowsInDb } from "./optionsPersistence.ts";
 
 async function createRubricRow(
@@ -46,7 +47,7 @@ async function createOptionsCriterionRow(
 async function loadOptionsMarks(
 	db: Kysely<Database>,
 	criterionRowId: number,
-): Promise<Record<string, number> | undefined> {
+): Promise<OptionsMarks | undefined> {
 	const optionsCriterion = await db
 		.selectFrom("optionsCriterion")
 		.select("id")

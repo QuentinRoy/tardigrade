@@ -12,8 +12,11 @@ type OptionsCriterionBase = {
 	label?: string | undefined;
 };
 
+// The Marks an Options criterion offers, keyed by label.
+export type OptionsMarks = Record<string, number>;
+
 export type OptionsCriterion = Simplify<
-	OptionsCriterionBase & { kind: "options"; marks: Record<string, number> }
+	OptionsCriterionBase & { kind: "options"; marks: OptionsMarks }
 >;
 
 export type OptionsCriterionGrade = {
@@ -100,7 +103,7 @@ export function exportOptionsGradeValue(
 export function encodeOptionsCriterion(criterion: OptionsCriterion): {
 	id: string;
 	kind: "options";
-	marks: Record<string, number>;
+	marks: OptionsMarks;
 	label?: string;
 	description?: string;
 } {

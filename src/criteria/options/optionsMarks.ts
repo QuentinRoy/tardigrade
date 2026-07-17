@@ -10,3 +10,7 @@
 export function hasEnoughOptionsMarks(marks: Record<string, number>): boolean {
 	return Object.keys(marks).length >= 2;
 }
+
+// `marks` stays a bare `Record<string, number>` here rather than importing
+// `OptionsMarks` from optionsDomain.ts, to keep this file dependency-free (see
+// above) — the shapes are structurally identical.
