@@ -3,10 +3,12 @@ import type { Kysely } from "kysely";
 import { cacheLife } from "next/cache";
 import { toCheckCriterion } from "#criteria/check/checkPersistence.ts";
 import { toNumberCriterion } from "#criteria/number/numberPersistence.ts";
+import { toOptionsCriterion } from "#criteria/options/optionsPersistence.ts";
 import type { Criterion, CriterionKind } from "#criteria/types.ts";
 import { allRubricsTag, cacheTags } from "#db/cacheTags.ts";
 import type { Database } from "#db/generated/database.ts";
 import { database as defaultDb } from "#db/kysely.ts";
+import { assertNever } from "#utils/utils.ts";
 import type { Rubric, RubricsById } from "./types.ts";
 
 export function toNumber(value: string | number): number {
@@ -29,31 +31,16 @@ export function toCriterion(data: {
 		reversed: boolean;
 	} | null;
 }): Criterion {
-	if (data.kind === "options") {
-		if (data.optionsCriterion == null) {
-			throw new Error(
-				`Criterion Subtype Invariant violation: missing optionsCriterion row for criterion ${data.id}.`,
-			);
-		}
-		return {
-			id: data.id,
-			description: data.description ?? undefined,
-			label: data.label ?? undefined,
-			kind: "options",
-			marks: Object.fromEntries(
-				data.optionsCriterion.marks.map((item) => [
-					item.label,
-					toNumber(item.marks),
-				]),
-			),
-		};
+	switch (data.kind) {
+		case "check":
+			return toCheckCriterion(data);
+		case "options":
+			return toOptionsCriterion(data);
+		case "number":
+			return toNumberCriterion(data);
+		default:
+			return assertNever(data.kind);
 	}
-
-	if (data.kind === "number") {
-		return toNumberCriterion(data);
-	}
-
-	return toCheckCriterion(data);
 }
 
 export type RubricRow = {

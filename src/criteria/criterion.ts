@@ -9,6 +9,11 @@ import {
 	getNumberCriterionMinMarks,
 	markNumberCriterion,
 } from "./number/numberDomain.ts";
+import {
+	getOptionsCriterionMaxMarks,
+	getOptionsCriterionMinMarks,
+	markOptionsCriterion,
+} from "./options/optionsDomain.ts";
 import type {
 	Criterion,
 	CriterionForKind,
@@ -22,7 +27,7 @@ export function getCriterionMaxMarks(criterion: Criterion): number {
 		case "check":
 			return getCheckCriterionMaxMarks(criterion);
 		case "options":
-			return Math.max(0, ...Object.values(criterion.marks));
+			return getOptionsCriterionMaxMarks(criterion);
 		case "number":
 			return getNumberCriterionMaxMarks(criterion);
 		default:
@@ -35,25 +40,12 @@ export function getCriterionMinMarks(criterion: Criterion): number {
 		case "check":
 			return getCheckCriterionMinMarks(criterion);
 		case "options":
-			return Math.min(0, ...Object.values(criterion.marks));
+			return getOptionsCriterionMinMarks(criterion);
 		case "number":
 			return getNumberCriterionMinMarks(criterion);
 		default:
 			assertNever(criterion);
 	}
-}
-
-export function markOptionsCriterion(
-	criterion: CriterionForKind<"options">,
-	selectedLabel: string,
-): number {
-	const marksForLabel = criterion.marks[selectedLabel];
-	if (marksForLabel == null) {
-		throw new Error(
-			`Selected label "${selectedLabel}" not found in criterion marks`,
-		);
-	}
-	return marksForLabel;
 }
 
 export function markCriterion<TKind extends CriterionKind = CriterionKind>(

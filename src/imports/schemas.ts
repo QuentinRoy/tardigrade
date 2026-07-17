@@ -1,25 +1,12 @@
 import { z } from "zod";
 import { checkCriterionImportSchema } from "#criteria/check/checkSchemas.ts";
-import {
-	baseImportCriterionSchema,
-	importNonEmptyString as nonEmptyString,
-	importNumericValue as numericValue,
-} from "#criteria/criterionSchemaAtoms.ts";
+import { importNonEmptyString as nonEmptyString } from "#criteria/criterionSchemaAtoms.ts";
 import { numberCriterionImportSchema } from "#criteria/number/numberSchemas.ts";
-
-const optionsMarksSchema = z
-	.record(nonEmptyString, numericValue)
-	.refine((marks) => Object.keys(marks).length >= 2, {
-		message: "Options criterion must have at least 2 mark entries",
-	});
-
-export const optionsCriterionSchema = baseImportCriterionSchema
-	.extend({ kind: z.literal("options"), marks: optionsMarksSchema })
-	.strict();
+import { optionsCriterionImportSchema } from "#criteria/options/optionsSchemas.ts";
 
 const criterionSchema = z.discriminatedUnion("kind", [
 	checkCriterionImportSchema,
-	optionsCriterionSchema,
+	optionsCriterionImportSchema,
 	numberCriterionImportSchema,
 ]);
 

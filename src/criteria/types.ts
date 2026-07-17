@@ -1,5 +1,4 @@
 import type { CriterionKind } from "#db/generated/public/CriterionKind.ts";
-import type { Simplify } from "#utils/utils.ts";
 import type {
 	CheckCriterion,
 	CheckCriterionGrade,
@@ -8,30 +7,22 @@ import type {
 	NumberCriterion,
 	NumberCriterionGrade,
 } from "./number/numberDomain.ts";
+import type {
+	OptionsCriterion,
+	OptionsCriterionGrade,
+} from "./options/optionsDomain.ts";
 
 export type { CriterionKind };
 
-// The `Criterion`/`CriterionGrade` unions are assembled from each kind's content.
-// The `check` and `number` members come from their folders; `options` is still
-// inline here until PR3 stands up its folder (ADR 0013).
+// The `Criterion`/`CriterionGrade` unions are assembled from each kind's content,
+// every member sourced from its own kind folder (ADR 0013).
 
-type CriterionGradeBase = { criterionId: string; kind: CriterionKind };
 export type CriterionGrade =
 	| CheckCriterionGrade
-	| Simplify<CriterionGradeBase & { kind: "options"; selectedLabel: string }>
+	| OptionsCriterionGrade
 	| NumberCriterionGrade;
 
-type CriterionBase = {
-	id: string;
-	description?: string | undefined;
-	label?: string | undefined;
-	kind: CriterionKind;
-};
-
-export type Criterion =
-	| CheckCriterion
-	| Simplify<CriterionBase & { kind: "options"; marks: Record<string, number> }>
-	| NumberCriterion;
+export type Criterion = CheckCriterion | OptionsCriterion | NumberCriterion;
 
 export type CriterionForKind<TKind extends CriterionKind> = Extract<
 	Criterion,

@@ -6,6 +6,10 @@ import {
 	describeNumber,
 	type NumberPropertyDetails,
 } from "./number/numberDomain.ts";
+import {
+	describeOptions,
+	type OptionsPropertyDetails,
+} from "./options/optionsDomain.ts";
 import type { Criterion, CriterionKind } from "./types.ts";
 
 // Neutral, kind-uniform display facts for a criterion (ADR 0013). `results`
@@ -14,7 +18,7 @@ import type { Criterion, CriterionKind } from "./types.ts";
 
 type CriterionPropertyDetails =
 	| CheckPropertyDetails
-	| { kind: "options"; marksByLabel: Array<{ label: string; marks: number }> }
+	| OptionsPropertyDetails
 	| NumberPropertyDetails;
 
 export type CriterionDetails = {
@@ -38,12 +42,7 @@ export function getCriterionDetails(criterion: Criterion): CriterionDetails {
 				label: criterion.label,
 				description: criterion.description,
 				kind: criterion.kind,
-				properties: {
-					kind: "options",
-					marksByLabel: Object.entries(criterion.marks).map(
-						([label, marks]) => ({ label, marks }),
-					),
-				},
+				properties: describeOptions(criterion),
 			};
 		case "number":
 			return {

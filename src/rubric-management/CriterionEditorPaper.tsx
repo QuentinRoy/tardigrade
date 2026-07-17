@@ -12,23 +12,11 @@ import type { ReactElement, ReactNode } from "react";
 import { createCheckCriterion } from "#criteria/check/checkDomain.ts";
 import { getCriterionKindLabel } from "#criteria/getCriterionKindLabel.ts";
 import { createNumberCriterion } from "#criteria/number/numberDomain.ts";
+import { createOptionsCriterion } from "#criteria/options/optionsDomain.ts";
 import Panel from "#design-system/Panel.tsx";
 import { assertNever } from "#utils/utils.ts";
 import type { RubricCriterionFieldErrors } from "./errors.ts";
 import type { CriterionEditorValue } from "./types.ts";
-
-function createOptionsCriterion(): Extract<
-	CriterionEditorValue,
-	{ kind: "options" }
-> {
-	return {
-		id: "",
-		kind: "options",
-		label: "",
-		description: "",
-		marks: { Pass: 1, Fail: 0 },
-	};
-}
 
 export function createCriterion(
 	kind: CriterionEditorValue["kind"],

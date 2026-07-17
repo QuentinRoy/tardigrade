@@ -3,6 +3,7 @@ import type { Transaction } from "kysely";
 import { writeCheckGradeInDb } from "#criteria/check/checkPersistence.ts";
 import { isNumberValueRangeValid } from "#criteria/number/numberBounds.ts";
 import { writeNumberGradeInDb } from "#criteria/number/numberPersistence.ts";
+import { writeOptionsGradeInDb } from "#criteria/options/optionsPersistence.ts";
 import type { CriterionGrade } from "#criteria/types.ts";
 import type { Database } from "#db/generated/database.ts";
 import { assertNever } from "#utils/utils.ts";
@@ -218,15 +219,9 @@ export async function saveCriterionGradeInDb(
 		const criterionGradeId = await upsertCriterionGrade();
 
 		await Promise.all([
-			db
-				.insertInto("optionsCriterionGrade")
-				.values({ criterionGradeId, selectedLabel: optionsGrade.selectedLabel })
-				.onConflict((conflict) =>
-					conflict
-						.column("criterionGradeId")
-						.doUpdateSet({ selectedLabel: optionsGrade.selectedLabel }),
-				)
-				.execute(),
+			writeOptionsGradeInDb(db, criterionGradeId, {
+				selectedLabel: optionsGrade.selectedLabel,
+			}),
 			clearOtherSubtypeValues(criterionGradeId, "options"),
 		]);
 
