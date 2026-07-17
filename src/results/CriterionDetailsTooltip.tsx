@@ -66,7 +66,9 @@ export default function CriterionDetailsTooltip({
 					{details.description != null && details.description.length > 0 && (
 						<Text size="xs">{details.description}</Text>
 					)}
-					<Text size="xs">Kind: {getCriterionKindLabel(details.kind)}</Text>
+					<Text size="xs" tt="capitalize">
+						Kind: {getCriterionKindLabel(details.kind)}
+					</Text>
 					<PropertyRows {...details.properties} />
 				</Stack>
 			}
