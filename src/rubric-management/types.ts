@@ -1,4 +1,5 @@
 import type { CheckCriterionEditorValue } from "#criteria/check/checkSchemas.ts";
+import type { NumberCriterionEditorValue } from "#criteria/number/numberSchemas.ts";
 import type { Rubric } from "#rubrics/types.ts";
 
 export type RubricEditorValue = {
@@ -17,18 +18,7 @@ export type CriterionEditorValue =
 			kind: "options";
 			marks: Record<string, number>;
 	  }
-	| {
-			previousId?: string | undefined;
-			id: string;
-			description?: string | undefined;
-			label?: string | undefined;
-			kind: "number";
-			minValue: number;
-			maxValue: number;
-			minMarks: number;
-			maxMarks: number;
-			reversed: boolean;
-	  };
+	| NumberCriterionEditorValue;
 
 // A Rubric plus the definition-level metadata an author edits in the
 // management UI (see CONTEXT.md: "Rubric Definition").

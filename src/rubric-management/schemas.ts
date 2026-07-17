@@ -4,6 +4,7 @@ import {
 	editorIdSchema as idSchema,
 	editorPreviousIdSchema as previousIdSchema,
 } from "#criteria/criterionSchemaAtoms.ts";
+import { numberCriterionEditorSchema } from "#criteria/number/numberSchemas.ts";
 
 const optionsCriterionDefinitionSchema = z.object({
 	previousId: previousIdSchema,
@@ -18,23 +19,10 @@ const optionsCriterionDefinitionSchema = z.object({
 		}),
 });
 
-const numberCriterionDefinitionSchema = z.object({
-	previousId: previousIdSchema,
-	id: idSchema,
-	description: z.string().trim().optional(),
-	label: z.string().trim().optional(),
-	kind: z.literal("number"),
-	minValue: z.number({ error: "Min value must be a valid number" }),
-	maxValue: z.number({ error: "Max value must be a valid number" }),
-	minMarks: z.number({ error: "Min marks must be a valid number" }),
-	maxMarks: z.number({ error: "Max marks must be a valid number" }),
-	reversed: z.boolean(),
-});
-
 const criterionDefinitionSchema = z.discriminatedUnion("kind", [
 	checkCriterionEditorSchema,
 	optionsCriterionDefinitionSchema,
-	numberCriterionDefinitionSchema,
+	numberCriterionEditorSchema,
 ]);
 
 export const rubricDefinitionSchema = z
@@ -88,28 +76,6 @@ export const rubricDefinitionSchema = z
 				}
 			}
 		}
-
-		rubric.criteria.forEach((criterion, index) => {
-			if (criterion.kind !== "number") {
-				return;
-			}
-
-			if (criterion.minValue >= criterion.maxValue) {
-				ctx.addIssue({
-					code: "custom",
-					message: "Max value must be greater than min value",
-					path: ["criteria", index, "maxValue"],
-				});
-			}
-
-			if (criterion.minMarks > criterion.maxMarks) {
-				ctx.addIssue({
-					code: "custom",
-					message: "Max marks must be greater than or equal to min marks",
-					path: ["criteria", index, "maxMarks"],
-				});
-			}
-		});
 	});
 
 export const deleteRubricSchema = z.object({

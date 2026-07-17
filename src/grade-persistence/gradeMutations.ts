@@ -1,6 +1,8 @@
 import "server-only";
 import type { Transaction } from "kysely";
 import { writeCheckGradeInDb } from "#criteria/check/checkPersistence.ts";
+import { isNumberValueRangeValid } from "#criteria/number/numberBounds.ts";
+import { writeNumberGradeInDb } from "#criteria/number/numberPersistence.ts";
 import type { CriterionGrade } from "#criteria/types.ts";
 import type { Database } from "#db/generated/database.ts";
 import { assertNever } from "#utils/utils.ts";
@@ -254,7 +256,11 @@ export async function saveCriterionGradeInDb(
 				? Number(numberCriterionData.maxValue)
 				: null;
 
-		if (minValue == null || maxValue == null || maxValue <= minValue) {
+		if (
+			minValue == null ||
+			maxValue == null ||
+			!isNumberValueRangeValid({ minValue, maxValue })
+		) {
 			return {
 				success: false,
 				error: saveCriterionGradeErrors.invalidValueRange,
@@ -274,13 +280,7 @@ export async function saveCriterionGradeInDb(
 		const criterionGradeId = await upsertCriterionGrade();
 
 		await Promise.all([
-			db
-				.insertInto("numberCriterionGrade")
-				.values({ criterionGradeId, value: parsed })
-				.onConflict((conflict) =>
-					conflict.column("criterionGradeId").doUpdateSet({ value: parsed }),
-				)
-				.execute(),
+			writeNumberGradeInDb(db, criterionGradeId, { value: parsed }),
 			clearOtherSubtypeValues(criterionGradeId, "number"),
 		]);
 

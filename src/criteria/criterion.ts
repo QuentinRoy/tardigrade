@@ -4,6 +4,11 @@ import {
 	getCheckCriterionMinMarks,
 	markCheckCriterion,
 } from "./check/checkDomain.ts";
+import {
+	getNumberCriterionMaxMarks,
+	getNumberCriterionMinMarks,
+	markNumberCriterion,
+} from "./number/numberDomain.ts";
 import type {
 	Criterion,
 	CriterionForKind,
@@ -19,7 +24,7 @@ export function getCriterionMaxMarks(criterion: Criterion): number {
 		case "options":
 			return Math.max(0, ...Object.values(criterion.marks));
 		case "number":
-			return criterion.maxMarks;
+			return getNumberCriterionMaxMarks(criterion);
 		default:
 			assertNever(criterion);
 	}
@@ -32,31 +37,10 @@ export function getCriterionMinMarks(criterion: Criterion): number {
 		case "options":
 			return Math.min(0, ...Object.values(criterion.marks));
 		case "number":
-			return criterion.minMarks;
+			return getNumberCriterionMinMarks(criterion);
 		default:
 			assertNever(criterion);
 	}
-}
-
-export function markNumberCriterion(
-	criterion: CriterionForKind<"number">,
-	value: number,
-): number {
-	const valueRange = criterion.maxValue - criterion.minValue;
-	if (valueRange === 0) {
-		throw new Error(
-			`Cannot mark a number criterion with a zero-width value range (minValue and maxValue are both ${criterion.minValue})`,
-		);
-	}
-
-	const valueOffset = criterion.reversed
-		? criterion.maxValue - value
-		: value - criterion.minValue;
-
-	return (
-		criterion.minMarks +
-		(valueOffset * (criterion.maxMarks - criterion.minMarks)) / valueRange
-	);
 }
 
 export function markOptionsCriterion(
