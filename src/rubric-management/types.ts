@@ -1,5 +1,6 @@
 import type { CheckCriterionEditorValue } from "#criteria/check/checkSchemas.ts";
 import type { NumberCriterionEditorValue } from "#criteria/number/numberSchemas.ts";
+import type { OptionsCriterionEditorValue } from "#criteria/options/optionsSchemas.ts";
 import type { Rubric } from "#rubrics/types.ts";
 
 export type RubricEditorValue = {
@@ -10,14 +11,7 @@ export type RubricEditorValue = {
 
 export type CriterionEditorValue =
 	| CheckCriterionEditorValue
-	| {
-			previousId?: string | undefined;
-			id: string;
-			description?: string | undefined;
-			label?: string | undefined;
-			kind: "options";
-			marks: Record<string, number>;
-	  }
+	| OptionsCriterionEditorValue
 	| NumberCriterionEditorValue;
 
 // A Rubric plus the definition-level metadata an author edits in the

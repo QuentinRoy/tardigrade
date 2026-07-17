@@ -1,6 +1,7 @@
 import { assertNever } from "#utils/utils.ts";
 import { exportCheckGradeValue } from "./check/checkDomain.ts";
 import { exportNumberGradeValue } from "./number/numberDomain.ts";
+import { exportOptionsGradeValue } from "./options/optionsDomain.ts";
 import type { GradedCriterion } from "./types.ts";
 
 // The kind-specific CSV grade-value projection (ADR 0013). The kind-uniform CSV
@@ -19,7 +20,7 @@ export function getCriterionExportGradeValue(
 		case "check":
 			return exportCheckGradeValue(criterion.grade);
 		case "options":
-			return criterion.grade.selectedLabel;
+			return exportOptionsGradeValue(criterion.grade);
 		case "number":
 			return exportNumberGradeValue(criterion.grade);
 		default:

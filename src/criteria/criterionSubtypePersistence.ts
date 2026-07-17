@@ -8,7 +8,11 @@ import {
 	upsertNumberSubtypeRowsInDb,
 } from "./number/numberPersistence.ts";
 import type { NumberCriterionEditorValue } from "./number/numberSchemas.ts";
-import type { CriterionForKind } from "./types.ts";
+import {
+	type OptionsSubtypeRow,
+	upsertOptionsSubtypeRowsInDb,
+} from "./options/optionsPersistence.ts";
+import type { OptionsCriterionEditorValue } from "./options/optionsSchemas.ts";
 
 // Generic criterion-definition subtype coordinator (ADR 0013). It resolves the
 // criterion row ids both rubric verticals used to resolve inline, groups by kind,
@@ -16,14 +20,8 @@ import type { CriterionForKind } from "./types.ts";
 // insert/update/delete stays in each vertical (their semantics differ by design);
 // `rubric-management` and `imports` call this downward inside their own
 // transactions and own cache invalidation.
-//
-// It handles all three kinds from day one so PR1 deletes the duplicated subtype
-// code from both callers. The `check` and `number` adapters live in their
-// folders; the `options` writer is a private helper here and moves into its
-// folder in PR3 as a pure move.
 
-// Check and Number source their subtype fields from their editor schema outputs;
-// Options derives from the domain union (its subtype fields match exactly). Both
+// Every kind sources its subtype fields from its own editor schema output. Both
 // callers' values are already assignable.
 type CriterionSubtypeInput =
 	| Pick<CheckCriterionEditorValue, "id" | "kind" | "marks" | "falseMarks">
@@ -37,7 +35,7 @@ type CriterionSubtypeInput =
 			| "maxMarks"
 			| "reversed"
 	  >
-	| Omit<CriterionForKind<"options">, "description" | "label">;
+	| Pick<OptionsCriterionEditorValue, "id" | "kind" | "marks">;
 
 export async function saveCriterionSubtypesInDb(
 	db: Transaction<Database>,
@@ -121,103 +119,4 @@ export async function saveCriterionSubtypesInDb(
 		upsertNumberSubtypeRowsInDb(db, numberRows),
 		upsertOptionsSubtypeRowsInDb(db, optionsRows),
 	]);
-}
-
-type OptionsSubtypeRow = {
-	criterionRowId: number;
-	marks: Record<string, number>;
-};
-
-// Private until PR3 relocates it (with its mark reconciliation) into
-// `criteria/options/` as a pure move.
-async function upsertOptionsSubtypeRowsInDb(
-	db: Transaction<Database>,
-	rows: OptionsSubtypeRow[],
-): Promise<void> {
-	if (rows.length === 0) {
-		return;
-	}
-
-	await db
-		.insertInto("optionsCriterion")
-		.values(rows.map((row) => ({ criterionId: row.criterionRowId })))
-		.onConflict((conflict) => conflict.column("criterionId").doNothing())
-		.execute();
-
-	const optionsCriterions = await db
-		.selectFrom("optionsCriterion")
-		.select(["id", "criterionId"])
-		.where(
-			"criterionId",
-			"in",
-			rows.map((row) => row.criterionRowId),
-		)
-		.execute();
-
-	const optionsCriterionIdByCriterionId = new Map(
-		optionsCriterions.map((row) => [row.criterionId, row.id]),
-	);
-	const optionsCriterionIds = optionsCriterions.map((row) => row.id);
-
-	const existingOptionsValues =
-		optionsCriterionIds.length === 0
-			? []
-			: await db
-					.selectFrom("optionsCriterionMark")
-					.select(["id", "optionsCriterionId", "label"])
-					.where("optionsCriterionId", "in", optionsCriterionIds)
-					.execute();
-
-	const validKeys = new Set(
-		rows.flatMap((row) => {
-			const optionsCriterionId = optionsCriterionIdByCriterionId.get(
-				row.criterionRowId,
-			);
-			if (optionsCriterionId == null) {
-				return [];
-			}
-			return Object.keys(row.marks).map(
-				(label) => `${optionsCriterionId}::${label}`,
-			);
-		}),
-	);
-
-	const staleIds = existingOptionsValues
-		.filter(
-			(value) => !validKeys.has(`${value.optionsCriterionId}::${value.label}`),
-		)
-		.map((value) => value.id);
-
-	if (staleIds.length > 0) {
-		await db
-			.deleteFrom("optionsCriterionMark")
-			.where("id", "in", staleIds)
-			.execute();
-	}
-
-	const optionsValueRows = rows.flatMap((row) => {
-		const optionsCriterionId = optionsCriterionIdByCriterionId.get(
-			row.criterionRowId,
-		);
-		if (optionsCriterionId == null) {
-			return [];
-		}
-		return Object.entries(row.marks).map(([label, marks]) => ({
-			optionsCriterionId,
-			label,
-			marks,
-		}));
-	});
-
-	if (optionsValueRows.length > 0) {
-		await db
-			.insertInto("optionsCriterionMark")
-			.values(optionsValueRows)
-			.onConflict((conflict) =>
-				conflict
-					.columns(["optionsCriterionId", "label"])
-					.doUpdateSet((eb) => ({ marks: eb.ref("excluded.marks") })),
-			)
-			.execute();
-	}
 }

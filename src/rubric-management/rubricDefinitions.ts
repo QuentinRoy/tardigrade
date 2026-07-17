@@ -3,6 +3,7 @@ import type { Kysely } from "kysely";
 import { cacheLife } from "next/cache";
 import type { CheckCriterionEditorValue } from "#criteria/check/checkSchemas.ts";
 import type { NumberCriterionEditorValue } from "#criteria/number/numberSchemas.ts";
+import type { OptionsCriterionEditorValue } from "#criteria/options/optionsSchemas.ts";
 import { allGradesTag, allRubricsTag, cacheTags } from "#db/cacheTags.ts";
 import type { Database } from "#db/generated/database.ts";
 import { database as defaultDb } from "#db/kysely.ts";
@@ -17,14 +18,7 @@ import type { RubricDefinition } from "./types.ts";
 
 export type CriterionDefinitionInput =
 	| CheckCriterionEditorValue
-	| {
-			previousId?: string | undefined;
-			id: string;
-			description?: string | undefined;
-			label?: string | undefined;
-			kind: "options";
-			marks: Record<string, number>;
-	  }
+	| OptionsCriterionEditorValue
 	| NumberCriterionEditorValue;
 
 export type RubricDefinitionInput = {

@@ -1,7 +1,7 @@
 "use client";
 
-import { Textarea } from "@mantine/core";
 import type { ReactElement } from "react";
+import OptionsEditorFields from "#criteria/options/OptionsEditorFields.tsx";
 import CriterionEditorPaper from "./CriterionEditorPaper.tsx";
 import type { RubricCriterionFieldErrors } from "./errors.ts";
 import type { CriterionEditorValue } from "./types.ts";
@@ -14,30 +14,6 @@ type OptionsCriterionEditorPaperProps = {
 	onRemove: () => void;
 	fieldErrors?: RubricCriterionFieldErrors | undefined;
 };
-
-function optionsMarksToText(value: Record<string, number>): string {
-	return Object.entries(value)
-		.map(([label, marks]) => `${label}=${marks}`)
-		.join("\n");
-}
-
-function parseOptionsMarks(value: string): Record<string, number> {
-	return Object.fromEntries(
-		value
-			.split("\n")
-			.map((line) => line.trim())
-			.filter((line) => line.length > 0)
-			.map((line) => {
-				const [label, marks] = line.split("=");
-				if (label == null) {
-					return [];
-				}
-				const parsed = Number(marks);
-				return [label.trim(), Number.isFinite(parsed) ? parsed : 0];
-			})
-			.filter((entry): entry is [string, number] => entry.length === 2),
-	);
-}
 
 export default function OptionsCriterionEditorPaper({
 	criterion,
@@ -52,23 +28,10 @@ export default function OptionsCriterionEditorPaper({
 			onRemove={onRemove}
 			fieldErrors={fieldErrors}
 		>
-			<Textarea
-				label="Options marks"
-				description={
-					fieldErrors?.marks == null
-						? "One entry per line using label=marks"
-						: undefined
-				}
-				error={fieldErrors?.marks}
-				value={optionsMarksToText(criterion.marks)}
-				onChange={(event) =>
-					onChange({
-						...criterion,
-						marks: parseOptionsMarks(event.currentTarget.value),
-					})
-				}
-				minRows={4}
-				autosize
+			<OptionsEditorFields
+				criterion={criterion}
+				onChange={onChange}
+				fieldErrors={fieldErrors}
 			/>
 		</CriterionEditorPaper>
 	);

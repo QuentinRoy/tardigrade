@@ -1,27 +1,12 @@
 import { z } from "zod";
 import { checkCriterionEditorSchema } from "#criteria/check/checkSchemas.ts";
-import {
-	editorIdSchema as idSchema,
-	editorPreviousIdSchema as previousIdSchema,
-} from "#criteria/criterionSchemaAtoms.ts";
+import { editorIdSchema as idSchema } from "#criteria/criterionSchemaAtoms.ts";
 import { numberCriterionEditorSchema } from "#criteria/number/numberSchemas.ts";
-
-const optionsCriterionDefinitionSchema = z.object({
-	previousId: previousIdSchema,
-	id: idSchema,
-	description: z.string().trim().optional(),
-	label: z.string().trim().optional(),
-	kind: z.literal("options"),
-	marks: z
-		.record(z.string(), z.number())
-		.refine((marks) => Object.keys(marks).length >= 2, {
-			message: "Options criterion must have at least 2 mark entries",
-		}),
-});
+import { optionsCriterionEditorSchema } from "#criteria/options/optionsSchemas.ts";
 
 const criterionDefinitionSchema = z.discriminatedUnion("kind", [
 	checkCriterionEditorSchema,
-	optionsCriterionDefinitionSchema,
+	optionsCriterionEditorSchema,
 	numberCriterionEditorSchema,
 ]);
 
