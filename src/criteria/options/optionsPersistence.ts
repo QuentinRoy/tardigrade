@@ -62,18 +62,22 @@ export async function upsertOptionsSubtypeRowsInDb(
 					.where("optionsCriterionId", "in", optionsCriterionIds)
 					.execute();
 
+	// Rows whose `criterionRowId` didn't resolve to an `optionsCriterionId`
+	// (the just-inserted-but-not-yet-read-back case) are dropped from both the
+	// reconciliation and the insert below.
+	const resolvedRows = rows.flatMap((row) => {
+		const optionsCriterionId = optionsCriterionIdByCriterionId.get(
+			row.criterionRowId,
+		);
+		return optionsCriterionId == null
+			? []
+			: [{ optionsCriterionId, marks: row.marks }];
+	});
+
 	const validKeys = new Set(
-		rows.flatMap((row) => {
-			const optionsCriterionId = optionsCriterionIdByCriterionId.get(
-				row.criterionRowId,
-			);
-			if (optionsCriterionId == null) {
-				return [];
-			}
-			return Object.keys(row.marks).map(
-				(label) => `${optionsCriterionId}::${label}`,
-			);
-		}),
+		resolvedRows.flatMap(({ optionsCriterionId, marks }) =>
+			Object.keys(marks).map((label) => `${optionsCriterionId}::${label}`),
+		),
 	);
 
 	const staleIds = existingOptionsValues
@@ -89,19 +93,14 @@ export async function upsertOptionsSubtypeRowsInDb(
 			.execute();
 	}
 
-	const optionsValueRows = rows.flatMap((row) => {
-		const optionsCriterionId = optionsCriterionIdByCriterionId.get(
-			row.criterionRowId,
-		);
-		if (optionsCriterionId == null) {
-			return [];
-		}
-		return Object.entries(row.marks).map(([label, marks]) => ({
-			optionsCriterionId,
-			label,
-			marks,
-		}));
-	});
+	const optionsValueRows = resolvedRows.flatMap(
+		({ optionsCriterionId, marks }) =>
+			Object.entries(marks).map(([label, markValue]) => ({
+				optionsCriterionId,
+				label,
+				marks: markValue,
+			})),
+	);
 
 	if (optionsValueRows.length > 0) {
 		await db
