@@ -88,7 +88,7 @@ Replicate for Options; move stale-mark reconciliation into `criteria/options/`; 
 
 Sequence is now four PRs. **Plan closure (`Status: Completed`, remove from `plans/index.md`) happens in PR6, not PR4b** — do not close the plan after PR4b or PR5.
 
-#### PR4a — Structural sweep — **Landed on this branch**
+#### PR4a — Structural sweep — **In review ([#300](https://github.com/QuentinRoy/tardigrade/pull/300))**
 
 **As-built deviations (all behavior-preserving):**
 
