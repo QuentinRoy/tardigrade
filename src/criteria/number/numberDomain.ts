@@ -1,5 +1,5 @@
 import type { Simplify } from "#utils/utils.ts";
-import type { NumberCriterionEditorValue } from "./numberSchemas.ts";
+import type { NumberCriterionDefinitionInput } from "./numberSchemas.ts";
 
 // Canonical config and grade-content shapes for the Number criterion kind. The
 // generic `Criterion`/`CriterionGrade` unions in ../types.ts assemble their
@@ -35,7 +35,7 @@ export type NumberCriterionGradeContent = { value: number };
 // (not in numberSchemas.ts) so client editors importing it don't pull zod into
 // the browser bundle; the return type is still the schema output, imported
 // type-only.
-export function createNumberCriterion(): NumberCriterionEditorValue {
+export function createNumberCriterion(): NumberCriterionDefinitionInput {
 	return {
 		id: "",
 		kind: "number",

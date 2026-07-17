@@ -2,16 +2,17 @@
 
 import { Button, Group, Stack } from "@mantine/core";
 import type { ReactElement } from "react";
+import { CRITERION_KINDS, createCriterion } from "#criteria/criterionKinds.ts";
+import { getCriterionKindLabel } from "#criteria/getCriterionKindLabel.ts";
+import type { CriterionDefinitionInput } from "#criteria/types.ts";
 import CheckEditorPaper from "./CheckEditorPaper.tsx";
-import { createCriterion } from "./CriterionEditorPaper.tsx";
 import type { RubricCriterionFieldErrors } from "./errors.ts";
 import NumberEditorPaper from "./NumberEditorPaper.tsx";
 import OptionsEditorPaper from "./OptionsEditorPaper.tsx";
-import type { CriterionEditorValue } from "./types.ts";
 
 type CriterionEditorListProps = {
-	criteria: CriterionEditorValue[];
-	onChange: (criteria: CriterionEditorValue[]) => void;
+	criteria: CriterionDefinitionInput[];
+	onChange: (criteria: CriterionDefinitionInput[]) => void;
 	fieldErrors?: RubricCriterionFieldErrors[] | undefined;
 };
 
@@ -20,11 +21,14 @@ export default function CriterionEditorList({
 	onChange,
 	fieldErrors,
 }: CriterionEditorListProps): ReactElement {
-	const addCriterion = (kind: CriterionEditorValue["kind"]) => {
+	const addCriterion = (kind: CriterionDefinitionInput["kind"]) => {
 		onChange([...criteria, createCriterion(kind)]);
 	};
 
-	const updateCriterion = (index: number, criterion: CriterionEditorValue) => {
+	const updateCriterion = (
+		index: number,
+		criterion: CriterionDefinitionInput,
+	) => {
 		const next = [...criteria];
 		next[index] = criterion;
 		onChange(next);
@@ -77,15 +81,15 @@ export default function CriterionEditorList({
 				})}
 			</Stack>
 			<Group wrap="wrap">
-				<Button variant="outline" onClick={() => addCriterion("check")}>
-					Add check criterion
-				</Button>
-				<Button variant="outline" onClick={() => addCriterion("options")}>
-					Add options criterion
-				</Button>
-				<Button variant="outline" onClick={() => addCriterion("number")}>
-					Add number criterion
-				</Button>
+				{CRITERION_KINDS.map((kind) => (
+					<Button
+						key={kind}
+						variant="outline"
+						onClick={() => addCriterion(kind)}
+					>
+						Add {getCriterionKindLabel(kind)} criterion
+					</Button>
+				))}
 			</Group>
 		</Stack>
 	);

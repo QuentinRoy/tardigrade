@@ -1,5 +1,5 @@
 import type { Simplify } from "#utils/utils.ts";
-import type { OptionsCriterionEditorValue } from "./optionsSchemas.ts";
+import type { OptionsCriterionDefinitionInput } from "./optionsSchemas.ts";
 
 // Canonical config and grade-content shapes for the Options criterion kind. The
 // generic `Criterion`/`CriterionGrade` unions in ../types.ts assemble their
@@ -31,7 +31,7 @@ export type OptionsCriterionGradeContent = { selectedLabel: string };
 // (not in optionsSchemas.ts) so client editors importing it don't pull zod into
 // the browser bundle; the return type is still the schema output, imported
 // type-only.
-export function createOptionsCriterion(): OptionsCriterionEditorValue {
+export function createOptionsCriterion(): OptionsCriterionDefinitionInput {
 	return {
 		id: "",
 		kind: "options",

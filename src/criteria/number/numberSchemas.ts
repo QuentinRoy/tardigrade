@@ -47,7 +47,7 @@ export const numberCriterionEditorSchema = z
 		}
 	});
 
-export type NumberCriterionEditorValue = z.output<
+export type NumberCriterionDefinitionInput = z.output<
 	typeof numberCriterionEditorSchema
 >;
 

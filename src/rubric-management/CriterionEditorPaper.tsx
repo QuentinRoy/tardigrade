@@ -9,35 +9,15 @@ import {
 	TextInput,
 } from "@mantine/core";
 import type { ReactElement, ReactNode } from "react";
-import { createCheckCriterion } from "#criteria/check/checkDomain.ts";
+import {
+	CRITERION_KINDS,
+	createCriterion,
+	isCriterionKind,
+} from "#criteria/criterionKinds.ts";
 import { getCriterionKindLabel } from "#criteria/getCriterionKindLabel.ts";
-import { createNumberCriterion } from "#criteria/number/numberDomain.ts";
-import { createOptionsCriterion } from "#criteria/options/optionsDomain.ts";
+import type { CriterionDefinitionInput } from "#criteria/types.ts";
 import Panel from "#design-system/Panel.tsx";
-import { assertNever } from "#utils/utils.ts";
 import type { RubricCriterionFieldErrors } from "./errors.ts";
-import type { CriterionEditorValue } from "./types.ts";
-
-export function createCriterion(
-	kind: CriterionEditorValue["kind"],
-): CriterionEditorValue {
-	switch (kind) {
-		case "check":
-			return createCheckCriterion();
-		case "options":
-			return createOptionsCriterion();
-		case "number":
-			return createNumberCriterion();
-		default:
-			assertNever(kind);
-	}
-}
-
-const CRITERION_KINDS = ["check", "options", "number"] as const;
-
-function isCriterionKind(value: string): value is CriterionEditorValue["kind"] {
-	return CRITERION_KINDS.some((kind) => kind === value);
-}
 
 const CRITERION_KIND_DATA = CRITERION_KINDS.map((kind) => ({
 	value: kind,
@@ -45,8 +25,8 @@ const CRITERION_KIND_DATA = CRITERION_KINDS.map((kind) => ({
 }));
 
 type CriterionEditorPaperProps = {
-	criterion: CriterionEditorValue;
-	onChange: (criterion: CriterionEditorValue) => void;
+	criterion: CriterionDefinitionInput;
+	onChange: (criterion: CriterionDefinitionInput) => void;
 	onRemove: () => void;
 	fieldErrors?: RubricCriterionFieldErrors | undefined;
 	children: ReactNode;
@@ -89,6 +69,10 @@ export default function CriterionEditorPaper({
 						size="sm"
 						miw={160}
 						allowDeselect={false}
+						styles={{
+							input: { textTransform: "capitalize" },
+							option: { textTransform: "capitalize" },
+						}}
 					/>
 					<Button
 						variant="outline"

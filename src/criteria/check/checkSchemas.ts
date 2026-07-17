@@ -21,7 +21,7 @@ export const checkCriterionEditorSchema = z.object({
 		.optional(),
 });
 
-export type CheckCriterionEditorValue = z.output<
+export type CheckCriterionDefinitionInput = z.output<
 	typeof checkCriterionEditorSchema
 >;
 

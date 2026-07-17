@@ -1,7 +1,10 @@
 import "server-only";
 import { type Kysely, sql, type Transaction } from "kysely";
 import { saveCriterionSubtypesInDb } from "#criteria/criterionSubtypePersistence.ts";
-import type { CriterionKind } from "#criteria/types.ts";
+import type {
+	CriterionDefinitionInput,
+	CriterionKind,
+} from "#criteria/types.ts";
 import {
 	invalidateRubricDefinitionDelete,
 	invalidateRubricDefinitionSave,
@@ -12,10 +15,7 @@ import { database as defaultDb } from "#db/kysely.ts";
 import { resolveGridRowId } from "#rubrics/rubrics.ts";
 import { findDuplicateGroups } from "#utils/utils.ts";
 import { RubricsValidationError } from "./errors.ts";
-import type {
-	CriterionDefinitionInput,
-	RubricDefinitionInput,
-} from "./rubricDefinitions.ts";
+import type { RubricDefinitionInput } from "./rubricDefinitions.ts";
 
 type NormalizedCriterionRow = {
 	sourceId: string;

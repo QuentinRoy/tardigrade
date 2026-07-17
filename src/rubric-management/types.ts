@@ -1,18 +1,11 @@
-import type { CheckCriterionEditorValue } from "#criteria/check/checkSchemas.ts";
-import type { NumberCriterionEditorValue } from "#criteria/number/numberSchemas.ts";
-import type { OptionsCriterionEditorValue } from "#criteria/options/optionsSchemas.ts";
+import type { CriterionDefinitionInput } from "#criteria/types.ts";
 import type { Rubric } from "#rubrics/types.ts";
 
 export type RubricEditorValue = {
 	id: string;
 	label?: string | undefined;
-	criteria: CriterionEditorValue[];
+	criteria: CriterionDefinitionInput[];
 };
-
-export type CriterionEditorValue =
-	| CheckCriterionEditorValue
-	| OptionsCriterionEditorValue
-	| NumberCriterionEditorValue;
 
 // A Rubric plus the definition-level metadata an author edits in the
 // management UI (see CONTEXT.md: "Rubric Definition").

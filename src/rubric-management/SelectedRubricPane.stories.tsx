@@ -27,9 +27,11 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {};
 
-// Regression: the Kind column must render the canonical label (Check /
-// Options / Number), not the raw lowercase DB enum value.
-export const ShowsCanonicalKindLabels: Story = {
+// Regression: the Kind column renders the kind value (check / options /
+// number) capitalized for display via CSS only — the text itself stays the
+// raw kind so getCriterionKindLabel remains an identity/i18n seam (ADR 0013
+// PR4a), and Table.Td's `tt="capitalize"` handles presentation.
+export const ShowsKindColumn: Story = {
 	args: {
 		definition: {
 			id: "q1",
@@ -66,12 +68,11 @@ export const ShowsCanonicalKindLabels: Story = {
 		},
 	},
 	play: async () => {
-		expect(await screen.findByText("Check")).toBeInTheDocument();
-		expect(screen.getByText("Options")).toBeInTheDocument();
-		expect(screen.getByText("Number")).toBeInTheDocument();
-		expect(screen.queryByText("check")).toBeNull();
-		expect(screen.queryByText("options")).toBeNull();
-		expect(screen.queryByText("number")).toBeNull();
+		const checkCell = await screen.findByText("check");
+		expect(checkCell).toBeInTheDocument();
+		expect(getComputedStyle(checkCell).textTransform).toBe("capitalize");
+		expect(screen.getByText("options")).toBeInTheDocument();
+		expect(screen.getByText("number")).toBeInTheDocument();
 	},
 };
 

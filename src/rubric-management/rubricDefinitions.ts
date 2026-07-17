@@ -1,9 +1,7 @@
 import "server-only";
 import type { Kysely } from "kysely";
 import { cacheLife } from "next/cache";
-import type { CheckCriterionEditorValue } from "#criteria/check/checkSchemas.ts";
-import type { NumberCriterionEditorValue } from "#criteria/number/numberSchemas.ts";
-import type { OptionsCriterionEditorValue } from "#criteria/options/optionsSchemas.ts";
+import type { CriterionDefinitionInput } from "#criteria/types.ts";
 import { allGradesTag, allRubricsTag, cacheTags } from "#db/cacheTags.ts";
 import type { Database } from "#db/generated/database.ts";
 import { database as defaultDb } from "#db/kysely.ts";
@@ -15,11 +13,6 @@ import {
 	toCriterion,
 } from "#rubrics/rubrics.ts";
 import type { RubricDefinition } from "./types.ts";
-
-export type CriterionDefinitionInput =
-	| CheckCriterionEditorValue
-	| OptionsCriterionEditorValue
-	| NumberCriterionEditorValue;
 
 export type RubricDefinitionInput = {
 	originalId?: string | undefined;

@@ -2,15 +2,15 @@
 
 import type { ReactElement } from "react";
 import CheckEditorFields from "#criteria/check/CheckEditorFields.tsx";
+import type { CriterionDefinitionInput } from "#criteria/types.ts";
 import CriterionEditorPaper from "./CriterionEditorPaper.tsx";
 import type { RubricCriterionFieldErrors } from "./errors.ts";
-import type { CriterionEditorValue } from "./types.ts";
 
-type CheckCriterion = Extract<CriterionEditorValue, { kind: "check" }>;
+type CheckCriterion = Extract<CriterionDefinitionInput, { kind: "check" }>;
 
 type CheckCriterionEditorPaperProps = {
 	criterion: CheckCriterion;
-	onChange: (criterion: CriterionEditorValue) => void;
+	onChange: (criterion: CriterionDefinitionInput) => void;
 	onRemove: () => void;
 	fieldErrors?: RubricCriterionFieldErrors | undefined;
 };

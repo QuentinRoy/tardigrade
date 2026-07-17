@@ -103,7 +103,7 @@ export default function SelectedRubricPane({
 									{definition.rubric.criteria.map((criterion) => (
 										<Table.Tr key={criterion.id}>
 											<Table.Td>{criterion.label ?? criterion.id}</Table.Td>
-											<Table.Td>
+											<Table.Td tt="capitalize">
 												{getCriterionKindLabel(criterion.kind)}
 											</Table.Td>
 										</Table.Tr>

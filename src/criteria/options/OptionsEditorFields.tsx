@@ -3,7 +3,7 @@
 import { Textarea } from "@mantine/core";
 import type { ReactElement } from "react";
 import type { OptionsMarks } from "./optionsDomain.ts";
-import type { OptionsCriterionEditorValue } from "./optionsSchemas.ts";
+import type { OptionsCriterionDefinitionInput } from "./optionsSchemas.ts";
 
 // Kind-owned authoring inputs for an Options criterion. The rubric-management
 // vertical keeps the surrounding CriterionEditorPaper chrome and the kind→fields
@@ -15,8 +15,8 @@ import type { OptionsCriterionEditorValue } from "./optionsSchemas.ts";
 export type OptionsEditorFieldErrors = { marks?: string | undefined };
 
 type OptionsEditorFieldsProps = {
-	criterion: OptionsCriterionEditorValue;
-	onChange: (criterion: OptionsCriterionEditorValue) => void;
+	criterion: OptionsCriterionDefinitionInput;
+	onChange: (criterion: OptionsCriterionDefinitionInput) => void;
 	fieldErrors?: OptionsEditorFieldErrors | undefined;
 };
 
