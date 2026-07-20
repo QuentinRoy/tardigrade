@@ -6,7 +6,10 @@ import {
 	exportNumberGradeValue,
 	getNumberCriterionMaxMarks,
 	getNumberCriterionMinMarks,
+	isSameNumberGrade,
 	markNumberCriterion,
+	parseNumberGradeValue,
+	toNumberCriterionDefinitionInput,
 } from "./numberDomain.ts";
 
 function numberCriterion(
@@ -140,6 +143,45 @@ describe("describeNumber", () => {
 describe("exportNumberGradeValue", () => {
 	it("projects the graded value as the CSV cell value", () => {
 		expect(exportNumberGradeValue({ value: 3.5 })).toBe(3.5);
+	});
+});
+
+describe("parseNumberGradeValue", () => {
+	it("accepts decimal and negative cells", () => {
+		expect(parseNumberGradeValue("3.5")).toEqual({ value: 3.5 });
+		expect(parseNumberGradeValue("-2")).toEqual({ value: -2 });
+	});
+
+	it("rejects a cell that is not a number", () => {
+		expect(() => parseNumberGradeValue("many")).toThrow(
+			'Invalid number value "many"',
+		);
+	});
+});
+
+describe("isSameNumberGrade", () => {
+	it("compares the graded value", () => {
+		expect(isSameNumberGrade({ value: 3 }, { value: 3 })).toBe(true);
+		expect(isSameNumberGrade({ value: 3 }, { value: 3.5 })).toBe(false);
+	});
+});
+
+describe("toNumberCriterionDefinitionInput", () => {
+	it("keeps the stored id as previousId", () => {
+		expect(
+			toNumberCriterionDefinitionInput(numberCriterion({ label: "Value" })),
+		).toEqual({
+			previousId: "r1",
+			id: "r1",
+			description: undefined,
+			label: "Value",
+			kind: "number",
+			minValue: 0,
+			maxValue: 10,
+			minMarks: 0,
+			maxMarks: 5,
+			reversed: false,
+		});
 	});
 });
 

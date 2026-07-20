@@ -1,4 +1,8 @@
-import type { CriterionGrade, CriterionKind } from "#criteria/types.ts";
+import {
+	type ImportedGradeCriterion,
+	parseCriterionGradeValue,
+} from "#criteria/criterionGradeImport.ts";
+import type { CriterionGrade } from "#criteria/types.ts";
 import type { GradeTargetKind } from "#grade-targets/types.ts";
 import type { ImportedGradeRow } from "#imports/types.ts";
 
@@ -9,11 +13,10 @@ const FINAL_TOTAL_COLUMN = "final_total";
 const MARKS_COLUMN_SUFFIX = ":marks";
 const TOTAL_COLUMN_SUFFIX = ":total";
 
-export type GradeImportCriterion = {
-	id: string;
-	kind: CriterionKind;
+// What the cell parser needs about a criterion, plus the rubric its column
+// belongs to (rubric routing is import knowledge, not kind knowledge).
+export type GradeImportCriterion = ImportedGradeCriterion & {
 	rubricId: string;
-	optionsLabels: string[];
 };
 
 export type GradeImportContext = {
@@ -82,56 +85,6 @@ export function gradedCriterionKey(params: {
 	criterionId: string;
 }): string {
 	return `${params.targetId}:${params.criterionId}`;
-}
-
-function parseGradeValue(params: {
-	value: string;
-	criterion: GradeImportCriterion;
-}): CriterionGrade {
-	const { value, criterion } = params;
-
-	switch (criterion.kind) {
-		case "check": {
-			const normalizedValue = value.toLowerCase();
-			if (normalizedValue !== "true" && normalizedValue !== "false") {
-				throw new Error(`Invalid check value "${value}"`);
-			}
-
-			return {
-				criterionId: criterion.id,
-				kind: "check",
-				passed: normalizedValue === "true",
-			};
-		}
-		case "options": {
-			if (criterion.optionsLabels.length > 0) {
-				const labelExists = criterion.optionsLabels.includes(value);
-				if (!labelExists) {
-					throw new Error(
-						`Invalid option label "${value}" for criterion ${criterion.id}`,
-					);
-				}
-			}
-
-			return {
-				criterionId: criterion.id,
-				kind: "options",
-				selectedLabel: value,
-			};
-		}
-		case "number": {
-			const criterionValue = parseFloat(value);
-			if (Number.isNaN(criterionValue)) {
-				throw new Error(`Invalid number value "${value}"`);
-			}
-
-			return {
-				criterionId: criterion.id,
-				kind: "number",
-				value: criterionValue,
-			};
-		}
-	}
 }
 
 export function prepareGradeImport(params: {
@@ -215,7 +168,7 @@ export function prepareGradeImport(params: {
 
 			let grade: CriterionGrade;
 			try {
-				grade = parseGradeValue({ value, criterion });
+				grade = parseCriterionGradeValue({ value, criterion });
 			} catch (error) {
 				blockingDiagnostics.push({
 					type: "invalid-value",

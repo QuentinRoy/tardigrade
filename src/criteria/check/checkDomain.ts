@@ -39,6 +39,23 @@ export function createCheckCriterion(): CheckCriterionDefinitionInput {
 	};
 }
 
+// Editor-value projection: the authored definition the management UI edits for
+// an existing Check criterion (`previousId` carries the id the criterion is
+// stored under, so a renamed id can be matched back on save).
+export function toCheckCriterionDefinitionInput(
+	criterion: CheckCriterion,
+): CheckCriterionDefinitionInput {
+	return {
+		previousId: criterion.id,
+		id: criterion.id,
+		description: criterion.description,
+		label: criterion.label,
+		kind: "check",
+		marks: criterion.marks,
+		falseMarks: criterion.falseMarks,
+	};
+}
+
 export function markCheckCriterion(
 	criterion: CheckCriterion,
 	passed: boolean,
@@ -77,6 +94,28 @@ export function exportCheckGradeValue(
 	grade: CheckCriterionGradeContent,
 ): boolean {
 	return grade.passed;
+}
+
+// CSV grade-value parse: the read mirror of exportCheckGradeValue, turning an
+// imported cell into Check grade content. Throws when the cell is not a Check
+// value; `imports` turns that into a row diagnostic.
+export function parseCheckGradeValue(
+	value: string,
+): CheckCriterionGradeContent {
+	const normalizedValue = value.toLowerCase();
+	if (normalizedValue !== "true" && normalizedValue !== "false") {
+		throw new Error(`Invalid check value "${value}"`);
+	}
+
+	return { passed: normalizedValue === "true" };
+}
+
+// Whether two Check grades hold the same answer (used to skip no-op saves).
+export function isSameCheckGrade(
+	grade: CheckCriterionGradeContent,
+	other: CheckCriterionGradeContent,
+): boolean {
+	return grade.passed === other.passed;
 }
 
 // YAML-encode projection: the serializable object written for a Check criterion

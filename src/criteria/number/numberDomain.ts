@@ -49,6 +49,26 @@ export function createNumberCriterion(): NumberCriterionDefinitionInput {
 	};
 }
 
+// Editor-value projection: the authored definition the management UI edits for
+// an existing Number criterion (`previousId` carries the id the criterion is
+// stored under, so a renamed id can be matched back on save).
+export function toNumberCriterionDefinitionInput(
+	criterion: NumberCriterion,
+): NumberCriterionDefinitionInput {
+	return {
+		previousId: criterion.id,
+		id: criterion.id,
+		description: criterion.description,
+		label: criterion.label,
+		kind: "number",
+		minValue: criterion.minValue,
+		maxValue: criterion.maxValue,
+		minMarks: criterion.minMarks,
+		maxMarks: criterion.maxMarks,
+		reversed: criterion.reversed,
+	};
+}
+
 export function markNumberCriterion(
 	criterion: NumberCriterion,
 	value: number,
@@ -109,6 +129,28 @@ export function exportNumberGradeValue(
 	grade: NumberCriterionGradeContent,
 ): number {
 	return grade.value;
+}
+
+// CSV grade-value parse: the read mirror of exportNumberGradeValue, turning an
+// imported cell into Number grade content. Throws when the cell is not a number;
+// `imports` turns that into a row diagnostic.
+export function parseNumberGradeValue(
+	value: string,
+): NumberCriterionGradeContent {
+	const criterionValue = parseFloat(value);
+	if (Number.isNaN(criterionValue)) {
+		throw new Error(`Invalid number value "${value}"`);
+	}
+
+	return { value: criterionValue };
+}
+
+// Whether two Number grades hold the same value (used to skip no-op saves).
+export function isSameNumberGrade(
+	grade: NumberCriterionGradeContent,
+	other: NumberCriterionGradeContent,
+): boolean {
+	return grade.value === other.value;
 }
 
 // YAML-encode projection: the serializable object written for a Number criterion

@@ -2,7 +2,7 @@
 
 import { produce } from "immer";
 import { startTransition, useOptimistic, useReducer } from "react";
-import { attachGrade } from "#criteria/criterion.ts";
+import { attachGrade, hasSameGrade } from "#criteria/criterion.ts";
 import type { CriterionGrade, GradedCriterion } from "#criteria/types.ts";
 import type { GradeTarget } from "#grade-targets/types.ts";
 import { useBeforeUnloadGuard } from "#utils/useBeforeUnloadGuard.ts";
@@ -76,7 +76,7 @@ export function useGradingSession<TError>({
 	function gradeCriterion(index: number, grade: CriterionGrade) {
 		const criterion = savedCriteria[index];
 
-		if (criterion == null || isSameGrade(criterion, grade)) {
+		if (criterion == null || hasSameGrade(criterion, grade)) {
 			return;
 		}
 
@@ -143,31 +143,4 @@ function reducer(state: State, action: Action): State {
 				break;
 		}
 	});
-}
-
-function isSameGrade(
-	criterion: GradedCriterion,
-	grade: CriterionGrade,
-): boolean {
-	if (
-		criterion.grade == null ||
-		grade.criterionId !== criterion.id ||
-		grade.kind !== criterion.kind
-	) {
-		return false;
-	}
-
-	if (criterion.kind === "check" && grade.kind === "check") {
-		return criterion.grade.passed === grade.passed;
-	}
-
-	if (criterion.kind === "options" && grade.kind === "options") {
-		return criterion.grade.selectedLabel === grade.selectedLabel;
-	}
-
-	if (criterion.kind === "number" && grade.kind === "number") {
-		return criterion.grade.value === grade.value;
-	}
-
-	return false;
 }

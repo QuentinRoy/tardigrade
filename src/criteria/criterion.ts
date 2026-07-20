@@ -2,16 +2,19 @@ import { assertNever } from "#utils/utils.ts";
 import {
 	getCheckCriterionMaxMarks,
 	getCheckCriterionMinMarks,
+	isSameCheckGrade,
 	markCheckCriterion,
 } from "./check/checkDomain.ts";
 import {
 	getNumberCriterionMaxMarks,
 	getNumberCriterionMinMarks,
+	isSameNumberGrade,
 	markNumberCriterion,
 } from "./number/numberDomain.ts";
 import {
 	getOptionsCriterionMaxMarks,
 	getOptionsCriterionMinMarks,
+	isSameOptionsGrade,
 	markOptionsCriterion,
 } from "./options/optionsDomain.ts";
 import type {
@@ -89,6 +92,34 @@ export function attachGrade<TKind extends CriterionKind>(
 			return attachNumberGrade(criterion, source) as GradedCriterion<TKind>;
 		default:
 			return assertNever(criterion.kind);
+	}
+}
+
+// Whether a criterion already holds the grade being saved, so callers can skip
+// a no-op write. A grade for another criterion, or of another kind, never
+// matches; comparing the grade content itself is kind knowledge and dispatches
+// to the kind folders (ADR 0013).
+export function hasSameGrade(
+	criterion: GradedCriterion,
+	grade: CriterionGrade,
+): boolean {
+	if (criterion.grade == null || grade.criterionId !== criterion.id) {
+		return false;
+	}
+
+	switch (criterion.kind) {
+		case "check":
+			return grade.kind === "check" && isSameCheckGrade(criterion.grade, grade);
+		case "options":
+			return (
+				grade.kind === "options" && isSameOptionsGrade(criterion.grade, grade)
+			);
+		case "number":
+			return (
+				grade.kind === "number" && isSameNumberGrade(criterion.grade, grade)
+			);
+		default:
+			return assertNever(criterion);
 	}
 }
 

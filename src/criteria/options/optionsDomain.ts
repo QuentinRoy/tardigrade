@@ -41,6 +41,22 @@ export function createOptionsCriterion(): OptionsCriterionDefinitionInput {
 	};
 }
 
+// Editor-value projection: the authored definition the management UI edits for
+// an existing Options criterion (`previousId` carries the id the criterion is
+// stored under, so a renamed id can be matched back on save).
+export function toOptionsCriterionDefinitionInput(
+	criterion: OptionsCriterion,
+): OptionsCriterionDefinitionInput {
+	return {
+		previousId: criterion.id,
+		id: criterion.id,
+		description: criterion.description,
+		label: criterion.label,
+		kind: "options",
+		marks: criterion.marks,
+	};
+}
+
 export function markOptionsCriterion(
 	criterion: OptionsCriterion,
 	selectedLabel: string,
@@ -94,6 +110,32 @@ export function exportOptionsGradeValue(
 	grade: OptionsCriterionGradeContent,
 ): string {
 	return grade.selectedLabel;
+}
+
+// CSV grade-value parse: the read mirror of exportOptionsGradeValue, turning an
+// imported cell into Options grade content. Throws when the cell names a label
+// the criterion does not offer; `imports` turns that into a row diagnostic. An
+// empty `labels` means the offered labels are unknown, so membership is not
+// checked.
+export function parseOptionsGradeValue(
+	value: string,
+	criterion: { id: string; labels: string[] },
+): OptionsCriterionGradeContent {
+	if (criterion.labels.length > 0 && !criterion.labels.includes(value)) {
+		throw new Error(
+			`Invalid option label "${value}" for criterion ${criterion.id}`,
+		);
+	}
+
+	return { selectedLabel: value };
+}
+
+// Whether two Options grades hold the same selection (used to skip no-op saves).
+export function isSameOptionsGrade(
+	grade: OptionsCriterionGradeContent,
+	other: OptionsCriterionGradeContent,
+): boolean {
+	return grade.selectedLabel === other.selectedLabel;
 }
 
 // YAML-encode projection: the serializable object written for an Options
