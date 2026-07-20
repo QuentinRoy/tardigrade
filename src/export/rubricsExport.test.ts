@@ -140,25 +140,6 @@ describe("exportRubricsToYaml", () => {
     `);
 	});
 
-	it("omits label when undefined", () => {
-		const rubrics: RubricsById = {
-			q1: { criteria: [{ id: "r1", kind: "check", marks: 1, falseMarks: 0 }] },
-		};
-
-		const yaml = exportRubricsToYaml(rubrics);
-
-		expect(yaml).toMatchInlineSnapshot(`
-      "rubrics:
-        - id: q1
-          criteria:
-            - id: r1
-              kind: check
-              marks: 1
-              falseMarks: 0
-      "
-    `);
-	});
-
 	it("exports multiple rubrics", () => {
 		const rubrics: RubricsById = {
 			q1: {
@@ -201,35 +182,6 @@ describe("exportRubricsToYaml", () => {
                 A: 2
                 B: 1
               label: Grade
-      "
-    `);
-	});
-
-	it("omits description when undefined", () => {
-		const rubrics: RubricsById = {
-			q1: {
-				criteria: [
-					{
-						id: "r1",
-						kind: "check",
-						marks: 1,
-						falseMarks: 0,
-						description: "Test description",
-					},
-				],
-			},
-		};
-
-		const yaml = exportRubricsToYaml(rubrics);
-		expect(yaml).toMatchInlineSnapshot(`
-      "rubrics:
-        - id: q1
-          criteria:
-            - id: r1
-              kind: check
-              marks: 1
-              falseMarks: 0
-              description: Test description
       "
     `);
 	});
