@@ -48,7 +48,7 @@ Stand up the above-folder generic surface and migrate Check fully:
 - **Acceptance criterion:** per-kind refines moved into kind schemas keep relative issue paths (e.g. `path: ["maxValue"]`), so `criteria[i].field` zod paths and `zodErrorToRubricsValidationError` stay unchanged.
 - **Test-seam migration.** Tests of a moved symbol follow it (mechanical, keeps `main` green): the `markCheckCriterion` cases split from `criterion.test.ts` into `criteria/check/`'s domain test (the `markNumberCriterion` block stays); Check editor-schema cases follow the schema leaf out of `rubric-management/schemas.test.ts` (Number/Options and rubric-level `superRefine` cases stay); Check YAML decode/encode, `toCriterion` Check-mapping, and `describeCheck` assertions follow their moved code out of `parseRubrics.test.ts`, `rubrics.test.ts`, `resultsBuilder.test.ts`, `rubricsExport.test.ts`. The exhaustive-dispatch wrappers stay tested above. The two **persistence integration tests** (`rubricDefinitionMutations.integration.test.ts`, `saveRubrics.integration.test.ts`) stay **intact** — they pass through the coordinator end-to-end and stay green under the behavior-preserving move — and PR1 adds one focused seam test, `criteria/check/checkPersistence.integration.test.ts`, for the batched Check upsert + coordinator dispatch. Revising/relocating the vertical persistence tests toward the seam is deferred to PR4 (see below).
 
-### PR2 — Number — **In review ([#298](https://github.com/QuentinRoy/tardigrade/pull/298))**
+### PR2 — Number — **Landed in [#298](https://github.com/QuentinRoy/tardigrade/pull/298)**
 
 Replicate the template for Number; collapse the four-plus bounds-invariant copies into `criteria/number/`'s invariant consumed by editor schema, import schema, grade-save, and marking.
 
@@ -88,7 +88,7 @@ Replicate for Options; move stale-mark reconciliation into `criteria/options/`; 
 
 Sequence is now four PRs. **Plan closure (`Status: Completed`, remove from `plans/index.md`) happens in PR6, not PR4b** — do not close the plan after PR4b or PR5.
 
-#### PR4a — Structural sweep — **In review ([#300](https://github.com/QuentinRoy/tardigrade/pull/300))**
+#### PR4a — Structural sweep — **Landed in [#300](https://github.com/QuentinRoy/tardigrade/pull/300)**
 
 **As-built deviations (all behavior-preserving):**
 
@@ -118,7 +118,7 @@ Sequence is now four PRs. **Plan closure (`Status: Completed`, remove from `plan
 
 Checks: `pnpm run check --fix`, `pnpm run check-types`, `pnpm run lint:boundaries`, simplify pass, targeted unit + Storybook tests (grade controls have stories — re-run Storybook build/tests).
 
-#### PR4b — Test revision — **In review ([#301](https://github.com/QuentinRoy/tardigrade/pull/301))**
+#### PR4b — Test revision — **Landed in [#301](https://github.com/QuentinRoy/tardigrade/pull/301)**
 
 **As-built notes:**
 
