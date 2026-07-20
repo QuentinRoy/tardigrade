@@ -58,9 +58,9 @@ export function toOptionsCriterionDefinitionInput(
 }
 
 export function markOptionsCriterion(
-	criterion: OptionsCriterion,
-	selectedLabel: string,
+	criterion: OptionsCriterion & { grade: OptionsCriterionGradeContent },
 ): number {
+	const { selectedLabel } = criterion.grade;
 	const marksForLabel = criterion.marks[selectedLabel];
 	if (marksForLabel == null) {
 		throw new Error(

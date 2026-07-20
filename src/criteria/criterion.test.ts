@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { hasSameGrade } from "./criterion.ts";
-import type { CriterionGrade, GradedCriterion } from "./types.ts";
+import { attachGrade, hasSameGrade } from "./criterion.ts";
+import type { Criterion, CriterionGrade, GradedCriterion } from "./types.ts";
 
 const checkCriterion: GradedCriterion = {
 	id: "c1",
@@ -61,6 +61,59 @@ describe.each(
 
 	it("does not match a grade holding different content", () => {
 		expect(hasSameGrade(criterion, otherGrade)).toBe(false);
+	});
+});
+
+describe("attachGrade", () => {
+	const criterion: Criterion = {
+		id: "c1",
+		kind: "check",
+		marks: 1,
+		falseMarks: 0,
+	};
+
+	it("attaches the grade content, without the grade's identity fields", () => {
+		expect(
+			attachGrade(criterion, {
+				criterionId: "c1",
+				kind: "check",
+				passed: true,
+			}),
+		).toEqual({ ...criterion, grade: { passed: true } });
+	});
+
+	it("picks the matching grade out of a list", () => {
+		expect(
+			attachGrade(criterion, [
+				{ criterionId: "c2", kind: "check", passed: false },
+				{ criterionId: "c1", kind: "check", passed: true },
+			]),
+		).toEqual({ ...criterion, grade: { passed: true } });
+	});
+
+	it("attaches no grade when the source holds none for the criterion", () => {
+		expect(
+			attachGrade(criterion, {
+				criterionId: "c2",
+				kind: "check",
+				passed: true,
+			}),
+		).toEqual({ ...criterion, grade: null });
+	});
+
+	it("throws when the stored grade is of another kind", () => {
+		expect(() =>
+			attachGrade(criterion, { criterionId: "c1", kind: "number", value: 1 }),
+		).toThrow(
+			"Grade for criterion c1 is of kind number, but the criterion is of kind check",
+		);
+	});
+
+	it("attaches no grade when there is no source", () => {
+		expect(attachGrade(criterion, undefined)).toEqual({
+			...criterion,
+			grade: null,
+		});
 	});
 });
 

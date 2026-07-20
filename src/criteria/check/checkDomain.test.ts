@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import type { CheckCriterion } from "./checkDomain.ts";
+import type {
+	CheckCriterion,
+	CheckCriterionGradeContent,
+} from "./checkDomain.ts";
 import {
 	describeCheck,
 	encodeCheckCriterion,
@@ -18,13 +21,22 @@ function checkCriterion(
 	return { id: "r1", kind: "check", marks: 2, falseMarks: -1, ...overrides };
 }
 
+function gradedCheckCriterion(
+	grade: CheckCriterionGradeContent,
+	overrides: Partial<CheckCriterion> = {},
+) {
+	return { ...checkCriterion(overrides), grade };
+}
+
 describe("markCheckCriterion", () => {
 	it("returns marks when passed", () => {
-		expect(markCheckCriterion(checkCriterion(), true)).toBe(2);
+		expect(markCheckCriterion(gradedCheckCriterion({ passed: true }))).toBe(2);
 	});
 
 	it("returns falseMarks when not passed", () => {
-		expect(markCheckCriterion(checkCriterion(), false)).toBe(-1);
+		expect(markCheckCriterion(gradedCheckCriterion({ passed: false }))).toBe(
+			-1,
+		);
 	});
 });
 

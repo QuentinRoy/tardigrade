@@ -57,10 +57,9 @@ export function toCheckCriterionDefinitionInput(
 }
 
 export function markCheckCriterion(
-	criterion: CheckCriterion,
-	passed: boolean,
+	criterion: CheckCriterion & { grade: CheckCriterionGradeContent },
 ): number {
-	return passed ? criterion.marks : criterion.falseMarks;
+	return criterion.grade.passed ? criterion.marks : criterion.falseMarks;
 }
 
 export function getCheckCriterionMaxMarks(criterion: CheckCriterion): number {
