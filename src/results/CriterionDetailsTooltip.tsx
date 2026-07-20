@@ -4,7 +4,6 @@ import { Box, Group, Stack, Text, Tooltip } from "@mantine/core";
 import { IconInfoCircle } from "@tabler/icons-react";
 import type { ReactElement } from "react";
 import type { CriterionDetails } from "#criteria/criterionDetails.ts";
-import { getCriterionKindLabel } from "#criteria/getCriterionKindLabel.ts";
 
 type CriterionDetailsTooltipProps = {
 	criterionId: string;
@@ -67,7 +66,7 @@ export default function CriterionDetailsTooltip({
 						<Text size="xs">{details.description}</Text>
 					)}
 					<Text size="xs" tt="capitalize">
-						Kind: {getCriterionKindLabel(details.kind)}
+						Kind: {details.kind}
 					</Text>
 					<PropertyRows {...details.properties} />
 				</Stack>

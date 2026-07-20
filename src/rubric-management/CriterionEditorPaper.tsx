@@ -14,14 +14,13 @@ import {
 	createCriterion,
 	isCriterionKind,
 } from "#criteria/criterionKinds.ts";
-import { getCriterionKindLabel } from "#criteria/getCriterionKindLabel.ts";
 import type { CriterionDefinitionInput } from "#criteria/types.ts";
 import Panel from "#design-system/Panel.tsx";
 import type { RubricCriterionFieldErrors } from "./errors.ts";
 
 const CRITERION_KIND_DATA = CRITERION_KINDS.map((kind) => ({
 	value: kind,
-	label: getCriterionKindLabel(kind),
+	label: kind,
 }));
 
 type CriterionEditorPaperProps = {

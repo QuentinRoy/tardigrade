@@ -29,8 +29,7 @@ export const Default: Story = {};
 
 // Regression: the Kind column renders the kind value (check / options /
 // number) capitalized for display via CSS only — the text itself stays the
-// raw kind so getCriterionKindLabel remains an identity/i18n seam (ADR 0013
-// PR4a), and Table.Td's `tt="capitalize"` handles presentation.
+// raw kind, and Table.Td's `tt="capitalize"` handles presentation.
 export const ShowsKindColumn: Story = {
 	args: {
 		definition: {

@@ -12,7 +12,6 @@ import {
 	Title,
 } from "@mantine/core";
 import { type ReactElement, useActionState, useState } from "react";
-import { getCriterionKindLabel } from "#criteria/getCriterionKindLabel.ts";
 import DeleteRubricDialog from "./DeleteRubricDialog.tsx";
 import type { RubricsActionState } from "./state.ts";
 import { initialRubricsActionState } from "./state.ts";
@@ -103,9 +102,7 @@ export default function SelectedRubricPane({
 									{definition.rubric.criteria.map((criterion) => (
 										<Table.Tr key={criterion.id}>
 											<Table.Td>{criterion.label ?? criterion.id}</Table.Td>
-											<Table.Td tt="capitalize">
-												{getCriterionKindLabel(criterion.kind)}
-											</Table.Td>
+											<Table.Td tt="capitalize">{criterion.kind}</Table.Td>
 										</Table.Tr>
 									))}
 								</Table.Tbody>

@@ -13,13 +13,16 @@ const criterionFactoryByKind = {
 	number: createNumberCriterion,
 } as const satisfies Record<CriterionKind, () => CriterionDefinitionInput>;
 
-// Object.keys() widens key types to string[]; criterionFactoryByKind's
-// `satisfies Record<CriterionKind, ...>` above guarantees these are exactly
-// the CriterionKind members, in declaration order.
-// biome-ignore lint/plugin/no-type-assertion: Object.keys() cannot express it.
-export const CRITERION_KINDS = Object.keys(
-	criterionFactoryByKind,
-) as CriterionKind[];
+// Spelled out (rather than derived via Object.keys(), which widens to
+// string[]) so no assertion is needed. `satisfies` still checks every entry
+// is a valid CriterionKind; exhaustiveness comes from the adjacent map's
+// `satisfies Record<CriterionKind, ...>` above — adding a kind to the DB enum
+// breaks that map's compile, which forces an edit right next to this array.
+export const CRITERION_KINDS = [
+	"check",
+	"options",
+	"number",
+] as const satisfies readonly CriterionKind[];
 
 export function isCriterionKind(value: string): value is CriterionKind {
 	return Object.hasOwn(criterionFactoryByKind, value);

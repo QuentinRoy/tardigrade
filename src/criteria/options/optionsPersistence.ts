@@ -1,6 +1,7 @@
 import "server-only";
 import type { Transaction } from "kysely";
 import type { Database } from "#db/generated/database.ts";
+import type { GradeValidationResult } from "../types.ts";
 import type {
 	OptionsCriterion,
 	OptionsCriterionGradeContent,
@@ -123,15 +124,16 @@ export async function upsertOptionsSubtypeRowsInDb(
 const optionsInvalidLabelMessage =
 	"That option is no longer available. Reload and choose another option.";
 
-// Validates an Options grade against the criterion's current marks. Returns an
-// error message when invalid, `undefined` when valid (ADR 0013 pinned adapter
-// signature: validate(db, criterionRowId, gradeContent)). The coordinator calls
-// this before upserting the parent `criterionGrade` row.
+// Validates an Options grade against the criterion's current marks (ADR 0013
+// pinned adapter signature: validate(db, { criterionRowId, grade })). The
+// coordinator calls this before upserting the parent `criterionGrade` row.
 export async function validateOptionsGradeInDb(
 	db: Transaction<Database>,
-	criterionRowId: number,
-	grade: OptionsCriterionGradeContent,
-): Promise<string | undefined> {
+	{
+		criterionRowId,
+		grade,
+	}: { criterionRowId: number; grade: OptionsCriterionGradeContent },
+): Promise<GradeValidationResult> {
 	const optionsLabels = await db
 		.selectFrom("optionsCriterionMark")
 		.innerJoin(
@@ -145,10 +147,10 @@ export async function validateOptionsGradeInDb(
 
 	const allowedLabels = optionsLabels.map((row) => row.label);
 	if (!allowedLabels.includes(grade.selectedLabel)) {
-		return optionsInvalidLabelMessage;
+		return { valid: false, message: optionsInvalidLabelMessage };
 	}
 
-	return undefined;
+	return { valid: true };
 }
 
 // Writes an Options criterion grade's subtype row. The coordinator validates the
@@ -156,8 +158,10 @@ export async function validateOptionsGradeInDb(
 // `criterionGrade` first, so this never runs before the parent row exists.
 export async function writeOptionsGradeInDb(
 	db: Transaction<Database>,
-	criterionGradeId: number,
-	grade: OptionsCriterionGradeContent,
+	{
+		criterionGradeId,
+		grade,
+	}: { criterionGradeId: number; grade: OptionsCriterionGradeContent },
 ): Promise<void> {
 	await db
 		.insertInto("optionsCriterionGrade")

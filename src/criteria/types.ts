@@ -40,6 +40,14 @@ export type CriterionForKind<TKind extends CriterionKind> = Extract<
 	{ kind: TKind }
 >;
 
+// Result of validating a grade against its criterion's current definition
+// (ADR 0013 pinned adapter signature). Each kind's `validate*GradeInDb`
+// returns this instead of a bare `string | undefined`, so the failure message
+// can't be mistaken for a success value.
+export type GradeValidationResult =
+	| { valid: true }
+	| { valid: false; message: string };
+
 export type GradedCriterion<TKind extends CriterionKind = CriterionKind> =
 	TKind extends CriterionKind
 		? CriterionForKind<TKind> & {

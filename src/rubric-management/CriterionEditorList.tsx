@@ -3,7 +3,6 @@
 import { Button, Group, Stack } from "@mantine/core";
 import type { ReactElement } from "react";
 import { CRITERION_KINDS, createCriterion } from "#criteria/criterionKinds.ts";
-import { getCriterionKindLabel } from "#criteria/getCriterionKindLabel.ts";
 import type { CriterionDefinitionInput } from "#criteria/types.ts";
 import CheckEditorPaper from "./CheckEditorPaper.tsx";
 import type { RubricCriterionFieldErrors } from "./errors.ts";
@@ -87,7 +86,7 @@ export default function CriterionEditorList({
 						variant="outline"
 						onClick={() => addCriterion(kind)}
 					>
-						Add {getCriterionKindLabel(kind)} criterion
+						Add {kind} criterion
 					</Button>
 				))}
 			</Group>

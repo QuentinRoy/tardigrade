@@ -172,7 +172,10 @@ export async function saveCriterionGradeInDb(
 		const criterionGradeId = await upsertCriterionGrade();
 
 		await Promise.all([
-			writeCheckGradeInDb(db, criterionGradeId, { passed: checkGrade.passed }),
+			writeCheckGradeInDb(db, {
+				criterionGradeId,
+				grade: { passed: checkGrade.passed },
+			}),
 			clearOtherSubtypeValues(criterionGradeId, "check"),
 		]);
 
@@ -182,19 +185,19 @@ export async function saveCriterionGradeInDb(
 	async function saveOptionsGrade(
 		optionsGrade: Extract<CriterionGrade, { kind: "options" }>,
 	): Promise<SaveCriterionGradeResult | undefined> {
-		const validationError = await validateOptionsGradeInDb(db, criterionRowId, {
-			selectedLabel: optionsGrade.selectedLabel,
+		const gradeContent = { selectedLabel: optionsGrade.selectedLabel };
+		const validationResult = await validateOptionsGradeInDb(db, {
+			criterionRowId,
+			grade: gradeContent,
 		});
-		if (validationError != null) {
-			return { success: false, error: validationError };
+		if (!validationResult.valid) {
+			return { success: false, error: validationResult.message };
 		}
 
 		const criterionGradeId = await upsertCriterionGrade();
 
 		await Promise.all([
-			writeOptionsGradeInDb(db, criterionGradeId, {
-				selectedLabel: optionsGrade.selectedLabel,
-			}),
+			writeOptionsGradeInDb(db, { criterionGradeId, grade: gradeContent }),
 			clearOtherSubtypeValues(criterionGradeId, "options"),
 		]);
 
@@ -204,17 +207,19 @@ export async function saveCriterionGradeInDb(
 	async function saveNumberGrade(
 		numberGrade: Extract<CriterionGrade, { kind: "number" }>,
 	): Promise<SaveCriterionGradeResult | undefined> {
-		const validationError = await validateNumberGradeInDb(db, criterionRowId, {
-			value: numberGrade.value,
+		const gradeContent = { value: numberGrade.value };
+		const validationResult = await validateNumberGradeInDb(db, {
+			criterionRowId,
+			grade: gradeContent,
 		});
-		if (validationError != null) {
-			return { success: false, error: validationError };
+		if (!validationResult.valid) {
+			return { success: false, error: validationResult.message };
 		}
 
 		const criterionGradeId = await upsertCriterionGrade();
 
 		await Promise.all([
-			writeNumberGradeInDb(db, criterionGradeId, { value: numberGrade.value }),
+			writeNumberGradeInDb(db, { criterionGradeId, grade: gradeContent }),
 			clearOtherSubtypeValues(criterionGradeId, "number"),
 		]);
 
