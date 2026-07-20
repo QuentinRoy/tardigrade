@@ -6,7 +6,10 @@ import {
 	exportCheckGradeValue,
 	getCheckCriterionMaxMarks,
 	getCheckCriterionMinMarks,
+	isSameCheckGrade,
 	markCheckCriterion,
+	parseCheckGradeValue,
+	toCheckCriterionDefinitionInput,
 } from "./checkDomain.ts";
 
 function checkCriterion(
@@ -55,6 +58,42 @@ describe("exportCheckGradeValue", () => {
 	it("projects the passed flag as the CSV cell value", () => {
 		expect(exportCheckGradeValue({ passed: true })).toBe(true);
 		expect(exportCheckGradeValue({ passed: false })).toBe(false);
+	});
+});
+
+describe("parseCheckGradeValue", () => {
+	it("accepts true/false in any case", () => {
+		expect(parseCheckGradeValue("TRUE")).toEqual({ passed: true });
+		expect(parseCheckGradeValue("false")).toEqual({ passed: false });
+	});
+
+	it("rejects a cell that is not a check value", () => {
+		expect(() => parseCheckGradeValue("yes")).toThrow(
+			'Invalid check value "yes"',
+		);
+	});
+});
+
+describe("isSameCheckGrade", () => {
+	it("compares the passed flag", () => {
+		expect(isSameCheckGrade({ passed: true }, { passed: true })).toBe(true);
+		expect(isSameCheckGrade({ passed: true }, { passed: false })).toBe(false);
+	});
+});
+
+describe("toCheckCriterionDefinitionInput", () => {
+	it("keeps the stored id as previousId", () => {
+		expect(
+			toCheckCriterionDefinitionInput(checkCriterion({ label: "Correct" })),
+		).toEqual({
+			previousId: "r1",
+			id: "r1",
+			description: undefined,
+			label: "Correct",
+			kind: "check",
+			marks: 2,
+			falseMarks: -1,
+		});
 	});
 });
 

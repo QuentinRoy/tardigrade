@@ -7,7 +7,10 @@ import {
 	exportOptionsGradeValue,
 	getOptionsCriterionMaxMarks,
 	getOptionsCriterionMinMarks,
+	isSameOptionsGrade,
 	markOptionsCriterion,
+	parseOptionsGradeValue,
+	toOptionsCriterionDefinitionInput,
 } from "./optionsDomain.ts";
 
 function optionsCriterion(
@@ -92,6 +95,52 @@ describe("describeOptions", () => {
 describe("exportOptionsGradeValue", () => {
 	it("projects the selected label as the CSV cell value", () => {
 		expect(exportOptionsGradeValue({ selectedLabel: "Fair" })).toBe("Fair");
+	});
+});
+
+describe("parseOptionsGradeValue", () => {
+	it("accepts a label the criterion offers", () => {
+		expect(
+			parseOptionsGradeValue("Fair", { id: "r1", labels: ["Good", "Fair"] }),
+		).toEqual({ selectedLabel: "Fair" });
+	});
+
+	it("rejects a label the criterion does not offer", () => {
+		expect(() =>
+			parseOptionsGradeValue("Great", { id: "r1", labels: ["Good", "Fair"] }),
+		).toThrow('Invalid option label "Great" for criterion r1');
+	});
+
+	it("skips the membership check when the offered labels are unknown", () => {
+		expect(parseOptionsGradeValue("Great", { id: "r1", labels: [] })).toEqual({
+			selectedLabel: "Great",
+		});
+	});
+});
+
+describe("isSameOptionsGrade", () => {
+	it("compares the selected label", () => {
+		expect(
+			isSameOptionsGrade({ selectedLabel: "Fair" }, { selectedLabel: "Fair" }),
+		).toBe(true);
+		expect(
+			isSameOptionsGrade({ selectedLabel: "Fair" }, { selectedLabel: "Good" }),
+		).toBe(false);
+	});
+});
+
+describe("toOptionsCriterionDefinitionInput", () => {
+	it("keeps the stored id as previousId", () => {
+		expect(
+			toOptionsCriterionDefinitionInput(optionsCriterion({ label: "Quality" })),
+		).toEqual({
+			previousId: "r1",
+			id: "r1",
+			description: undefined,
+			label: "Quality",
+			kind: "options",
+			marks: { Good: 2, Fair: 1, Poor: 0 },
+		});
 	});
 });
 

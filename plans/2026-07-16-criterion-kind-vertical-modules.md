@@ -139,7 +139,17 @@ Do both: **de-duplicate** (delete a vertical's per-kind encode/describe cases on
 
 **Hard rail:** no assertion is deleted without a named counterpart in a folder test covering the same case; anything without a counterpart is *moved*, never dropped. Run full unit + integration + Storybook suites before calling this done — this PR carries the highest risk in the whole plan of silently losing coverage.
 
-#### PR5 — Three uninventoried production loci
+#### PR5 — Three uninventoried production loci — **Landed in [#303](https://github.com/QuentinRoy/tardigrade/pull/303)**
+
+**As-built deviations (all behavior-preserving):**
+
+- **Each locus got its own dispatcher file, except grade comparison.** `toCriterionDefinitionInput` lives in a new `criteria/criterionDefinitionInput.ts` and `parseCriterionGradeValue` in a new `criteria/criterionGradeImport.ts` (mirroring `criterionExport.ts`/`criterionYaml.ts`), but `hasSameGrade` went into the **existing** `criteria/criterion.ts` beside `markCriterion`/`attachGrade` — it is generic grade dispatch over `GradedCriterion`, exactly what that file already owns, and a one-function file would have been churn.
+- **`isSameGrade` → `hasSameGrade`.** Renamed on the way down because the caller-side reading ("does this criterion already hold this grade?") is what the generic surface asserts; the per-kind halves keep the symmetric `isSame{Kind}Grade(grade, other)` name and compare **grade content only** (`CheckCriterionGradeContent`, …). The id/kind guards stay in the dispatcher, where they belong — a kind folder cannot own "is this even my grade?".
+- **The Options parse takes its criterion facts explicitly**: `parseOptionsGradeValue(value, { id, labels })`, not the whole import criterion, so the kind folder does not learn the import module's row shape. The empty-`labels` skip (offered labels unknown → no membership check) is preserved and now documented and tested.
+- **The generic parse dispatcher owns the `criterionId`/`kind` envelope**, per-kind parsers return grade *content* — the exact mirror of `exportGradeValue`, which takes content and returns a cell. Error messages are unchanged verbatim (including `Invalid option label "…" for criterion <id>`), so `imports`' `invalid-value` diagnostics are byte-identical.
+- **`imports`' `GradeImportCriterion` now derives from `criteria`' `ImportedGradeCriterion`** (`& { rubricId: string }`) instead of restating `id`/`kind`/`optionsLabels`, so the two cannot drift. `rubricId` stays in `imports` — rubric routing is import knowledge, not kind knowledge.
+- **New `criteria/criterion.test.ts`** covers `hasSameGrade`'s guards (ungraded criterion, grade for another criterion, grade of another kind). These were previously **untested**: `isSameGrade` was private to `useGradingSession.ts` and no story exercised the skip-no-op path. Per-kind cases were added to the three `{kind}Domain.test.ts` files for all three new seams. The vertical tests (`prepareGradeImport.test.ts`, the grading stories) were left in place and stay green — they now exercise the seams indirectly.
+- **Full suite ran green in this environment**: unit + integration + Storybook, 83 files / 438 tests; `check --fix`, `check-types`, and `lint:boundaries` (342 modules, no cycles/violations) all pass.
 
 Audit (2026-07-17) found three kind-aware production files the investigation's inventory (lines 23–46) never listed, discovered by grepping for kind literals repo-wide rather than trusting the investigation's table. All three are the same shape the investigation already ruled "accidental" for `resultsBuilder`/`CriterionDetailsTooltip` — a vertical reading/writing per-kind fields directly instead of going through a kind-owned seam:
 
@@ -161,6 +171,7 @@ A second audit pass (grep every production file for a kind literal, not just the
 - `grade-persistence/gradeMutations.ts`'s `subtypeTableByKind` — already `satisfies Record<CriterionGrade["kind"], keyof Database>`-forced, sits beside its only consumer (`clearOtherSubtypeValues`, inherently cross-kind).
 - `rubric-management/{Check,Number,Options}EditorPaper.tsx` — these *are* the investigation's sanctioned "chrome + kind→fields dispatcher" (line 107), just spread across three thin per-kind files instead of one switch.
 - `criteria/CriterionGradeRow.tsx`, `criteria/GradeStatus.tsx` — generic, not kind-owned.
+- The exhaustive dispatchers themselves, including the three PR5 added (`criterion.ts`'s `hasSameGrade`, `criterionDefinitionInput.ts`, `criterionGradeImport.ts`) — they are the sanctioned kind-aware surface in `criteria`, not loci to remove.
 - `src/test/{grades,rubrics,mixedCriterionGradeFixture}.ts` — per-kind test fixtures; the investigation's Testing seams section asks for exactly this.
 
 **Close the plan in this PR**: after checks pass, set this document's `Status` to `Completed` and remove its entry from `plans/index.md`, per [docs/index.md#plans](../docs/index.md#plans) ("in the same PR that lands the work — before that PR merges, not after").
