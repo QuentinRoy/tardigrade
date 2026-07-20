@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { hasSameGrade } from "./criterion.ts";
-import type { GradedCriterion } from "./types.ts";
+import type { CriterionGrade, GradedCriterion } from "./types.ts";
 
 const checkCriterion: GradedCriterion = {
 	id: "c1",
@@ -10,27 +10,61 @@ const checkCriterion: GradedCriterion = {
 	grade: { passed: true },
 };
 
-describe("hasSameGrade", () => {
+// One matching and one differing grade per kind, so the generic dispatcher is
+// exercised once for every branch of its switch and a misrouted kind fails.
+const gradeCasesByKind: Array<{
+	criterion: GradedCriterion;
+	sameGrade: CriterionGrade;
+	otherGrade: CriterionGrade;
+}> = [
+	{
+		criterion: checkCriterion,
+		sameGrade: { criterionId: "c1", kind: "check", passed: true },
+		otherGrade: { criterionId: "c1", kind: "check", passed: false },
+	},
+	{
+		criterion: {
+			id: "c1",
+			kind: "options",
+			marks: { Pass: 1, Fail: 0 },
+			grade: { selectedLabel: "Pass" },
+		},
+		sameGrade: { criterionId: "c1", kind: "options", selectedLabel: "Pass" },
+		otherGrade: { criterionId: "c1", kind: "options", selectedLabel: "Fail" },
+	},
+	{
+		criterion: {
+			id: "c1",
+			kind: "number",
+			minValue: 0,
+			maxValue: 10,
+			minMarks: 0,
+			maxMarks: 10,
+			reversed: false,
+			grade: { value: 4 },
+		},
+		sameGrade: { criterionId: "c1", kind: "number", value: 4 },
+		otherGrade: { criterionId: "c1", kind: "number", value: 5 },
+	},
+];
+
+describe.each(
+	gradeCasesByKind,
+)("hasSameGrade for a $criterion.kind criterion", ({
+	criterion,
+	sameGrade,
+	otherGrade,
+}) => {
 	it("matches a grade holding the same content", () => {
-		expect(
-			hasSameGrade(checkCriterion, {
-				criterionId: "c1",
-				kind: "check",
-				passed: true,
-			}),
-		).toBe(true);
+		expect(hasSameGrade(criterion, sameGrade)).toBe(true);
 	});
 
 	it("does not match a grade holding different content", () => {
-		expect(
-			hasSameGrade(checkCriterion, {
-				criterionId: "c1",
-				kind: "check",
-				passed: false,
-			}),
-		).toBe(false);
+		expect(hasSameGrade(criterion, otherGrade)).toBe(false);
 	});
+});
 
+describe("hasSameGrade", () => {
 	it("does not match an ungraded criterion", () => {
 		expect(
 			hasSameGrade(
