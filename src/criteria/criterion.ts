@@ -18,81 +18,108 @@ import {
 	markOptionsCriterion,
 } from "./options/optionsDomain.ts";
 import type {
-	Criterion,
 	CriterionForKind,
 	CriterionGrade,
+	CriterionGradeContentForKind,
 	CriterionKind,
 	GradedCriterion,
+	MarkedCriterion,
 } from "./types.ts";
 
-export function getCriterionMaxMarks(criterion: Criterion): number {
-	switch (criterion.kind) {
-		case "check":
-			return getCheckCriterionMaxMarks(criterion);
-		case "options":
-			return getOptionsCriterionMaxMarks(criterion);
-		case "number":
-			return getNumberCriterionMaxMarks(criterion);
-		default:
-			assertNever(criterion);
-	}
+// Per-kind operation bundle (ADR 0013's union-keyed kind map). Each dispatcher
+// below stays generic in TKind so `operationsByKind[criterion.kind]` resolves to
+// one entry; indexing with a concrete `CriterionKind` would instead yield a
+// union of per-kind signatures, which has no callable form.
+type CriterionOperations<TKind extends CriterionKind> = {
+	getMaxMarks: (criterion: CriterionForKind<TKind>) => number;
+	getMinMarks: (criterion: CriterionForKind<TKind>) => number;
+	mark: (criterion: MarkedCriterion<TKind>) => number;
+	attachGrade: (
+		criterion: CriterionForKind<TKind>,
+		grade: CriterionGrade<TKind> | null,
+	) => GradedCriterion<TKind>;
+};
+
+// Entered in the table once per kind, so each instance pairs a criterion with
+// its own kind's grade content at a concrete kind. Building the same object
+// under a free TKind instead would leave TypeScript unable to tie the two
+// halves together.
+function attachGradeOfKind<TKind extends CriterionKind>(
+	criterion: CriterionForKind<TKind>,
+	grade: CriterionGrade<TKind> | null,
+) {
+	return { ...criterion, grade: grade == null ? null : toGradeContent(grade) };
 }
 
-export function getCriterionMinMarks(criterion: Criterion): number {
-	switch (criterion.kind) {
-		case "check":
-			return getCheckCriterionMinMarks(criterion);
-		case "options":
-			return getOptionsCriterionMinMarks(criterion);
-		case "number":
-			return getNumberCriterionMinMarks(criterion);
-		default:
-			assertNever(criterion);
-	}
+const operationsByKind: {
+	[TKind in CriterionKind]: CriterionOperations<TKind>;
+} = {
+	check: {
+		getMaxMarks: getCheckCriterionMaxMarks,
+		getMinMarks: getCheckCriterionMinMarks,
+		mark: markCheckCriterion,
+		attachGrade: attachGradeOfKind,
+	},
+	options: {
+		getMaxMarks: getOptionsCriterionMaxMarks,
+		getMinMarks: getOptionsCriterionMinMarks,
+		mark: markOptionsCriterion,
+		attachGrade: attachGradeOfKind,
+	},
+	number: {
+		getMaxMarks: getNumberCriterionMaxMarks,
+		getMinMarks: getNumberCriterionMinMarks,
+		mark: markNumberCriterion,
+		attachGrade: attachGradeOfKind,
+	},
+};
+
+export function getCriterionMaxMarks<TKind extends CriterionKind>(
+	criterion: CriterionForKind<TKind>,
+): number {
+	return operationsByKind[criterion.kind].getMaxMarks(criterion);
 }
 
+export function getCriterionMinMarks<TKind extends CriterionKind>(
+	criterion: CriterionForKind<TKind>,
+): number {
+	return operationsByKind[criterion.kind].getMinMarks(criterion);
+}
+
+// An ungraded criterion scores 0; the kind's marking rule only ever sees a
+// criterion that carries a grade.
 export function markCriterion<TKind extends CriterionKind = CriterionKind>(
 	criterion: GradedCriterion<TKind>,
 ): number {
-	if (criterion.grade == null) {
+	if (!hasGrade(criterion)) {
 		return 0;
 	}
-	switch (criterion.kind) {
-		case "check":
-			return markCheckCriterion(criterion, criterion.grade);
-		case "options":
-			return markOptionsCriterion(criterion, criterion.grade);
-		case "number":
-			return markNumberCriterion(criterion, criterion.grade);
-		default:
-			assertNever(criterion);
-	}
+	return operationsByKind[criterion.kind].mark(criterion);
+}
+
+// Narrows the criterion itself, not just its `grade` property, so the result
+// can be handed to a marking rule that requires a grade.
+function hasGrade<TCriterion extends { grade: unknown }>(
+	criterion: TCriterion,
+): criterion is TCriterion & { grade: NonNullable<TCriterion["grade"]> } {
+	return criterion.grade != null;
 }
 
 export function attachGrade<TKind extends CriterionKind>(
 	criterion: CriterionForKind<TKind>,
 	source: CriterionGrade | CriterionGrade[] | undefined,
 ): GradedCriterion<TKind> {
-	switch (criterion.kind) {
-		// TypeScript does not narrow a free generic type parameter (TKind) inside
-		// case branches, so it cannot verify that e.g. GradedCheckCriterion
-		// satisfies GradedCriterion<TKind>. assertCriterionKind() guarantees the
-		// branch matches before each call, making the casts safe.
-		case "check":
-			assertCriterionKind(criterion, "check");
-			// biome-ignore lint/plugin/no-type-assertion: c.f. comment above.
-			return attachCheckGrade(criterion, source) as GradedCriterion<TKind>;
-		case "options":
-			assertCriterionKind(criterion, "options");
-			// biome-ignore lint/plugin/no-type-assertion: c.f. comment above.
-			return attachOptionsGrade(criterion, source) as GradedCriterion<TKind>;
-		case "number":
-			assertCriterionKind(criterion, "number");
-			// biome-ignore lint/plugin/no-type-assertion: c.f. comment above.
-			return attachNumberGrade(criterion, source) as GradedCriterion<TKind>;
-		default:
-			return assertNever(criterion.kind);
-	}
+	const grade = findGrade({ criterion, source });
+	return operationsByKind[criterion.kind].attachGrade(criterion, grade);
+}
+
+// Grade content is the grade minus the identity fields the criterion already
+// carries.
+function toGradeContent<TKind extends CriterionKind>(
+	grade: CriterionGrade<TKind>,
+): CriterionGradeContentForKind<TKind> {
+	const { criterionId, kind, ...content } = grade;
+	return content;
 }
 
 // Whether a criterion already holds the grade being saved, so callers can skip
@@ -123,66 +150,42 @@ export function hasSameGrade(
 	}
 }
 
-function assertCriterionKind<TExpected extends CriterionKind>(
-	criterion: Criterion,
-	expected: TExpected,
-): asserts criterion is CriterionForKind<TExpected> {
-	if (criterion.kind !== expected) {
-		throw new Error(
-			`Expected criterion kind ${expected}, got ${criterion.kind}`,
-		);
-	}
-}
-
-function attachCheckGrade(
-	criterion: CriterionForKind<"check">,
-	source: CriterionGrade | CriterionGrade[] | undefined,
-): GradedCriterion<"check"> {
-	const grade = findGrade(criterion.id, source);
-	return {
-		...criterion,
-		grade: grade?.kind === "check" ? { passed: grade.passed } : null,
-	};
-}
-
-function attachOptionsGrade(
-	criterion: CriterionForKind<"options">,
-	source: CriterionGrade | CriterionGrade[] | undefined,
-): GradedCriterion<"options"> {
-	const grade = findGrade(criterion.id, source);
-	return {
-		...criterion,
-		grade:
-			grade?.kind === "options" ? { selectedLabel: grade.selectedLabel } : null,
-	};
-}
-
-function attachNumberGrade(
-	criterion: CriterionForKind<"number">,
-	source: CriterionGrade | CriterionGrade[] | undefined,
-): GradedCriterion<"number"> {
-	const grade = findGrade(criterion.id, source);
-	return {
-		...criterion,
-		grade: grade?.kind === "number" ? { value: grade.value } : null,
-	};
-}
-
-function findGrade(
-	criterionId: string,
-	source: CriterionGrade | CriterionGrade[] | null | undefined,
-): CriterionGrade | null {
+// The criterion's own grade out of `source`, or null when it holds none. A
+// grade stored under this criterion always carries the criterion's kind (it is
+// read back from the criterion itself), so a mismatch is a broken invariant
+// rather than a case to fall back on.
+function findGrade<TKind extends CriterionKind>({
+	criterion,
+	source,
+}: {
+	criterion: CriterionForKind<TKind>;
+	source: CriterionGrade | CriterionGrade[] | null | undefined;
+}): CriterionGrade<TKind> | null {
 	if (source == null) {
 		return null;
 	}
 
-	if (Array.isArray(source)) {
-		return source.find((item) => item.criterionId === criterionId) ?? null;
-	}
-
-	if (source.criterionId !== criterionId) {
+	const grades = Array.isArray(source) ? source : [source];
+	const grade = grades.find((item) => item.criterionId === criterion.id);
+	if (grade == null) {
 		return null;
 	}
 
-	return source;
+	if (!isGradeOfCriterionKind(grade, criterion)) {
+		throw new Error(
+			`Grade for criterion ${criterion.id} is of kind ${grade.kind}, but the criterion is of kind ${criterion.kind}`,
+		);
+	}
+
+	return grade;
+}
+
+// Written as a type guard because the kind equality it checks is exactly the
+// Extract behind CriterionGrade<TKind>, which TypeScript cannot apply as a
+// narrowing while TKind is a free type parameter.
+function isGradeOfCriterionKind<TKind extends CriterionKind>(
+	grade: CriterionGrade,
+	criterion: CriterionForKind<TKind>,
+): grade is CriterionGrade<TKind> {
+	return grade.kind === criterion.kind;
 }

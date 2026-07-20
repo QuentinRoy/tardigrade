@@ -58,13 +58,13 @@ export function toOptionsCriterionDefinitionInput(
 }
 
 export function markOptionsCriterion(
-	criterion: OptionsCriterion,
-	grade: OptionsCriterionGradeContent,
+	criterion: OptionsCriterion & { grade: OptionsCriterionGradeContent },
 ): number {
-	const marksForLabel = criterion.marks[grade.selectedLabel];
+	const { selectedLabel } = criterion.grade;
+	const marksForLabel = criterion.marks[selectedLabel];
 	if (marksForLabel == null) {
 		throw new Error(
-			`Selected label "${grade.selectedLabel}" not found in criterion marks`,
+			`Selected label "${selectedLabel}" not found in criterion marks`,
 		);
 	}
 	return marksForLabel;

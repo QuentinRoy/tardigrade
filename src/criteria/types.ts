@@ -28,10 +28,11 @@ export type CriterionDefinitionInput =
 // The `Criterion`/`CriterionGrade` unions are assembled from each kind's content,
 // every member sourced from its own kind folder (ADR 0013).
 
-export type CriterionGrade =
-	| CheckCriterionGrade
-	| OptionsCriterionGrade
-	| NumberCriterionGrade;
+export type CriterionGrade<TKind extends CriterionKind = CriterionKind> =
+	Extract<
+		CheckCriterionGrade | OptionsCriterionGrade | NumberCriterionGrade,
+		{ kind: TKind }
+	>;
 
 export type Criterion = CheckCriterion | OptionsCriterion | NumberCriterion;
 
@@ -48,19 +49,27 @@ export type GradeValidationResult =
 	| { valid: true }
 	| { valid: false; message: string };
 
+// Built as a union first, then selected with Extract (rather than as a
+// distributive conditional). Both spell the same types, but a conditional stays
+// unresolved while its type argument is still generic, which forces callers
+// holding a `GradedCriterion<TKind>` to widen before they can read `.grade` or
+// dispatch on `.kind`.
+type GradedCriterionUnion = {
+	[TKind in CriterionKind]: CriterionForKind<TKind> & {
+		grade: CriterionGradeContentForKind<TKind> | null;
+	};
+}[CriterionKind];
+
 export type GradedCriterion<TKind extends CriterionKind = CriterionKind> =
-	TKind extends CriterionKind
-		? CriterionForKind<TKind> & {
-				grade: CriterionGradeContentForKind<TKind> | null;
-			}
-		: never;
+	Extract<GradedCriterionUnion, { kind: TKind }>;
 
-type CriterionGradeContentForKind<TKind extends CriterionKind> = Omit<
-	CriterionGradeForKind<TKind>,
+// A graded criterion known to carry a grade, as produced by `hasGrade`.
+export type MarkedCriterion<TKind extends CriterionKind = CriterionKind> =
+	GradedCriterion<TKind> & {
+		grade: NonNullable<GradedCriterion<TKind>["grade"]>;
+	};
+
+export type CriterionGradeContentForKind<TKind extends CriterionKind> = Omit<
+	CriterionGrade<TKind>,
 	"criterionId" | "kind"
->;
-
-type CriterionGradeForKind<TKind extends CriterionKind> = Extract<
-	CriterionGrade,
-	{ kind: TKind }
 >;

@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import type { OptionsCriterion } from "./optionsDomain.ts";
+import type {
+	OptionsCriterion,
+	OptionsCriterionGradeContent,
+} from "./optionsDomain.ts";
 import {
 	createOptionsCriterion,
 	describeOptions,
@@ -24,25 +27,36 @@ function optionsCriterion(
 	};
 }
 
+function gradedOptionsCriterion(
+	grade: OptionsCriterionGradeContent,
+	overrides: Partial<OptionsCriterion> = {},
+) {
+	return { ...optionsCriterion(overrides), grade };
+}
+
 describe("markOptionsCriterion", () => {
 	it("returns the marks the selected label carries", () => {
 		expect(
-			markOptionsCriterion(optionsCriterion(), { selectedLabel: "Fair" }),
+			markOptionsCriterion(gradedOptionsCriterion({ selectedLabel: "Fair" })),
 		).toBe(1);
 	});
 
 	it("returns negative marks as authored", () => {
 		expect(
 			markOptionsCriterion(
-				optionsCriterion({ marks: { Pass: 1, Penalty: -3 } }),
-				{ selectedLabel: "Penalty" },
+				gradedOptionsCriterion(
+					{ selectedLabel: "Penalty" },
+					{ marks: { Pass: 1, Penalty: -3 } },
+				),
 			),
 		).toBe(-3);
 	});
 
 	it("throws when the selected label is not among the criterion's marks", () => {
 		expect(() =>
-			markOptionsCriterion(optionsCriterion(), { selectedLabel: "Missing" }),
+			markOptionsCriterion(
+				gradedOptionsCriterion({ selectedLabel: "Missing" }),
+			),
 		).toThrow('Selected label "Missing" not found in criterion marks');
 	});
 });
