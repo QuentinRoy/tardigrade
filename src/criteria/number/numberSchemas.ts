@@ -13,9 +13,9 @@ import {
 // Editor-boundary schema leaf for a Number criterion. `z.output` is the canonical
 // editor/command value for Number (ADR 0013: collapse the hand-written
 // editor/command unions to the schema output). The bounds `superRefine` lives on
-// the leaf with relative issue paths, so the composed `criteria[i].maxValue`/
-// `criteria[i].maxMarks` paths are unchanged from when it lived in the
-// rubric-level `superRefine`.
+// the leaf with relative issue paths (`path: ["maxValue"]`), which Zod composes
+// into `criteria[i].maxValue`/`criteria[i].maxMarks` once this schema is embedded
+// in the full rubric schema.
 export const numberCriterionEditorSchema = z
 	.object({
 		previousId: editorPreviousIdSchema,

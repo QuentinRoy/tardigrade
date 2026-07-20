@@ -17,8 +17,9 @@ const optionsMarksMinimumMessage =
 // Editor-boundary schema leaf for an Options criterion. `z.output` is the
 // canonical editor/command value for Options (ADR 0013: collapse the
 // hand-written editor/command unions to the schema output). The marks-minimum
-// refine sits on the `marks` field, so the composed `criteria[i].marks` issue
-// path is unchanged from when this schema lived in `rubric-management`.
+// refine sits on the `marks` field, which Zod composes into the
+// `criteria[i].marks` issue path once this schema is embedded in the full
+// rubric schema.
 export const optionsCriterionEditorSchema = z.object({
 	previousId: editorPreviousIdSchema,
 	id: editorIdSchema,
