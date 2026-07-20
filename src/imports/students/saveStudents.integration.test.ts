@@ -164,12 +164,12 @@ test("saveStudents wrapper invalidates grade-target and grade tags after the imp
 	]);
 });
 
-// Lighter, overlap-invariant coverage (per the plan): assert the row-level
-// contract only (no corruption, no thrown error, last-write-wins), not
-// reported counts, which are allowed to drift under concurrent imports.
-// Targets the `studentToGroup` delete-then-reinsert path
-// (`saveStudents.ts:150`), the spot most plausible to misbehave under
-// overlapping writes since it spans a delete and an insert on the same row.
+// Lighter, overlap-invariant coverage: assert the row-level contract only (no
+// corruption, no thrown error, last-write-wins), not reported counts, which
+// are allowed to drift under concurrent imports. Targets the `studentToGroup`
+// delete-then-reinsert path (`saveStudents.ts:150`), the spot most plausible
+// to misbehave under overlapping writes since it spans a delete and an insert
+// on the same row.
 test("saveStudentImportPlanInDb keeps a single group membership when two imports race the same student onto different groups", async () => {
 	await using db = await createTestDb();
 	await using grid = await createGrid(db, "Concurrency Student Import Grid");

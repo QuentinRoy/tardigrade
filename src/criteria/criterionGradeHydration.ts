@@ -1,10 +1,10 @@
 import { assertNever } from "#utils/utils.ts";
 import type { CriterionGrade, CriterionKind } from "./types.ts";
 
-// Single kind-aware hydrator for a flat criterion-grade query row → `CriterionGrade`.
-// Collapses the two copies that lived in `grading/grades.ts` and
-// `results/resultsBuilder.ts` (ADR 0013). `value` accepts `string` because
-// Postgres returns `numeric` columns as strings on some query paths.
+// Single kind-aware hydrator for a flat criterion-grade query row → `CriterionGrade`,
+// shared by every caller that needs one instead of duplicating per-kind hydration
+// logic (ADR 0013). `value` accepts `string` because Postgres returns `numeric`
+// columns as strings on some query paths.
 export type CriterionGradeRow = {
 	criterionId: string;
 	kind: CriterionKind;

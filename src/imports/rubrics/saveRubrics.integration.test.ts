@@ -343,12 +343,11 @@ test("saveRubrics wrapper invalidates rubric and grade tags after the import com
 	]);
 });
 
-// Lighter, overlap-invariant coverage (per the plan): assert the row-level
-// contract only (no corruption, no thrown error, last-write-wins), not
-// reported counts. Targets the criterion delete-then-recreate path on a type
-// change (`saveRubrics.ts`), the spot most plausible to misbehave since the
-// subtype tables (check/options/number criterion) must never end up with
-// stale rows for the previous type.
+// Lighter, overlap-invariant coverage: assert the row-level contract only (no
+// corruption, no thrown error, last-write-wins), not reported counts. Targets
+// the criterion delete-then-recreate path on a type change (`saveRubrics.ts`),
+// the spot most plausible to misbehave since the subtype tables (check/options/
+// number criterion) must never end up with stale rows for the previous type.
 test("saveRubricImportPlanInDb keeps a single criterion definition when two imports race the same criterion kind change", async () => {
 	await using db = await createTestDb();
 	await using grid = await createGrid(db, "Concurrency Rubric Import Grid");

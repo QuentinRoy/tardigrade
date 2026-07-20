@@ -140,9 +140,21 @@ describe("exportRubricsToYaml", () => {
     `);
 	});
 
-	it("omits label when undefined", () => {
+	// The only case rendering a `description:` line: encodeCheckCriterion's own
+	// tests assert the intermediate object shape, never the serialized text.
+	it("renders a criterion description", () => {
 		const rubrics: RubricsById = {
-			q1: { criteria: [{ id: "r1", kind: "check", marks: 1, falseMarks: 0 }] },
+			q1: {
+				criteria: [
+					{
+						id: "r1",
+						kind: "check",
+						marks: 1,
+						falseMarks: 0,
+						description: "Test description",
+					},
+				],
+			},
 		};
 
 		const yaml = exportRubricsToYaml(rubrics);
@@ -155,6 +167,7 @@ describe("exportRubricsToYaml", () => {
               kind: check
               marks: 1
               falseMarks: 0
+              description: Test description
       "
     `);
 	});
@@ -201,35 +214,6 @@ describe("exportRubricsToYaml", () => {
                 A: 2
                 B: 1
               label: Grade
-      "
-    `);
-	});
-
-	it("omits description when undefined", () => {
-		const rubrics: RubricsById = {
-			q1: {
-				criteria: [
-					{
-						id: "r1",
-						kind: "check",
-						marks: 1,
-						falseMarks: 0,
-						description: "Test description",
-					},
-				],
-			},
-		};
-
-		const yaml = exportRubricsToYaml(rubrics);
-		expect(yaml).toMatchInlineSnapshot(`
-      "rubrics:
-        - id: q1
-          criteria:
-            - id: r1
-              kind: check
-              marks: 1
-              falseMarks: 0
-              description: Test description
       "
     `);
 	});
