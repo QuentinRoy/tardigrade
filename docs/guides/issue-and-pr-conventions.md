@@ -43,7 +43,9 @@ grids: centralise slug canonicalisation behind a route-kind helper
 docs: clarify TypeScript function parameter conventions
 ```
 
-A more descriptive title is acceptable when the area-prefixed shape would hide important review context.
+A more descriptive title is acceptable when the area-prefixed shape would hide important review context. It is not licence to exceed the length limit — see [Title length](commit-message-conventions.md#title-length), which applies to pull request titles too, since they become squash merge titles.
+
+Do not put plan stage identifiers (`PR4b`, `stage 2b`, `phase 3`) in a pull request title — the title becomes the squash merge commit and outlives the plan. Reference the stage in the pull request body instead. See [Avoid plan-local references](commit-message-conventions.md#avoid-plan-local-references).
 
 ## Labels
 

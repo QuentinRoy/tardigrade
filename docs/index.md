@@ -109,6 +109,7 @@ Temporary work artifacts for agent-assisted implementation, under `plans/`. Plan
 - Set `Status: Completed` (and remove the `plans/index.md` entry) in the same PR that lands the work — before that PR merges, not after. Updating the plan post-merge means a second PR just to flip one field.
 - Completed and abandoned plans are not indexed; find them via `plans/`, git history, or the issue/PR they cite.
 - If a proposed plan is not actively being executed, prefer `docs/investigations/` until a concrete implementation plan is needed.
+- Stage identifiers (`PR4b`, `stage 2b`) are plan-internal. Use them freely inside the plan; keep them out of commit and pull request titles, which outlive the plan — see [avoid plan-local references](guides/commit-message-conventions.md#avoid-plan-local-references).
 
 Canonical plan metadata block, immediately below the title:
 
