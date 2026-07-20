@@ -19,7 +19,7 @@ describe("checkCriterionEditorSchema", () => {
 		expect(issue?.message).toBe("Marks must be a valid number");
 	});
 
-	it("rejects false marks that are not a number", () => {
+	it("rejects a falseMarks value that is not a number", () => {
 		const result = checkCriterionEditorSchema.safeParse({
 			id: "r1",
 			kind: "check",

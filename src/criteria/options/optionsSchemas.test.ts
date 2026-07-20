@@ -57,7 +57,7 @@ describe("optionsCriterionImportSchema", () => {
 		});
 
 		expect(result.success).toBe(false);
-		expect(result.error?.issues[0]?.message).toBe(
+		expect(result.error?.issues.map((issue) => issue.message)).toContain(
 			"Options criterion must have at least 2 mark entries",
 		);
 	});

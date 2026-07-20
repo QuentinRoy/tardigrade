@@ -130,18 +130,18 @@ describe("buildResultsData", () => {
 	it("maps details with label, description, and kind", () => {
 		const data = buildResultsData({ targets, rubricsById, gradeRecords: [] });
 
-		expect(data.criteria[0]?.details).toMatchObject({
+		expect(data.criteria[0]?.details).toEqual({
 			label: "Correct",
 			description: "Correct answer",
 			kind: "check",
-			properties: { kind: "check" },
+			properties: expect.objectContaining({ kind: "check" }),
 		});
 
-		expect(data.criteria[1]?.details).toMatchObject({
+		expect(data.criteria[1]?.details).toEqual({
 			label: "Quality",
 			description: "Quality from 0 to 10",
 			kind: "number",
-			properties: { kind: "number" },
+			properties: expect.objectContaining({ kind: "number" }),
 		});
 	});
 

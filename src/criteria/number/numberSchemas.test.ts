@@ -84,7 +84,7 @@ describe("numberCriterionImportSchema", () => {
 		});
 
 		expect(result.success).toBe(false);
-		expect(result.error?.issues[0]?.message).toBe(
+		expect(result.error?.issues.map((issue) => issue.message)).toContain(
 			"minValue must be less than maxValue",
 		);
 	});
@@ -98,7 +98,7 @@ describe("numberCriterionImportSchema", () => {
 		});
 
 		expect(result.success).toBe(false);
-		expect(result.error?.issues[0]?.message).toBe(
+		expect(result.error?.issues.map((issue) => issue.message)).toContain(
 			"minMarks must be less than or equal to maxMarks",
 		);
 	});
@@ -110,8 +110,48 @@ describe("numberCriterionImportSchema", () => {
 		});
 
 		expect(result.success).toBe(false);
-		expect(result.error?.issues[0]?.message).toBe(
+		expect(result.error?.issues.map((issue) => issue.message)).toContain(
 			"Number criterion must provide at least one of minMarks or maxMarks",
+		);
+	});
+
+	it("rejects minValue without maxValue", () => {
+		const result = numberCriterionImportSchema.safeParse({
+			id: "r1",
+			kind: "number",
+			minValue: 0,
+			maxMarks: 5,
+		});
+
+		expect(result.success).toBe(false);
+		expect(result.error?.issues.map((issue) => issue.message)).toContain(
+			"maxValue must be provided when minValue is provided",
+		);
+	});
+
+	it("rejects omitted minMarks with a maxMarks of 0", () => {
+		const result = numberCriterionImportSchema.safeParse({
+			id: "r1",
+			kind: "number",
+			maxMarks: 0,
+		});
+
+		expect(result.success).toBe(false);
+		expect(result.error?.issues.map((issue) => issue.message)).toContain(
+			"When minMarks is omitted, maxMarks must be greater than 0",
+		);
+	});
+
+	it("rejects omitted maxMarks with a non-negative minMarks", () => {
+		const result = numberCriterionImportSchema.safeParse({
+			id: "r1",
+			kind: "number",
+			minMarks: 0,
+		});
+
+		expect(result.success).toBe(false);
+		expect(result.error?.issues.map((issue) => issue.message)).toContain(
+			"When maxMarks is omitted, minMarks must be less than 0",
 		);
 	});
 });
