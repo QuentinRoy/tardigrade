@@ -2,11 +2,7 @@ import type { Kysely } from "kysely";
 import { expect, test } from "vitest";
 import { saveCriterionSubtypesInDb } from "#criteria/criterionSubtypePersistence.ts";
 import type { Database } from "#db/generated/database.ts";
-import {
-	buildTestId,
-	createTestDb,
-	inTransaction,
-} from "#test/dbIntegration.ts";
+import { buildTestId, createTestDb } from "#test/dbIntegration.ts";
 import { createGrid } from "#test/grids.ts";
 import type { OptionsMarks } from "./optionsDomain.ts";
 import {
@@ -82,7 +78,7 @@ test("upsertOptionsSubtypeRowsInDb batches inserts across criteria", async () =>
 		1,
 	);
 
-	await inTransaction(db, (tx) =>
+	await db.transaction().execute((tx) =>
 		upsertOptionsSubtypeRowsInDb(tx, [
 			{ criterionRowId: first.rowId, marks: { Pass: 1, Fail: 0 } },
 			{ criterionRowId: second.rowId, marks: { Good: 2, Poor: -1 } },
@@ -107,16 +103,20 @@ test("upsertOptionsSubtypeRowsInDb updates the marks of an existing label", asyn
 		0,
 	);
 
-	await inTransaction(db, (tx) =>
-		upsertOptionsSubtypeRowsInDb(tx, [
-			{ criterionRowId: criterion.rowId, marks: { Pass: 1, Fail: 0 } },
-		]),
-	);
-	await inTransaction(db, (tx) =>
-		upsertOptionsSubtypeRowsInDb(tx, [
-			{ criterionRowId: criterion.rowId, marks: { Pass: 5, Fail: -2 } },
-		]),
-	);
+	await db
+		.transaction()
+		.execute((tx) =>
+			upsertOptionsSubtypeRowsInDb(tx, [
+				{ criterionRowId: criterion.rowId, marks: { Pass: 1, Fail: 0 } },
+			]),
+		);
+	await db
+		.transaction()
+		.execute((tx) =>
+			upsertOptionsSubtypeRowsInDb(tx, [
+				{ criterionRowId: criterion.rowId, marks: { Pass: 5, Fail: -2 } },
+			]),
+		);
 
 	expect(await loadOptionsMarks(db, criterion.rowId)).toEqual({
 		Pass: 5,
@@ -138,16 +138,23 @@ test("upsertOptionsSubtypeRowsInDb deletes marks whose label is no longer author
 		0,
 	);
 
-	await inTransaction(db, (tx) =>
-		upsertOptionsSubtypeRowsInDb(tx, [
-			{ criterionRowId: criterion.rowId, marks: { Good: 2, Fair: 1, Poor: 0 } },
-		]),
-	);
-	await inTransaction(db, (tx) =>
-		upsertOptionsSubtypeRowsInDb(tx, [
-			{ criterionRowId: criterion.rowId, marks: { Good: 2, Poor: 0 } },
-		]),
-	);
+	await db
+		.transaction()
+		.execute((tx) =>
+			upsertOptionsSubtypeRowsInDb(tx, [
+				{
+					criterionRowId: criterion.rowId,
+					marks: { Good: 2, Fair: 1, Poor: 0 },
+				},
+			]),
+		);
+	await db
+		.transaction()
+		.execute((tx) =>
+			upsertOptionsSubtypeRowsInDb(tx, [
+				{ criterionRowId: criterion.rowId, marks: { Good: 2, Poor: 0 } },
+			]),
+		);
 
 	expect(await loadOptionsMarks(db, criterion.rowId)).toEqual({
 		Good: 2,
@@ -169,13 +176,13 @@ test("upsertOptionsSubtypeRowsInDb reconciles each criterion independently", asy
 		1,
 	);
 
-	await inTransaction(db, (tx) =>
+	await db.transaction().execute((tx) =>
 		upsertOptionsSubtypeRowsInDb(tx, [
 			{ criterionRowId: first.rowId, marks: { Good: 2, Fair: 1 } },
 			{ criterionRowId: second.rowId, marks: { Yes: 1, No: 0 } },
 		]),
 	);
-	await inTransaction(db, (tx) =>
+	await db.transaction().execute((tx) =>
 		upsertOptionsSubtypeRowsInDb(tx, [
 			{ criterionRowId: first.rowId, marks: { Good: 2, Poor: -1 } },
 			{ criterionRowId: second.rowId, marks: { Yes: 1, No: 0 } },
@@ -200,20 +207,60 @@ test("saveCriterionSubtypesInDb resolves row ids and dispatches the Options upse
 		0,
 	);
 
-	await inTransaction(db, (tx) =>
-		saveCriterionSubtypesInDb(tx, {
-			criteria: [
-				{ id: criterion.id, kind: "options", marks: { Pass: 3, Fail: 0 } },
-			],
-			gridRowId: grid.rowId,
-			rubricRowId,
-		}),
-	);
+	await db
+		.transaction()
+		.execute((tx) =>
+			saveCriterionSubtypesInDb(tx, {
+				criteria: [
+					{ id: criterion.id, kind: "options", marks: { Pass: 3, Fail: 0 } },
+				],
+				gridRowId: grid.rowId,
+				rubricRowId,
+			}),
+		);
 
 	expect(await loadOptionsMarks(db, criterion.rowId)).toEqual({
 		Pass: 3,
 		Fail: 0,
 	});
+});
+
+// Coverage for reconciliation dispatched through the coordinator (not just
+// upsertOptionsSubtypeRowsInDb directly), matching how a rubric definition
+// re-save drops a label in production.
+test("saveCriterionSubtypesInDb reconciles Options marks across repeated dispatch", async () => {
+	await using db = await createTestDb();
+	await using grid = await createGrid(db, "Coordinator reconciliation grid");
+	const rubricRowId = await createRubricRow(db, grid.rowId);
+	const criterion = await createOptionsCriterionRow(
+		db,
+		grid.rowId,
+		rubricRowId,
+		0,
+	);
+
+	await db
+		.transaction()
+		.execute((tx) =>
+			saveCriterionSubtypesInDb(tx, {
+				criteria: [
+					{ id: criterion.id, kind: "options", marks: { Pass: 1, Fail: 0 } },
+				],
+				gridRowId: grid.rowId,
+				rubricRowId,
+			}),
+		);
+	await db
+		.transaction()
+		.execute((tx) =>
+			saveCriterionSubtypesInDb(tx, {
+				criteria: [{ id: criterion.id, kind: "options", marks: { Pass: 3 } }],
+				gridRowId: grid.rowId,
+				rubricRowId,
+			}),
+		);
+
+	expect(await loadOptionsMarks(db, criterion.rowId)).toEqual({ Pass: 3 });
 });
 
 test("validateOptionsGradeInDb accepts a label the criterion currently offers", async () => {
@@ -227,17 +274,24 @@ test("validateOptionsGradeInDb accepts a label the criterion currently offers", 
 		0,
 	);
 
-	await inTransaction(db, (tx) =>
-		upsertOptionsSubtypeRowsInDb(tx, [
-			{ criterionRowId: criterion.rowId, marks: { Pass: 1, Fail: 0 } },
-		]),
-	);
+	await db
+		.transaction()
+		.execute((tx) =>
+			upsertOptionsSubtypeRowsInDb(tx, [
+				{ criterionRowId: criterion.rowId, marks: { Pass: 1, Fail: 0 } },
+			]),
+		);
 
-	const error = await inTransaction(db, (tx) =>
-		validateOptionsGradeInDb(tx, criterion.rowId, { selectedLabel: "Pass" }),
-	);
+	const result = await db
+		.transaction()
+		.execute((tx) =>
+			validateOptionsGradeInDb(tx, {
+				criterionRowId: criterion.rowId,
+				grade: { selectedLabel: "Pass" },
+			}),
+		);
 
-	expect(error).toBeUndefined();
+	expect(result).toEqual({ valid: true });
 });
 
 test("validateOptionsGradeInDb rejects a label the criterion no longer offers", async () => {
@@ -251,19 +305,26 @@ test("validateOptionsGradeInDb rejects a label the criterion no longer offers", 
 		0,
 	);
 
-	await inTransaction(db, (tx) =>
-		upsertOptionsSubtypeRowsInDb(tx, [
-			{ criterionRowId: criterion.rowId, marks: { Pass: 1, Fail: 0 } },
-		]),
-	);
+	await db
+		.transaction()
+		.execute((tx) =>
+			upsertOptionsSubtypeRowsInDb(tx, [
+				{ criterionRowId: criterion.rowId, marks: { Pass: 1, Fail: 0 } },
+			]),
+		);
 
-	const error = await inTransaction(db, (tx) =>
-		validateOptionsGradeInDb(tx, criterion.rowId, {
-			selectedLabel: "Withdrawn",
-		}),
-	);
+	const result = await db
+		.transaction()
+		.execute((tx) =>
+			validateOptionsGradeInDb(tx, {
+				criterionRowId: criterion.rowId,
+				grade: { selectedLabel: "Withdrawn" },
+			}),
+		);
 
-	expect(error).toBe(
-		"That option is no longer available. Reload and choose another option.",
-	);
+	expect(result).toEqual({
+		valid: false,
+		message:
+			"That option is no longer available. Reload and choose another option.",
+	});
 });

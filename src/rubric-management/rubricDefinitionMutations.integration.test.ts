@@ -5,11 +5,7 @@ import {
 	allRubricsTag,
 	gradeCompletionByRubricTag,
 } from "#db/cacheTags.ts";
-import {
-	buildTestId,
-	createTestDb,
-	inTransaction,
-} from "#test/dbIntegration.ts";
+import { buildTestId, createTestDb } from "#test/dbIntegration.ts";
 import { createGrid } from "#test/grids.ts";
 import {
 	createGradedCheckRubricFixture,
@@ -86,26 +82,28 @@ test("saveRubricDefinitionInDb renames rubric id while preserving linked grades"
 	const fixture = await createGradedCheckRubricFixture(db, grid.rowId);
 	const renamedRubricId = buildTestId("rubric-renamed");
 
-	const result = await inTransaction(db, (tx) =>
-		saveRubricDefinitionInDb(tx, {
-			input: {
-				originalId: fixture.rubricId,
-				id: renamedRubricId,
-				label: "Renamed rubric",
-				criteria: [
-					{
-						previousId: fixture.criterionId,
-						id: fixture.criterionId,
-						kind: "check",
-						label: "Correct",
-						marks: 2,
-						falseMarks: 0,
-					},
-				],
-			},
-			gridId: grid.id,
-		}),
-	);
+	const result = await db
+		.transaction()
+		.execute((tx) =>
+			saveRubricDefinitionInDb(tx, {
+				input: {
+					originalId: fixture.rubricId,
+					id: renamedRubricId,
+					label: "Renamed rubric",
+					criteria: [
+						{
+							previousId: fixture.criterionId,
+							id: fixture.criterionId,
+							kind: "check",
+							label: "Correct",
+							marks: 2,
+							falseMarks: 0,
+						},
+					],
+				},
+				gridId: grid.id,
+			}),
+		);
 
 	expect(result.id).toBe(renamedRubricId);
 	// A DB Primitive never invalidates cache — that is the wrapper's job.
@@ -138,29 +136,31 @@ test("saveRubricDefinitionInDb replaces criterion subtype data when criterion ki
 
 	const replacedCriterionId = buildTestId("criterion-number");
 
-	await inTransaction(db, (tx) =>
-		saveRubricDefinitionInDb(tx, {
-			input: {
-				originalId: fixture.rubricId,
-				id: fixture.rubricId,
-				label: "Type-changed rubric",
-				criteria: [
-					{
-						previousId: fixture.criterionId,
-						id: replacedCriterionId,
-						kind: "number",
-						label: "Value",
-						minValue: 0,
-						maxValue: 10,
-						minMarks: 0,
-						maxMarks: 5,
-						reversed: false,
-					},
-				],
-			},
-			gridId: grid.id,
-		}),
-	);
+	await db
+		.transaction()
+		.execute((tx) =>
+			saveRubricDefinitionInDb(tx, {
+				input: {
+					originalId: fixture.rubricId,
+					id: fixture.rubricId,
+					label: "Type-changed rubric",
+					criteria: [
+						{
+							previousId: fixture.criterionId,
+							id: replacedCriterionId,
+							kind: "number",
+							label: "Value",
+							minValue: 0,
+							maxValue: 10,
+							minMarks: 0,
+							maxMarks: 5,
+							reversed: false,
+						},
+					],
+				},
+				gridId: grid.id,
+			}),
+		);
 
 	const oldCriterion = await db
 		.selectFrom("criterion")
@@ -210,7 +210,7 @@ test("saveRubricDefinitionInDb removes stale criteria that are no longer referen
 
 	const staleCriterionId = buildTestId("criterion-stale");
 
-	await inTransaction(db, async (tx) => {
+	await db.transaction().execute(async (tx) => {
 		await saveRubricDefinitionInDb(tx, {
 			input: {
 				originalId: fixture.rubricId,
@@ -282,12 +282,14 @@ test("deleteRubricDefinitionInDb reports deletion and cascades linked grades", a
 	await using grid = await createGrid(db, "Delete Cascade Grid");
 	const fixture = await createGradedCheckRubricFixture(db, grid.rowId);
 
-	const result = await inTransaction(db, (tx) =>
-		deleteRubricDefinitionInDb(tx, {
-			rubricId: fixture.rubricId,
-			gridId: grid.id,
-		}),
-	);
+	const result = await db
+		.transaction()
+		.execute((tx) =>
+			deleteRubricDefinitionInDb(tx, {
+				rubricId: fixture.rubricId,
+				gridId: grid.id,
+			}),
+		);
 	expect(result).toEqual({ deleted: true });
 
 	const rubricRows = await db
@@ -312,9 +314,11 @@ test("deleteRubricDefinitionInDb returns deleted false when no rubric matches in
 	await using grid = await createGrid(db, "Delete Missing Grid");
 	const missingId = buildTestId("rubric-missing");
 
-	const result = await inTransaction(db, (tx) =>
-		deleteRubricDefinitionInDb(tx, { rubricId: missingId, gridId: grid.id }),
-	);
+	const result = await db
+		.transaction()
+		.execute((tx) =>
+			deleteRubricDefinitionInDb(tx, { rubricId: missingId, gridId: grid.id }),
+		);
 
 	expect(result).toEqual({ deleted: false });
 });
@@ -324,9 +328,11 @@ test("deleteRubricDefinitionInDb deletes a rubric that has no grades", async () 
 	await using grid = await createGrid(db, "Delete Standalone Grid");
 	const rubric = await createRubric(db, grid.rowId, 0);
 
-	const result = await inTransaction(db, (tx) =>
-		deleteRubricDefinitionInDb(tx, { rubricId: rubric.id, gridId: grid.id }),
-	);
+	const result = await db
+		.transaction()
+		.execute((tx) =>
+			deleteRubricDefinitionInDb(tx, { rubricId: rubric.id, gridId: grid.id }),
+		);
 	expect(result).toEqual({ deleted: true });
 
 	const rubricRows = await db
@@ -346,7 +352,7 @@ test("reorderRubricsInDb updates positions for the provided rubrics", async () =
 	const second = await createRubric(db, grid.rowId, 1);
 	const third = await createRubric(db, grid.rowId, 2);
 
-	await inTransaction(db, (tx) =>
+	await db.transaction().execute((tx) =>
 		reorderRubricsInDb(tx, {
 			updates: [
 				{ id: third.id, position: 0 },
@@ -368,7 +374,7 @@ test("reorderRubricsInDb leaves rubrics outside the update list untouched", asyn
 	const second = await createRubric(db, grid.rowId, 1);
 	const untouched = await createRubric(db, grid.rowId, 2);
 
-	await inTransaction(db, (tx) =>
+	await db.transaction().execute((tx) =>
 		reorderRubricsInDb(tx, {
 			updates: [
 				{ id: first.id, position: 1 },
@@ -394,12 +400,14 @@ test("reorderRubricsInDb only affects rubrics in the given grid", async () => {
 	const rubric = await createRubric(db, grid.rowId, 0);
 	const otherRubric = await createRubric(db, otherGrid.rowId, 0);
 
-	await inTransaction(db, (tx) =>
-		reorderRubricsInDb(tx, {
-			updates: [{ id: rubric.id, position: 5 }],
-			gridId: grid.id,
-		}),
-	);
+	await db
+		.transaction()
+		.execute((tx) =>
+			reorderRubricsInDb(tx, {
+				updates: [{ id: rubric.id, position: 5 }],
+				gridId: grid.id,
+			}),
+		);
 
 	const positions = await getRubricPositions(db, grid.rowId);
 	expect(positions).toEqual({ [rubric.id]: 5 });
@@ -413,9 +421,9 @@ test("reorderRubricsInDb does nothing when given no updates", async () => {
 	await using grid = await createGrid(db, "Reorder Empty Grid");
 	const rubric = await createRubric(db, grid.rowId, 0);
 
-	await inTransaction(db, (tx) =>
-		reorderRubricsInDb(tx, { updates: [], gridId: grid.id }),
-	);
+	await db
+		.transaction()
+		.execute((tx) => reorderRubricsInDb(tx, { updates: [], gridId: grid.id }));
 
 	const positions = await getRubricPositions(db, grid.rowId);
 	expect(positions).toEqual({ [rubric.id]: 0 });
@@ -449,7 +457,7 @@ test("reorderRubricsInDb throws when the same id is provided more than once", as
 	const rubric = await createRubric(db, grid.rowId, 0);
 
 	await expect(
-		inTransaction(db, (tx) =>
+		db.transaction().execute((tx) =>
 			reorderRubricsInDb(tx, {
 				updates: [
 					{ id: rubric.id, position: 1 },

@@ -2,11 +2,7 @@ import type { Kysely } from "kysely";
 import { expect, test } from "vitest";
 import { saveCriterionSubtypesInDb } from "#criteria/criterionSubtypePersistence.ts";
 import type { Database } from "#db/generated/database.ts";
-import {
-	buildTestId,
-	createTestDb,
-	inTransaction,
-} from "#test/dbIntegration.ts";
+import { buildTestId, createTestDb } from "#test/dbIntegration.ts";
 import { createGrid } from "#test/grids.ts";
 import { upsertCheckSubtypeRowsInDb } from "./checkPersistence.ts";
 
@@ -62,7 +58,7 @@ test("upsertCheckSubtypeRowsInDb batches inserts then upserts on conflict", asyn
 	const first = await createCheckCriterionRow(db, grid.rowId, rubricRowId, 0);
 	const second = await createCheckCriterionRow(db, grid.rowId, rubricRowId, 1);
 
-	await inTransaction(db, (tx) =>
+	await db.transaction().execute((tx) =>
 		upsertCheckSubtypeRowsInDb(tx, [
 			{ criterionRowId: first.rowId, marks: 2, falseMarks: 0 },
 			{ criterionRowId: second.rowId, marks: 5, falseMarks: -1 },
@@ -78,11 +74,13 @@ test("upsertCheckSubtypeRowsInDb batches inserts then upserts on conflict", asyn
 		falseMarks: -1,
 	});
 
-	await inTransaction(db, (tx) =>
-		upsertCheckSubtypeRowsInDb(tx, [
-			{ criterionRowId: first.rowId, marks: 3, falseMarks: 1 },
-		]),
-	);
+	await db
+		.transaction()
+		.execute((tx) =>
+			upsertCheckSubtypeRowsInDb(tx, [
+				{ criterionRowId: first.rowId, marks: 3, falseMarks: 1 },
+			]),
+		);
 
 	expect(await loadCheckRow(db, first.rowId)).toEqual({
 		marks: 3,
@@ -101,13 +99,17 @@ test("saveCriterionSubtypesInDb resolves row ids and dispatches the Check upsert
 		0,
 	);
 
-	await inTransaction(db, (tx) =>
-		saveCriterionSubtypesInDb(tx, {
-			criteria: [{ id: criterion.id, kind: "check", marks: 4, falseMarks: 2 }],
-			gridRowId: grid.rowId,
-			rubricRowId,
-		}),
-	);
+	await db
+		.transaction()
+		.execute((tx) =>
+			saveCriterionSubtypesInDb(tx, {
+				criteria: [
+					{ id: criterion.id, kind: "check", marks: 4, falseMarks: 2 },
+				],
+				gridRowId: grid.rowId,
+				rubricRowId,
+			}),
+		);
 
 	expect(await loadCheckRow(db, criterion.rowId)).toEqual({
 		marks: 4,
@@ -115,13 +117,15 @@ test("saveCriterionSubtypesInDb resolves row ids and dispatches the Check upsert
 	});
 
 	// `falseMarks` omitted resolves to 0 (matching the pre-refactor callers).
-	await inTransaction(db, (tx) =>
-		saveCriterionSubtypesInDb(tx, {
-			criteria: [{ id: criterion.id, kind: "check", marks: 6 }],
-			gridRowId: grid.rowId,
-			rubricRowId,
-		}),
-	);
+	await db
+		.transaction()
+		.execute((tx) =>
+			saveCriterionSubtypesInDb(tx, {
+				criteria: [{ id: criterion.id, kind: "check", marks: 6 }],
+				gridRowId: grid.rowId,
+				rubricRowId,
+			}),
+		);
 
 	expect(await loadCheckRow(db, criterion.rowId)).toEqual({
 		marks: 6,
