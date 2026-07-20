@@ -59,11 +59,11 @@ export function markCriterion<TKind extends CriterionKind = CriterionKind>(
 	}
 	switch (criterion.kind) {
 		case "check":
-			return markCheckCriterion(criterion, criterion.grade.passed);
+			return markCheckCriterion(criterion, criterion.grade);
 		case "options":
-			return markOptionsCriterion(criterion, criterion.grade.selectedLabel);
+			return markOptionsCriterion(criterion, criterion.grade);
 		case "number":
-			return markNumberCriterion(criterion, criterion.grade.value);
+			return markNumberCriterion(criterion, criterion.grade);
 		default:
 			assertNever(criterion);
 	}

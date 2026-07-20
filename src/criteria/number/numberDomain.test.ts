@@ -29,29 +29,33 @@ function numberCriterion(
 
 describe("markNumberCriterion", () => {
 	it("maps low values to low marks by default", () => {
-		expect(markNumberCriterion(numberCriterion(), 2)).toBe(1);
+		expect(markNumberCriterion(numberCriterion(), { value: 2 })).toBe(1);
 	});
 
 	it("reverses the mapping when requested", () => {
-		expect(markNumberCriterion(numberCriterion({ reversed: true }), 2)).toBe(4);
+		expect(
+			markNumberCriterion(numberCriterion({ reversed: true }), { value: 2 }),
+		).toBe(4);
 	});
 
 	it("maps minValue to minMarks when not reversed", () => {
-		expect(markNumberCriterion(numberCriterion(), 0)).toBe(0);
+		expect(markNumberCriterion(numberCriterion(), { value: 0 })).toBe(0);
 	});
 
 	it("maps maxValue to maxMarks when not reversed", () => {
-		expect(markNumberCriterion(numberCriterion(), 10)).toBe(5);
+		expect(markNumberCriterion(numberCriterion(), { value: 10 })).toBe(5);
 	});
 
 	it("maps minValue to maxMarks when reversed", () => {
-		expect(markNumberCriterion(numberCriterion({ reversed: true }), 0)).toBe(5);
+		expect(
+			markNumberCriterion(numberCriterion({ reversed: true }), { value: 0 }),
+		).toBe(5);
 	});
 
 	it("maps maxValue to minMarks when reversed", () => {
-		expect(markNumberCriterion(numberCriterion({ reversed: true }), 10)).toBe(
-			0,
-		);
+		expect(
+			markNumberCriterion(numberCriterion({ reversed: true }), { value: 10 }),
+		).toBe(0);
 	});
 
 	it("interpolates mid-range values with a non-zero minMarks", () => {
@@ -63,7 +67,7 @@ describe("markNumberCriterion", () => {
 					minMarks: 2,
 					maxMarks: 7,
 				}),
-				4,
+				{ value: 4 },
 			),
 		).toBe(4);
 	});
@@ -77,20 +81,24 @@ describe("markNumberCriterion", () => {
 					minMarks: -5,
 					maxMarks: 5,
 				}),
-				5,
+				{ value: 5 },
 			),
 		).toBe(0);
 	});
 
 	it("tolerates inverted marks (minMarks > maxMarks), returning the descending value", () => {
 		expect(
-			markNumberCriterion(numberCriterion({ minMarks: 5, maxMarks: 0 }), 2),
+			markNumberCriterion(numberCriterion({ minMarks: 5, maxMarks: 0 }), {
+				value: 2,
+			}),
 		).toBe(4);
 	});
 
 	it("throws when minValue equals maxValue (zero-width value range)", () => {
 		expect(() =>
-			markNumberCriterion(numberCriterion({ minValue: 5, maxValue: 5 }), 5),
+			markNumberCriterion(numberCriterion({ minValue: 5, maxValue: 5 }), {
+				value: 5,
+			}),
 		).toThrow(
 			"Cannot mark a number criterion with a zero-width value range (minValue and maxValue are both 5)",
 		);
@@ -105,17 +113,17 @@ describe("markNumberCriterion", () => {
 					minMarks: 0,
 					maxMarks: 10,
 				}),
-				7,
+				{ value: 7 },
 			),
 		).toBe(6);
 	});
 
 	it("extrapolates a value above maxValue instead of throwing", () => {
-		expect(markNumberCriterion(numberCriterion(), 12)).toBe(6);
+		expect(markNumberCriterion(numberCriterion(), { value: 12 })).toBe(6);
 	});
 
 	it("extrapolates a value below minValue instead of throwing", () => {
-		expect(markNumberCriterion(numberCriterion(), -2)).toBe(-1);
+		expect(markNumberCriterion(numberCriterion(), { value: -2 })).toBe(-1);
 	});
 });
 

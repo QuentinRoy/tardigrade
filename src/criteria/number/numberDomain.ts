@@ -71,7 +71,7 @@ export function toNumberCriterionDefinitionInput(
 
 export function markNumberCriterion(
 	criterion: NumberCriterion,
-	value: number,
+	grade: NumberCriterionGradeContent,
 ): number {
 	const valueRange = criterion.maxValue - criterion.minValue;
 	if (valueRange === 0) {
@@ -81,8 +81,8 @@ export function markNumberCriterion(
 	}
 
 	const valueOffset = criterion.reversed
-		? criterion.maxValue - value
-		: value - criterion.minValue;
+		? criterion.maxValue - grade.value
+		: grade.value - criterion.minValue;
 
 	return (
 		criterion.minMarks +

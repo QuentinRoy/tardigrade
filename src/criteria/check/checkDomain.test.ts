@@ -20,11 +20,11 @@ function checkCriterion(
 
 describe("markCheckCriterion", () => {
 	it("returns marks when passed", () => {
-		expect(markCheckCriterion(checkCriterion(), true)).toBe(2);
+		expect(markCheckCriterion(checkCriterion(), { passed: true })).toBe(2);
 	});
 
 	it("returns falseMarks when not passed", () => {
-		expect(markCheckCriterion(checkCriterion(), false)).toBe(-1);
+		expect(markCheckCriterion(checkCriterion(), { passed: false })).toBe(-1);
 	});
 });
 

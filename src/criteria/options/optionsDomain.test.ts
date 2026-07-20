@@ -26,22 +26,24 @@ function optionsCriterion(
 
 describe("markOptionsCriterion", () => {
 	it("returns the marks the selected label carries", () => {
-		expect(markOptionsCriterion(optionsCriterion(), "Fair")).toBe(1);
+		expect(
+			markOptionsCriterion(optionsCriterion(), { selectedLabel: "Fair" }),
+		).toBe(1);
 	});
 
 	it("returns negative marks as authored", () => {
 		expect(
 			markOptionsCriterion(
 				optionsCriterion({ marks: { Pass: 1, Penalty: -3 } }),
-				"Penalty",
+				{ selectedLabel: "Penalty" },
 			),
 		).toBe(-3);
 	});
 
 	it("throws when the selected label is not among the criterion's marks", () => {
-		expect(() => markOptionsCriterion(optionsCriterion(), "Missing")).toThrow(
-			'Selected label "Missing" not found in criterion marks',
-		);
+		expect(() =>
+			markOptionsCriterion(optionsCriterion(), { selectedLabel: "Missing" }),
+		).toThrow('Selected label "Missing" not found in criterion marks');
 	});
 });
 
