@@ -2,17 +2,17 @@ import "server-only";
 import type { Transaction } from "kysely";
 import type { Database } from "#db/generated/database.ts";
 import { upsertCheckSubtypeRowsInDb } from "./check/checkPersistence.ts";
-import type { CheckCriterionEditorValue } from "./check/checkSchemas.ts";
+import type { CheckCriterionDefinitionInput } from "./check/checkSchemas.ts";
 import {
 	type NumberSubtypeRow,
 	upsertNumberSubtypeRowsInDb,
 } from "./number/numberPersistence.ts";
-import type { NumberCriterionEditorValue } from "./number/numberSchemas.ts";
+import type { NumberCriterionDefinitionInput } from "./number/numberSchemas.ts";
 import {
 	type OptionsSubtypeRow,
 	upsertOptionsSubtypeRowsInDb,
 } from "./options/optionsPersistence.ts";
-import type { OptionsCriterionEditorValue } from "./options/optionsSchemas.ts";
+import type { OptionsCriterionDefinitionInput } from "./options/optionsSchemas.ts";
 
 // Generic criterion-definition subtype coordinator (ADR 0013). It resolves the
 // criterion row ids both rubric verticals used to resolve inline, groups by kind,
@@ -24,9 +24,9 @@ import type { OptionsCriterionEditorValue } from "./options/optionsSchemas.ts";
 // Every kind sources its subtype fields from its own editor schema output. Both
 // callers' values are already assignable.
 type CriterionSubtypeInput =
-	| Pick<CheckCriterionEditorValue, "id" | "kind" | "marks" | "falseMarks">
+	| Pick<CheckCriterionDefinitionInput, "id" | "kind" | "marks" | "falseMarks">
 	| Pick<
-			NumberCriterionEditorValue,
+			NumberCriterionDefinitionInput,
 			| "id"
 			| "kind"
 			| "minValue"
@@ -35,7 +35,7 @@ type CriterionSubtypeInput =
 			| "maxMarks"
 			| "reversed"
 	  >
-	| Pick<OptionsCriterionEditorValue, "id" | "kind" | "marks">;
+	| Pick<OptionsCriterionDefinitionInput, "id" | "kind" | "marks">;
 
 export async function saveCriterionSubtypesInDb(
 	db: Transaction<Database>,

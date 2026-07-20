@@ -30,7 +30,7 @@ export const optionsCriterionEditorSchema = z.object({
 		.refine(hasEnoughOptionsMarks, { message: optionsMarksMinimumMessage }),
 });
 
-export type OptionsCriterionEditorValue = z.output<
+export type OptionsCriterionDefinitionInput = z.output<
 	typeof optionsCriterionEditorSchema
 >;
 

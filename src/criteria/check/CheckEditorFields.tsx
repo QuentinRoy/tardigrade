@@ -3,7 +3,7 @@
 import { Group } from "@mantine/core";
 import type { ReactElement } from "react";
 import UncontrolledNumberInput from "#design-system/UncontrolledNumberInput.tsx";
-import type { CheckCriterionEditorValue } from "./checkSchemas.ts";
+import type { CheckCriterionDefinitionInput } from "./checkSchemas.ts";
 
 // Kind-owned authoring inputs for a Check criterion. The rubric-management
 // vertical keeps the surrounding CriterionEditorPaper chrome and the kind→fields
@@ -18,8 +18,8 @@ export type CheckEditorFieldErrors = {
 };
 
 type CheckEditorFieldsProps = {
-	criterion: CheckCriterionEditorValue;
-	onChange: (criterion: CheckCriterionEditorValue) => void;
+	criterion: CheckCriterionDefinitionInput;
+	onChange: (criterion: CheckCriterionDefinitionInput) => void;
 	fieldErrors?: CheckEditorFieldErrors | undefined;
 };
 

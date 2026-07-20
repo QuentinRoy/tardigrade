@@ -2,15 +2,15 @@
 
 import type { ReactElement } from "react";
 import OptionsEditorFields from "#criteria/options/OptionsEditorFields.tsx";
+import type { CriterionDefinitionInput } from "#criteria/types.ts";
 import CriterionEditorPaper from "./CriterionEditorPaper.tsx";
 import type { RubricCriterionFieldErrors } from "./errors.ts";
-import type { CriterionEditorValue } from "./types.ts";
 
-type OptionsCriterion = Extract<CriterionEditorValue, { kind: "options" }>;
+type OptionsCriterion = Extract<CriterionDefinitionInput, { kind: "options" }>;
 
 type OptionsCriterionEditorPaperProps = {
 	criterion: OptionsCriterion;
-	onChange: (criterion: CriterionEditorValue) => void;
+	onChange: (criterion: CriterionDefinitionInput) => void;
 	onRemove: () => void;
 	fieldErrors?: RubricCriterionFieldErrors | undefined;
 };

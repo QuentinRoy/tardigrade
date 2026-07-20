@@ -52,8 +52,10 @@ export async function upsertCheckSubtypeRowsInDb(
 // parent row exists.
 export async function writeCheckGradeInDb(
 	db: Transaction<Database>,
-	criterionGradeId: number,
-	grade: CheckCriterionGradeContent,
+	{
+		criterionGradeId,
+		grade,
+	}: { criterionGradeId: number; grade: CheckCriterionGradeContent },
 ): Promise<void> {
 	await db
 		.insertInto("checkCriterionGrade")

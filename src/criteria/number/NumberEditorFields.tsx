@@ -3,7 +3,7 @@
 import { Group, Stack, Switch, Text } from "@mantine/core";
 import type { ReactElement } from "react";
 import UncontrolledNumberInput from "#design-system/UncontrolledNumberInput.tsx";
-import type { NumberCriterionEditorValue } from "./numberSchemas.ts";
+import type { NumberCriterionDefinitionInput } from "./numberSchemas.ts";
 
 // Kind-owned authoring inputs for a Number criterion. The rubric-management
 // vertical keeps the surrounding CriterionEditorPaper chrome and the kind→fields
@@ -20,8 +20,8 @@ export type NumberEditorFieldErrors = {
 };
 
 type NumberEditorFieldsProps = {
-	criterion: NumberCriterionEditorValue;
-	onChange: (criterion: NumberCriterionEditorValue) => void;
+	criterion: NumberCriterionDefinitionInput;
+	onChange: (criterion: NumberCriterionDefinitionInput) => void;
 	fieldErrors?: NumberEditorFieldErrors | undefined;
 };
 

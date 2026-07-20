@@ -3,16 +3,27 @@ import type {
 	CheckCriterion,
 	CheckCriterionGrade,
 } from "./check/checkDomain.ts";
+import type { CheckCriterionDefinitionInput } from "./check/checkSchemas.ts";
 import type {
 	NumberCriterion,
 	NumberCriterionGrade,
 } from "./number/numberDomain.ts";
+import type { NumberCriterionDefinitionInput } from "./number/numberSchemas.ts";
 import type {
 	OptionsCriterion,
 	OptionsCriterionGrade,
 } from "./options/optionsDomain.ts";
+import type { OptionsCriterionDefinitionInput } from "./options/optionsSchemas.ts";
 
 export type { CriterionKind };
+
+// The authored/configured representation of a Criterion, as edited by an
+// author (CONTEXT.md: Criterion Definition) — the Derived Input Type for the
+// three per-kind editor schemas' `z.output` (ADR 0013).
+export type CriterionDefinitionInput =
+	| CheckCriterionDefinitionInput
+	| OptionsCriterionDefinitionInput
+	| NumberCriterionDefinitionInput;
 
 // The `Criterion`/`CriterionGrade` unions are assembled from each kind's content,
 // every member sourced from its own kind folder (ADR 0013).
@@ -28,6 +39,14 @@ export type CriterionForKind<TKind extends CriterionKind> = Extract<
 	Criterion,
 	{ kind: TKind }
 >;
+
+// Result of validating a grade against its criterion's current definition
+// (ADR 0013 pinned adapter signature). Each kind's `validate*GradeInDb`
+// returns this instead of a bare `string | undefined`, so the failure message
+// can't be mistaken for a success value.
+export type GradeValidationResult =
+	| { valid: true }
+	| { valid: false; message: string };
 
 export type GradedCriterion<TKind extends CriterionKind = CriterionKind> =
 	TKind extends CriterionKind

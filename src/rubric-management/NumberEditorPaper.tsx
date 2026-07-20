@@ -2,15 +2,15 @@
 
 import type { ReactElement } from "react";
 import NumberEditorFields from "#criteria/number/NumberEditorFields.tsx";
+import type { CriterionDefinitionInput } from "#criteria/types.ts";
 import CriterionEditorPaper from "./CriterionEditorPaper.tsx";
 import type { RubricCriterionFieldErrors } from "./errors.ts";
-import type { CriterionEditorValue } from "./types.ts";
 
-type NumberCriterion = Extract<CriterionEditorValue, { kind: "number" }>;
+type NumberCriterion = Extract<CriterionDefinitionInput, { kind: "number" }>;
 
 type NumberCriterionEditorPaperProps = {
 	criterion: NumberCriterion;
-	onChange: (criterion: CriterionEditorValue) => void;
+	onChange: (criterion: CriterionDefinitionInput) => void;
 	onRemove: () => void;
 	fieldErrors?: RubricCriterionFieldErrors | undefined;
 };

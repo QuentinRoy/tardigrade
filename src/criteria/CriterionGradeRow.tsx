@@ -2,15 +2,15 @@
 
 import { Box, Group, Stack, Text } from "@mantine/core";
 import type { ReactElement } from "react";
-import CheckGradeControl from "./CheckGradeControl.tsx";
+import CheckGradeControl from "./check/CheckGradeControl.tsx";
 import {
 	getCriterionMaxMarks,
 	getCriterionMinMarks,
 	markCriterion,
 } from "./criterion.ts";
 import GradeStatus from "./GradeStatus.tsx";
-import NumberGradeControl from "./NumberGradeControl.tsx";
-import OptionsGradeControl from "./OptionsGradeControl.tsx";
+import NumberGradeControl from "./number/NumberGradeControl.tsx";
+import OptionsGradeControl from "./options/OptionsGradeControl.tsx";
 import type { CriterionGrade, GradedCriterion } from "./types.ts";
 
 type CriterionGradeRowProps = {

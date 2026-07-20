@@ -1,6 +1,8 @@
 import "server-only";
 import type { Transaction } from "kysely";
 import type { Database } from "#db/generated/database.ts";
+import type { GradeValidationResult } from "../types.ts";
+import { isNumberValueRangeValid } from "./numberBounds.ts";
 import type {
 	NumberCriterion,
 	NumberCriterionGradeContent,
@@ -56,13 +58,68 @@ export async function upsertNumberSubtypeRowsInDb(
 		.execute();
 }
 
+// User-facing messages for a Number grade (ADR 0013: kind owns the fact and the
+// message; grade-persistence keeps only messages that aren't kind-specific).
+const numberInvalidValueMessage = "Enter a valid value and try again.";
+const numberInvalidValueRangeMessage =
+	"This value range is currently unavailable. Reload and try again. If it still fails, report this issue.";
+
+// Validates a Number grade against the criterion's current value range
+// (ADR 0013 pinned adapter signature: validate(db, { criterionRowId, grade })).
+// The coordinator calls this before upserting the parent `criterionGrade` row.
+export async function validateNumberGradeInDb(
+	db: Transaction<Database>,
+	{
+		criterionRowId,
+		grade,
+	}: { criterionRowId: number; grade: NumberCriterionGradeContent },
+): Promise<GradeValidationResult> {
+	if (!Number.isFinite(grade.value)) {
+		return { valid: false, message: numberInvalidValueMessage };
+	}
+
+	const numberCriterionRow = await db
+		.selectFrom("numberCriterion")
+		.where("criterionId", "=", criterionRowId)
+		.select(["minValue", "maxValue"])
+		.executeTakeFirst();
+
+	const minValue =
+		numberCriterionRow?.minValue != null
+			? Number(numberCriterionRow.minValue)
+			: null;
+	const maxValue =
+		numberCriterionRow?.maxValue != null
+			? Number(numberCriterionRow.maxValue)
+			: null;
+
+	if (
+		minValue == null ||
+		maxValue == null ||
+		!isNumberValueRangeValid({ minValue, maxValue })
+	) {
+		return { valid: false, message: numberInvalidValueRangeMessage };
+	}
+
+	if (grade.value < minValue) {
+		return { valid: false, message: `Enter a value of at least ${minValue}.` };
+	}
+	if (grade.value > maxValue) {
+		return { valid: false, message: `Enter a value of at most ${maxValue}.` };
+	}
+
+	return { valid: true };
+}
+
 // Writes a Number criterion grade's subtype row. The coordinator upserts the
 // parent `criterionGrade` and passes its id, so this never runs before the
 // parent row exists.
 export async function writeNumberGradeInDb(
 	db: Transaction<Database>,
-	criterionGradeId: number,
-	grade: NumberCriterionGradeContent,
+	{
+		criterionGradeId,
+		grade,
+	}: { criterionGradeId: number; grade: NumberCriterionGradeContent },
 ): Promise<void> {
 	await db
 		.insertInto("numberCriterionGrade")

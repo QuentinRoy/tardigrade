@@ -1,7 +1,7 @@
 import { cacheTag } from "next/cache";
 import { expect, test, vi } from "vitest";
 import { saveCriterionGradeInDb } from "#grade-persistence/gradeMutations.ts";
-import { createTestDb, inTransaction } from "#test/dbIntegration.ts";
+import { createTestDb } from "#test/dbIntegration.ts";
 import { createGradeFixture } from "#test/grades.ts";
 import { createGrid } from "#test/grids.ts";
 import { createCheckRubricFixture } from "#test/rubrics.ts";
@@ -37,7 +37,7 @@ test("loadRubricGradeFromDb returns the stored criterion values for a grade targ
 	await using grid = await createGrid(db, "Grade Read Grid");
 	const fixture = await createGradeFixture(db, grid.id);
 
-	await inTransaction(db, async (tx) => {
+	await db.transaction().execute(async (tx) => {
 		await saveCriterionGradeInDb(tx, {
 			gridId: fixture.gridId,
 			targetId: fixture.gradeTargetId,
@@ -107,18 +107,20 @@ test("loadRubricGrade wrapper delegates to its primitive and declares its cache 
 	await using grid = await createGrid(db, "Grade Cache Tag Grid");
 	const fixture = await createGradeFixture(db, grid.id);
 
-	await inTransaction(db, (tx) =>
-		saveCriterionGradeInDb(tx, {
-			gridId: fixture.gridId,
-			targetId: fixture.gradeTargetId,
-			rubricId: fixture.rubricId,
-			grade: {
-				criterionId: fixture.criterionIds.check,
-				kind: "check",
-				passed: true,
-			},
-		}),
-	);
+	await db
+		.transaction()
+		.execute((tx) =>
+			saveCriterionGradeInDb(tx, {
+				gridId: fixture.gridId,
+				targetId: fixture.gradeTargetId,
+				rubricId: fixture.rubricId,
+				grade: {
+					criterionId: fixture.criterionIds.check,
+					kind: "check",
+					passed: true,
+				},
+			}),
+		);
 
 	const loaded = await loadRubricGrade(
 		{
@@ -148,7 +150,7 @@ test("loadGradeTargetGradesFromDb groups a grade target's criterion values by ru
 	// rubrics is observable.
 	const secondRubric = await createCheckRubricFixture(db, grid.rowId, 1);
 
-	await inTransaction(db, async (tx) => {
+	await db.transaction().execute(async (tx) => {
 		await saveCriterionGradeInDb(tx, {
 			gridId: fixture.gridId,
 			targetId: fixture.gradeTargetId,
@@ -208,18 +210,20 @@ test("loadGradeTargetGrades wrapper delegates to its primitive and declares its 
 	await using grid = await createGrid(db, "Grade Grade Target Cache Tag Grid");
 	const fixture = await createGradeFixture(db, grid.id);
 
-	await inTransaction(db, (tx) =>
-		saveCriterionGradeInDb(tx, {
-			gridId: fixture.gridId,
-			targetId: fixture.gradeTargetId,
-			rubricId: fixture.rubricId,
-			grade: {
-				criterionId: fixture.criterionIds.check,
-				kind: "check",
-				passed: true,
-			},
-		}),
-	);
+	await db
+		.transaction()
+		.execute((tx) =>
+			saveCriterionGradeInDb(tx, {
+				gridId: fixture.gridId,
+				targetId: fixture.gradeTargetId,
+				rubricId: fixture.rubricId,
+				grade: {
+					criterionId: fixture.criterionIds.check,
+					kind: "check",
+					passed: true,
+				},
+			}),
+		);
 
 	const loaded = await loadGradeTargetGrades(
 		{ targetId: fixture.gradeTargetId, gridId: fixture.gridId },
@@ -247,18 +251,20 @@ test("grade reads return nothing when the Grid ID does not match the grade targe
 	await using gridB = await createGrid(db, "Grade Scope Grid B");
 	const fixture = await createGradeFixture(db, gridA.id);
 
-	await inTransaction(db, (tx) =>
-		saveCriterionGradeInDb(tx, {
-			gridId: fixture.gridId,
-			targetId: fixture.gradeTargetId,
-			rubricId: fixture.rubricId,
-			grade: {
-				criterionId: fixture.criterionIds.check,
-				kind: "check",
-				passed: true,
-			},
-		}),
-	);
+	await db
+		.transaction()
+		.execute((tx) =>
+			saveCriterionGradeInDb(tx, {
+				gridId: fixture.gridId,
+				targetId: fixture.gradeTargetId,
+				rubricId: fixture.rubricId,
+				grade: {
+					criterionId: fixture.criterionIds.check,
+					kind: "check",
+					passed: true,
+				},
+			}),
+		);
 
 	const rubricGrade = await loadRubricGradeFromDb(db, {
 		targetId: fixture.gradeTargetId,

@@ -1,9 +1,14 @@
 import "server-only";
 import type { Transaction } from "kysely";
 import { writeCheckGradeInDb } from "#criteria/check/checkPersistence.ts";
-import { isNumberValueRangeValid } from "#criteria/number/numberBounds.ts";
-import { writeNumberGradeInDb } from "#criteria/number/numberPersistence.ts";
-import { writeOptionsGradeInDb } from "#criteria/options/optionsPersistence.ts";
+import {
+	validateNumberGradeInDb,
+	writeNumberGradeInDb,
+} from "#criteria/number/numberPersistence.ts";
+import {
+	validateOptionsGradeInDb,
+	writeOptionsGradeInDb,
+} from "#criteria/options/optionsPersistence.ts";
 import type { CriterionGrade } from "#criteria/types.ts";
 import type { Database } from "#db/generated/database.ts";
 import { assertNever } from "#utils/utils.ts";
@@ -52,11 +57,6 @@ export const saveCriterionGradeErrors = {
 		"We couldn't find this grading criterion. Reload and try again. If this keeps happening, report this issue.",
 	criterionChanged:
 		"This grading criterion changed while you were grading. Reload and try again.",
-	invalidOption:
-		"That option is no longer available. Reload and choose another option.",
-	invalidValue: "Enter a valid value and try again.",
-	invalidValueRange:
-		"This value range is currently unavailable. Reload and try again. If it still fails, report this issue.",
 	unexpected:
 		"Something went wrong saving this grade. Reload and try again. If this keeps happening, report this issue.",
 };
@@ -104,21 +104,6 @@ export async function saveCriterionGradeInDb(
 
 	const criterion = await db
 		.selectFrom("criterion")
-		.leftJoin(
-			"optionsCriterion",
-			"optionsCriterion.criterionId",
-			"criterion.rowId",
-		)
-		.leftJoin(
-			"optionsCriterionMark",
-			"optionsCriterionMark.optionsCriterionId",
-			"optionsCriterion.id",
-		)
-		.leftJoin(
-			"numberCriterion",
-			"numberCriterion.criterionId",
-			"criterion.rowId",
-		)
 		.where("criterion.id", "=", criterionId)
 		.where("criterion.gridRowId", "=", rubric.gridRowId)
 		.select([
@@ -126,9 +111,6 @@ export async function saveCriterionGradeInDb(
 			"criterion.rowId",
 			"criterion.kind",
 			"criterion.rubricId",
-			"optionsCriterionMark.label",
-			"numberCriterion.minValue",
-			"numberCriterion.maxValue",
 		])
 		.executeTakeFirst();
 
@@ -190,7 +172,10 @@ export async function saveCriterionGradeInDb(
 		const criterionGradeId = await upsertCriterionGrade();
 
 		await Promise.all([
-			writeCheckGradeInDb(db, criterionGradeId, { passed: checkGrade.passed }),
+			writeCheckGradeInDb(db, {
+				criterionGradeId,
+				grade: { passed: checkGrade.passed },
+			}),
 			clearOtherSubtypeValues(criterionGradeId, "check"),
 		]);
 
@@ -200,28 +185,19 @@ export async function saveCriterionGradeInDb(
 	async function saveOptionsGrade(
 		optionsGrade: Extract<CriterionGrade, { kind: "options" }>,
 	): Promise<SaveCriterionGradeResult | undefined> {
-		const optionsLabels = await db
-			.selectFrom("optionsCriterionMark")
-			.innerJoin(
-				"optionsCriterion",
-				"optionsCriterion.id",
-				"optionsCriterionMark.optionsCriterionId",
-			)
-			.where("optionsCriterion.criterionId", "=", criterionRowId)
-			.select("optionsCriterionMark.label")
-			.execute();
-
-		const allowedValues = optionsLabels.map((item) => item.label);
-		if (!allowedValues.includes(optionsGrade.selectedLabel)) {
-			return { success: false, error: saveCriterionGradeErrors.invalidOption };
+		const gradeContent = { selectedLabel: optionsGrade.selectedLabel };
+		const validationResult = await validateOptionsGradeInDb(db, {
+			criterionRowId,
+			grade: gradeContent,
+		});
+		if (!validationResult.valid) {
+			return { success: false, error: validationResult.message };
 		}
 
 		const criterionGradeId = await upsertCriterionGrade();
 
 		await Promise.all([
-			writeOptionsGradeInDb(db, criterionGradeId, {
-				selectedLabel: optionsGrade.selectedLabel,
-			}),
+			writeOptionsGradeInDb(db, { criterionGradeId, grade: gradeContent }),
 			clearOtherSubtypeValues(criterionGradeId, "options"),
 		]);
 
@@ -231,51 +207,19 @@ export async function saveCriterionGradeInDb(
 	async function saveNumberGrade(
 		numberGrade: Extract<CriterionGrade, { kind: "number" }>,
 	): Promise<SaveCriterionGradeResult | undefined> {
-		const parsed = numberGrade.value;
-		if (!Number.isFinite(parsed)) {
-			return { success: false, error: saveCriterionGradeErrors.invalidValue };
-		}
-
-		const numberCriterionData = await db
-			.selectFrom("numberCriterion")
-			.where("criterionId", "=", criterionRowId)
-			.select(["minValue", "maxValue"])
-			.executeTakeFirst();
-
-		const minValue =
-			numberCriterionData?.minValue != null
-				? Number(numberCriterionData.minValue)
-				: null;
-		const maxValue =
-			numberCriterionData?.maxValue != null
-				? Number(numberCriterionData.maxValue)
-				: null;
-
-		if (
-			minValue == null ||
-			maxValue == null ||
-			!isNumberValueRangeValid({ minValue, maxValue })
-		) {
-			return {
-				success: false,
-				error: saveCriterionGradeErrors.invalidValueRange,
-			};
-		}
-
-		if (parsed < minValue) {
-			return {
-				success: false,
-				error: `Enter a value of at least ${minValue}.`,
-			};
-		}
-		if (parsed > maxValue) {
-			return { success: false, error: `Enter a value of at most ${maxValue}.` };
+		const gradeContent = { value: numberGrade.value };
+		const validationResult = await validateNumberGradeInDb(db, {
+			criterionRowId,
+			grade: gradeContent,
+		});
+		if (!validationResult.valid) {
+			return { success: false, error: validationResult.message };
 		}
 
 		const criterionGradeId = await upsertCriterionGrade();
 
 		await Promise.all([
-			writeNumberGradeInDb(db, criterionGradeId, { value: parsed }),
+			writeNumberGradeInDb(db, { criterionGradeId, grade: gradeContent }),
 			clearOtherSubtypeValues(criterionGradeId, "number"),
 		]);
 
