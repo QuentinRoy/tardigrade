@@ -12,7 +12,6 @@ export type SaveError = {
 	id: string;
 	gridId: string;
 	gridSlug: string;
-	rubricId: string;
 	targetId: string;
 	targetSlug: string;
 	rubricLabel?: string | undefined;

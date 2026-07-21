@@ -6,7 +6,6 @@ const errorContext = {
 	gridSlug: "grid-slug",
 	targetId: "target-1",
 	targetSlug: "target-slug",
-	rubricId: "rubric-1",
 };
 
 describe("trySaveCriterionGrade", () => {

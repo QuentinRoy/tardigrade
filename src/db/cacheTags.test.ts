@@ -4,7 +4,6 @@ import {
 	allGridsTag,
 	allRubricsTag,
 	allTargetGradesTag,
-	allTargetRubricGradesTag,
 	allTargetsTag,
 	gradeCompletionByRubricTag,
 	gridTag,
@@ -23,11 +22,6 @@ test("every tag shape", () => {
 		allTargets: allTargetsTag({ gridId }),
 		allGrades: allGradesTag({ gridId }),
 		allTargetGrades: allTargetGradesTag({ gridId, targetId: "t-1" }),
-		allTargetRubricGrades: allTargetRubricGradesTag({
-			gridId,
-			targetId: "t-1",
-			rubricId: "q-1",
-		}),
 		rubricCompletion: gradeCompletionByRubricTag({ gridId, rubricId: "q-1" }),
 	}).toMatchInlineSnapshot(`
 		{
@@ -35,7 +29,6 @@ test("every tag shape", () => {
 		  "allGrids": "grids",
 		  "allRubrics": "grids:g-1:rubrics",
 		  "allTargetGrades": "grids:g-1:grades:target:t-1",
-		  "allTargetRubricGrades": "grids:g-1:grades:target:t-1:rubric:q-1",
 		  "allTargets": "grids:g-1:grade-targets",
 		  "grid": "grids:g-1",
 		  "rubricCompletion": "grids:g-1:grades:rubric:q-1",
@@ -58,7 +51,6 @@ test("adversarial ids cannot alias distinct tag shapes", () => {
 		allGradesTag({ gridId }),
 		allTargetGradesTag({ gridId, targetId: "all" }),
 		allTargetGradesTag({ gridId, targetId: "rubric" }),
-		allTargetRubricGradesTag({ gridId, targetId: "all", rubricId: "all" }),
 		gradeCompletionByRubricTag({ gridId, rubricId: "all" }),
 		gradeCompletionByRubricTag({ gridId, rubricId: "target" }),
 	];

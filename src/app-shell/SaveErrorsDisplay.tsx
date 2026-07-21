@@ -3,7 +3,7 @@
 import { Alert, Stack } from "@mantine/core";
 import AppLink from "#design-system/AppLink.tsx";
 import { useSaveErrors } from "#design-system/SaveErrorsProvider.tsx";
-import { gridGradeTargetRubricPath } from "#grids/gridPaths.ts";
+import { gridGradeTargetPath } from "#grids/gridPaths.ts";
 
 export function SaveErrorsDisplay() {
 	const { errors, dismissError } = useSaveErrors();
@@ -22,12 +22,8 @@ export function SaveErrorsDisplay() {
 					onClose={() => dismissError(error.id)}
 				>
 					Failed to save grade for{" "}
-					<AppLink
-						href={gridGradeTargetRubricPath(error)}
-						c="inherit"
-						fw="bold"
-					>
-						{error.rubricLabel ?? error.rubricId} /{" "}
+					<AppLink href={gridGradeTargetPath(error)} c="inherit" fw="bold">
+						{error.rubricLabel ?? "Unknown rubric"} /{" "}
 						{error.targetLabel ?? error.targetId}
 					</AppLink>
 					. {error.message}

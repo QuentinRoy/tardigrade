@@ -39,7 +39,7 @@ The overview of all grading in a grid: one row per student or group, one cell pe
 _Avoid_: matrix, submission matrix, gradebook, marks (as the table name)
 
 **Grading**:
-A grid's grading-entry hub page: links to grade by student or group and by rubric, plus a link onward to **Results**. Distinct from **Overview** (the grid's home page — status and setup links) and from the **Grades** table (an outcome display, not an entry point). Its URL segment stays `/grades`, naming the resource rather than the page.
+A grid's grading-entry hub page: links to grade by student or group, plus a link onward to **Results**. Distinct from **Overview** (the grid's home page — status and setup links) and from the **Grades** table (an outcome display, not an entry point). Its URL segment stays `/grades`, naming the resource rather than the page.
 _Avoid_: Grades (as this page's name or nav label — reserved for the outcome table)
 
 **Grid**:
