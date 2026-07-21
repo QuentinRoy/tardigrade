@@ -85,16 +85,32 @@ _Avoid_: service, manager, orchestrator (as a type name)
 ### Roster
 
 **Student**:
-A person imported or created within a Grid, identified by a stable id independent of display name. May belong to zero or more Groups. "Participant" was considered as a more generic alternative and declined: the product's users are educators and every roster member is graded, so the specific word carries more information — and Moodle needs "Participants" only because its rosters are multi-role. If a non-education audience ever materializes, the rename is shallow because **Grade Target** carries identity, and the right word can be chosen then from what those users call themselves.
+A person imported or created within a Grid, identified by a stable id independent of display name. Belongs to at most one **Grade Target** per Grid (the **Partition Rule**). "Participant" was considered as a more generic alternative and declined: the product's users are educators and every roster member is graded, so the specific word carries more information — and Moodle needs "Participants" only because its rosters are multi-role. If a non-education audience ever materializes, the rename is shallow because **Grade Target** carries identity, and the right word can be chosen then from what those users call themselves.
 _Avoid_: participant, user (both imply broader platform-level identity; a Student is Grid-scoped)
 
-**Group**:
-One or more students treated as a single unit for assessment. Previously called "Team"; renamed because "Team" implies persistent collaboration, while a Group naturally covers pairs, ad hoc lab groups, and imported Moodle groups without that connotation. A Group of size one can represent an individual assessment target without a separate persistence branch — this is a candidate future direction (see the assessment target model investigation), not yet a decided structural change; only the word is settled here.
-_Avoid_: team, participant (a participant is a single person; a Group may contain several)
-
 **Grade Target**:
-The entity that occupies one row of a Grid — currently either an individual Student or a Group — identified by a stable id independent of its current display label or composition, following the established `id`/`row_id` convention (Grade Target ID / Grade Target Row ID). Whether Student and Group remain separate persistence branches or unify under Group (a singleton Group representing an individual) is still an open question — see the assessment target model investigation and #61; this term does not commit to either outcome. Deliberately a code/dev-facing concept only: user-facing copy names the Student or Group directly, never "Grade Target" — see the Lexicon.
-_Avoid_: submission (implies submitted work; wrong for ad hoc or no-submission targets), target (bare — reads as generic programming vocabulary), assessment target (reintroduces the retired "assessment" word)
+The single entity that occupies one row of a Grid: a set of one or more Students, identified by a stable id independent of its current display label or composition, following the established `id`/`row_id` convention (Grade Target ID / Grade Target Row ID). It carries an optional **Group Name** and its **Membership**; persistence does not distinguish individual from group (see ADR 0014). Deliberately a code/dev-facing concept only: user-facing copy names the Student or Group directly, never "Grade Target" — see the Lexicon.
+_Avoid_: submission (implies submitted work; wrong for ad hoc or no-submission targets), target (bare — reads as generic programming vocabulary), assessment target (reintroduces the retired "assessment" word), individual/group as persisted kinds (they are presentation shapes — see **Group**, **Individual**)
+
+**Membership**:
+The set of Students belonging to a **Grade Target**, persisted one row per (Grade Target, Student). A Student in a target is a **member**. Every Grade Target has at least one member, guaranteed at the write boundary (not a database CHECK, since membership is a join table); readers fail loudly on a memberless target rather than substituting a label. Zero-member (draft) targets are a deliberate non-goal here, deferred to #61.
+_Avoid_: student_to_group (the retired join name), roster (that is the Grid's Students, not one target's members)
+
+**Partition Rule**:
+Each Student belongs to at most one **Grade Target** per Grid. Moving a Student between targets is a reassignment, never a fork, so grid-wide Totals and **Grade Completion** never double-count a Student.
+_Avoid_: a Student graded both solo and in a group (a separate future feature, not this model)
+
+**Group**:
+A presentation shape of a **Grade Target**, not a persisted entity: a target that has a **Group Name** OR more than one member. Renders with the group name and member list. Previously a table (and before that "Team"); the table is gone (ADR 0014) — "Group" now names how a multi-member or named target is presented, over the one Grade Target model. A named single-member target is still a Group (the author gave it a name). Covers pairs, ad hoc lab groups, and imported Moodle groups.
+_Avoid_: team, participant, a separate group table or `group_row_id` (retired), treating Group as a persisted kind
+
+**Individual**:
+A presentation shape of a **Grade Target**, not a persisted entity: a target with exactly one member and no **Group Name**, rendered as that single Student. An Individual never carries a name. The complement of **Group** under the name-OR-multimember rule.
+_Avoid_: an `individual` kind value or `student_row_id` column (retired), treating Individual as a persisted kind
+
+**Group Name**:
+The optional name of a **Grade Target**, unique per Grid among non-null names. Only a **Group** carries one; an **Individual** leaves it null and derives its label from its single Student. The name is import's find-or-create key for a group; it is a display label, not identity (the **Grade Target ID** resolves the target).
+_Avoid_: target name (only groups have one), using the name as identity
 
 ### Import
 

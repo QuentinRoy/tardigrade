@@ -33,7 +33,7 @@ Open-ended audits and option analysis. Investigations may contain hypotheses and
 ### Product and domain investigations
 
 - [Grading workflows and product positioning](investigations/2026-05-22-grading-workflows-and-product-positioning.md)
-- [Assessment target model](investigations/2026-05-20-assessment-target-model.md) — terminology resolved (Group, Grade Target); structural model still open.
+- [Assessment target model](investigations/2026-05-20-assessment-target-model.md) — resolved: structural model decided in ADR 0014 (unify grade targets as student sets); terminology already resolved (Group, Grade Target).
 - [Mark, grade and weighting model](investigations/2026-05-20-mark-grade-weighting-model.md) — terminology resolved (Score → Mark → Total, Grade); aggregation model still open.
 
 ### Technical architecture investigations
@@ -70,6 +70,7 @@ Short records of durable architecture decisions.
 - [0011 Adopt Mantine with a constrained, app-owned design system](adr/0011-adopt-mantine-constrained-design-system.md)
 - [0012 Converge the domain vocabulary; keep separate internal and user-facing glossaries](adr/0012-converged-domain-vocabulary-and-two-glossaries.md)
 - [0013 Organise each criterion kind as a vertical module under `src/criteria`](adr/0013-criterion-kind-vertical-modules.md)
+- [0014 Unify grade targets as student sets; drop the individual/group kind](adr/0014-unify-grade-targets-as-student-sets.md)
 - Add new ADRs under `docs/adr/`.
 
 ## Designs
