@@ -1,6 +1,6 @@
 # Criterion-kind vertical modules migration
 
-- **Status:** Active
+- **Status:** Completed
 - **Created:** 2026-07-16
 - **Origin:** [ADR 0013](../docs/adr/0013-criterion-kind-vertical-modules.md); [criterion-kind ownership investigation](../docs/investigations/2026-07-16-criterion-kind-ownership-and-persistence.md)
 - **Tracked by:** #273
@@ -160,6 +160,14 @@ Audit (2026-07-17) found three kind-aware production files the investigation's i
 Move each into its kind folders as a private per-kind function plus an exhaustive dispatcher in `criteria`, mirroring the shape of `criterionExport.ts`/`criterionYaml.ts`. Behavior-preserving; no logic change, only relocation + exhaustive-dispatch wrapping. Record the three new dispatchers in this plan's "remaining kind-aware loci" reconciliation (see below) — they join the justified set, they don't shrink it.
 
 #### PR6 — Deletion-test breakers, then plan closure
+
+**As-built deviations (all behavior-preserving):**
+
+- **Item 1 was already discharged in PR4a** (pulled forward by PR300 review); PR6 landed only item 2 plus plan closure.
+- **Item 2 collapsed the third grade-hydration copy via `criterion.kind`, not column-presence.** `gradeTargetExport.ts`'s query now selects `criterion.kind as kind`, and `gradeTargetExportGrouping.ts` dispatches through `criteria/criterionGradeHydration.ts`'s `toCriterionGrade` (deleting its private `toNumber` helper and the three column-presence branches). The `kind`-null case joins the existing `rubricId`/`criterionId`-null skip guard — safe because a non-null `criterionId` implies the `criterion` join matched, so `kind` is non-null for every real grade row; the added clause never skips a row the old code kept.
+- **The kind-change edge the plan flagged is provably a non-issue, so no `clearOtherSubtypeValues` verification code was needed.** `rubricDefinitionMutations.ts` deletes-and-reinserts the criterion row on a kind change, and `criterion_grade.criterion_id` is a `NOT NULL` FK with `ON DELETE CASCADE`; that delete only succeeds because the grades cascade away. So a surviving `criterionGrade` always has its `criterion.kind` matching its single populated subtype column (that column kept by `clearOtherSubtypeValues`) — column-presence and kind dispatch agree on every stored row, and the switch is behavior-preserving.
+- **`gradeTargetExportGrouping.test.ts` rows gained a `kind` field**, reflecting that hydration is now kind-driven: the classification/sparse/numeric-string cases set the matching `kind`, and `baseRow` carries `kind: null`. No assertion changed — the same grades are produced.
+- **Full suite ran green in this environment**: `check --fix`, `check-types`, `lint:boundaries` (344 modules, no violations), and the export unit + integration tests all pass.
 
 A second audit pass (grep every production file for a kind literal, not just the investigation's list) found two more loci PR5 does not cover, both more serious than PR5's three: they contradict decisions the investigation already *pinned*, rather than filling a gap it missed.
 
