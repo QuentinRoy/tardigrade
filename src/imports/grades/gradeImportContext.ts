@@ -87,25 +87,46 @@ async function loadTargetIdsByLookup(
 		}
 	}
 
+	// A group row matches a named target by its name; an individual row matches
+	// the one-member unnamed target whose sole member is that student. Both
+	// distinctions are derived from name + membership, not a stored kind.
 	const [groupTargets, individualTargets] = await Promise.all([
 		groupNames.size > 0
 			? db
 					.selectFrom("gradeTarget")
-					.innerJoin("group", "group.id", "gradeTarget.groupRowId")
-					.where("gradeTarget.kind", "=", "group")
 					.where("gradeTarget.gridRowId", "=", gridRowId)
-					.where("group.name", "in", Array.from(groupNames))
-					.select(["group.name as name", "gradeTarget.id as targetId"])
+					.where("gradeTarget.name", "in", Array.from(groupNames))
+					.select(["gradeTarget.name as name", "gradeTarget.id as targetId"])
 					.execute()
 			: Promise.resolve([]),
 		individualStudentIds.size > 0
 			? db
-					.selectFrom("gradeTarget")
-					.innerJoin("student", "student.rowId", "gradeTarget.studentRowId")
-					.where("gradeTarget.kind", "=", "individual")
-					.where("gradeTarget.gridRowId", "=", gridRowId)
+					.selectFrom("gradeTarget as gt")
+					.innerJoin(
+						"gradeTargetStudent as gts",
+						"gts.gradeTargetRowId",
+						"gt.rowId",
+					)
+					.innerJoin("student", "student.rowId", "gts.studentRowId")
+					.where("gt.gridRowId", "=", gridRowId)
+					.where("gt.name", "is", null)
 					.where("student.id", "in", Array.from(individualStudentIds))
-					.select(["student.id as name", "gradeTarget.id as targetId"])
+					.where((eb) =>
+						eb.not(
+							eb.exists(
+								eb
+									.selectFrom("gradeTargetStudent as other")
+									.whereRef(
+										"other.gradeTargetRowId",
+										"=",
+										"gts.gradeTargetRowId",
+									)
+									.whereRef("other.studentRowId", "<>", "gts.studentRowId")
+									.select("other.studentRowId"),
+							),
+						),
+					)
+					.select(["student.id as name", "gt.id as targetId"])
 					.execute()
 			: Promise.resolve([]),
 	]);
@@ -122,6 +143,9 @@ async function loadTargetIdsByLookup(
 	}
 
 	for (const target of groupTargets) {
+		if (target.name == null) {
+			continue;
+		}
 		addTarget(
 			targetLookupKey({ targetKind: "group", name: target.name }),
 			target.targetId,
