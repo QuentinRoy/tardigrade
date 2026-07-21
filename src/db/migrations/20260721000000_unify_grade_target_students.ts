@@ -75,9 +75,7 @@ async function assertNoPartitionViolations(
 		.select("stg.student_id as student_row_id");
 
 	const memberships = await db
-		.selectFrom((eb) =>
-			individualMembers.unionAll(groupMembers).as("memberships"),
-		)
+		.selectFrom(individualMembers.unionAll(groupMembers).as("memberships"))
 		.select("student_row_id")
 		.execute();
 
