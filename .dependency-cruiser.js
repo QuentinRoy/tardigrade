@@ -43,6 +43,14 @@ export default {
 			from: { path: `^src/(${VERTICALS})/`, pathNot: TEST_FILE },
 			to: { path: `^src/(${VERTICALS})/`, pathNot: "^src/$1/" },
 		},
+		{
+			name: "no-production-import-test",
+			comment:
+				"src/test is test-support tooling (fixtures may compose verticals), not an infra leaf: only test files may import it",
+			severity: "error",
+			from: { pathNot: [TEST_FILE, "^src/test/"] },
+			to: { path: "^src/test/" },
+		},
 	],
 	options: {
 		parser: "tsc",
