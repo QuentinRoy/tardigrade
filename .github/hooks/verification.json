@@ -4,7 +4,7 @@
 		"SessionStart": [
 			{
 				"type": "command",
-				"bash": "bash .github/hooks/project-tools.sh setup",
+				"bash": "bash .github/hooks/project-tools.sh setup || true",
 				"timeoutSec": 300
 			}
 		],
