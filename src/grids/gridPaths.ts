@@ -2,8 +2,6 @@ type GridRef = { gridId: string; gridSlug: string };
 
 type GridGradeTargetRef = GridRef & { targetId: string; targetSlug: string };
 
-type GridGradeTargetRubricRef = GridGradeTargetRef & { rubricId: string };
-
 export function gridBasePath({ gridId, gridSlug }: GridRef): string {
 	return `/grids/${gridId}/${gridSlug}`;
 }
@@ -30,13 +28,6 @@ export function gridGradeTargetPath({
 	...grid
 }: GridGradeTargetRef): string {
 	return `${gridGradesPath(grid)}/${targetId}/${targetSlug}`;
-}
-
-export function gridGradeTargetRubricPath({
-	rubricId,
-	...target
-}: GridGradeTargetRubricRef): string {
-	return `${gridGradeTargetPath(target)}/rubrics/${rubricId}`;
 }
 
 export function gridRubricsPath(grid: GridRef): string {

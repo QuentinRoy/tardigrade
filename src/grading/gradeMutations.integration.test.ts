@@ -5,10 +5,9 @@ import type { Database } from "#db/generated/database.ts";
 import { saveCriterionGradeInDb } from "#grade-persistence/gradeMutations.ts";
 import { runForcedInterleaving } from "#test/concurrency.ts";
 import { buildTestId, createTestDb } from "#test/dbIntegration.ts";
-import { createGradeFixture } from "#test/grades.ts";
+import { createGradeFixture, rubricSlice } from "#test/grades.ts";
 import { createGrid } from "#test/grids.ts";
 import { saveCriterionGrade } from "./gradeMutations.ts";
-import { loadRubricGradeFromDb } from "./grades.ts";
 
 vi.mock("next/cache", () => ({
 	cacheTag: vi.fn(),
@@ -85,11 +84,7 @@ test("saveCriterionGradeInDb round-trips check, options and number grades", asyn
 		{ success: true },
 	]);
 
-	const loaded = await loadRubricGradeFromDb(db, {
-		targetId: fixture.gradeTargetId,
-		gridId: fixture.gridId,
-		rubricId: fixture.rubricId,
-	});
+	const loaded = await rubricSlice(db, fixture);
 	const byCriterionId = new Map(
 		loaded.map((value) => [value.criterionId, value]),
 	);
@@ -202,20 +197,12 @@ test("saveCriterionGradeInDb saves in the correct grid when rubric and criterion
 
 	expect(result).toEqual({ success: true });
 
-	const gridBGrade = await loadRubricGradeFromDb(db, {
-		targetId: fixtureB.gradeTargetId,
-		gridId: fixtureB.gridId,
-		rubricId: fixtureB.rubricId,
-	});
+	const gridBGrade = await rubricSlice(db, fixtureB);
 	expect(gridBGrade).toEqual([
 		{ criterionId: fixtureB.criterionIds.check, kind: "check", passed: true },
 	]);
 
-	const gridAGrade = await loadRubricGradeFromDb(db, {
-		targetId: fixtureA.gradeTargetId,
-		gridId: fixtureA.gridId,
-		rubricId: fixtureA.rubricId,
-	});
+	const gridAGrade = await rubricSlice(db, fixtureA);
 	expect(gridAGrade).toEqual([]);
 });
 
@@ -274,7 +261,6 @@ test("saveCriterionGrade wrapper updates the edited tags read-your-writes and re
 
 	const updatedTags = vi.mocked(updateTag).mock.calls.map((call) => call[0]);
 	expect(updatedTags).toEqual([
-		`grids:${fixture.gridId}:grades:target:${fixture.gradeTargetId}:rubric:${fixture.rubricId}`,
 		`grids:${fixture.gridId}:grades:target:${fixture.gradeTargetId}`,
 	]);
 
@@ -439,11 +425,7 @@ test("saveCriterionGradeInDb keeps both criterion grades when two writers race d
 		.execute();
 	expect(criterionGradeQueryRows).toHaveLength(2);
 
-	const loaded = await loadRubricGradeFromDb(db, {
-		targetId: fixture.gradeTargetId,
-		gridId: fixture.gridId,
-		rubricId: fixture.rubricId,
-	});
+	const loaded = await rubricSlice(db, fixture);
 	const byCriterionId = new Map(
 		loaded.map((value) => [value.criterionId, value]),
 	);

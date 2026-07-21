@@ -4,7 +4,6 @@ import {
 	allGridsTag,
 	allRubricsTag,
 	allTargetGradesTag,
-	allTargetRubricGradesTag,
 	allTargetsTag,
 	gradeCompletionByRubricTag,
 	gridTag,
@@ -31,11 +30,10 @@ function revalidate(tag: string): void {
 	revalidateTag(tag, "max");
 }
 
-// Interactive single-grade save. Read-your-own-writes for the exact pair and
-// the grade target's grades (the grader must see the value just saved);
-// stale-while-revalidate for the coarse aggregate and the rubric completion
-// projection, so navigating to the next grade target never blocks on recomputing
-// grid-wide completion.
+// Interactive single-grade save. Read-your-own-writes for the grade target's
+// grades (the grader must see the value just saved); stale-while-revalidate
+// for the coarse aggregate and the rubric completion projection, so navigating
+// to the next grade target never blocks on recomputing grid-wide completion.
 export function invalidateGradeSave({
 	gridId,
 	targetId,
@@ -45,7 +43,6 @@ export function invalidateGradeSave({
 	targetId: string;
 	rubricId: string;
 }): void {
-	updateTag(allTargetRubricGradesTag({ gridId, targetId, rubricId }));
 	updateTag(allTargetGradesTag({ gridId, targetId }));
 	revalidate(allGradesTag({ gridId }));
 	revalidate(gradeCompletionByRubricTag({ gridId, rubricId }));

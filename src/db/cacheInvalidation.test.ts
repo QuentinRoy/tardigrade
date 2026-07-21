@@ -34,7 +34,6 @@ test("invalidateGradeSave updates the edited tags and revalidates the derived ta
 
 	expect(updatedTags()).toMatchInlineSnapshot(`
 		[
-		  "grids:g-1:grades:target:t-1:rubric:q-1",
 		  "grids:g-1:grades:target:t-1",
 		]
 	`);

@@ -53,19 +53,6 @@ export function allTargetGradesTag({
 	return `grids:${gridId}:grades:target:${targetId}`;
 }
 
-// All grade rows for one exact grade-target/rubric cohort.
-export function allTargetRubricGradesTag({
-	gridId,
-	targetId,
-	rubricId,
-}: {
-	gridId: string;
-	targetId: string;
-	rubricId: string;
-}): string {
-	return `grids:${gridId}:grades:target:${targetId}:rubric:${rubricId}`;
-}
-
 // One rubric's completion across grade targets.
 export function gradeCompletionByRubricTag({
 	gridId,
