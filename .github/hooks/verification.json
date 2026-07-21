@@ -1,18 +1,25 @@
 {
 	"version": 1,
 	"hooks": {
+		"SessionStart": [
+			{
+				"type": "command",
+				"bash": "bash .github/hooks/project-tools.sh setup",
+				"timeoutSec": 300
+			}
+		],
 		"PostToolUse": [
 			{
 				"type": "command",
 				"matcher": "edit|create|str_replace_editor|apply_patch",
-				"bash": "f=$(jq -r '.tool_input.file_path // .tool_input.path // .tool_input.target_file // empty'); if [ -n \"$f\" ]; then case \"$f\" in *.ts|*.tsx|*.js|*.jsx|*.mjs|*.cjs|*.json|*.jsonc) pnpm run check --write \"$f\";; esac; else pnpm run check --fix; fi",
+				"bash": "bash .github/hooks/format-after-edit.sh",
 				"timeoutSec": 30
 			}
 		],
 		"Stop": [
 			{
 				"type": "command",
-				"bash": "out=$(pnpm run check-types 2>&1); status=$?; if [ \"$status\" -ne 0 ]; then jq -n --arg reason \"$out\" '{decision:\"block\", reason: $reason}'; else jq -n '{decision:\"allow\"}'; fi",
+				"bash": "bash .github/hooks/check-types-before-stop.sh",
 				"timeoutSec": 60
 			}
 		]
