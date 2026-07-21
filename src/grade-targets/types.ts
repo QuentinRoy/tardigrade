@@ -1,12 +1,17 @@
 import type { Selectable } from "kysely";
 import type { Database } from "#db/generated/database.ts";
-import type { GradeTargetKind } from "#db/generated/public/GradeTargetKind.ts";
 import type { Simplify } from "#utils/utils.ts";
 
-export type { GradeTargetKind };
+// The persisted grade_target no longer stores a kind (ADR 0014): individual
+// vs group is a presentation shape derived at read time from name + member
+// count. This union names that derived shape, and also the import/export CSV
+// `kind` column vocabulary, both of which still distinguish the two.
+export type GradeTargetKind = "individual" | "group";
 
-// Native grade_target columns, shared by the display and identity shapes below.
-type GradeTargetBase = Pick<Selectable<Database["gradeTarget"]>, "id" | "kind">;
+// The only native grade_target column shared by the display and identity
+// shapes below. `kind`/`studentRowId`/`groupRowId` are gone; the shapes carry
+// a derived `kind` literal instead.
+type GradeTargetBase = Pick<Selectable<Database["gradeTarget"]>, "id">;
 
 type GradeTargetDisplay = {
 	displayLabel?: string | undefined;
@@ -19,7 +24,8 @@ type GradeTargetDisplay = {
 };
 
 // UI-facing shape: label, slug, and search metadata for rendering a grade
-// target in lists and pickers.
+// target in lists and pickers. `kind` is derived by `loadGradeTargets` (see
+// its name-OR-multimember rule), not read from a column.
 export type GradeTarget =
 	| Simplify<
 			GradeTargetDisplay &
@@ -38,10 +44,10 @@ export type GradeTarget =
 				}
 	  >;
 
-// Identity-only shape: which student or group a grade target belongs to.
-// studentId/groupName come from joining the student/group tables in queries,
-// not from native grade_target columns, so they're hand-written here rather
-// than derived from Selectable<Database["gradeTarget"]>.
+// Identity-only shape: how a grade target renders in an export row. `kind`,
+// `studentId`, and `groupName` are all derived at read time from the target's
+// name and membership, not from native grade_target columns, so they're
+// hand-written here rather than derived from Selectable<Database["gradeTarget"]>.
 export type GradeTargetIdentity =
 	| Simplify<
 			GradeTargetBase & {

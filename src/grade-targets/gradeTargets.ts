@@ -78,7 +78,7 @@ function formatStudentName(lastName: string, firstName: string): string {
 
 // `db` may be the global client or a caller-supplied transaction. `gridId`
 // is required: `gradeTarget.id` is only unique within a grid, so an
-// unscoped load would collide keys in `groupMembersByTargetId`.
+// unscoped load would collide keys in `membersByTargetId`.
 export async function loadGradeTargetsFromDb(
 	db: Kysely<Database>,
 	{ gridId }: { gridId: string },
@@ -88,34 +88,28 @@ export async function loadGradeTargetsFromDb(
 		.select("rowId")
 		.where("id", "=", gridId);
 
-	const [targets, groupMemberRows] = await Promise.all([
+	const [targets, memberRows] = await Promise.all([
 		db
 			.selectFrom("gradeTarget")
 			.where("gradeTarget.gridRowId", "in", gridRowIdQuery)
-			.leftJoin("student", "student.rowId", "gradeTarget.studentRowId")
-			.leftJoin("group", "group.id", "gradeTarget.groupRowId")
-			.select([
-				"gradeTarget.id as id",
-				"gradeTarget.kind as kind",
-				"student.lastName as studentLastName",
-				"student.firstName as studentFirstName",
-				"group.name as groupName",
-			])
+			.select(["gradeTarget.id as id", "gradeTarget.name as name"])
 			// Creation order, not id order: `id` is a per-grid text ordinal
 			// (`t-9` sorts after `t-12` lexicographically), so `rowId` (assigned
 			// in insertion order) is the only column that sorts correctly.
 			.orderBy("gradeTarget.rowId", "asc")
 			.execute(),
+		// Membership for every target (individual and group alike). A target's
+		// individual-vs-group shape is derived from name + this member count,
+		// not read from a column.
 		db
 			.selectFrom("gradeTarget")
 			.where("gradeTarget.gridRowId", "in", gridRowIdQuery)
 			.innerJoin(
-				"studentToGroup",
-				"studentToGroup.groupId",
-				"gradeTarget.groupRowId",
+				"gradeTargetStudent",
+				"gradeTargetStudent.gradeTargetRowId",
+				"gradeTarget.rowId",
 			)
-			.innerJoin("student", "student.rowId", "studentToGroup.studentId")
-			.where("gradeTarget.kind", "=", "group")
+			.innerJoin("student", "student.rowId", "gradeTargetStudent.studentRowId")
 			.select([
 				"gradeTarget.id as targetId",
 				"student.lastName as studentLastName",
@@ -127,13 +121,9 @@ export async function loadGradeTargetsFromDb(
 			.execute(),
 	]);
 
-	const groupMembersByTargetId = new Map<string, string[]>();
+	const membersByTargetId = new Map<string, string[]>();
 
-	for (const row of groupMemberRows) {
-		if (row.studentLastName == null || row.studentFirstName == null) {
-			continue;
-		}
-
+	for (const row of memberRows) {
 		const formattedName = formatStudentName(
 			row.studentLastName,
 			row.studentFirstName,
@@ -141,12 +131,12 @@ export async function loadGradeTargetsFromDb(
 		if (formattedName.length === 0) {
 			continue;
 		}
-		const names = groupMembersByTargetId.get(row.targetId) ?? [];
+		const names = membersByTargetId.get(row.targetId) ?? [];
 		names.push(formattedName);
-		groupMembersByTargetId.set(row.targetId, names);
+		membersByTargetId.set(row.targetId, names);
 	}
 
-	return { targets, groupMembersByTargetId };
+	return { targets, membersByTargetId };
 }
 
 // `db` is a test seam only (ADR 0007 rules 13–14): never pass a handle at runtime —
@@ -159,17 +149,36 @@ export async function loadGradeTargets(
 	cacheTags(...gradeTargetsCacheTags({ gridId }));
 	cacheLife("roster");
 
-	const { targets, groupMembersByTargetId } = await loadGradeTargetsFromDb(db, {
+	const { targets, membersByTargetId } = await loadGradeTargetsFromDb(db, {
 		gridId,
 	});
 
 	return targets.map((target) => {
-		if (target.kind === "group") {
-			const displayLabel = target.groupName ?? target.id;
-			const memberNames = groupMembersByTargetId.get(target.id) ?? [];
+		const members = membersByTargetId.get(target.id) ?? [];
+
+		// Every target has at least one member (a write-boundary guarantee, ADR
+		// 0014). A memberless target is a broken invariant, not a target to
+		// label with its opaque id — fail loudly rather than render it.
+		if (members.length === 0) {
+			throw new Error(
+				`Grade target ${target.id} has no members. Every grade target must ` +
+					"have at least one student; this row indicates corrupted data.",
+			);
+		}
+
+		// Name-OR-multimember rule: a target is a Group when it has a name or
+		// more than one member, and an Individual only when it has exactly one
+		// member and no name.
+		const isGroup = target.name != null || members.length > 1;
+
+		if (isGroup) {
+			// Group label: the Group Name, falling back to the joined member
+			// names when unnamed (an unnamed multi-member target), and never to
+			// the opaque id (members are guaranteed non-empty above).
+			const displayLabel = target.name ?? members.join(", ");
 			const searchKeys = Array.from(
 				new Set(
-					[displayLabel, ...memberNames]
+					[displayLabel, ...members]
 						.map(normalizeSearchValue)
 						.filter((value) => value.length > 0),
 				),
@@ -181,15 +190,14 @@ export async function loadGradeTargets(
 				groupName: displayLabel,
 				displayLabel,
 				slug: toTargetSlug(displayLabel),
-				memberNames,
+				memberNames: members,
 				searchKeys,
 			};
 		}
 
-		const displayLabel =
-			target.studentLastName != null && target.studentFirstName != null
-				? formatStudentName(target.studentLastName, target.studentFirstName)
-				: target.id;
+		// Individual: exactly one member, no name. Its label is that student's
+		// formatted name.
+		const displayLabel = members[0] ?? target.id;
 		const searchKeys = [normalizeSearchValue(displayLabel)].filter(
 			(value) => value.length > 0,
 		);
