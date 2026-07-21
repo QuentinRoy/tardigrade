@@ -1,9 +1,9 @@
 # Assessment target model investigation
 
-- **Status:** Active
+- **Status:** Completed
 - **Created:** 2026-05-20
-- **Related:** #99
-- **Note (2026-07-06):** The *terminology* questions here are resolved (see `CONTEXT.md`): the grouping unit is **Group** (not Team), and the row of a Grid is a **Grade Target** (code-only; UI names the Student or Group). The *structural* questions remain open and keep this investigation Active: whether Student and Group unify under a singleton-Group persistence model, and whether a Group of one replaces the individual branch. Those are not decided by the #99 vocabulary work.
+- **Related:** #99, #292, [ADR 0014](../adr/0014-unify-grade-targets-as-student-sets.md)
+- **Resolution (2026-07-21):** The structural questions are decided in [ADR 0014](../adr/0014-unify-grade-targets-as-student-sets.md) (via #292). A **Grade Target** is a single model — a set of Students, membership in `grade_target_student`, an optional group name on the target — with **no** `kind`/individual/group persistence branch. Rather than the singleton-**Group** direction this document leaned toward (keep the group table, individuals become singleton groups), the `group` table is dropped and membership lives directly on the target; individual vs group is a derived presentation shape (name OR >1 member). The terminology questions were already resolved (2026-07-06, see `CONTEXT.md`). This investigation is now historical context; the ADR is the decision of record.
 
 This document captures current thinking about assessment targets, group terminology, and the relation between individual and grouped assessments.
 
