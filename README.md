@@ -109,7 +109,7 @@ pnpm db:types:generate              # Regenerate database types.
 1. Open the home page at `/` — it redirects to your first grid's Overview, or to `/grids` if none exist yet.
 2. Create or open a Grid.
 3. Use **Import** to load Rubrics, Students, and optionally Grades.
-4. Grade students and groups, by student/group or by rubric.
+4. Grade students and groups by student or group.
 5. Open **Results** for the Grades table and the Analytics breakdown.
 6. Use **Export** to download grades as CSV.
 

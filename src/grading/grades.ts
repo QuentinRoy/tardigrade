@@ -3,49 +3,20 @@ import type { Kysely } from "kysely";
 import { cacheLife } from "next/cache";
 import { toCriterionGrade } from "#criteria/criterionGradeHydration.ts";
 import type { CriterionGrade } from "#criteria/types.ts";
-import {
-	allGradesTag,
-	allTargetGradesTag,
-	allTargetRubricGradesTag,
-	cacheTags,
-} from "#db/cacheTags.ts";
+import { allGradesTag, allTargetGradesTag, cacheTags } from "#db/cacheTags.ts";
 import type { Database } from "#db/generated/database.ts";
 import { database as defaultDb } from "#db/kysely.ts";
-import { nonNull } from "#utils/utils.ts";
 
 export function loadGradeCacheTags({
 	gridId,
 	targetId,
-	rubricId,
 }: {
 	gridId: string;
 	targetId: string;
-	rubricId?: string | undefined;
 }) {
-	// The granular (or target-scoped) tag refreshes on individual saves;
+	// The target-scoped tag refreshes on individual saves;
 	// the coarse grid-wide grades tag refreshes on bulk imports.
-	const scopeTag =
-		rubricId == null
-			? allTargetGradesTag({ gridId, targetId })
-			: allTargetRubricGradesTag({ gridId, targetId, rubricId });
-	return [scopeTag, allGradesTag({ gridId })];
-}
-
-// Returns the typed criterion values for a single grade-target/rubric grade.
-// `db` is a test seam only (ADR 0007 rules 13–14): never pass a handle at runtime —
-// Kysely instances are not serializable and Next.js throws on the cache key.
-export async function loadRubricGrade(
-	{
-		targetId,
-		gridId,
-		rubricId,
-	}: { targetId: string; gridId: string; rubricId: string },
-	{ db = defaultDb }: { db?: Kysely<Database> } = {},
-): Promise<CriterionGrade[]> {
-	"use cache";
-	cacheTags(...loadGradeCacheTags({ gridId, targetId, rubricId }));
-	cacheLife("values");
-	return loadRubricGradeFromDb(db, { targetId, gridId, rubricId });
+	return [allTargetGradesTag({ gridId, targetId }), allGradesTag({ gridId })];
 }
 
 // Returns every rubric's criterion values for a grade target in one query, keyed
@@ -61,31 +32,6 @@ export async function loadGradeTargetGrades(
 	cacheTags(...loadGradeCacheTags({ gridId, targetId }));
 	cacheLife("values");
 	return loadGradeTargetGradesFromDb(db, { targetId, gridId });
-}
-
-// `db` may be the global client or a caller-supplied transaction.
-export async function loadRubricGradeFromDb(
-	db: Kysely<Database>,
-	{
-		targetId,
-		gridId,
-		rubricId,
-	}: { targetId: string; gridId: string; rubricId: string },
-): Promise<CriterionGrade[]> {
-	const rows = await loadCriterionGradeQueryRows(db, {
-		targetId,
-		gridId,
-		rubricId,
-	});
-
-	const grades: CriterionGrade[] = [];
-	for (const row of rows) {
-		const grade = toCriterionGrade(row);
-		if (grade != null) {
-			grades.push(grade);
-		}
-	}
-	return grades;
 }
 
 // `db` may be the global client or a caller-supplied transaction.
@@ -116,16 +62,12 @@ type CriterionGradeQueryRow = {
 	value: number | string | null;
 };
 
-// Loads one row per stored criterion grade for a grade target, optionally
-// scoped to a single rubric. Filtering by Grid ID disambiguates grade
-// targets and rubrics that share public ids across grids.
+// Loads one row per stored criterion grade for a grade target.
+// Filtering by Grid ID disambiguates grade targets and rubrics that share
+// public ids across grids.
 async function loadCriterionGradeQueryRows(
 	db: Kysely<Database>,
-	{
-		targetId,
-		gridId,
-		rubricId,
-	}: { targetId: string; gridId: string; rubricId?: string | undefined },
+	{ targetId, gridId }: { targetId: string; gridId: string },
 ): Promise<CriterionGradeQueryRow[]> {
 	return db
 		.selectFrom("criterionGrade")
@@ -154,9 +96,6 @@ async function loadCriterionGradeQueryRows(
 		)
 		.where("grid.id", "=", gridId)
 		.where("gradeTarget.id", "=", targetId)
-		.$if(rubricId != null, (qb) =>
-			qb.where("rubric.id", "=", nonNull(rubricId)),
-		)
 		.select([
 			"rubric.id as rubricId",
 			"criterion.id as criterionId",

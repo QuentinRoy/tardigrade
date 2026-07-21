@@ -9,12 +9,10 @@ import { loadGradeTargets } from "#grade-targets/gradeTargets.ts";
 import type { GradeTarget } from "#grade-targets/types.ts";
 import {
 	gridGradeTargetPath,
-	gridGradeTargetRubricPath,
 	gridResultsPath,
 	gridRubricsPath,
 } from "#grids/gridPaths.ts";
 import { loadGridByPublicId } from "#grids/grids.ts";
-import RubricList from "#rubric-management/RubricList.tsx";
 import { loadRubricsById } from "#rubrics/rubrics.ts";
 
 type GridGradesPageProps = {
@@ -39,20 +37,6 @@ async function GridGradesPageContent({ gridId }: { gridId: string }) {
 	]);
 
 	const hasRubrics = Object.keys(rubricsById).length > 0;
-	const firstTarget = targets[0];
-	const rubrics = firstTarget
-		? Object.entries(rubricsById).map(([id, { label }]) => ({
-				id,
-				label: label == null ? id : label,
-				href: gridGradeTargetRubricPath({
-					gridId: grid.id,
-					gridSlug: grid.slug,
-					targetId: firstTarget.id,
-					targetSlug: firstTarget.slug ?? firstTarget.id,
-					rubricId: id,
-				}),
-			}))
-		: [];
 
 	return (
 		<AppPage>
@@ -76,36 +60,24 @@ async function GridGradesPageContent({ gridId }: { gridId: string }) {
 						</AppButtonLink>
 					</Stack>
 				) : (
-					<>
-						<Stack gap="sm">
-							<Title order={2}>Grade by student or group</Title>
-							<Suspense
-								fallback={
-									<GradeTargetListSkeleton
-										gridId={grid.id}
-										gridSlug={grid.slug}
-										targets={targets}
-									/>
-								}
-							>
-								<GradeTargetCompletionList
+					<Stack gap="sm">
+						<Title order={2}>Grade by student or group</Title>
+						<Suspense
+							fallback={
+								<GradeTargetListSkeleton
 									gridId={grid.id}
 									gridSlug={grid.slug}
 									targets={targets}
 								/>
-							</Suspense>
-						</Stack>
-						<Stack gap="sm">
-							<Title order={2}>Grade by rubric</Title>
-							{firstTarget ? (
-								<RubricList rubrics={rubrics} />
-							) : (
-								<Text c="dimmed">
-									Add a student or group first to start grading by rubric.
-								</Text>
-							)}
-						</Stack>
-					</>
+							}
+						>
+							<GradeTargetCompletionList
+								gridId={grid.id}
+								gridSlug={grid.slug}
+								targets={targets}
+							/>
+						</Suspense>
+					</Stack>
 				)}
 			</Stack>
 		</AppPage>
