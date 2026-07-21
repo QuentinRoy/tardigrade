@@ -29,9 +29,6 @@ async function collectGroups(
 const baseRow: GradeTargetExportRow = {
 	gradeTargetRowId: 1,
 	gradeTargetId: "t-1",
-	gradeTargetKind: "individual",
-	groupName: null,
-	studentId: "student-1",
 	rubricId: null,
 	criterionId: null,
 	kind: null,
@@ -45,29 +42,14 @@ describe("groupGradeTargetRows", () => {
 		const groups = await collectGroups([baseRow]);
 
 		expect(groups).toHaveLength(1);
-		expect(groups[0]).toMatchObject({
-			gradeTargetId: "t-1",
-			gradeTargetKind: "individual",
-			studentId: "student-1",
-			groupName: null,
-		});
+		expect(groups[0]).toMatchObject({ gradeTargetId: "t-1" });
 		expect(groups[0]!.valuesByKey.size).toBe(0);
 	});
 
 	it("detects boundary and yields a separate group per grade target", async () => {
 		const rows: GradeTargetExportRow[] = [
-			{
-				...baseRow,
-				gradeTargetRowId: 1,
-				gradeTargetId: "t-1",
-				studentId: "s1",
-			},
-			{
-				...baseRow,
-				gradeTargetRowId: 2,
-				gradeTargetId: "t-2",
-				studentId: "s2",
-			},
+			{ ...baseRow, gradeTargetRowId: 1, gradeTargetId: "t-1" },
+			{ ...baseRow, gradeTargetRowId: 2, gradeTargetId: "t-2" },
 		];
 		const groups = await collectGroups(rows);
 
@@ -78,18 +60,8 @@ describe("groupGradeTargetRows", () => {
 
 	it("flushes the last group even without a following row", async () => {
 		const rows: GradeTargetExportRow[] = [
-			{
-				...baseRow,
-				gradeTargetRowId: 1,
-				gradeTargetId: "t-1",
-				studentId: "s1",
-			},
-			{
-				...baseRow,
-				gradeTargetRowId: 2,
-				gradeTargetId: "t-2",
-				studentId: "s2",
-			},
+			{ ...baseRow, gradeTargetRowId: 1, gradeTargetId: "t-1" },
+			{ ...baseRow, gradeTargetRowId: 2, gradeTargetId: "t-2" },
 		];
 		const groups = await collectGroups(rows);
 
@@ -206,24 +178,9 @@ describe("groupGradeTargetRows", () => {
 
 	it("preserves input order across multiple grade targets", async () => {
 		const rows: GradeTargetExportRow[] = [
-			{
-				...baseRow,
-				gradeTargetRowId: 10,
-				gradeTargetId: "t-10",
-				studentId: "s10",
-			},
-			{
-				...baseRow,
-				gradeTargetRowId: 20,
-				gradeTargetId: "t-20",
-				studentId: "s20",
-			},
-			{
-				...baseRow,
-				gradeTargetRowId: 30,
-				gradeTargetId: "t-30",
-				studentId: "s30",
-			},
+			{ ...baseRow, gradeTargetRowId: 10, gradeTargetId: "t-10" },
+			{ ...baseRow, gradeTargetRowId: 20, gradeTargetId: "t-20" },
+			{ ...baseRow, gradeTargetRowId: 30, gradeTargetId: "t-30" },
 		];
 		const groups = await collectGroups(rows);
 

@@ -5,9 +5,6 @@ import { buildGradeKey } from "./gradeTargetExportCsv.ts";
 export type GradeTargetExportRow = {
 	gradeTargetRowId: number | null;
 	gradeTargetId: string | null;
-	gradeTargetKind: "group" | "individual" | null;
-	groupName: string | null;
-	studentId: string | null;
 	rubricId: string | null;
 	criterionId: string | null;
 	kind: CriterionKind | null;
@@ -18,9 +15,6 @@ export type GradeTargetExportRow = {
 
 export type GroupedGradeTargetRow = {
 	gradeTargetId: string;
-	gradeTargetKind: "group" | "individual";
-	groupName: string | null;
-	studentId: string | null;
 	valuesByKey: Map<string, CriterionGrade>;
 };
 
@@ -33,20 +27,14 @@ export async function* groupGradeTargetRows(
 	// alongside purely to name the target in the output, never for ordering.
 	let currentGradeTargetRowId: number | null = null;
 	let currentGradeTargetId: string | null = null;
-	let currentGradeTargetKind: "group" | "individual" | null = null;
-	let currentGroupName: string | null = null;
-	let currentStudentId: string | null = null;
 	let currentValuesByKey = new Map<string, CriterionGrade>();
 
 	function flush(): GroupedGradeTargetRow {
-		if (currentGradeTargetId == null || currentGradeTargetKind == null) {
+		if (currentGradeTargetId == null) {
 			throw new Error("Missing grade target data while grouping.");
 		}
 		return {
 			gradeTargetId: currentGradeTargetId,
-			gradeTargetKind: currentGradeTargetKind,
-			groupName: currentGroupName,
-			studentId: currentStudentId,
 			valuesByKey: currentValuesByKey,
 		};
 	}
@@ -64,9 +52,6 @@ export async function* groupGradeTargetRows(
 
 		currentGradeTargetRowId = row.gradeTargetRowId;
 		currentGradeTargetId = row.gradeTargetId;
-		currentGradeTargetKind = row.gradeTargetKind;
-		currentGroupName = row.groupName;
-		currentStudentId = row.studentId;
 
 		// A row with no linked criterion carries no grade (e.g. a grade target
 		// with no grades yet) and is skipped.
