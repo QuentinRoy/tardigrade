@@ -6,8 +6,8 @@ import type { CheckCriterionGradeTable } from "./CheckCriterionGrade.ts";
 import type { CriterionTable } from "./Criterion.ts";
 import type { CriterionGradeTable } from "./CriterionGrade.ts";
 import type { GradeTargetTable } from "./GradeTarget.ts";
+import type { GradeTargetStudentTable } from "./GradeTargetStudent.ts";
 import type { GridTable } from "./Grid.ts";
-import type { GroupTable } from "./Group.ts";
 import type { NumberCriterionTable } from "./NumberCriterion.ts";
 import type { NumberCriterionGradeTable } from "./NumberCriterionGrade.ts";
 import type { OptionsCriterionTable } from "./OptionsCriterion.ts";
@@ -15,11 +15,8 @@ import type { OptionsCriterionGradeTable } from "./OptionsCriterionGrade.ts";
 import type { OptionsCriterionMarkTable } from "./OptionsCriterionMark.ts";
 import type { RubricTable } from "./Rubric.ts";
 import type { StudentTable } from "./Student.ts";
-import type { StudentToGroupTable } from "./StudentToGroup.ts";
 
 export interface PublicSchema {
-	group: GroupTable;
-
 	optionsCriterionGrade: OptionsCriterionGradeTable;
 
 	checkCriterionGrade: CheckCriterionGradeTable;
@@ -28,9 +25,9 @@ export interface PublicSchema {
 
 	criterionGrade: CriterionGradeTable;
 
-	studentToGroup: StudentToGroupTable;
-
 	checkCriterion: CheckCriterionTable;
+
+	gradeTargetStudent: GradeTargetStudentTable;
 
 	criterion: CriterionTable;
 
