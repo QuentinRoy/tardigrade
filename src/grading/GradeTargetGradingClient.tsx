@@ -115,7 +115,6 @@ export default function GradeTargetGradingClient({
 					success: false,
 					error: {
 						...baseErrorContext,
-						rubricId: "unknown-rubric",
 						rubricLabel: "Unknown rubric",
 						message: `Unknown criterion mapping for ${criterion.id}`,
 					},
@@ -128,11 +127,7 @@ export default function GradeTargetGradingClient({
 				targetId: currentTargetId,
 				rubricId: info.rubricId,
 				grade,
-				errorContext: {
-					...baseErrorContext,
-					rubricId: info.rubricId,
-					rubricLabel: info.rubricLabel,
-				},
+				errorContext: { ...baseErrorContext, rubricLabel: info.rubricLabel },
 			});
 		},
 		onError: addError,

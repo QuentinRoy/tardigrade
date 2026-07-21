@@ -1,6 +1,7 @@
 import type { Kysely } from "kysely";
 import type { Database } from "#db/generated/database.ts";
-import { buildTestId } from "./dbIntegration.ts";
+import { loadGradeTargetGradesFromDb } from "#grading/grades.ts";
+import { buildTestId, type createTestDb } from "./dbIntegration.ts";
 
 export type GradeFixture = {
 	gridId: string;
@@ -174,4 +175,15 @@ export async function createGradeFixture(
 			number: numberCriterionId,
 		},
 	};
+}
+
+export async function rubricSlice(
+	db: Awaited<ReturnType<typeof createTestDb>>,
+	fixture: GradeFixture,
+) {
+	const byRubricId = await loadGradeTargetGradesFromDb(db, {
+		targetId: fixture.gradeTargetId,
+		gridId: fixture.gridId,
+	});
+	return byRubricId[fixture.rubricId] ?? [];
 }

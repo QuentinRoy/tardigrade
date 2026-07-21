@@ -2,14 +2,12 @@ import { cacheTag } from "next/cache";
 import { expect, test, vi } from "vitest";
 import { saveCriterionGradeInDb } from "#grade-persistence/gradeMutations.ts";
 import { createTestDb } from "#test/dbIntegration.ts";
-import { createGradeFixture } from "#test/grades.ts";
+import { createGradeFixture, rubricSlice } from "#test/grades.ts";
 import { createGrid } from "#test/grids.ts";
 import { createCheckRubricFixture } from "#test/rubrics.ts";
 import {
 	loadGradeTargetGrades,
 	loadGradeTargetGradesFromDb,
-	loadRubricGrade,
-	loadRubricGradeFromDb,
 } from "./grades.ts";
 
 vi.mock("next/cache", () => ({
@@ -18,21 +16,17 @@ vi.mock("next/cache", () => ({
 	updateTag: vi.fn(),
 }));
 
-test("loadRubricGradeFromDb returns an empty list when no grade exists", async () => {
+test("loadGradeTargetGradesFromDb returns an empty rubric slice when no grade exists", async () => {
 	await using db = await createTestDb();
 	await using grid = await createGrid(db, "Grade Read Empty Grid");
 	const fixture = await createGradeFixture(db, grid.id);
 
-	const result = await loadRubricGradeFromDb(db, {
-		targetId: fixture.gradeTargetId,
-		gridId: fixture.gridId,
-		rubricId: fixture.rubricId,
-	});
+	const result = await rubricSlice(db, fixture);
 
 	expect(result).toEqual([]);
 });
 
-test("loadRubricGradeFromDb returns the stored criterion values for a grade target/rubric", async () => {
+test("loadGradeTargetGradesFromDb returns the stored criterion values for a grade target/rubric", async () => {
 	await using db = await createTestDb();
 	await using grid = await createGrid(db, "Grade Read Grid");
 	const fixture = await createGradeFixture(db, grid.id);
@@ -70,12 +64,7 @@ test("loadRubricGradeFromDb returns the stored criterion values for a grade targ
 		});
 	});
 
-	const loaded = await loadRubricGradeFromDb(db, {
-		targetId: fixture.gradeTargetId,
-		gridId: fixture.gridId,
-		rubricId: fixture.rubricId,
-	});
-
+	const loaded = await rubricSlice(db, fixture);
 	const byCriterionId = new Map(
 		loaded.map((value) => [value.criterionId, value]),
 	);
@@ -95,51 +84,6 @@ test("loadRubricGradeFromDb returns the stored criterion values for a grade targ
 		kind: "number",
 		value: 7.5,
 	});
-});
-
-// Next caching is inert under vitest, so the read wrapper runs directly against the
-// injected handle. Assert it delegates to its primitive (returns the test db's rows)
-// and declares `grids:{gridId}:grades` alongside its granular tag: bulk imports bust
-// the coarse tag, so without this declaration the per-rubric grading view would
-// serve stale data after a grade import.
-test("loadRubricGrade wrapper delegates to its primitive and declares its cache tags", async () => {
-	await using db = await createTestDb();
-	await using grid = await createGrid(db, "Grade Cache Tag Grid");
-	const fixture = await createGradeFixture(db, grid.id);
-
-	await db
-		.transaction()
-		.execute((tx) =>
-			saveCriterionGradeInDb(tx, {
-				gridId: fixture.gridId,
-				targetId: fixture.gradeTargetId,
-				rubricId: fixture.rubricId,
-				grade: {
-					criterionId: fixture.criterionIds.check,
-					kind: "check",
-					passed: true,
-				},
-			}),
-		);
-
-	const loaded = await loadRubricGrade(
-		{
-			targetId: fixture.gradeTargetId,
-			gridId: fixture.gridId,
-			rubricId: fixture.rubricId,
-		},
-		{ db },
-	);
-
-	expect(loaded).toEqual([
-		{ criterionId: fixture.criterionIds.check, kind: "check", passed: true },
-	]);
-
-	const declaredTags = vi.mocked(cacheTag).mock.calls.map((call) => call[0]);
-	expect(declaredTags).toContain(`grids:${fixture.gridId}:grades`);
-	expect(declaredTags).toContain(
-		`grids:${fixture.gridId}:grades:target:${fixture.gradeTargetId}:rubric:${fixture.rubricId}`,
-	);
 });
 
 test("loadGradeTargetGradesFromDb groups a grade target's criterion values by rubric", async () => {
@@ -202,9 +146,11 @@ test("loadGradeTargetGradesFromDb groups a grade target's criterion values by ru
 	]);
 });
 
-// Mirrors the loadRubricGrade wrapper test: the whole-target read must
-// declare the target-scoped tag (busted by individual saves) and
-// `grids:{gridId}:grades` (busted by bulk imports) or the overview would serve stale data.
+// Next caching is inert under vitest, so the read wrapper runs directly against the
+// injected handle. Assert it delegates to its primitive (returns the test db's rows)
+// and declares `grids:{gridId}:grades` alongside its target-scoped tag: bulk imports bust
+// the coarse tag, so without this declaration the grading view would serve stale data after
+// a grade import.
 test("loadGradeTargetGrades wrapper delegates to its primitive and declares its cache tags", async () => {
 	await using db = await createTestDb();
 	await using grid = await createGrid(db, "Grade Grade Target Cache Tag Grid");
@@ -266,16 +212,15 @@ test("grade reads return nothing when the Grid ID does not match the grade targe
 			}),
 		);
 
-	const rubricGrade = await loadRubricGradeFromDb(db, {
-		targetId: fixture.gradeTargetId,
-		gridId: gridB.id,
-		rubricId: fixture.rubricId,
-	});
-	expect(rubricGrade).toEqual([]);
-
 	const gradeTargetGrades = await loadGradeTargetGradesFromDb(db, {
 		targetId: fixture.gradeTargetId,
 		gridId: gridB.id,
 	});
 	expect(gradeTargetGrades).toEqual({});
+
+	const loadedWrapper = await loadGradeTargetGrades(
+		{ targetId: fixture.gradeTargetId, gridId: gridB.id },
+		{ db },
+	);
+	expect(loadedWrapper).toEqual({});
 });

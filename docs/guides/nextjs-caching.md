@@ -17,7 +17,7 @@ When reasoning about "why was this stale" or "why did this show a skeleton", ide
 3. **The client router cache** — the browser keeps recently rendered segments and reuses them on navigation. Server actions that call `updateTag`/`revalidateTag` refresh affected segments in the action response.
 4. **Link prefetch** — `next/link` prefetches what can be known ahead of time, which under `cacheComponents` is the cached/static part of the target route. A fully dynamic page body gives prefetch almost nothing to fetch; `router.push` prefetches nothing at all.
 
-A practical consequence in this repo: the rubric grading page (`app/grids/[gridId]/[gridSlug]/grades/[targetId]/[targetSlug]/rubrics/[rubricId]/page.tsx`) has a cached `RubricHeaderSection` and no blocking top-level await, so it navigates fast with explicit prefetch on prev/next. The grade-target grading page (`app/grids/[gridId]/[gridSlug]/grades/[targetId]/[targetSlug]/page.tsx`) has no cached section at all and blocks on uncached `loadGridByPublicId`/`loadGradeTargets` before rendering anything, so it falls back to the root `loading.tsx` skeleton. Same data layer underneath — different topology and prefetch.
+A practical consequence in this repo: the rubric detail page (`app/grids/[gridId]/[gridSlug]/rubrics/[rubricId]/page.tsx`) has a cached `RubricHeaderSection` and no blocking top-level await, so it navigates fast. The grade-target grading page (`app/grids/[gridId]/[gridSlug]/grades/[targetId]/[targetSlug]/page.tsx`) has no cached section at all and blocks on uncached `loadGridByPublicId`/`loadGradeTargets` before rendering anything, so it falls back to the root `loading.tsx` skeleton. Same data layer underneath — different topology and prefetch.
 
 ## `"use cache"` mechanics
 
