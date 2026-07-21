@@ -292,6 +292,13 @@ async function resolveTargets(
 			if (target.group == null) {
 				throw new Error(`Group grade target ${target.id} is missing its name.`);
 			}
+			if (studentRowIds.length === 0) {
+				throw new ImportBlockedError(
+					`Group "${target.group}" has no students. Add at least one ` +
+						"student to the group, or remove it from the file, and import " +
+						"again.",
+				);
+			}
 			return {
 				name: target.group,
 				studentRowIds,

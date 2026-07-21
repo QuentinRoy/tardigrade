@@ -252,6 +252,25 @@ test("saveStudents rejects an import that would leave a named group with no memb
 	expect(duo.memberIds).toEqual(["a", "b"]);
 });
 
+test("saveStudents rejects a group target with no students", async () => {
+	await using db = await createTestDb();
+	await using grid = await createGrid(db, "Empty Group Grid");
+
+	await expect(
+		saveStudents(
+			{ targets: [groupTarget("Empty", [])], gridId: grid.id },
+			{ db },
+		),
+	).rejects.toThrow(/no students/);
+
+	const targets = await db
+		.selectFrom("gradeTarget")
+		.select("id")
+		.where("gridRowId", "=", grid.rowId)
+		.execute();
+	expect(targets).toHaveLength(0);
+});
+
 test("saveStudents moving a solo student into a group deletes the vacated individual target", async () => {
 	await using db = await createTestDb();
 	await using grid = await createGrid(db, "Solo To Group Grid");
