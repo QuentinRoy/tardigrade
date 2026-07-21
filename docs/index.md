@@ -33,7 +33,6 @@ Open-ended audits and option analysis. Investigations may contain hypotheses and
 ### Product and domain investigations
 
 - [Grading workflows and product positioning](investigations/2026-05-22-grading-workflows-and-product-positioning.md)
-- [Assessment target model](investigations/2026-05-20-assessment-target-model.md) — resolved: structural model decided in ADR 0014 (unify grade targets as student sets); terminology already resolved (Group, Grade Target).
 - [Mark, grade and weighting model](investigations/2026-05-20-mark-grade-weighting-model.md) — terminology resolved (Score → Mark → Total, Grade); aggregation model still open.
 
 ### Technical architecture investigations
@@ -42,6 +41,7 @@ Open-ended audits and option analysis. Investigations may contain hypotheses and
 
 ### Completed investigations
 
+- [Assessment target model](investigations/2026-05-20-assessment-target-model.md) — resolved: structural model decided in ADR 0014 (unify grade targets as student sets); terminology already resolved (Group, Grade Target).
 - [The `assessment` container table](investigations/2026-07-12-assessment-container-table.md) — resolved: drop the (grade target × rubric) grouping table (a day-one fossil) before the assessment → grade rename; executed as stage 5b of `plans/2026-07-06-terminology-sweep.md`.
 - [Read-write separation and schema-change resilience](investigations/2026-05-26-read-write-separation-and-schema-change-resilience.md) — direction accepted and implemented; remaining R-008 scope now executed via `plans/2026-06-22-rubric-overview-projection-extraction.md`.
 - [Source structure and technical debt audit](investigations/2026-05-25-source-structure-and-tech-debt-audit.md) — all 8 prioritized backlog items Done; remaining narrow items deferred to #136 or intentionally deprioritized.
