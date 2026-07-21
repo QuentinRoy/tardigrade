@@ -170,6 +170,22 @@ describe("groupGradeTargetRows", () => {
 		expect(groups[0]!.valuesByKey.size).toBe(1);
 	});
 
+	it("throws when a linked criterion has a grade but no kind", async () => {
+		const rows: GradeTargetExportRow[] = [
+			{
+				...baseRow,
+				rubricId: "q1",
+				criterionId: "r-bool",
+				kind: null,
+				checkPassed: true,
+			},
+		];
+
+		await expect(collectGroups(rows)).rejects.toThrow(
+			"Grade export row for criterion r-bool has a grade but no criterion kind.",
+		);
+	});
+
 	it("converts numeric string values to numbers", async () => {
 		const rows: GradeTargetExportRow[] = [
 			{

@@ -68,8 +68,18 @@ export async function* groupGradeTargetRows(
 		currentGroupName = row.groupName;
 		currentStudentId = row.studentId;
 
-		if (row.rubricId == null || row.criterionId == null || row.kind == null) {
-			continue;
+		// A row with no linked criterion carries no grade (e.g. a grade target
+		// with no grades yet) and is skipped.
+		if (row.rubricId == null || row.criterionId == null) continue;
+
+		// A linked criterion always has a kind: `criterion.kind` is `NOT NULL`
+		// and `criterionGrade.criterion_id` is a `NOT NULL` FK, so the criterion
+		// join matches whenever a grade exists. A null `kind` here means that
+		// invariant broke — fail loudly rather than silently dropping the grade.
+		if (row.kind == null) {
+			throw new Error(
+				`Grade export row for criterion ${row.criterionId} has a grade but no criterion kind.`,
+			);
 		}
 
 		// A grade is hydrated under its criterion's kind. `clearOtherSubtypeValues`
