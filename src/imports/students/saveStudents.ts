@@ -4,6 +4,7 @@ import { invalidateStudentImport } from "#db/cacheInvalidation.ts";
 import type { Database } from "#db/generated/database.ts";
 import { database as defaultDb } from "#db/kysely.ts";
 import { nextGradeTargetIds } from "#grade-targets/gradeTargets.ts";
+import { ImportBlockedError } from "#imports/importErrors.ts";
 import type { NormalizedImportedGradeTarget } from "#imports/types.ts";
 import {
 	prepareStudentImport,
@@ -18,6 +19,15 @@ export type StudentImportWriteResult = {
 	updatedGradeTargetCount: number;
 };
 
+// A resolved import target: the students it should contain and the
+// grade_target row that will hold them — reused (an existing group by name, or
+// a student's existing individual target) or freshly created.
+type ResolvedTarget = {
+	name: string | null;
+	studentRowIds: number[];
+	targetRowId: number;
+};
+
 // `db` is a caller-supplied transaction; this write primitive cannot run on
 // the global client. Executes a plan's writes; never opens a transaction and
 // never invalidates cache.
@@ -26,34 +36,6 @@ export async function saveStudentImportPlanInDb(
 	{ plan, gridId }: { plan: StudentImportPlan; gridId: string },
 ): Promise<StudentImportWriteResult> {
 	const targets = plan.writes;
-	const targetsByOwner = targets.map((target) => {
-		const firstStudent = target.students[0];
-		let studentId: string | undefined;
-
-		if (target.kind === "individual") {
-			if (firstStudent == null) {
-				throw new Error(
-					`Individual grade target ${target.id} must include at least one student.`,
-				);
-			} else if (target.students.length > 1) {
-				throw new Error(
-					`Individual grade target ${target.id} cannot include more than one student.`,
-				);
-			}
-			studentId = firstStudent.id;
-		}
-
-		return { kind: target.kind, groupName: target.group, studentId };
-	});
-
-	const studentsToUpsert = targets.flatMap((target) =>
-		target.students.map((student) => ({
-			id: student.id,
-			lastName: student.lastName,
-			firstName: student.firstName,
-			groupName: target.kind === "group" ? target.group : undefined,
-		})),
-	);
 
 	const gridRow = await db
 		.selectFrom("grid")
@@ -62,238 +44,71 @@ export async function saveStudentImportPlanInDb(
 		.executeTakeFirstOrThrow();
 	const gridRowId = gridRow.rowId;
 
-	const groupNames = new Set(
-		targetsByOwner.flatMap((t) =>
-			t.kind === "group" && t.groupName ? [t.groupName] : [],
-		),
+	const studentRowIdByImportedId = await upsertStudents(db, {
+		targets,
+		gridRowId,
+	});
+	function resolveStudentRowId(id: string): number {
+		const rowId = studentRowIdByImportedId.get(id);
+		if (rowId == null) {
+			throw new Error(`Failed to resolve student row for ${id}.`);
+		}
+		return rowId;
+	}
+
+	// Reuse candidates: an existing group target keyed by (name, grid), and a
+	// student's existing individual target (unnamed, sole member). Everything
+	// else needs a fresh grade_target row.
+	const [existingGroupTargetRowIdByName, reuseIndividualTargetRowIdByStudent] =
+		await Promise.all([
+			loadExistingGroupTargets(db, { targets, gridRowId }),
+			loadReusableIndividualTargets(db, {
+				targets,
+				gridRowId,
+				resolveStudentRowId,
+			}),
+		]);
+
+	const resolved = await resolveTargets(db, {
+		targets,
+		gridRowId,
+		resolveStudentRowId,
+		existingGroupTargetRowIdByName,
+		reuseIndividualTargetRowIdByStudent,
+	});
+
+	const membershipRows = resolved.flatMap((target) =>
+		target.studentRowIds.map((studentRowId) => ({
+			gradeTargetRowId: target.targetRowId,
+			studentRowId,
+		})),
 	);
 
-	const groupsByName = new Map<string, number>();
-	const studentRowIdsByImportedId = new Map<string, number>();
+	// Partition Rule: a student belongs to at most one grade target. A CSV that
+	// lists the same student under two targets can't be honoured.
+	assertStudentsAppearOnce(membershipRows);
 
-	if (groupNames.size > 0) {
-		await db
-			.insertInto("group")
-			.values(
-				Array.from(groupNames).map((groupName) => ({
-					name: groupName,
-					gridRowId,
-				})),
-			)
-			.onConflict((conflict) =>
-				conflict.columns(["name", "gridRowId"]).doNothing(),
-			)
-			.execute();
-
-		const groupResults = await db
-			.selectFrom("group")
-			.select(["id", "name"])
-			.where("name", "in", Array.from(groupNames))
-			.where("gridRowId", "=", gridRowId)
-			.execute();
-
-		for (const group of groupResults) {
-			groupsByName.set(group.name, group.id);
-		}
-	}
-
-	if (studentsToUpsert.length > 0) {
-		await db
-			.insertInto("student")
-			.values(
-				studentsToUpsert.map((student) => ({
-					id: student.id,
-					lastName: student.lastName,
-					firstName: student.firstName,
-					gridRowId,
-				})),
-			)
-			.onConflict((conflict) =>
-				conflict
-					.columns(["gridRowId", "id"])
-					.doUpdateSet((expressionBuilder) => ({
-						lastName: expressionBuilder.ref("excluded.lastName"),
-						firstName: expressionBuilder.ref("excluded.firstName"),
-						gridRowId: expressionBuilder.ref("excluded.gridRowId"),
-					})),
-			)
-			.execute();
-
-		const studentRows = await db
-			.selectFrom("student")
-			.select(["rowId", "id"])
-			.where("gridRowId", "=", gridRowId)
-			.where(
-				"id",
-				"in",
-				Array.from(new Set(studentsToUpsert.map((student) => student.id))),
-			)
-			.execute();
-
-		for (const student of studentRows) {
-			studentRowIdsByImportedId.set(student.id, student.rowId);
-		}
-
-		const affectedStudentRowIds = Array.from(
-			new Set(
-				studentsToUpsert.map((student) => {
-					const rowId = studentRowIdsByImportedId.get(student.id);
-
-					if (rowId == null) {
-						throw new Error(`Failed to resolve student row for ${student.id}.`);
-					}
-
-					return rowId;
-				}),
-			),
-		);
-
-		if (affectedStudentRowIds.length > 0) {
-			await db
-				.deleteFrom("studentToGroup")
-				.where("studentId", "in", affectedStudentRowIds)
-				.execute();
-		}
-
-		const studentGroupLinks = studentsToUpsert.flatMap((student) => {
-			if (student.groupName == null) {
-				return [];
-			}
-
-			const groupId = groupsByName.get(student.groupName);
-
-			if (groupId == null) {
-				throw new Error(
-					`Group assignment is missing a mapped group for "${student.groupName}".`,
-				);
-			}
-
-			const rowId = studentRowIdsByImportedId.get(student.id);
-
-			if (rowId == null) {
-				throw new Error(`Failed to resolve student row for ${student.id}.`);
-			}
-
-			return [{ studentId: rowId, groupId }];
-		});
-
-		if (studentGroupLinks.length > 0) {
-			await db
-				.insertInto("studentToGroup")
-				.values(studentGroupLinks)
-				.onConflict((conflict) =>
-					conflict.columns(["studentId", "groupId"]).doNothing(),
-				)
-				.execute();
-		}
-	}
-
-	const groupTargetOwners = targetsByOwner.flatMap((target) => {
-		if (target.kind !== "group") {
-			return [];
-		}
-
-		const groupRowId =
-			target.groupName != null ? groupsByName.get(target.groupName) : undefined;
-
-		if (groupRowId == null) {
-			throw new Error(
-				`Group grade target is missing a mapped group for "${
-					target.groupName ?? "unknown"
-				}".`,
-			);
-		}
-
-		return [{ groupRowId }];
+	// Replace membership: detach every imported student from wherever they are
+	// now, then attach them to their resolved target. Capture their prior
+	// targets first so the ≥1-member guard below can tell which were emptied.
+	const affectedStudentRowIds = Array.from(
+		new Set(membershipRows.map((row) => row.studentRowId)),
+	);
+	const priorTargetRowIds = await loadPriorTargetRowIds(db, {
+		affectedStudentRowIds,
 	});
 
-	const individualTargetOwners = targetsByOwner.flatMap((target) => {
-		if (target.kind !== "individual") {
-			return [];
-		}
-
-		if (target.studentId == null) {
-			throw new Error("Individual grade target is missing student id.");
-		}
-
-		return [
-			{ studentRowId: studentRowIdsByImportedId.get(target.studentId) ?? null },
-		];
-	});
-
-	// One reservation covers both batches: they write into the same table, so
-	// a candidate id must never repeat across the two INSERT statements below.
-	// A candidate that lands on an ON CONFLICT DO UPDATE path (an existing row)
-	// is simply never persisted — `id` is never in that clause's SET list — so
-	// this can leave gaps, never a collision (see nextGradeTargetIds).
-	const generatedIds = await nextGradeTargetIds(db, {
-		gridRowId,
-		count: groupTargetOwners.length + individualTargetOwners.length,
-	});
-	function takeGeneratedId(index: number): string {
-		const id = generatedIds[index];
-
-		if (id == null) {
-			throw new Error(
-				`Failed to resolve a generated grade target id at index ${index}.`,
-			);
-		}
-
-		return id;
-	}
-
-	const groupTargets = groupTargetOwners.map((owner, index) => ({
-		id: takeGeneratedId(index),
-		kind: "group" as const,
-		gridRowId,
-		groupRowId: owner.groupRowId,
-		studentRowId: null,
-	}));
-	const individualTargets = individualTargetOwners.map((owner, index) => ({
-		id: takeGeneratedId(groupTargetOwners.length + index),
-		kind: "individual" as const,
-		gridRowId,
-		studentRowId: owner.studentRowId,
-		groupRowId: null,
-	}));
-
-	if (groupTargets.length > 0) {
+	if (affectedStudentRowIds.length > 0) {
 		await db
-			.insertInto("gradeTarget")
-			.values(groupTargets)
-			.onConflict((conflict) =>
-				conflict
-					.column("groupRowId")
-					.doUpdateSet({
-						kind: "group",
-						gridRowId: (expressionBuilder) =>
-							expressionBuilder.ref("excluded.gridRowId"),
-						groupRowId: (expressionBuilder) =>
-							expressionBuilder.ref("excluded.groupRowId"),
-						studentRowId: null,
-					}),
-			)
+			.deleteFrom("gradeTargetStudent")
+			.where("studentRowId", "in", affectedStudentRowIds)
 			.execute();
 	}
-
-	if (individualTargets.length > 0) {
-		await db
-			.insertInto("gradeTarget")
-			.values(individualTargets)
-			.onConflict((conflict) =>
-				conflict
-					.column("studentRowId")
-					.doUpdateSet({
-						kind: "individual",
-						gridRowId: (expressionBuilder) =>
-							expressionBuilder.ref("excluded.gridRowId"),
-						studentRowId: (expressionBuilder) =>
-							expressionBuilder.ref("excluded.studentRowId"),
-						groupRowId: null,
-					}),
-			)
-			.execute();
+	if (membershipRows.length > 0) {
+		await db.insertInto("gradeTargetStudent").values(membershipRows).execute();
 	}
+
+	await assertNoEmptiedTargets(db, { priorTargetRowIds });
 
 	return {
 		createdStudentCount: plan.createdStudentIds.length,
@@ -301,6 +116,323 @@ export async function saveStudentImportPlanInDb(
 		createdGradeTargetCount: plan.createdGradeTargetIds.length,
 		updatedGradeTargetCount: plan.updatedGradeTargetIds.length,
 	};
+}
+
+async function upsertStudents(
+	db: Transaction<Database>,
+	{
+		targets,
+		gridRowId,
+	}: { targets: NormalizedImportedGradeTarget[]; gridRowId: number },
+): Promise<Map<string, number>> {
+	const students = targets.flatMap((target) => target.students);
+	const studentRowIdByImportedId = new Map<string, number>();
+
+	if (students.length === 0) {
+		return studentRowIdByImportedId;
+	}
+
+	await db
+		.insertInto("student")
+		.values(
+			students.map((student) => ({
+				id: student.id,
+				lastName: student.lastName,
+				firstName: student.firstName,
+				gridRowId,
+			})),
+		)
+		.onConflict((conflict) =>
+			conflict
+				.columns(["gridRowId", "id"])
+				.doUpdateSet((eb) => ({
+					lastName: eb.ref("excluded.lastName"),
+					firstName: eb.ref("excluded.firstName"),
+				})),
+		)
+		.execute();
+
+	const studentRows = await db
+		.selectFrom("student")
+		.select(["rowId", "id"])
+		.where("gridRowId", "=", gridRowId)
+		.where(
+			"id",
+			"in",
+			Array.from(new Set(students.map((student) => student.id))),
+		)
+		.execute();
+
+	for (const student of studentRows) {
+		studentRowIdByImportedId.set(student.id, student.rowId);
+	}
+
+	return studentRowIdByImportedId;
+}
+
+async function loadExistingGroupTargets(
+	db: Transaction<Database>,
+	{
+		targets,
+		gridRowId,
+	}: { targets: NormalizedImportedGradeTarget[]; gridRowId: number },
+): Promise<Map<string, number>> {
+	const groupNames = Array.from(
+		new Set(
+			targets.flatMap((target) =>
+				target.kind === "group" && target.group != null ? [target.group] : [],
+			),
+		),
+	);
+	const byName = new Map<string, number>();
+
+	if (groupNames.length === 0) {
+		return byName;
+	}
+
+	const rows = await db
+		.selectFrom("gradeTarget")
+		.select(["rowId", "name"])
+		.where("gridRowId", "=", gridRowId)
+		.where("name", "in", groupNames)
+		.execute();
+
+	for (const row of rows) {
+		if (row.name != null) {
+			byName.set(row.name, row.rowId);
+		}
+	}
+
+	return byName;
+}
+
+async function loadReusableIndividualTargets(
+	db: Transaction<Database>,
+	{
+		targets,
+		gridRowId,
+		resolveStudentRowId,
+	}: {
+		targets: NormalizedImportedGradeTarget[];
+		gridRowId: number;
+		resolveStudentRowId: (id: string) => number;
+	},
+): Promise<Map<number, number>> {
+	const studentRowIds = targets.flatMap((target) =>
+		target.kind === "individual" && target.students[0] != null
+			? [resolveStudentRowId(target.students[0].id)]
+			: [],
+	);
+	const byStudentRowId = new Map<number, number>();
+
+	if (studentRowIds.length === 0) {
+		return byStudentRowId;
+	}
+
+	const rows = await db
+		.selectFrom("gradeTargetStudent as gts")
+		.innerJoin("gradeTarget as gt", "gt.rowId", "gts.gradeTargetRowId")
+		.where("gt.gridRowId", "=", gridRowId)
+		.where("gt.name", "is", null)
+		.where("gts.studentRowId", "in", studentRowIds)
+		// Sole member: no other student shares the target.
+		.where((eb) =>
+			eb.not(
+				eb.exists(
+					eb
+						.selectFrom("gradeTargetStudent as other")
+						.whereRef("other.gradeTargetRowId", "=", "gts.gradeTargetRowId")
+						.whereRef("other.studentRowId", "<>", "gts.studentRowId")
+						.select("other.studentRowId"),
+				),
+			),
+		)
+		.select(["gts.studentRowId", "gts.gradeTargetRowId"])
+		.execute();
+
+	for (const row of rows) {
+		byStudentRowId.set(row.studentRowId, row.gradeTargetRowId);
+	}
+
+	return byStudentRowId;
+}
+
+async function resolveTargets(
+	db: Transaction<Database>,
+	{
+		targets,
+		gridRowId,
+		resolveStudentRowId,
+		existingGroupTargetRowIdByName,
+		reuseIndividualTargetRowIdByStudent,
+	}: {
+		targets: NormalizedImportedGradeTarget[];
+		gridRowId: number;
+		resolveStudentRowId: (id: string) => number;
+		existingGroupTargetRowIdByName: Map<string, number>;
+		reuseIndividualTargetRowIdByStudent: Map<number, number>;
+	},
+): Promise<ResolvedTarget[]> {
+	// First pass: the students each target should contain, its name, and the
+	// existing row to reuse (if any).
+	const drafts = targets.map((target) => {
+		const studentRowIds = target.students.map((student) =>
+			resolveStudentRowId(student.id),
+		);
+
+		if (target.kind === "group") {
+			if (target.group == null) {
+				throw new Error(`Group grade target ${target.id} is missing its name.`);
+			}
+			return {
+				name: target.group,
+				studentRowIds,
+				reuseRowId: existingGroupTargetRowIdByName.get(target.group) ?? null,
+			};
+		}
+
+		const studentRowId = studentRowIds[0];
+		if (studentRowId == null || studentRowIds.length !== 1) {
+			throw new Error(
+				`Individual grade target ${target.id} must include exactly one student.`,
+			);
+		}
+		return {
+			name: null,
+			studentRowIds,
+			reuseRowId: reuseIndividualTargetRowIdByStudent.get(studentRowId) ?? null,
+		};
+	});
+
+	// Reserve one fresh public id per target that has no row to reuse, then
+	// insert those rows and map the reserved ids back to their new row ids.
+	const newDrafts = drafts.filter((draft) => draft.reuseRowId == null);
+	const reservedIds = await nextGradeTargetIds(db, {
+		gridRowId,
+		count: newDrafts.length,
+	});
+
+	const rowIdByReservedId = new Map<string, number>();
+	if (newDrafts.length > 0) {
+		const inserted = await db
+			.insertInto("gradeTarget")
+			.values(
+				newDrafts.map((draft, index) => ({
+					id: takeReservedId(reservedIds, index),
+					name: draft.name,
+					gridRowId,
+				})),
+			)
+			.returning(["rowId", "id"])
+			.execute();
+		for (const row of inserted) {
+			rowIdByReservedId.set(row.id, row.rowId);
+		}
+	}
+
+	let newIndex = 0;
+	return drafts.map((draft) => {
+		if (draft.reuseRowId != null) {
+			return {
+				name: draft.name,
+				studentRowIds: draft.studentRowIds,
+				targetRowId: draft.reuseRowId,
+			};
+		}
+		const reservedId = takeReservedId(reservedIds, newIndex);
+		newIndex += 1;
+		const targetRowId = rowIdByReservedId.get(reservedId);
+		if (targetRowId == null) {
+			throw new Error(
+				`Failed to resolve a newly inserted grade target for id ${reservedId}.`,
+			);
+		}
+		return {
+			name: draft.name,
+			studentRowIds: draft.studentRowIds,
+			targetRowId,
+		};
+	});
+}
+
+function takeReservedId(reservedIds: string[], index: number): string {
+	const id = reservedIds[index];
+	if (id == null) {
+		throw new Error(
+			`Failed to resolve a reserved grade target id at index ${index}.`,
+		);
+	}
+	return id;
+}
+
+function assertStudentsAppearOnce(
+	membershipRows: { studentRowId: number }[],
+): void {
+	const seen = new Set<number>();
+	for (const row of membershipRows) {
+		if (seen.has(row.studentRowId)) {
+			throw new ImportBlockedError(
+				"A student appears in more than one group or row. Each student can " +
+					"belong to only one group or be graded on their own. Remove the " +
+					"duplicate and import again.",
+			);
+		}
+		seen.add(row.studentRowId);
+	}
+}
+
+async function loadPriorTargetRowIds(
+	db: Transaction<Database>,
+	{ affectedStudentRowIds }: { affectedStudentRowIds: number[] },
+): Promise<number[]> {
+	if (affectedStudentRowIds.length === 0) {
+		return [];
+	}
+
+	const rows = await db
+		.selectFrom("gradeTargetStudent")
+		.select("gradeTargetRowId")
+		.where("studentRowId", "in", affectedStudentRowIds)
+		.execute();
+
+	return Array.from(new Set(rows.map((row) => row.gradeTargetRowId)));
+}
+
+async function assertNoEmptiedTargets(
+	db: Transaction<Database>,
+	{ priorTargetRowIds }: { priorTargetRowIds: number[] },
+): Promise<void> {
+	if (priorTargetRowIds.length === 0) {
+		return;
+	}
+
+	// Only a target that lost members this import can be left empty; a resolved
+	// target always gains at least one. Any prior target now without members
+	// would become an ungradeable empty row (draft targets are #61, out of
+	// scope here), so refuse the import rather than create one.
+	const emptied = await db
+		.selectFrom("gradeTarget as gt")
+		.where("gt.rowId", "in", priorTargetRowIds)
+		.where((eb) =>
+			eb.not(
+				eb.exists(
+					eb
+						.selectFrom("gradeTargetStudent as gts")
+						.whereRef("gts.gradeTargetRowId", "=", "gt.rowId")
+						.select("gts.studentRowId"),
+				),
+			),
+		)
+		.select("gt.id")
+		.execute();
+
+	if (emptied.length > 0) {
+		throw new ImportBlockedError(
+			"This import would leave one or more groups or students with no one to " +
+				"grade. Add at least one student to each, or remove those rows from " +
+				"the file, and import again.",
+		);
+	}
 }
 
 // Wrapper: owns the global db, the transaction boundary, and cache invalidation.
