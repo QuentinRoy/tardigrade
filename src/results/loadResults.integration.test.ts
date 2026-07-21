@@ -34,14 +34,14 @@ async function createGradeTarget(
 
 	const target = await db
 		.insertInto("gradeTarget")
-		.values({
-			gridRowId: gridRowId,
-			id,
-			kind: "individual",
-			studentRowId: studentRow.rowId,
-		})
+		.values({ gridRowId: gridRowId, id })
 		.returning("rowId")
 		.executeTakeFirstOrThrow();
+
+	await db
+		.insertInto("gradeTargetStudent")
+		.values({ gradeTargetRowId: target.rowId, studentRowId: studentRow.rowId })
+		.execute();
 
 	return { id, rowId: target.rowId };
 }

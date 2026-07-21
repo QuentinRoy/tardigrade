@@ -48,14 +48,15 @@ async function createGradeFixture(
 	const [targetId] = await nextGradeTargetIds(db, { gridRowId, count: 1 });
 	if (targetId == null) throw new Error("Expected a generated id");
 
-	await db
+	const target = await db
 		.insertInto("gradeTarget")
-		.values({
-			gridRowId,
-			id: targetId,
-			kind: "individual",
-			studentRowId: studentRow.rowId,
-		})
+		.values({ gridRowId, id: targetId })
+		.returning("rowId")
+		.executeTakeFirstOrThrow();
+
+	await db
+		.insertInto("gradeTargetStudent")
+		.values({ gradeTargetRowId: target.rowId, studentRowId: studentRow.rowId })
 		.execute();
 
 	await db
@@ -340,12 +341,16 @@ test("saveGrades links grades only to the target grid even when the same student
 		const [targetId] = await nextGradeTargetIds(db, { gridRowId, count: 1 });
 		if (targetId == null) throw new Error("Expected a generated id");
 
-		await db
+		const target = await db
 			.insertInto("gradeTarget")
+			.values({ gridRowId, id: targetId })
+			.returning("rowId")
+			.executeTakeFirstOrThrow();
+
+		await db
+			.insertInto("gradeTargetStudent")
 			.values({
-				gridRowId,
-				id: targetId,
-				kind: "individual",
+				gradeTargetRowId: target.rowId,
 				studentRowId: studentRow.rowId,
 			})
 			.execute();
