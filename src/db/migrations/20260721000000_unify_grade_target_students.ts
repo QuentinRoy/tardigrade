@@ -26,11 +26,14 @@ import { type Generated, type Kysely, sql } from "kysely";
 // reconciliation before retrying.
 //
 // Data changes go through the Kysely query builder (typed against the local
-// `MigrationDB` below, per docs/reference/database-migrations.md). Raw `sql`
-// is used only where the builder has no equivalent: the `'group-' || id`
+// `MigrationDB` below, per docs/reference/database-migrations.md). Standalone
+// raw `sql` — a whole statement or predicate the builder can't express — is
+// confined to two spots, each commented at its call site: the `'group-' || id`
 // string concatenation in the `down` name synthesis (Kysely has no `||`
-// operator builder) and the re-added CHECK constraint body. Each such use is
-// commented at its call site.
+// operator builder) and the re-added CHECK constraint body. The small `sql`
+// fragments for a column's enum type (`sql\`"grade_target_kind"\``) and a
+// `CURRENT_TIMESTAMP` default are the repo's usual builder idioms, not raw
+// statements.
 //
 // The migration runners build Kysely without CamelCasePlugin, so every
 // identifier below is passed to Postgres verbatim and matches the live

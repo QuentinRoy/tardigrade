@@ -90,7 +90,7 @@ export async function saveStudentImportPlanInDb(
 
 	// Replace membership: detach every imported student from wherever they are
 	// now, then attach them to their resolved target. Capture their prior
-	// targets first so the ≥1-member guard below can tell which were emptied.
+	// targets first so the emptied-target handling below knows which to check.
 	const affectedStudentRowIds = Array.from(
 		new Set(membershipRows.map((row) => row.studentRowId)),
 	);
@@ -108,7 +108,7 @@ export async function saveStudentImportPlanInDb(
 		await db.insertInto("gradeTargetStudent").values(membershipRows).execute();
 	}
 
-	await assertNoEmptiedTargets(db, { priorTargetRowIds });
+	await pruneOrRejectEmptiedTargets(db, { priorTargetRowIds });
 
 	return {
 		createdStudentCount: plan.createdStudentIds.length,
@@ -406,7 +406,7 @@ async function loadPriorTargetRowIds(
 	return Array.from(new Set(rows.map((row) => row.gradeTargetRowId)));
 }
 
-async function assertNoEmptiedTargets(
+async function pruneOrRejectEmptiedTargets(
 	db: Transaction<Database>,
 	{ priorTargetRowIds }: { priorTargetRowIds: number[] },
 ): Promise<void> {
@@ -415,9 +415,7 @@ async function assertNoEmptiedTargets(
 	}
 
 	// Only a target that lost members this import can be left empty; a resolved
-	// target always gains at least one. Any prior target now without members
-	// would become an ungradeable empty row (draft targets are #61, out of
-	// scope here), so refuse the import rather than create one.
+	// target always gains at least one.
 	const emptied = await db
 		.selectFrom("gradeTarget as gt")
 		.where("gt.rowId", "in", priorTargetRowIds)
@@ -431,15 +429,32 @@ async function assertNoEmptiedTargets(
 				),
 			),
 		)
-		.select("gt.id")
+		.select(["gt.rowId as rowId", "gt.name as name"])
 		.execute();
 
-	if (emptied.length > 0) {
+	// An emptied unnamed target is a vacated individual (its student was
+	// reassigned into a group) — deleting it is the reassignment (moving a
+	// student solo→group is a move, not a fork; ADR 0014). An emptied *named*
+	// group is different: dropping it would silently discard a named group and
+	// its grades, so refuse the import instead (draft targets are #61, out of
+	// scope here).
+	const namedEmptied = emptied.filter((target) => target.name != null);
+	if (namedEmptied.length > 0) {
 		throw new ImportBlockedError(
-			"This import would leave one or more groups or students with no one to " +
-				"grade. Add at least one student to each, or remove those rows from " +
-				"the file, and import again.",
+			"This import would leave one or more groups with no members. Add at " +
+				"least one student to each group, or remove those groups from the " +
+				"file, and import again.",
 		);
+	}
+
+	const vacatedIndividualRowIds = emptied
+		.filter((target) => target.name == null)
+		.map((target) => target.rowId);
+	if (vacatedIndividualRowIds.length > 0) {
+		await db
+			.deleteFrom("gradeTarget")
+			.where("rowId", "in", vacatedIndividualRowIds)
+			.execute();
 	}
 }
 

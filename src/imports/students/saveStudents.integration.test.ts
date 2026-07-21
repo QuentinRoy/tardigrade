@@ -210,7 +210,7 @@ test("saveStudents replaces a group's membership on re-import", async () => {
 	expect(solo.memberIds).toEqual(["m2"]);
 });
 
-test("saveStudents rejects an import that would leave a target with no members", async () => {
+test("saveStudents rejects an import that would leave a named group with no members", async () => {
 	await using db = await createTestDb();
 	await using grid = await createGrid(db, "Empty Guard Grid");
 
@@ -228,7 +228,8 @@ test("saveStudents rejects an import that would leave a target with no members",
 		{ db },
 	);
 
-	// Moving both members to individuals would empty the "Duo" group.
+	// Moving both members to individuals would empty the named "Duo" group,
+	// which would silently discard the group — refuse it.
 	await expect(
 		saveStudents(
 			{
@@ -240,7 +241,7 @@ test("saveStudents rejects an import that would leave a target with no members",
 			},
 			{ db },
 		),
-	).rejects.toThrow(/no one to grade/);
+	).rejects.toThrow(/no members/);
 
 	// The import rolled back: the group and its two members are intact.
 	const duo = await loadTargetForStudent(db, {
@@ -249,6 +250,53 @@ test("saveStudents rejects an import that would leave a target with no members",
 	});
 	expect(duo.name).toBe("Duo");
 	expect(duo.memberIds).toEqual(["a", "b"]);
+});
+
+test("saveStudents moving a solo student into a group deletes the vacated individual target", async () => {
+	await using db = await createTestDb();
+	await using grid = await createGrid(db, "Solo To Group Grid");
+
+	// A student graded on their own, then reassigned into a group.
+	await saveStudents(
+		{ targets: [individualTarget("solo", "Solo", "S")], gridId: grid.id },
+		{ db },
+	);
+	const soloTarget = await loadTargetForStudent(db, {
+		gridRowId: grid.rowId,
+		studentId: "solo",
+	});
+
+	await saveStudents(
+		{
+			targets: [
+				groupTarget("Team", [
+					{ id: "solo", lastName: "Solo", firstName: "S" },
+					{ id: "mate", lastName: "Mate", firstName: "M" },
+				]),
+			],
+			gridId: grid.id,
+		},
+		{ db },
+	);
+
+	// The reassignment succeeds: the student is now in the group...
+	const teamTarget = await loadTargetForStudent(db, {
+		gridRowId: grid.rowId,
+		studentId: "solo",
+	});
+	expect(teamTarget.name).toBe("Team");
+	expect(teamTarget.memberIds).toEqual(["mate", "solo"]);
+
+	// ...and the vacated individual target is gone, not left empty.
+	const remainingTargets = await db
+		.selectFrom("gradeTarget")
+		.select("id")
+		.where("gridRowId", "=", grid.rowId)
+		.execute();
+	expect(remainingTargets.map((target) => target.id)).not.toContain(
+		soloTarget.targetId,
+	);
+	expect(remainingTargets).toHaveLength(1);
 });
 
 test("saveStudents rejects an import that would place a student in two targets", async () => {
