@@ -30,44 +30,71 @@ async function loadGridRowId(
 	return grid.rowId;
 }
 
+async function insertStudent(
+	db: Kysely<Database>,
+	{
+		gridRowId,
+		id,
+		lastName,
+		firstName,
+	}: { gridRowId: number; id: string; lastName: string; firstName: string },
+): Promise<number> {
+	const student = await db
+		.insertInto("student")
+		.values({ gridRowId, id, lastName, firstName })
+		.returning("rowId")
+		.executeTakeFirstOrThrow();
+
+	return student.rowId;
+}
+
+// Creates a grade target with the given (optional) name and student members,
+// mirroring how the import writes them: a name-less single-member target reads
+// as an Individual, everything else as a Group.
+async function createTarget(
+	db: Kysely<Database>,
+	{
+		gridRowId,
+		name = null,
+		studentRowIds,
+	}: { gridRowId: number; name?: string | null; studentRowIds: number[] },
+): Promise<string> {
+	const [id] = await nextGradeTargetIds(db, { gridRowId, count: 1 });
+	if (id == null) throw new Error("Expected a generated id");
+
+	const target = await db
+		.insertInto("gradeTarget")
+		.values({ gridRowId, id, name })
+		.returning("rowId")
+		.executeTakeFirstOrThrow();
+
+	await db
+		.insertInto("gradeTargetStudent")
+		.values(
+			studentRowIds.map((studentRowId) => ({
+				gradeTargetRowId: target.rowId,
+				studentRowId,
+			})),
+		)
+		.execute();
+
+	return id;
+}
+
 async function createStudentAndTarget(
 	db: Kysely<Database>,
 	gridId: string,
 	studentId: string,
 ): Promise<string> {
 	const gridRowId = await loadGridRowId(db, gridId);
+	const studentRowId = await insertStudent(db, {
+		gridRowId,
+		id: studentId,
+		lastName: "Isolation",
+		firstName: "Test",
+	});
 
-	await db
-		.insertInto("student")
-		.values({
-			gridRowId: gridRowId,
-			id: studentId,
-			lastName: "Isolation",
-			firstName: "Test",
-		})
-		.execute();
-
-	const studentRow = await db
-		.selectFrom("student")
-		.select("rowId")
-		.where("gridRowId", "=", gridRowId)
-		.where("id", "=", studentId)
-		.executeTakeFirstOrThrow();
-
-	const [id] = await nextGradeTargetIds(db, { gridRowId, count: 1 });
-	if (id == null) throw new Error("Expected a generated id");
-
-	await db
-		.insertInto("gradeTarget")
-		.values({
-			gridRowId: gridRowId,
-			id,
-			kind: "individual",
-			studentRowId: studentRow.rowId,
-		})
-		.execute();
-
-	return id;
+	return createTarget(db, { gridRowId, studentRowIds: [studentRowId] });
 }
 
 async function createGroupAndTarget(
@@ -77,50 +104,18 @@ async function createGroupAndTarget(
 	memberStudentId: string,
 ): Promise<string> {
 	const gridRowId = await loadGridRowId(db, gridId);
+	const studentRowId = await insertStudent(db, {
+		gridRowId,
+		id: memberStudentId,
+		lastName: "Group",
+		firstName: "Member",
+	});
 
-	await db
-		.insertInto("group")
-		.values({ gridRowId: gridRowId, name: groupName })
-		.execute();
-
-	const group = await db
-		.selectFrom("group")
-		.select("id")
-		.where("gridRowId", "=", gridRowId)
-		.where("name", "=", groupName)
-		.executeTakeFirstOrThrow();
-
-	await db
-		.insertInto("student")
-		.values({
-			gridRowId: gridRowId,
-			id: memberStudentId,
-			lastName: "Group",
-			firstName: "Member",
-		})
-		.execute();
-
-	const studentRow = await db
-		.selectFrom("student")
-		.select("rowId")
-		.where("gridRowId", "=", gridRowId)
-		.where("id", "=", memberStudentId)
-		.executeTakeFirstOrThrow();
-
-	await db
-		.insertInto("studentToGroup")
-		.values({ studentId: studentRow.rowId, groupId: group.id })
-		.execute();
-
-	const [id] = await nextGradeTargetIds(db, { gridRowId, count: 1 });
-	if (id == null) throw new Error("Expected a generated id");
-
-	await db
-		.insertInto("gradeTarget")
-		.values({ gridRowId: gridRowId, id, kind: "group", groupRowId: group.id })
-		.execute();
-
-	return id;
+	return createTarget(db, {
+		gridRowId,
+		name: groupName,
+		studentRowIds: [studentRowId],
+	});
 }
 
 test("loadGradeTargetsFromDb returns only individual targets for the requested grid when student ids collide across grids", async () => {
@@ -177,12 +172,8 @@ test("loadGradeTargets returns only group targets for the requested grid when gr
 		"group-member-proj-b",
 	);
 
-	const { targets: targetsA } = await loadGradeTargetsFromDb(db, {
-		gridId: gridA.id,
-	});
-	const { targets: targetsB } = await loadGradeTargetsFromDb(db, {
-		gridId: gridB.id,
-	});
+	const targetsA = await loadGradeTargets({ gridId: gridA.id }, { db });
+	const targetsB = await loadGradeTargets({ gridId: gridB.id }, { db });
 
 	expect(targetsA).toHaveLength(1);
 	expect(targetsB).toHaveLength(1);
@@ -199,6 +190,72 @@ test("loadGradeTargets returns only group targets for the requested grid when gr
 	// Same per-grid-ordinal collision as the individual-target test above.
 	expect(targetA.id).toBe("t-1");
 	expect(targetB.id).toBe("t-1");
+});
+
+test("loadGradeTargets derives individual vs group by the name-OR-multimember rule", async () => {
+	await using db = await createTestDb();
+	await using grid = await createGrid(db, "Derivation Grid");
+	const gridRowId = await loadGridRowId(db, grid.id);
+
+	const solo = await insertStudent(db, {
+		gridRowId,
+		id: "solo",
+		lastName: "Solo",
+		firstName: "Alice",
+	});
+	const pairFirst = await insertStudent(db, {
+		gridRowId,
+		id: "pair-1",
+		lastName: "Adams",
+		firstName: "Bob",
+	});
+	const pairSecond = await insertStudent(db, {
+		gridRowId,
+		id: "pair-2",
+		lastName: "Baker",
+		firstName: "Carol",
+	});
+	const named = await insertStudent(db, {
+		gridRowId,
+		id: "named",
+		lastName: "Named",
+		firstName: "Dan",
+	});
+
+	// Unnamed single member -> Individual, labelled with the student's name.
+	const individualId = await createTarget(db, {
+		gridRowId,
+		studentRowIds: [solo],
+	});
+	// Unnamed multi-member -> Group, labelled with joined member names.
+	const unnamedGroupId = await createTarget(db, {
+		gridRowId,
+		studentRowIds: [pairFirst, pairSecond],
+	});
+	// Named one member -> Group, honouring the naming intent.
+	const namedGroupId = await createTarget(db, {
+		gridRowId,
+		name: "Lonely Binome",
+		studentRowIds: [named],
+	});
+
+	const targets = await loadGradeTargets({ gridId: grid.id }, { db });
+	const byId = new Map(targets.map((target) => [target.id, target]));
+
+	const individual = byId.get(individualId);
+	expect(individual?.kind).toBe("individual");
+	expect(individual?.displayLabel).toBe("Solo Alice");
+	expect(individual?.memberNames).toEqual([]);
+
+	const unnamedGroup = byId.get(unnamedGroupId);
+	expect(unnamedGroup?.kind).toBe("group");
+	expect(unnamedGroup?.displayLabel).toBe("Adams Bob, Baker Carol");
+	expect(unnamedGroup?.memberNames).toEqual(["Adams Bob", "Baker Carol"]);
+
+	const namedGroup = byId.get(namedGroupId);
+	expect(namedGroup?.kind).toBe("group");
+	expect(namedGroup?.displayLabel).toBe("Lonely Binome");
+	expect(namedGroup?.memberNames).toEqual(["Named Dan"]);
 });
 
 test("loadGradeTargets wrapper delegates to its primitive and declares its cache tags", async () => {

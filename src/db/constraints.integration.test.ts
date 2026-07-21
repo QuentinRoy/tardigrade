@@ -137,27 +137,30 @@ async function createGradeConstraintFixture(
 	const insertedTargets = await db
 		.insertInto("gradeTarget")
 		.values([
-			{
-				gridRowId: gridRowId,
-				id: primaryTargetId,
-				kind: "individual",
-				studentRowId: studentA.rowId,
-			},
-			{
-				gridRowId: gridRowId,
-				id: secondaryTargetId,
-				kind: "individual",
-				studentRowId: studentB.rowId,
-			},
+			{ gridRowId: gridRowId, id: primaryTargetId },
+			{ gridRowId: gridRowId, id: secondaryTargetId },
 		])
-		.returning("rowId")
+		.returning(["rowId", "id"])
 		.execute();
 
-	const [primaryTarget, secondaryTarget] = insertedTargets;
+	const primaryTarget = insertedTargets.find(
+		(target) => target.id === primaryTargetId,
+	);
+	const secondaryTarget = insertedTargets.find(
+		(target) => target.id === secondaryTargetId,
+	);
 
 	if (primaryTarget == null || secondaryTarget == null) {
 		throw new Error("Expected grade target rows to be created.");
 	}
+
+	await db
+		.insertInto("gradeTargetStudent")
+		.values([
+			{ gradeTargetRowId: primaryTarget.rowId, studentRowId: studentA.rowId },
+			{ gradeTargetRowId: secondaryTarget.rowId, studentRowId: studentB.rowId },
+		])
+		.execute();
 
 	const insertedCriterionGrades = await db
 		.insertInto("criterionGrade")
@@ -429,7 +432,7 @@ test("number criterion grades enforce value bounds and roll back failed transact
 	]);
 });
 
-test("grade target owner/kind check rejects invalid rows and rolls back transactional writes", async () => {
+test("partition rule rejects placing a student in a second grade target and rolls back transactional writes", async () => {
 	await using db = await createTestDb();
 	await using grid = await createGrid(db, "Constraint Grade Target Grid");
 
@@ -452,73 +455,64 @@ test("grade target owner/kind check rejects invalid rows and rolls back transact
 		.where("id", "=", studentId)
 		.executeTakeFirstOrThrow();
 
-	const group = await db
-		.insertInto("group")
-		.values({ gridRowId: grid.rowId, name: buildTestId("group") })
-		.returning("id")
-		.executeTakeFirstOrThrow();
-
-	const [firstTargetId, secondTargetId, thirdTargetId] =
-		await nextGradeTargetIds(db, { gridRowId: grid.rowId, count: 3 });
-	if (
-		firstTargetId == null ||
-		secondTargetId == null ||
-		thirdTargetId == null
-	) {
+	const [firstTargetId, secondTargetId] = await nextGradeTargetIds(db, {
+		gridRowId: grid.rowId,
+		count: 2,
+	});
+	if (firstTargetId == null || secondTargetId == null) {
 		throw new Error("Expected generated grade target ids.");
 	}
 
-	await db
+	// The student is the sole member of the first target.
+	const firstTarget = await db
 		.insertInto("gradeTarget")
+		.values({ gridRowId: grid.rowId, id: firstTargetId })
+		.returning("rowId")
+		.executeTakeFirstOrThrow();
+	await db
+		.insertInto("gradeTargetStudent")
 		.values({
-			gridRowId: grid.rowId,
-			id: firstTargetId,
-			kind: "individual",
+			gradeTargetRowId: firstTarget.rowId,
 			studentRowId: student.rowId,
 		})
 		.execute();
 
+	// A second target that also tries to claim the same student violates the
+	// Partition Rule (a student belongs to at most one grade target), enforced
+	// by the single-column primary key on grade_target_student.student_row_id.
 	await expect(
 		db.transaction().execute(async (trx) => {
-			await trx
+			const secondTarget = await trx
 				.insertInto("gradeTarget")
-				.values({
-					gridRowId: grid.rowId,
-					id: secondTargetId,
-					kind: "group",
-					groupRowId: group.id,
-				})
-				.execute();
+				.values({ gridRowId: grid.rowId, id: secondTargetId })
+				.returning("rowId")
+				.executeTakeFirstOrThrow();
 
 			await trx
-				.insertInto("gradeTarget")
+				.insertInto("gradeTargetStudent")
 				.values({
-					gridRowId: grid.rowId,
-					id: thirdTargetId,
-					kind: "individual",
-					groupRowId: group.id,
+					gradeTargetRowId: secondTarget.rowId,
+					studentRowId: student.rowId,
 				})
 				.execute();
 		}),
-	).rejects.toThrow("grade_target_kind_participant_check");
+	).rejects.toThrow("grade_target_student_pkey");
 
-	const persisted = await db
+	// The failed transaction rolled back: only the first target and its single
+	// membership survive.
+	const persistedTargets = await db
 		.selectFrom("gradeTarget")
-		.select(["id", "kind", "studentRowId", "groupRowId"])
+		.select("id")
 		.where("gridRowId", "=", grid.rowId)
 		.execute();
+	expect(persistedTargets.map((target) => target.id)).toEqual([firstTargetId]);
 
-	expect(persisted).toHaveLength(1);
-
-	const onlyTarget = persisted[0];
-
-	if (onlyTarget == null) {
-		throw new Error("Expected one persisted grade target after rollback.");
-	}
-
-	expect(onlyTarget.kind).toBe("individual");
-	expect(onlyTarget.studentRowId).toBe(student.rowId);
-	expect(onlyTarget.groupRowId).toBeNull();
+	const memberships = await db
+		.selectFrom("gradeTargetStudent")
+		.select("gradeTargetRowId")
+		.where("studentRowId", "=", student.rowId)
+		.execute();
+	expect(memberships).toEqual([{ gradeTargetRowId: firstTarget.rowId }]);
 });
 
 test("criterion subtype triggers reject mismatched subtype rows and roll back transactional writes", async () => {

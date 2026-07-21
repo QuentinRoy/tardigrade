@@ -125,7 +125,15 @@ async function upsertStudents(
 		gridRowId,
 	}: { targets: NormalizedImportedGradeTarget[]; gridRowId: number },
 ): Promise<Map<string, number>> {
-	const students = targets.flatMap((target) => target.students);
+	// One row per student id: a student listed under two targets (a partition
+	// violation caught later by membership) must not appear twice here, or the
+	// upsert would try to affect the same (grid, id) row twice in one statement.
+	const studentsById = new Map(
+		targets.flatMap((target) =>
+			target.students.map((student) => [student.id, student] as const),
+		),
+	);
+	const students = Array.from(studentsById.values());
 	const studentRowIdByImportedId = new Map<string, number>();
 
 	if (students.length === 0) {
