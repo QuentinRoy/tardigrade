@@ -34,6 +34,7 @@ const baseRow: GradeTargetExportRow = {
 	studentId: "student-1",
 	rubricId: null,
 	criterionId: null,
+	kind: null,
 	checkPassed: null,
 	optionsSelectedLabel: null,
 	numberValue: null,
@@ -107,6 +108,7 @@ describe("groupGradeTargetRows", () => {
 				...baseRow,
 				rubricId: "q1",
 				criterionId: "r-bool",
+				kind: "check",
 				checkPassed: true,
 				optionsSelectedLabel: null,
 				numberValue: null,
@@ -115,6 +117,7 @@ describe("groupGradeTargetRows", () => {
 				...baseRow,
 				rubricId: "q1",
 				criterionId: "r-ord",
+				kind: "options",
 				checkPassed: null,
 				optionsSelectedLabel: "A",
 				numberValue: null,
@@ -123,6 +126,7 @@ describe("groupGradeTargetRows", () => {
 				...baseRow,
 				rubricId: "q1",
 				criterionId: "r-num",
+				kind: "number",
 				checkPassed: null,
 				optionsSelectedLabel: null,
 				numberValue: 7.5,
@@ -152,7 +156,13 @@ describe("groupGradeTargetRows", () => {
 	it("handles sparse grades — rows with null rubricId/criterionId contribute no values", async () => {
 		const rows: GradeTargetExportRow[] = [
 			{ ...baseRow, rubricId: null, criterionId: null },
-			{ ...baseRow, rubricId: "q1", criterionId: "r-bool", checkPassed: false },
+			{
+				...baseRow,
+				rubricId: "q1",
+				criterionId: "r-bool",
+				kind: "check",
+				checkPassed: false,
+			},
 		];
 		const groups = await collectGroups(rows);
 
@@ -162,7 +172,13 @@ describe("groupGradeTargetRows", () => {
 
 	it("converts numeric string values to numbers", async () => {
 		const rows: GradeTargetExportRow[] = [
-			{ ...baseRow, rubricId: "q1", criterionId: "r-num", numberValue: "3.75" },
+			{
+				...baseRow,
+				rubricId: "q1",
+				criterionId: "r-num",
+				kind: "number",
+				numberValue: "3.75",
+			},
 		];
 		const groups = await collectGroups(rows);
 
