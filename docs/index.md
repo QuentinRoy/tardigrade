@@ -70,7 +70,7 @@ Short records of durable architecture decisions.
 - [0011 Adopt Mantine with a constrained, app-owned design system](adr/0011-adopt-mantine-constrained-design-system.md)
 - [0012 Converge the domain vocabulary; keep separate internal and user-facing glossaries](adr/0012-converged-domain-vocabulary-and-two-glossaries.md)
 - [0013 Organise each criterion kind as a vertical module under `src/criteria`](adr/0013-criterion-kind-vertical-modules.md)
-- [0014 Unify grade targets as student sets; drop the individual/group kind](adr/0014-unify-grade-targets-as-student-sets.md)
+- [0014 A grade target is a set of students; individual vs group is presentation-only](adr/0014-unify-grade-targets-as-student-sets.md)
 - Add new ADRs under `docs/adr/`.
 
 ## Designs
