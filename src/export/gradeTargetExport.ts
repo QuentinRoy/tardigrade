@@ -124,6 +124,7 @@ function streamGradeTargetExportRowsFromDb(
 				"student.id as studentId",
 				"rubric.id as rubricId",
 				"criterion.id as criterionId",
+				"criterion.kind as kind",
 				"checkCriterionGrade.passed as checkPassed",
 				"optionsCriterionGrade.selectedLabel as optionsSelectedLabel",
 				"numberCriterionGrade.value as numberValue",
