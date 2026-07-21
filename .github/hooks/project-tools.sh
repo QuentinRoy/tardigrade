@@ -11,14 +11,14 @@ cloud_agent="${TARDIGRADE_CLOUD_HOOKS:-${GITHUB_COPILOT_API_TOKEN:+true}}"
 find_pnpm_path() {
 	local pnpm_path
 
-	pnpm_path="$(command -v pnpm || true)"
-	if [[ -n "$pnpm_path" ]]; then
-		printf '%s\n' "$pnpm_path"
+	if [[ "$cloud_agent" == "true" && -x "$installed_pnpm_path" ]]; then
+		printf '%s\n' "$installed_pnpm_path"
 		return
 	fi
 
-	if [[ "$cloud_agent" == "true" && -x "$installed_pnpm_path" ]]; then
-		printf '%s\n' "$installed_pnpm_path"
+	pnpm_path="$(command -v pnpm || true)"
+	if [[ -n "$pnpm_path" ]]; then
+		printf '%s\n' "$pnpm_path"
 		return
 	fi
 
@@ -58,6 +58,7 @@ install_pnpm() {
 setup_project_tools() {
 	local package_manager
 	local pnpm_path
+	local pnpm_version
 
 	if [[ "$cloud_agent" != "true" ]]; then
 		return
@@ -65,14 +66,18 @@ setup_project_tools() {
 
 	rm -f -- "$ready_marker"
 
-	if ! pnpm_path="$(find_pnpm_path)"; then
-		package_manager="$(jq -r '.packageManager' package.json)"
-		if [[ ! "$package_manager" =~ ^pnpm@[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-			return 1
-		fi
+	package_manager="$(jq -r '.packageManager' package.json)"
+	if [[ ! "$package_manager" =~ ^pnpm@[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+		return 1
+	fi
+	pnpm_version="${package_manager#pnpm@}"
 
+	if ! pnpm_path="$(find_pnpm_path)" || [[ "$("$pnpm_path" --version)" != "$pnpm_version" ]]; then
 		install_pnpm "$package_manager"
 		pnpm_path="$installed_pnpm_path"
+	fi
+	if [[ "$("$pnpm_path" --version)" != "$pnpm_version" ]]; then
+		return 1
 	fi
 
 	if [[ ! -x node_modules/.bin/biome || ! -x node_modules/.bin/tsc ]]; then
