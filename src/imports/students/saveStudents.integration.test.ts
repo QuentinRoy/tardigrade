@@ -83,6 +83,59 @@ async function loadTargetForStudent(
 	};
 }
 
+// Attaches a single check-criterion grade to a target, returning the
+// criterion_grade row id so a test can assert whether deleting the target
+// cascade-removes the grade.
+async function attachCheckGrade(
+	db: Kysely<Database>,
+	{
+		gridRowId,
+		gradeTargetRowId,
+	}: { gridRowId: number; gradeTargetRowId: number },
+): Promise<number> {
+	const rubric = await db
+		.insertInto("rubric")
+		.values({
+			gridRowId,
+			id: `rubric-${gradeTargetRowId}`,
+			label: "Rubric",
+			position: 0,
+		})
+		.returning("rowId")
+		.executeTakeFirstOrThrow();
+
+	const criterion = await db
+		.insertInto("criterion")
+		.values({
+			gridRowId,
+			id: `criterion-${gradeTargetRowId}`,
+			rubricId: rubric.rowId,
+			kind: "check",
+			position: 0,
+			label: "Criterion",
+		})
+		.returning("rowId")
+		.executeTakeFirstOrThrow();
+
+	await db
+		.insertInto("checkCriterion")
+		.values({ criterionId: criterion.rowId, marks: 2 })
+		.execute();
+
+	const grade = await db
+		.insertInto("criterionGrade")
+		.values({ criterionId: criterion.rowId, gradeTargetRowId })
+		.returning("id")
+		.executeTakeFirstOrThrow();
+
+	await db
+		.insertInto("checkCriterionGrade")
+		.values({ criterionGradeId: grade.id, passed: true })
+		.execute();
+
+	return grade.id;
+}
+
 test("saveStudents keeps imported student ids and group names isolated per grid", async () => {
 	await using db = await createTestDb();
 	await using gridA = await createGrid(db, "Grid A");
@@ -271,7 +324,7 @@ test("saveStudents rejects a group target with no students", async () => {
 	expect(targets).toHaveLength(0);
 });
 
-test("saveStudents moving a solo student into a group deletes the vacated individual target", async () => {
+test("saveStudents moving a solo student into a group deletes the vacated individual target and its grades", async () => {
 	await using db = await createTestDb();
 	await using grid = await createGrid(db, "Solo To Group Grid");
 
@@ -283,6 +336,21 @@ test("saveStudents moving a solo student into a group deletes the vacated indivi
 	const soloTarget = await loadTargetForStudent(db, {
 		gridRowId: grid.rowId,
 		studentId: "solo",
+	});
+	const soloTargetRow = await db
+		.selectFrom("gradeTargetStudent as gts")
+		.innerJoin("student", "student.rowId", "gts.studentRowId")
+		.where("student.gridRowId", "=", grid.rowId)
+		.where("student.id", "=", "solo")
+		.select("gts.gradeTargetRowId as rowId")
+		.executeTakeFirstOrThrow();
+
+	// Grade the solo student on their individual target. Reassignment must drop
+	// this grade along with the vacated target (ADR 0014), so the test asserts
+	// that destructive consequence rather than only the target's disappearance.
+	const gradeId = await attachCheckGrade(db, {
+		gridRowId: grid.rowId,
+		gradeTargetRowId: soloTargetRow.rowId,
 	});
 
 	await saveStudents(
@@ -306,7 +374,7 @@ test("saveStudents moving a solo student into a group deletes the vacated indivi
 	expect(teamTarget.name).toBe("Team");
 	expect(teamTarget.memberIds).toEqual(["mate", "solo"]);
 
-	// ...and the vacated individual target is gone, not left empty.
+	// ...the vacated individual target is gone, not left empty...
 	const remainingTargets = await db
 		.selectFrom("gradeTarget")
 		.select("id")
@@ -316,6 +384,14 @@ test("saveStudents moving a solo student into a group deletes the vacated indivi
 		soloTarget.targetId,
 	);
 	expect(remainingTargets).toHaveLength(1);
+
+	// ...and the grade attached to it was cascade-deleted with the target.
+	const remainingGrades = await db
+		.selectFrom("criterionGrade")
+		.select("id")
+		.where("id", "=", gradeId)
+		.execute();
+	expect(remainingGrades).toHaveLength(0);
 });
 
 test("saveStudents rejects an import that would place a student in two targets", async () => {

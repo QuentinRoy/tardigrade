@@ -88,9 +88,12 @@ export async function saveStudentImportPlanInDb(
 	// lists the same student under two targets can't be honoured.
 	assertStudentsAppearOnce(membershipRows);
 
-	// Replace membership: detach every imported student from wherever they are
-	// now, then attach them to their resolved target. Capture their prior
-	// targets first so the emptied-target handling below knows which to check.
+	// Reassign the imported students to their resolved targets: detach each
+	// imported student from wherever they are now, then attach them to that
+	// target. This is a partial reassignment keyed on the students named in the
+	// import, not a full roster replacement — a student absent from the import
+	// stays in their current target, untouched. Capture the prior targets first
+	// so the emptied-target handling below knows which to check.
 	const affectedStudentRowIds = Array.from(
 		new Set(membershipRows.map((row) => row.studentRowId)),
 	);
