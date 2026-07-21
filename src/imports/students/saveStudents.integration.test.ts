@@ -3,9 +3,12 @@ import { revalidateTag } from "next/cache";
 import { beforeEach, expect, test, vi } from "vitest";
 import type { Database } from "#db/generated/database.ts";
 import type { NormalizedImportedGradeTarget } from "#imports/types.ts";
+import { runForcedInterleaving } from "#test/concurrency.ts";
 import { createTestDb } from "#test/dbIntegration.ts";
 import { createGrid } from "#test/grids.ts";
-import { saveStudents } from "./saveStudents.ts";
+import { prepareStudentImport } from "./prepareStudentImport.ts";
+import { saveStudentImportPlanInDb, saveStudents } from "./saveStudents.ts";
+import { loadStudentImportContextFromDb } from "./studentImportContext.ts";
 
 vi.mock("next/cache", () => ({ revalidateTag: vi.fn() }));
 
@@ -441,11 +444,9 @@ test("saveStudents wrapper invalidates grade-target and grade tags after the imp
 });
 
 // A sequential re-import moving a student between groups exercises the
-// membership delete-then-reinsert path and its last-write-wins outcome. Under
-// concurrency, the single-column primary key on grade_target_student
-// (`student_row_id`) is what structurally guarantees the student never ends up
-// in two targets — that constraint is covered directly in
-// constraints.integration.test.ts.
+// membership delete-then-reinsert path and its last-write-wins outcome. The
+// concurrent version of this race — two imports moving the same student at once
+// — is covered by the forced-interleaving test below.
 test("saveStudents moving a student to another group leaves a single membership", async () => {
 	await using db = await createTestDb();
 	await using grid = await createGrid(db, "Membership Move Grid");
@@ -498,4 +499,97 @@ test("saveStudents moving a student to another group leaves a single membership"
 		.select("gts.gradeTargetRowId")
 		.execute();
 	expect(moverMemberships).toHaveLength(1);
+});
+
+// Concurrency contract for two roster imports racing the same student onto
+// different groups. The single-column primary key on grade_target_student
+// (`student_row_id`) makes two coexisting memberships structurally impossible,
+// so the race cannot corrupt into a double membership. It also does not fail:
+// because `saveStudentImportPlanInDb` upserts the shared student before touching
+// membership, the second writer blocks on that student's row up front and only
+// resumes after the first writer has fully committed. Under READ COMMITTED its
+// own delete-then-insert then clears the just-committed membership before
+// re-inserting, so the outcome is a clean last-write-wins rather than a
+// uniqueness conflict. This test pins that: no corruption, exactly one surviving
+// membership, and the writer that commits last wins.
+test("saveStudents keeps a single membership, last-write-wins, when two imports race the same student onto different groups", async () => {
+	await using db = await createTestDb();
+	await using grid = await createGrid(db, "Concurrent Move Grid");
+
+	const racer = { id: "racer", lastName: "Race", firstName: "R" };
+
+	// The racer starts in a committed group (kept non-empty by a second member),
+	// then two imports try to move them into different new groups at once.
+	await saveStudents(
+		{
+			targets: [
+				groupTarget("Start", [
+					racer,
+					{ id: "anchor", lastName: "Anchor", firstName: "A" },
+				]),
+			],
+			gridId: grid.id,
+		},
+		{ db },
+	);
+
+	function moveRacerInto(groupName: string): NormalizedImportedGradeTarget[] {
+		return [
+			groupTarget(groupName, [
+				racer,
+				{ id: `${groupName}-mate`, lastName: "Mate", firstName: "M" },
+			]),
+		];
+	}
+
+	const targetsToP = moveRacerInto("Group P");
+	const targetsToQ = moveRacerInto("Group Q");
+
+	// Both plans are built against the same pre-race snapshot, mirroring two
+	// imports that each read the roster before either write lands.
+	const [contextP, contextQ] = await Promise.all([
+		loadStudentImportContextFromDb(db, {
+			targets: targetsToP,
+			gridId: grid.id,
+		}),
+		loadStudentImportContextFromDb(db, {
+			targets: targetsToQ,
+			gridId: grid.id,
+		}),
+	]);
+	const planP = prepareStudentImport({
+		targets: targetsToP,
+		context: contextP,
+	});
+	const planQ = prepareStudentImport({
+		targets: targetsToQ,
+		context: contextQ,
+	});
+
+	// P commits first; Q blocks on the racer's row, then resumes and commits
+	// last. Neither writer fails.
+	await runForcedInterleaving(db, {
+		first: (tx) =>
+			saveStudentImportPlanInDb(tx, { plan: planP, gridId: grid.id }),
+		second: (tx) =>
+			saveStudentImportPlanInDb(tx, { plan: planQ, gridId: grid.id }),
+	});
+
+	// No corruption: the racer holds exactly one membership, and last-write-wins
+	// leaves them in Q (the writer that committed last).
+	const membership = await loadTargetForStudent(db, {
+		gridRowId: grid.rowId,
+		studentId: racer.id,
+	});
+	expect(membership.name).toBe("Group Q");
+	expect(membership.memberIds).toEqual(["Group Q-mate", "racer"]);
+
+	const racerMemberships = await db
+		.selectFrom("gradeTargetStudent as gts")
+		.innerJoin("student", "student.rowId", "gts.studentRowId")
+		.where("student.gridRowId", "=", grid.rowId)
+		.where("student.id", "=", racer.id)
+		.select("gts.gradeTargetRowId")
+		.execute();
+	expect(racerMemberships).toHaveLength(1);
 });
