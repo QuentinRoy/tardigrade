@@ -1,10 +1,13 @@
 import "server-only";
 import type { Transaction } from "kysely";
+import type { CheckCriterionGradeContent } from "#criteria/check/checkDomain.ts";
 import { writeCheckGradesInDb } from "#criteria/check/checkPersistence.ts";
+import type { NumberCriterionGradeContent } from "#criteria/number/numberDomain.ts";
 import {
 	validateNumberGradesInDb,
 	writeNumberGradesInDb,
 } from "#criteria/number/numberPersistence.ts";
+import type { OptionsCriterionGradeContent } from "#criteria/options/optionsDomain.ts";
 import {
 	validateOptionsGradesInDb,
 	writeOptionsGradesInDb,
@@ -86,15 +89,15 @@ type ResolvedGradeWrite = {
 // row id is known.
 type CheckGradeWriteRow = {
 	criterionGradeId: number;
-	grade: { passed: boolean };
+	grade: CheckCriterionGradeContent;
 };
 type OptionsGradeWriteRow = {
 	criterionGradeId: number;
-	grade: { selectedLabel: string };
+	grade: OptionsCriterionGradeContent;
 };
 type NumberGradeWriteRow = {
 	criterionGradeId: number;
-	grade: { value: number };
+	grade: NumberCriterionGradeContent;
 };
 
 // Resolves every write's (grade target, rubric, criterion) context against the
@@ -290,11 +293,11 @@ export async function saveCriterionGradesInDb(
 	// validation passes run, and any failure returns before the writes below.
 	const numberGradeInputs: {
 		criterionRowId: number;
-		grade: { value: number };
+		grade: NumberCriterionGradeContent;
 	}[] = [];
 	const optionsGradeInputs: {
 		criterionRowId: number;
-		grade: { selectedLabel: string };
+		grade: OptionsCriterionGradeContent;
 	}[] = [];
 	for (const entry of resolved) {
 		switch (entry.grade.kind) {
