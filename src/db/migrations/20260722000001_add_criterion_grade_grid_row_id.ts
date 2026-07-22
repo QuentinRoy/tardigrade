@@ -6,7 +6,7 @@ import type { Kysely } from "kysely";
 // criterion side) and backs two composite FKs, one per side of the pair, so a
 // cross-grid cell is structurally impossible rather than only rejected by the
 // app layer. No direct FK to `grid`: validity is guaranteed transitively by
-// the two composite FKs (decision 5 of the plan).
+// the two composite FKs.
 
 type MigrationDB = {
 	criterion_grade: {
@@ -68,8 +68,8 @@ export async function up(db: Kysely<MigrationDB>): Promise<void> {
 		.execute();
 
 	// Intentionally no index on criterion_grade.grid_row_id: the cell is loaded
-	// per grade-target, never by grid, so there is no query to back yet. Add
-	// one only if a grid-scoped cell query appears (plan decision 6).
+	// per grade-target, never by grid, so there is no query to back yet. Safe
+	// to defer — add one later if a grid-scoped cell query appears.
 
 	// Back the composite FKs below: (row_id, grid_row_id) is trivially unique
 	// since row_id alone already is, but Postgres requires the referenced
