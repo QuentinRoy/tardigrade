@@ -1,6 +1,9 @@
 import { assertNever } from "#utils/utils.ts";
 import { parseCheckGradeValue } from "./check/checkDomain.ts";
-import { parseNumberGradeValue } from "./number/numberDomain.ts";
+import {
+	getNumberGradeBoundsError,
+	parseNumberGradeValue,
+} from "./number/numberDomain.ts";
 import { parseOptionsGradeValue } from "./options/optionsDomain.ts";
 import type { CriterionGrade, CriterionKind } from "./types.ts";
 
@@ -9,12 +12,17 @@ import type { CriterionGrade, CriterionKind } from "./types.ts";
 // only the per-criterion cell value is kind knowledge and dispatches here.
 
 // What parsing a cell needs to know about the criterion it belongs to.
-export type ImportedGradeCriterion = {
+type ImportedGradeCriterionBase = {
 	id: string;
-	kind: CriterionKind;
 	// Labels the criterion offers; only meaningful for the Options kind.
 	optionsLabels: string[];
 };
+
+export type ImportedGradeCriterion = ImportedGradeCriterionBase &
+	(
+		| { kind: Exclude<CriterionKind, "number"> }
+		| { kind: "number"; minValue: number; maxValue: number }
+	);
 
 // Throws when the cell does not parse for the criterion's kind; `imports`
 // catches that and reports it as a row diagnostic.
@@ -40,13 +48,20 @@ export function parseCriterionGradeValue(params: {
 					labels: criterion.optionsLabels,
 				}),
 			};
-		case "number":
-			return {
-				criterionId: criterion.id,
-				kind: "number",
-				...parseNumberGradeValue(value),
-			};
+		case "number": {
+			const grade = parseNumberGradeValue(value);
+			const boundsError = getNumberGradeBoundsError({
+				...grade,
+				minValue: criterion.minValue,
+				maxValue: criterion.maxValue,
+			});
+			if (boundsError != null) {
+				throw new Error(boundsError);
+			}
+
+			return { criterionId: criterion.id, kind: "number", ...grade };
+		}
 		default:
-			return assertNever(criterion.kind);
+			return assertNever(criterion);
 	}
 }

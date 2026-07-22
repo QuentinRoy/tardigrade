@@ -26,12 +26,19 @@ async function loadCriteriaByColumn(
 			"optionsCriterionMark.optionsCriterionId",
 			"optionsCriterion.id",
 		)
+		.leftJoin(
+			"numberCriterion",
+			"numberCriterion.criterionId",
+			"criterion.rowId",
+		)
 		.where("criterion.gridRowId", "=", gridRowId)
 		.select([
 			"criterion.id",
 			"criterion.kind",
 			"rubric.id as rubricId",
 			"optionsCriterionMark.label",
+			"numberCriterion.minValue",
+			"numberCriterion.maxValue",
 		])
 		.execute();
 
@@ -42,12 +49,28 @@ async function loadCriteriaByColumn(
 		const existing = criteriaByColumn.get(column);
 
 		if (existing == null) {
-			criteriaByColumn.set(column, {
+			const baseCriterion = {
 				id: row.id,
-				kind: row.kind,
 				rubricId: row.rubricId,
 				optionsLabels: row.label == null ? [] : [row.label],
-			});
+			};
+
+			if (row.kind === "number") {
+				if (row.minValue == null || row.maxValue == null) {
+					throw new Error(
+						`Criterion Subtype Invariant violation: missing numberCriterion row for criterion ${row.id}.`,
+					);
+				}
+
+				criteriaByColumn.set(column, {
+					...baseCriterion,
+					kind: "number",
+					minValue: row.minValue,
+					maxValue: row.maxValue,
+				});
+			} else {
+				criteriaByColumn.set(column, { ...baseCriterion, kind: row.kind });
+			}
 		} else if (
 			row.label != null &&
 			!existing.optionsLabels.includes(row.label)

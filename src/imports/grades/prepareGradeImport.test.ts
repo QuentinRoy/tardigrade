@@ -28,7 +28,14 @@ test("prepareGradeImport plans one write per non-empty criterion cell of a match
 			],
 			[
 				"q1:r-num",
-				{ id: "r-num", kind: "number", rubricId: "q1", optionsLabels: [] },
+				{
+					id: "r-num",
+					kind: "number",
+					rubricId: "q1",
+					optionsLabels: [],
+					minValue: 0,
+					maxValue: 10,
+				},
 			],
 			[
 				"q2:r-ord",
@@ -160,6 +167,106 @@ test("prepareGradeImport reports an invalid cell value as a blocking diagnostic"
 	]);
 });
 
+test.each([
+	{
+		name: "below the minimum",
+		value: "-0.5",
+		expectedWrites: [],
+		expectedDiagnostics: [
+			{
+				type: "invalid-value",
+				row: 2,
+				name: "student-1",
+				column: "q1:r-num",
+				message: "Enter a value of at least 0.",
+			},
+		],
+	},
+	{
+		name: "at the minimum",
+		value: "0",
+		expectedWrites: [
+			{
+				targetId: "42",
+				rubricId: "q1",
+				grade: { criterionId: "r-num", kind: "number", value: 0 },
+			},
+		],
+		expectedDiagnostics: [],
+	},
+	{
+		name: "within the bounds",
+		value: "7.5",
+		expectedWrites: [
+			{
+				targetId: "42",
+				rubricId: "q1",
+				grade: { criterionId: "r-num", kind: "number", value: 7.5 },
+			},
+		],
+		expectedDiagnostics: [],
+	},
+	{
+		name: "at the maximum",
+		value: "10",
+		expectedWrites: [
+			{
+				targetId: "42",
+				rubricId: "q1",
+				grade: { criterionId: "r-num", kind: "number", value: 10 },
+			},
+		],
+		expectedDiagnostics: [],
+	},
+	{
+		name: "above the maximum",
+		value: "10.5",
+		expectedWrites: [],
+		expectedDiagnostics: [
+			{
+				type: "invalid-value",
+				row: 2,
+				name: "student-1",
+				column: "q1:r-num",
+				message: "Enter a value of at most 10.",
+			},
+		],
+	},
+])(
+	"prepareGradeImport handles a Number value $name",
+	({ value, expectedWrites, expectedDiagnostics }) => {
+		const context = buildContext({
+			criteriaByColumn: new Map([
+				[
+					"q1:r-num",
+					{
+						id: "r-num",
+						kind: "number",
+						rubricId: "q1",
+						optionsLabels: [],
+						minValue: 0,
+						maxValue: 10,
+					},
+				],
+			]),
+			targetIdsByLookup: new Map([
+				[
+					targetLookupKey({ targetKind: "individual", name: "student-1" }),
+					["42"],
+				],
+			]),
+		});
+		const rows: ImportedGradeRow[] = [
+			{ kind: "individual", name: "student-1", "q1:r-num": value },
+		];
+
+		const plan = prepareGradeImport({ rows, context });
+
+		expect(plan.writes).toEqual(expectedWrites);
+		expect(plan.blockingDiagnostics).toEqual(expectedDiagnostics);
+	},
+);
+
 test("prepareGradeImport reports an unknown column as a blocking diagnostic", () => {
 	const context = buildContext({
 		criteriaByColumn: new Map([
@@ -240,7 +347,14 @@ test("prepareGradeImport lists existing values of targeted pairs as overwrites",
 			],
 			[
 				"q1:r-num",
-				{ id: "r-num", kind: "number", rubricId: "q1", optionsLabels: [] },
+				{
+					id: "r-num",
+					kind: "number",
+					rubricId: "q1",
+					optionsLabels: [],
+					minValue: 0,
+					maxValue: 10,
+				},
 			],
 		]),
 		targetIdsByLookup: new Map([
