@@ -34,7 +34,7 @@ test("loadGradeTargetGradesFromDb returns the stored criterion values for a grad
 	await db.transaction().execute(async (tx) => {
 		await saveCriterionGradeInDb(tx, {
 			gridId: fixture.gridId,
-			targetId: fixture.gradeTargetId,
+			gradeTargetId: fixture.gradeTargetId,
 			rubricId: fixture.rubricId,
 			grade: {
 				criterionId: fixture.criterionIds.check,
@@ -44,7 +44,7 @@ test("loadGradeTargetGradesFromDb returns the stored criterion values for a grad
 		});
 		await saveCriterionGradeInDb(tx, {
 			gridId: fixture.gridId,
-			targetId: fixture.gradeTargetId,
+			gradeTargetId: fixture.gradeTargetId,
 			rubricId: fixture.rubricId,
 			grade: {
 				criterionId: fixture.criterionIds.options,
@@ -54,7 +54,7 @@ test("loadGradeTargetGradesFromDb returns the stored criterion values for a grad
 		});
 		await saveCriterionGradeInDb(tx, {
 			gridId: fixture.gridId,
-			targetId: fixture.gradeTargetId,
+			gradeTargetId: fixture.gradeTargetId,
 			rubricId: fixture.rubricId,
 			grade: {
 				criterionId: fixture.criterionIds.number,
@@ -97,7 +97,7 @@ test("loadGradeTargetGradesFromDb groups a grade target's criterion values by ru
 	await db.transaction().execute(async (tx) => {
 		await saveCriterionGradeInDb(tx, {
 			gridId: fixture.gridId,
-			targetId: fixture.gradeTargetId,
+			gradeTargetId: fixture.gradeTargetId,
 			rubricId: fixture.rubricId,
 			grade: {
 				criterionId: fixture.criterionIds.check,
@@ -107,7 +107,7 @@ test("loadGradeTargetGradesFromDb groups a grade target's criterion values by ru
 		});
 		await saveCriterionGradeInDb(tx, {
 			gridId: fixture.gridId,
-			targetId: fixture.gradeTargetId,
+			gradeTargetId: fixture.gradeTargetId,
 			rubricId: fixture.rubricId,
 			grade: {
 				criterionId: fixture.criterionIds.number,
@@ -117,7 +117,7 @@ test("loadGradeTargetGradesFromDb groups a grade target's criterion values by ru
 		});
 		await saveCriterionGradeInDb(tx, {
 			gridId: fixture.gridId,
-			targetId: fixture.gradeTargetId,
+			gradeTargetId: fixture.gradeTargetId,
 			rubricId: secondRubric.rubricId,
 			grade: {
 				criterionId: secondRubric.criterionId,
@@ -161,7 +161,7 @@ test("loadGradeTargetGrades wrapper delegates to its primitive and declares its 
 		.execute((tx) =>
 			saveCriterionGradeInDb(tx, {
 				gridId: fixture.gridId,
-				targetId: fixture.gradeTargetId,
+				gradeTargetId: fixture.gradeTargetId,
 				rubricId: fixture.rubricId,
 				grade: {
 					criterionId: fixture.criterionIds.check,
@@ -202,7 +202,7 @@ test("grade reads return nothing when the Grid ID does not match the grade targe
 		.execute((tx) =>
 			saveCriterionGradeInDb(tx, {
 				gridId: fixture.gridId,
-				targetId: fixture.gradeTargetId,
+				gradeTargetId: fixture.gradeTargetId,
 				rubricId: fixture.rubricId,
 				grade: {
 					criterionId: fixture.criterionIds.check,

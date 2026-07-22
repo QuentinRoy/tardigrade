@@ -15,7 +15,7 @@ describe("trySaveCriterionGrade", () => {
 		const result = await trySaveCriterionGrade({
 			saveCriterionGrade,
 			gridId: "grid-1",
-			targetId: "target-1",
+			gradeTargetId: "target-1",
 			rubricId: "rubric-1",
 			grade: { criterionId: "criterion-1", kind: "check", passed: true },
 			errorContext,
@@ -32,7 +32,7 @@ describe("trySaveCriterionGrade", () => {
 		const result = await trySaveCriterionGrade({
 			saveCriterionGrade,
 			gridId: "grid-1",
-			targetId: "target-1",
+			gradeTargetId: "target-1",
 			rubricId: "rubric-1",
 			grade: { criterionId: "criterion-1", kind: "check", passed: true },
 			errorContext,
@@ -52,7 +52,7 @@ describe("trySaveCriterionGrade", () => {
 		const result = await trySaveCriterionGrade({
 			saveCriterionGrade,
 			gridId: "grid-1",
-			targetId: "target-1",
+			gradeTargetId: "target-1",
 			rubricId: "rubric-1",
 			grade: { criterionId: "criterion-1", kind: "check", passed: true },
 			errorContext,

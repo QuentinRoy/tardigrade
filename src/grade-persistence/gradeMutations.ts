@@ -51,15 +51,10 @@ export type CriterionGradeWrite = {
 	grade: CriterionGrade;
 };
 
-export type SaveCriterionGradeParams = {
-	// The grade target's public id is only unique within its grid (unlike
-	// the old globally-unique numeric submission id), so the grid must be
-	// supplied explicitly rather than resolved from the Grade Target ID alone
-	// (CONTEXT Grid Resolution Strategy).
+export type SaveCriterionGradeParams = CriterionGradeWrite & {
+	// Grade Target ID is only unique within its Grid, so the Grid must be
+	// supplied explicitly (CONTEXT Grid Resolution Strategy).
 	gridId: string;
-	targetId: string;
-	rubricId: string;
-	grade: CriterionGrade;
 };
 
 export type SaveCriterionGradesParams = {
@@ -422,10 +417,10 @@ export async function saveCriterionGradesInDb(
 // saveCriterionGradesInDb).
 export async function saveCriterionGradeInDb(
 	db: Transaction<Database>,
-	{ gridId, targetId, rubricId, grade }: SaveCriterionGradeParams,
+	{ gridId, gradeTargetId, rubricId, grade }: SaveCriterionGradeParams,
 ): Promise<SaveCriterionGradeResult> {
 	return saveCriterionGradesInDb(db, {
 		gridId,
-		grades: [{ gradeTargetId: targetId, rubricId, grade }],
+		grades: [{ gradeTargetId, rubricId, grade }],
 	});
 }

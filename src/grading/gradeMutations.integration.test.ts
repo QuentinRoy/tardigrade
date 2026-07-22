@@ -47,7 +47,7 @@ test("saveCriterionGradeInDb round-trips check, options and number grades", asyn
 			Promise.all([
 				saveCriterionGradeInDb(tx, {
 					gridId: fixture.gridId,
-					targetId: fixture.gradeTargetId,
+					gradeTargetId: fixture.gradeTargetId,
 					rubricId: fixture.rubricId,
 					grade: {
 						criterionId: fixture.criterionIds.check,
@@ -57,7 +57,7 @@ test("saveCriterionGradeInDb round-trips check, options and number grades", asyn
 				}),
 				saveCriterionGradeInDb(tx, {
 					gridId: fixture.gridId,
-					targetId: fixture.gradeTargetId,
+					gradeTargetId: fixture.gradeTargetId,
 					rubricId: fixture.rubricId,
 					grade: {
 						criterionId: fixture.criterionIds.options,
@@ -67,7 +67,7 @@ test("saveCriterionGradeInDb round-trips check, options and number grades", asyn
 				}),
 				saveCriterionGradeInDb(tx, {
 					gridId: fixture.gridId,
-					targetId: fixture.gradeTargetId,
+					gradeTargetId: fixture.gradeTargetId,
 					rubricId: fixture.rubricId,
 					grade: {
 						criterionId: fixture.criterionIds.number,
@@ -116,7 +116,7 @@ test("saveCriterionGradeInDb returns a validation error for an invalid options l
 		.execute((tx) =>
 			saveCriterionGradeInDb(tx, {
 				gridId: fixture.gridId,
-				targetId: fixture.gradeTargetId,
+				gradeTargetId: fixture.gradeTargetId,
 				rubricId: fixture.rubricId,
 				grade: {
 					criterionId: fixture.criterionIds.options,
@@ -143,7 +143,7 @@ test("saveCriterionGradeInDb returns a validation error for an out-of-range numb
 		.execute((tx) =>
 			saveCriterionGradeInDb(tx, {
 				gridId: fixture.gridId,
-				targetId: fixture.gradeTargetId,
+				gradeTargetId: fixture.gradeTargetId,
 				rubricId: fixture.rubricId,
 				grade: {
 					criterionId: fixture.criterionIds.number,
@@ -185,7 +185,7 @@ test("saveCriterionGradeInDb saves in the correct grid when rubric and criterion
 		.execute((tx) =>
 			saveCriterionGradeInDb(tx, {
 				gridId: fixtureB.gridId,
-				targetId: fixtureB.gradeTargetId,
+				gradeTargetId: fixtureB.gradeTargetId,
 				rubricId: fixtureB.rubricId,
 				grade: {
 					criterionId: fixtureB.criterionIds.check,
@@ -221,7 +221,7 @@ test("saveCriterionGradeInDb rejects cross-grid grade target and rubric combinat
 		.execute((tx) =>
 			saveCriterionGradeInDb(tx, {
 				gridId: fixtureA.gridId,
-				targetId: fixtureA.gradeTargetId,
+				gradeTargetId: fixtureA.gradeTargetId,
 				rubricId: fixtureB.rubricId,
 				grade: {
 					criterionId: fixtureB.criterionIds.check,
@@ -246,7 +246,7 @@ test("saveCriterionGrade wrapper updates the edited tags read-your-writes and re
 	const result = await saveCriterionGrade(
 		{
 			gridId: fixture.gridId,
-			targetId: fixture.gradeTargetId,
+			gradeTargetId: fixture.gradeTargetId,
 			rubricId: fixture.rubricId,
 			grade: {
 				criterionId: fixture.criterionIds.check,
@@ -281,7 +281,7 @@ test("saveCriterionGrade wrapper does not invalidate when the save fails validat
 	const result = await saveCriterionGrade(
 		{
 			gridId: fixture.gridId,
-			targetId: fixture.gradeTargetId,
+			gradeTargetId: fixture.gradeTargetId,
 			rubricId: fixture.rubricId,
 			grade: {
 				criterionId: fixture.criterionIds.options,
@@ -311,7 +311,7 @@ test("saveCriterionGradeInDb keeps a single untorn value when two writers race t
 		first: (tx) =>
 			saveCriterionGradeInDb(tx, {
 				gridId: fixture.gridId,
-				targetId: fixture.gradeTargetId,
+				gradeTargetId: fixture.gradeTargetId,
 				rubricId: fixture.rubricId,
 				grade: {
 					criterionId: fixture.criterionIds.check,
@@ -322,7 +322,7 @@ test("saveCriterionGradeInDb keeps a single untorn value when two writers race t
 		second: (tx) =>
 			saveCriterionGradeInDb(tx, {
 				gridId: fixture.gridId,
-				targetId: fixture.gradeTargetId,
+				gradeTargetId: fixture.gradeTargetId,
 				rubricId: fixture.rubricId,
 				grade: {
 					criterionId: fixture.criterionIds.check,
@@ -393,7 +393,7 @@ test("saveCriterionGradeInDb keeps both criterion grades when two writers race d
 			Promise.all([
 				saveCriterionGradeInDb(tx, {
 					gridId: fixture.gridId,
-					targetId: fixture.gradeTargetId,
+					gradeTargetId: fixture.gradeTargetId,
 					rubricId: fixture.rubricId,
 					grade: {
 						criterionId: fixture.criterionIds.check,
@@ -403,7 +403,7 @@ test("saveCriterionGradeInDb keeps both criterion grades when two writers race d
 				}),
 				saveCriterionGradeInDb(tx, {
 					gridId: fixture.gridId,
-					targetId: fixture.gradeTargetId,
+					gradeTargetId: fixture.gradeTargetId,
 					rubricId: fixture.rubricId,
 					grade: {
 						criterionId: fixture.criterionIds.options,
@@ -455,7 +455,7 @@ test("saveCriterionGrade wrapper does not error under naive parallel saves", asy
 		saveCriterionGrade(
 			{
 				gridId: fixture.gridId,
-				targetId: fixture.gradeTargetId,
+				gradeTargetId: fixture.gradeTargetId,
 				rubricId: fixture.rubricId,
 				grade: {
 					criterionId: fixture.criterionIds.check,
@@ -468,7 +468,7 @@ test("saveCriterionGrade wrapper does not error under naive parallel saves", asy
 		saveCriterionGrade(
 			{
 				gridId: fixture.gridId,
-				targetId: fixture.gradeTargetId,
+				gradeTargetId: fixture.gradeTargetId,
 				rubricId: fixture.rubricId,
 				grade: {
 					criterionId: fixture.criterionIds.options,
@@ -481,7 +481,7 @@ test("saveCriterionGrade wrapper does not error under naive parallel saves", asy
 		saveCriterionGrade(
 			{
 				gridId: fixture.gridId,
-				targetId: fixture.gradeTargetId,
+				gradeTargetId: fixture.gradeTargetId,
 				rubricId: fixture.rubricId,
 				grade: {
 					criterionId: fixture.criterionIds.number,

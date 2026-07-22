@@ -21,9 +21,9 @@ export async function saveCriterionGrade(
 	const result = await db
 		.transaction()
 		.execute((tx) => saveCriterionGradeInDb(tx, params));
-	const { gridId, targetId, rubricId } = params;
+	const { gridId, gradeTargetId, rubricId } = params;
 	if (result.success) {
-		invalidateGradeSave({ gridId, targetId, rubricId });
+		invalidateGradeSave({ gridId, targetId: gradeTargetId, rubricId });
 	}
 
 	return result;

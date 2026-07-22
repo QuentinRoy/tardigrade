@@ -19,14 +19,14 @@ export type SaveCriterionGrade = (
 export async function trySaveCriterionGrade({
 	saveCriterionGrade,
 	gridId,
-	targetId,
+	gradeTargetId,
 	rubricId,
 	grade,
 	errorContext,
 }: {
 	saveCriterionGrade: SaveCriterionGrade;
 	gridId: string;
-	targetId: string;
+	gradeTargetId: string;
 	rubricId: string;
 	grade: SaveCriterionGradeParams["grade"];
 	errorContext: Omit<SaveError, "id" | "message">;
@@ -34,7 +34,7 @@ export async function trySaveCriterionGrade({
 	try {
 		const result = await saveCriterionGrade({
 			gridId,
-			targetId,
+			gradeTargetId,
 			rubricId,
 			grade,
 		});

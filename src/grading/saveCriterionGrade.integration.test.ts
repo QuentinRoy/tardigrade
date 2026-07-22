@@ -35,7 +35,7 @@ test("saveCriterionGrade returns a generic shaped error and logs once when the m
 		const result = await saveCriterionGrade(
 			{
 				gridId: fixture.gridId,
-				targetId: fixture.gradeTargetId,
+				gradeTargetId: fixture.gradeTargetId,
 				rubricId: fixture.rubricId,
 				grade: {
 					criterionId: fixture.criterionIds.check,

@@ -124,7 +124,7 @@ export default function GradeTargetGradingClient({
 			return trySaveCriterionGrade({
 				saveCriterionGrade,
 				gridId,
-				targetId: currentTargetId,
+				gradeTargetId: currentTargetId,
 				rubricId: info.rubricId,
 				grade,
 				errorContext: { ...baseErrorContext, rubricLabel: info.rubricLabel },
