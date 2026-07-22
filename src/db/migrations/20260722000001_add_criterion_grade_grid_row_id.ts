@@ -75,9 +75,41 @@ export async function up(db: Kysely<unknown>): Promise<void> {
 	// Intentionally no index on criterion_grade.grid_row_id: the cell is loaded
 	// per grade-target, never by grid, so there is no query to back yet. Add
 	// one only if a grid-scoped cell query appears (plan decision 6).
+
+	await db.schema
+		.alterTable("criterion_grade")
+		.dropConstraint("criterion_grade_grade_target_row_id_fkey")
+		.execute();
+
+	await db.schema
+		.alterTable("criterion_grade")
+		.addForeignKeyConstraint(
+			"criterion_grade_grade_target_row_id_grid_row_id_fkey",
+			["grade_target_row_id", "grid_row_id"],
+			"grade_target",
+			["row_id", "grid_row_id"],
+			(constraint) => constraint.onDelete("cascade").onUpdate("cascade"),
+		)
+		.execute();
 }
 
 export async function down(db: Kysely<unknown>): Promise<void> {
+	await db.schema
+		.alterTable("criterion_grade")
+		.dropConstraint("criterion_grade_grade_target_row_id_grid_row_id_fkey")
+		.execute();
+
+	await db.schema
+		.alterTable("criterion_grade")
+		.addForeignKeyConstraint(
+			"criterion_grade_grade_target_row_id_fkey",
+			["grade_target_row_id"],
+			"grade_target",
+			["row_id"],
+			(constraint) => constraint.onDelete("cascade").onUpdate("cascade"),
+		)
+		.execute();
+
 	await db.schema
 		.alterTable("grade_target")
 		.dropConstraint("grade_target_row_id_grid_row_id_key")

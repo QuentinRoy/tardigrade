@@ -378,6 +378,73 @@ test("criterion/rubric composite FK rejects a criterion referencing a rubric in 
 	expect(persisted).toHaveLength(0);
 });
 
+test("criterion_grade composite FK rejects a cell whose criterion and grade target are in different grids and rolls back transactional writes", async () => {
+	await using db = await createTestDb();
+	await using gridA = await createGrid(db, "Constraint Cell Grid A");
+	await using gridB = await createGrid(db, "Constraint Cell Grid B");
+
+	const rubricId = buildTestId("rubric");
+	const rubric = await db
+		.insertInto("rubric")
+		.values({
+			gridRowId: gridA.rowId,
+			id: rubricId,
+			label: "Cell rubric",
+			position: 0,
+		})
+		.returning("rowId")
+		.executeTakeFirstOrThrow();
+
+	const criterionId = buildTestId("criterion-cell");
+	const criterion = await db
+		.insertInto("criterion")
+		.values({
+			gridRowId: gridA.rowId,
+			id: criterionId,
+			rubricId: rubric.rowId,
+			kind: "check",
+			position: 0,
+			label: "Cell criterion",
+		})
+		.returning("rowId")
+		.executeTakeFirstOrThrow();
+
+	const [targetId] = await nextGradeTargetIds(db, {
+		gridRowId: gridB.rowId,
+		count: 1,
+	});
+	if (targetId == null) {
+		throw new Error("Expected generated grade target id.");
+	}
+	const target = await db
+		.insertInto("gradeTarget")
+		.values({ gridRowId: gridB.rowId, id: targetId })
+		.returning("rowId")
+		.executeTakeFirstOrThrow();
+
+	await expect(
+		db.transaction().execute(async (trx) => {
+			await trx
+				.insertInto("criterionGrade")
+				.values({
+					// grid_row_id is backfilled from the criterion side (grid A), so
+					// this cell only mismatches the grade target's side (grid B).
+					gridRowId: gridA.rowId,
+					criterionId: criterion.rowId,
+					gradeTargetRowId: target.rowId,
+				})
+				.execute();
+		}),
+	).rejects.toThrow("criterion_grade_grade_target_row_id_grid_row_id_fkey");
+
+	const persisted = await db
+		.selectFrom("criterionGrade")
+		.select("id")
+		.where("criterionId", "=", criterion.rowId)
+		.execute();
+	expect(persisted).toHaveLength(0);
+});
+
 test("options criterion grades accept valid labels and roll back failed transactional writes", async () => {
 	await using db = await createTestDb();
 	await using grid = await createGrid(db, "Constraint Options Grid");
