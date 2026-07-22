@@ -4,6 +4,7 @@
 import type { ColumnType } from "kysely";
 import type { CriterionRowId } from "./Criterion.ts";
 import type { GradeTargetRowId } from "./GradeTarget.ts";
+import type { GridRowId } from "./Grid.ts";
 
 /** Identifier type for public.criterion_grade */
 export type CriterionGradeId = number;
@@ -30,5 +31,5 @@ export interface CriterionGradeTable {
 	>;
 
 	/** Database type: pg_catalog.int4 */
-	gridRowId: ColumnType<number, number, number>;
+	gridRowId: ColumnType<GridRowId, GridRowId, GridRowId>;
 }

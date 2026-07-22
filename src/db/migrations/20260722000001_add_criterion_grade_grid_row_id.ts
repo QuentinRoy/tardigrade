@@ -91,9 +91,41 @@ export async function up(db: Kysely<unknown>): Promise<void> {
 			(constraint) => constraint.onDelete("cascade").onUpdate("cascade"),
 		)
 		.execute();
+
+	await db.schema
+		.alterTable("criterion_grade")
+		.dropConstraint("criterion_grade_criterion_id_fkey")
+		.execute();
+
+	await db.schema
+		.alterTable("criterion_grade")
+		.addForeignKeyConstraint(
+			"criterion_grade_criterion_id_grid_row_id_fkey",
+			["criterion_id", "grid_row_id"],
+			"criterion",
+			["row_id", "grid_row_id"],
+			(constraint) => constraint.onDelete("cascade").onUpdate("cascade"),
+		)
+		.execute();
 }
 
 export async function down(db: Kysely<unknown>): Promise<void> {
+	await db.schema
+		.alterTable("criterion_grade")
+		.dropConstraint("criterion_grade_criterion_id_grid_row_id_fkey")
+		.execute();
+
+	await db.schema
+		.alterTable("criterion_grade")
+		.addForeignKeyConstraint(
+			"criterion_grade_criterion_id_fkey",
+			["criterion_id"],
+			"criterion",
+			["row_id"],
+			(constraint) => constraint.onDelete("cascade").onUpdate("cascade"),
+		)
+		.execute();
+
 	await db.schema
 		.alterTable("criterion_grade")
 		.dropConstraint("criterion_grade_grade_target_row_id_grid_row_id_fkey")
