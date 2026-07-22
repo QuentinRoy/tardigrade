@@ -162,10 +162,10 @@ express — in this codebase that is **index renames** (there is no
 function** management. When raw SQL is used, keep it localized and document why
 it is necessary if the reason is not obvious.
 
-Run one DDL statement at a time (`await` each). Do not `Promise.all` schema
-changes: each `ALTER TABLE`/`ALTER TYPE` takes a heavy lock, so running them
-concurrently only makes them contend (and risk deadlocks) for no benefit — a
-migration is a one-time operation, not a hot path.
+Kysely runs each migration in a transaction on one connection, where the
+Postgres driver executes one query at a time. Use sequential `await`s, not
+`Promise.all`: it adds no parallelism and hides dependencies. Related DDL may
+share one raw SQL execution when clearer.
 
 ### No CamelCasePlugin on migration runners
 

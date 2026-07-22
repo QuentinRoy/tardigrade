@@ -1,6 +1,6 @@
 "use client";
 
-import { AppShell as MantineAppShell } from "@mantine/core";
+import { AppShell as MantineAppShell, ScrollArea } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { type ReactNode, Suspense, useId } from "react";
 import { APP_SHELL_DRAWER_WIDTH } from "./AppShell.shared.ts";
@@ -52,12 +52,20 @@ export default function AppShell(props: AppShellProps) {
 
 			{props.showNavigation && (
 				<MantineAppShell.Navbar id={navbarId} aria-label="Grid navigation">
-					<Suspense fallback={null}>
-						<AppShellDrawerContent
-							gridName={props.gridName}
-							onDismiss={closeNavbar}
-						/>
-					</Suspense>
+					{/*
+						AppShell.Navbar doesn't scroll on its own, and its content
+						(import/export sections included) can be taller than the
+						viewport — wrap it in a growing ScrollArea section so
+						everything stays reachable.
+					*/}
+					<MantineAppShell.Section grow component={ScrollArea}>
+						<Suspense fallback={null}>
+							<AppShellDrawerContent
+								gridName={props.gridName}
+								onDismiss={closeNavbar}
+							/>
+						</Suspense>
+					</MantineAppShell.Section>
 				</MantineAppShell.Navbar>
 			)}
 
