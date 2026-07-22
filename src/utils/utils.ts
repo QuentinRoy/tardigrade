@@ -76,6 +76,25 @@ export function findDuplicateGroups<Value, Key>(
 export type DuplicateGroup<Key> = { key: Key; indexes: number[] };
 
 /**
+ * Splits `items` into consecutive chunks of at most `size` items each. The
+ * last chunk may be smaller. Returns an empty array for empty input.
+ *
+ * @example
+ * chunk([1, 2, 3, 4, 5], 2); // [[1, 2], [3, 4], [5]]
+ */
+export function chunk<Item>(items: readonly Item[], size: number): Item[][] {
+	if (size <= 0) {
+		throw new Error(`Chunk size must be positive, got ${size}.`);
+	}
+
+	const chunks: Item[][] = [];
+	for (let index = 0; index < items.length; index += size) {
+		chunks.push(items.slice(index, index + size));
+	}
+	return chunks;
+}
+
+/**
  * Asserts that a value is non-null and non-undefined. If the value is null or
  * undefined, it throws an error. Otherwise, it returns the value with a narrowed
  * type.
