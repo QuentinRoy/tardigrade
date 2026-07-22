@@ -13,7 +13,7 @@ Stable public grid identifier used in URLs and external-facing import/export ref
 _Avoid_: public_id, internal grid id, numeric grid key, project id
 
 **Grid Row ID**:
-Internal surrogate database key for a grid row, used for joins and foreign keys.
+Internal surrogate database key for a grid row, used for joins and foreign keys. Some tables carry it as a true parent link (their own grid membership); others carry it purely as a consistency copy backing a composite foreign key — see [ADR 0015](docs/adr/0015-enforce-cross-grid-integrity-with-composite-foreign-keys.md) for the taxonomy.
 _Avoid_: grid id (when meaning internal), public grid id, project row id
 
 **Grid Slug**:

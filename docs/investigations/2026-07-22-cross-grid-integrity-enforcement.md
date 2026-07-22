@@ -1,8 +1,9 @@
 # Investigation: Enforcing cross-grid integrity on `criterion_grade`
 
-- **Status:** Active
+- **Status:** Completed
 - **Created:** 2026-07-22
 - **Related:** [#144](https://github.com/QuentinRoy/tardigrade/issues/144)
+- **Resolution:** Option A accepted and recorded in [ADR 0015](../adr/0015-enforce-cross-grid-integrity-with-composite-foreign-keys.md); executed via [plans/2026-07-22-cross-grid-integrity-enforcement.md](../../plans/2026-07-22-cross-grid-integrity-enforcement.md).
 
 ## Question
 
