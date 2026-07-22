@@ -82,6 +82,21 @@ type ResolvedGradeWrite = {
 	grade: CriterionGrade;
 };
 
+// Per-kind subtype write rows, once a resolved grade's parent `criterionGrade`
+// row id is known.
+type CheckGradeWriteRow = {
+	criterionGradeId: number;
+	grade: { passed: boolean };
+};
+type OptionsGradeWriteRow = {
+	criterionGradeId: number;
+	grade: { selectedLabel: string };
+};
+type NumberGradeWriteRow = {
+	criterionGradeId: number;
+	grade: { value: number };
+};
+
 // Resolves every write's (grade target, rubric, criterion) context against the
 // grid in one set-based query per entity, instead of repeating the lookup
 // sequence per grade. Returns the first defensive failure found, in write
@@ -273,36 +288,38 @@ export async function saveCriterionGradesInDb(
 	// resolved per kind in one query across every grade of that kind, not once
 	// per grade. A batch containing any invalid grade writes nothing: both
 	// validation passes run, and any failure returns before the writes below.
-	const numberEntries = resolved.filter(
-		(
-			entry,
-		): entry is ResolvedGradeWrite & {
-			grade: Extract<CriterionGrade, { kind: "number" }>;
-		} => entry.grade.kind === "number",
-	);
-	const optionsEntries = resolved.filter(
-		(
-			entry,
-		): entry is ResolvedGradeWrite & {
-			grade: Extract<CriterionGrade, { kind: "options" }>;
-		} => entry.grade.kind === "options",
-	);
+	const numberGradeInputs: {
+		criterionRowId: number;
+		grade: { value: number };
+	}[] = [];
+	const optionsGradeInputs: {
+		criterionRowId: number;
+		grade: { selectedLabel: string };
+	}[] = [];
+	for (const entry of resolved) {
+		switch (entry.grade.kind) {
+			case "number":
+				numberGradeInputs.push({
+					criterionRowId: entry.criterionRowId,
+					grade: { value: entry.grade.value },
+				});
+				break;
+			case "options":
+				optionsGradeInputs.push({
+					criterionRowId: entry.criterionRowId,
+					grade: { selectedLabel: entry.grade.selectedLabel },
+				});
+				break;
+			case "check":
+				break;
+			default:
+				assertNever(entry.grade);
+		}
+	}
 
 	const [numberValidations, optionsValidations] = await Promise.all([
-		validateNumberGradesInDb(
-			db,
-			numberEntries.map((entry) => ({
-				criterionRowId: entry.criterionRowId,
-				grade: { value: entry.grade.value },
-			})),
-		),
-		validateOptionsGradesInDb(
-			db,
-			optionsEntries.map((entry) => ({
-				criterionRowId: entry.criterionRowId,
-				grade: { selectedLabel: entry.grade.selectedLabel },
-			})),
-		),
+		validateNumberGradesInDb(db, numberGradeInputs),
+		validateOptionsGradesInDb(db, optionsGradeInputs),
 	]);
 
 	const failedNumberValidation = numberValidations.find(
@@ -335,14 +352,9 @@ export async function saveCriterionGradesInDb(
 		return parentId;
 	}
 
-	const checkRows: { criterionGradeId: number; grade: { passed: boolean } }[] =
-		[];
-	const numberRows: { criterionGradeId: number; grade: { value: number } }[] =
-		[];
-	const optionsRows: {
-		criterionGradeId: number;
-		grade: { selectedLabel: string };
-	}[] = [];
+	const checkRows: CheckGradeWriteRow[] = [];
+	const optionsRows: OptionsGradeWriteRow[] = [];
+	const numberRows: NumberGradeWriteRow[] = [];
 	const criterionGradeIdsByKind: Record<CriterionGrade["kind"], number[]> = {
 		check: [],
 		options: [],
