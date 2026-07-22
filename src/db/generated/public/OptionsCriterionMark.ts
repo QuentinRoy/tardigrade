@@ -10,14 +10,11 @@ export type OptionsCriterionMarkId = number;
 /** Represents the table public.options_criterion_mark */
 export interface OptionsCriterionMarkTable {
 	id: ColumnType<OptionsCriterionMarkId, never, never>;
-
 	optionsCriterionId: ColumnType<
 		OptionsCriterionId,
 		OptionsCriterionId,
 		OptionsCriterionId
 	>;
-
 	label: ColumnType<string, string, string>;
-
 	marks: ColumnType<number, number, number>;
 }

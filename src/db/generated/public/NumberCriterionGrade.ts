@@ -10,12 +10,10 @@ export type NumberCriterionGradeId = number;
 /** Represents the table public.number_criterion_grade */
 export interface NumberCriterionGradeTable {
 	id: ColumnType<NumberCriterionGradeId, never, never>;
-
 	criterionGradeId: ColumnType<
 		CriterionGradeId,
 		CriterionGradeId,
 		CriterionGradeId
 	>;
-
 	value: ColumnType<number, number, number>;
 }

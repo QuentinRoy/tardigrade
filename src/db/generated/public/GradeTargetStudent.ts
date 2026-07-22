@@ -8,7 +8,6 @@ import type { StudentRowId } from "./Student.ts";
 /** Represents the table public.grade_target_student */
 export interface GradeTargetStudentTable {
 	studentRowId: ColumnType<StudentRowId, StudentRowId, StudentRowId>;
-
 	gradeTargetRowId: ColumnType<
 		GradeTargetRowId,
 		GradeTargetRowId,

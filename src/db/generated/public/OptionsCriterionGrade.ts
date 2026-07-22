@@ -10,12 +10,10 @@ export type OptionsCriterionGradeId = number;
 /** Represents the table public.options_criterion_grade */
 export interface OptionsCriterionGradeTable {
 	id: ColumnType<OptionsCriterionGradeId, never, never>;
-
 	criterionGradeId: ColumnType<
 		CriterionGradeId,
 		CriterionGradeId,
 		CriterionGradeId
 	>;
-
 	selectedLabel: ColumnType<string, string, string>;
 }

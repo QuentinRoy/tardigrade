@@ -10,16 +10,10 @@ export type StudentRowId = number;
 /** Represents the table public.student */
 export interface StudentTable {
 	rowId: ColumnType<StudentRowId, never, never>;
-
 	id: ColumnType<string, string, string>;
-
 	lastName: ColumnType<string, string, string>;
-
 	firstName: ColumnType<string, string, string>;
-
 	createdAt: ColumnType<Date, Date | string | undefined, Date | string>;
-
 	updatedAt: ColumnType<Date, Date | string | undefined, Date | string>;
-
 	gridRowId: ColumnType<GridRowId, GridRowId, GridRowId>;
 }

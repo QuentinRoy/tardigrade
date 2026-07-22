@@ -10,14 +10,9 @@ export type GradeTargetRowId = number;
 /** Represents the table public.grade_target */
 export interface GradeTargetTable {
 	rowId: ColumnType<GradeTargetRowId, never, never>;
-
 	createdAt: ColumnType<Date, Date | string | undefined, Date | string>;
-
 	updatedAt: ColumnType<Date, Date | string | undefined, Date | string>;
-
 	gridRowId: ColumnType<GridRowId, GridRowId, GridRowId>;
-
 	id: ColumnType<string, string, string>;
-
 	name: ColumnType<string | null, string | null, string | null>;
 }

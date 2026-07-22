@@ -10,6 +10,5 @@ export type OptionsCriterionId = number;
 /** Represents the table public.options_criterion */
 export interface OptionsCriterionTable {
 	id: ColumnType<OptionsCriterionId, never, never>;
-
 	criterionId: ColumnType<CriterionRowId, CriterionRowId, CriterionRowId>;
 }

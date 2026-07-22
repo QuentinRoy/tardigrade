@@ -9,12 +9,8 @@ export type GridRowId = number;
 /** Represents the table public.grid */
 export interface GridTable {
 	rowId: ColumnType<GridRowId, never, never>;
-
 	id: ColumnType<string, string, string>;
-
 	name: ColumnType<string, string, string>;
-
 	createdAt: ColumnType<Date, Date | string | undefined, Date | string>;
-
 	updatedAt: ColumnType<Date, Date | string | undefined, Date | string>;
 }

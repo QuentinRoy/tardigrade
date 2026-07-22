@@ -12,22 +12,13 @@ export type CriterionRowId = number;
 /** Represents the table public.criterion */
 export interface CriterionTable {
 	rowId: ColumnType<CriterionRowId, never, never>;
-
 	id: ColumnType<string, string, string>;
-
 	position: ColumnType<number, number, number>;
-
 	description: ColumnType<string | null, string | null, string | null>;
-
 	label: ColumnType<string | null, string | null, string | null>;
-
 	kind: ColumnType<CriterionKind, CriterionKind, CriterionKind>;
-
 	createdAt: ColumnType<Date, Date | string | undefined, Date | string>;
-
 	updatedAt: ColumnType<Date, Date | string | undefined, Date | string>;
-
 	gridRowId: ColumnType<GridRowId, GridRowId, GridRowId>;
-
 	rubricId: ColumnType<RubricRowId, RubricRowId, RubricRowId>;
 }

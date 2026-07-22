@@ -10,12 +10,10 @@ export type CheckCriterionGradeId = number;
 /** Represents the table public.check_criterion_grade */
 export interface CheckCriterionGradeTable {
 	id: ColumnType<CheckCriterionGradeId, never, never>;
-
 	criterionGradeId: ColumnType<
 		CriterionGradeId,
 		CriterionGradeId,
 		CriterionGradeId
 	>;
-
 	passed: ColumnType<boolean, boolean, boolean>;
 }

@@ -10,16 +10,10 @@ export type RubricRowId = number;
 /** Represents the table public.rubric */
 export interface RubricTable {
 	rowId: ColumnType<RubricRowId, never, never>;
-
 	id: ColumnType<string, string, string>;
-
 	label: ColumnType<string | null, string | null, string | null>;
-
 	position: ColumnType<number, number | undefined, number>;
-
 	createdAt: ColumnType<Date, Date | string | undefined, Date | string>;
-
 	updatedAt: ColumnType<Date, Date | string | undefined, Date | string>;
-
 	gridRowId: ColumnType<GridRowId, GridRowId, GridRowId>;
 }

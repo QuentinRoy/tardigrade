@@ -18,30 +18,17 @@ import type { StudentTable } from "./Student.ts";
 
 export interface PublicSchema {
 	optionsCriterionGrade: OptionsCriterionGradeTable;
-
 	checkCriterionGrade: CheckCriterionGradeTable;
-
 	rubric: RubricTable;
-
 	criterionGrade: CriterionGradeTable;
-
 	checkCriterion: CheckCriterionTable;
-
 	gradeTargetStudent: GradeTargetStudentTable;
-
 	criterion: CriterionTable;
-
 	optionsCriterionMark: OptionsCriterionMarkTable;
-
 	numberCriterion: NumberCriterionTable;
-
 	gradeTarget: GradeTargetTable;
-
 	optionsCriterion: OptionsCriterionTable;
-
 	grid: GridTable;
-
 	student: StudentTable;
-
 	numberCriterionGrade: NumberCriterionGradeTable;
 }

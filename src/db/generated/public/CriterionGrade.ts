@@ -12,18 +12,13 @@ export type CriterionGradeId = number;
 /** Represents the table public.criterion_grade */
 export interface CriterionGradeTable {
 	id: ColumnType<CriterionGradeId, never, never>;
-
 	createdAt: ColumnType<Date, Date | string | undefined, Date | string>;
-
 	updatedAt: ColumnType<Date, Date | string | undefined, Date | string>;
-
 	criterionId: ColumnType<CriterionRowId, CriterionRowId, CriterionRowId>;
-
 	gradeTargetRowId: ColumnType<
 		GradeTargetRowId,
 		GradeTargetRowId,
 		GradeTargetRowId
 	>;
-
 	gridRowId: ColumnType<GridRowId, GridRowId, GridRowId>;
 }

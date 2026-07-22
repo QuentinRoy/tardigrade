@@ -12,6 +12,7 @@
 
 import type {
 	GenerateIdentifierType,
+	PostRenderHook,
 	PreRenderHook,
 	TsDeclaration,
 	TypescriptConfig,
@@ -136,6 +137,17 @@ const adaptGeneratedTypes: PreRenderHook = (originalOutput) => {
 	return output;
 };
 
+/** Remove Kanel's blank separator lines between interface members. */
+const compactInterfaceMembers: PostRenderHook = (_path, lines) => {
+	let isInsideInterface = false;
+
+	return lines.filter((line) => {
+		if (line.startsWith("export interface ")) isInsideInterface = true;
+		if (line === "}") isInsideInterface = false;
+		return line !== "" || !isInsideInterface;
+	});
+};
+
 if (process.env["DATABASE_URL"] == null) {
 	throw new Error(
 		"DATABASE_URL environment variable is required to generate Kysely types",
@@ -204,6 +216,7 @@ export const generators = [
 export const preRenderHooks = [adaptGeneratedTypes];
 
 /**
- * Mark every generated file clearly as generated-only.
+ * Compact interface members, then mark every generated file clearly as
+ * generated-only.
  */
-export const postRenderHooks = [markAsGenerated];
+export const postRenderHooks = [compactInterfaceMembers, markAsGenerated];
