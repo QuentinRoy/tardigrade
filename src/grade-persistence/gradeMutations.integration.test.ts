@@ -243,7 +243,7 @@ test("saveCriterionGradesInDb rejects a batch referencing another grid's rubric 
 	expect(await countCriterionGrades(db, gridA.grid.rowId)).toBe(0);
 });
 
-test("saveCriterionGradesInDb rejects a batch with two grades for the same target and criterion", async () => {
+test("saveCriterionGradesInDb throws without writing when a batch repeats a Grade Target and Criterion", async () => {
 	await using db = await createTestDb();
 	const fixture = await createMixedCriterionRubricFixtureGrid(db, {
 		gridName: "Batch Duplicate Grid",
@@ -254,36 +254,33 @@ test("saveCriterionGradesInDb rejects a batch with two grades for the same targe
 	});
 	const targetId = await addIndividualTarget(db, fixture.grid.rowId);
 
-	const result = await db.transaction().execute((tx) =>
-		saveCriterionGradesInDb(tx, {
-			gridId: fixture.grid.id,
-			grades: [
-				{
-					targetId,
-					rubricId: fixture.rubric.id,
-					grade: {
-						criterionId: fixture.rubric.criteria.checkId,
-						kind: "check",
-						passed: true,
+	await expect(
+		db.transaction().execute((tx) =>
+			saveCriterionGradesInDb(tx, {
+				gridId: fixture.grid.id,
+				grades: [
+					{
+						targetId,
+						rubricId: fixture.rubric.id,
+						grade: {
+							criterionId: fixture.rubric.criteria.checkId,
+							kind: "check",
+							passed: true,
+						},
 					},
-				},
-				{
-					targetId,
-					rubricId: fixture.rubric.id,
-					grade: {
-						criterionId: fixture.rubric.criteria.checkId,
-						kind: "check",
-						passed: false,
+					{
+						targetId,
+						rubricId: fixture.rubric.id,
+						grade: {
+							criterionId: fixture.rubric.criteria.checkId,
+							kind: "check",
+							passed: false,
+						},
 					},
-				},
-			],
-		}),
-	);
-
-	expect(result).toEqual({
-		success: false,
-		error: saveCriterionGradeErrors.duplicateGrade,
-	});
+				],
+			}),
+		),
+	).rejects.toThrow("Duplicate criterion Grade writes");
 	expect(await countCriterionGrades(db, fixture.grid.rowId)).toBe(0);
 });
 

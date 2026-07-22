@@ -71,8 +71,6 @@ export const saveCriterionGradeErrors = {
 		"We couldn't find this grading criterion. Reload and try again. If this keeps happening, report this issue.",
 	criterionChanged:
 		"This grading criterion changed while you were grading. Reload and try again.",
-	duplicateGrade:
-		"Two grades in this save target the same student work and criterion. Reload and try again.",
 	unexpected:
 		"Something went wrong saving this grade. Reload and try again. If this keeps happening, report this issue.",
 };
@@ -102,10 +100,9 @@ type NumberGradeWriteRow = {
 
 // Resolves every write's (grade target, rubric, criterion) context against the
 // grid in one set-based query per entity, instead of repeating the lookup
-// sequence per grade. Returns the first defensive failure found, in write
-// order, so a batch with any missing context, cross-Grid reference, changed
-// Criterion kind, or intra-batch duplicate (same target + criterion twice)
-// resolves nothing.
+// sequence per grade. Returns the first defensive domain failure found in write
+// order. A repeated Grade Target + Criterion pair is a caller invariant breach,
+// so it throws with internal identifiers rather than returning user-facing copy.
 async function resolveGradeWrites(
 	db: Transaction<Database>,
 	{ gridRowId, grades }: { gridRowId: number; grades: CriterionGradeWrite[] },
@@ -141,9 +138,9 @@ async function resolveGradeWrites(
 	const criterionById = new Map(criterionRows.map((row) => [row.id, row]));
 
 	const resolved: ResolvedGradeWrite[] = [];
-	const seenTargetCriterionPairs = new Set<string>();
+	const firstWriteIndexByTargetCriterionPair = new Map<string, number>();
 
-	for (const write of grades) {
+	for (const [writeIndex, write] of grades.entries()) {
 		const gradeTargetRowId = targetRowIdById.get(write.targetId);
 		const rubricRowId = rubricRowIdById.get(write.rubricId);
 		if (gradeTargetRowId == null || rubricRowId == null) {
@@ -166,10 +163,13 @@ async function resolveGradeWrites(
 		}
 
 		const pairKey = `${gradeTargetRowId}:${criterion.rowId}`;
-		if (seenTargetCriterionPairs.has(pairKey)) {
-			return { success: false, error: saveCriterionGradeErrors.duplicateGrade };
+		const firstWriteIndex = firstWriteIndexByTargetCriterionPair.get(pairKey);
+		if (firstWriteIndex != null) {
+			throw new Error(
+				`Duplicate criterion Grade writes at batch indexes ${firstWriteIndex} and ${writeIndex} for Grade Target Row ID ${gradeTargetRowId} and Criterion Row ID ${criterion.rowId}.`,
+			);
 		}
-		seenTargetCriterionPairs.add(pairKey);
+		firstWriteIndexByTargetCriterionPair.set(pairKey, writeIndex);
 
 		resolved.push({
 			gradeTargetRowId,
