@@ -33,6 +33,10 @@ export type NumberCriterionGradeContent = { value: number };
 
 export type NumberGradeBounds = { minValue: number; maxValue: number };
 
+export type NumberGradeBoundsResult =
+	| { valid: true }
+	| { valid: false; message: string };
+
 // Default value the authoring UI seeds a new Number criterion with. Lives here
 // (not in numberSchemas.ts) so client editors importing it don't pull zod into
 // the browser bundle; the return type is still the schema output, imported
@@ -147,19 +151,19 @@ export function parseNumberGradeValue(
 	return { value: criterionValue };
 }
 
-export function getNumberGradeBoundsError({
+export function checkNumberGradeBounds({
 	value,
 	minValue,
 	maxValue,
-}: NumberCriterionGradeContent & NumberGradeBounds): string | undefined {
+}: NumberCriterionGradeContent & NumberGradeBounds): NumberGradeBoundsResult {
 	if (value < minValue) {
-		return `Enter a value of at least ${minValue}.`;
+		return { valid: false, message: `Enter a value of at least ${minValue}.` };
 	}
 	if (value > maxValue) {
-		return `Enter a value of at most ${maxValue}.`;
+		return { valid: false, message: `Enter a value of at most ${maxValue}.` };
 	}
 
-	return undefined;
+	return { valid: true };
 }
 
 // Whether two Number grades hold the same value (used to skip no-op saves).

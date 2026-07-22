@@ -7,7 +7,7 @@ import type {
 	NumberCriterion,
 	NumberCriterionGradeContent,
 } from "./numberDomain.ts";
-import { getNumberGradeBoundsError } from "./numberDomain.ts";
+import { checkNumberGradeBounds } from "./numberDomain.ts";
 
 // Server-only persistence adapters for the Number criterion kind: batched
 // definition-subtype upsert, grade-subtype write, and row→config read mapping
@@ -102,16 +102,7 @@ export async function validateNumberGradeInDb(
 		return { valid: false, message: numberInvalidValueRangeMessage };
 	}
 
-	const boundsError = getNumberGradeBoundsError({
-		...grade,
-		minValue,
-		maxValue,
-	});
-	if (boundsError != null) {
-		return { valid: false, message: boundsError };
-	}
-
-	return { valid: true };
+	return checkNumberGradeBounds({ ...grade, minValue, maxValue });
 }
 
 // Writes a Number criterion grade's subtype row. The coordinator upserts the

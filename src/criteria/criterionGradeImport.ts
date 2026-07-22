@@ -1,7 +1,7 @@
 import { assertNever } from "#utils/utils.ts";
 import { parseCheckGradeValue } from "./check/checkDomain.ts";
 import {
-	getNumberGradeBoundsError,
+	checkNumberGradeBounds,
 	parseNumberGradeValue,
 } from "./number/numberDomain.ts";
 import { parseOptionsGradeValue } from "./options/optionsDomain.ts";
@@ -47,13 +47,13 @@ export function parseCriterionGradeValue(params: {
 			};
 		case "number": {
 			const grade = parseNumberGradeValue(value);
-			const boundsError = getNumberGradeBoundsError({
+			const boundsResult = checkNumberGradeBounds({
 				...grade,
 				minValue: criterion.minValue,
 				maxValue: criterion.maxValue,
 			});
-			if (boundsError != null) {
-				throw new Error(boundsError);
+			if (!boundsResult.valid) {
+				throw new Error(boundsResult.message);
 			}
 
 			return { criterionId: criterion.id, kind: "number", ...grade };
