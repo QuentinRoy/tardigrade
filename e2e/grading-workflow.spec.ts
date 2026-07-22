@@ -268,9 +268,7 @@ test("grading workflow: import, grade, persist, and export a computed total", as
 		await expectGradeMatrixRow(page, expected);
 	}
 
-	// Every grid page visited above rendered the drawer with both download
-	// links in view, so an empty map here is the regression check for
-	// prefetch-triggered exports.
+	// Confirms none of the navigation and page loads above triggered an export.
 	expect(exportRequestCounts.size).toBe(0);
 
 	// Click the actual download links and confirm each explicit click, and
