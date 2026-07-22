@@ -178,6 +178,25 @@ function parseCsv(text: string): Record<string, string>[] {
 test("grading workflow: import, grade, persist, and export a computed total", async ({
 	page,
 }) => {
+	// The drawer's Download Grades/Rubrics links sit in the navbar across every
+	// grid page below, so this counts real browser requests per export route
+	// throughout the whole workflow: every count must stay at zero until the
+	// explicit download clicks further down, proving navigation, viewport
+	// visibility, hover, and touch never trigger an export on their own.
+	const exportRequestCounts = new Map<string, number>();
+	page.on("request", (request) => {
+		const { pathname } = new URL(request.url());
+		const exportKind = pathname.match(/\/export\/(?<kind>[^/]+)$/)?.groups?.[
+			"kind"
+		];
+		if (exportKind != null) {
+			exportRequestCounts.set(
+				exportKind,
+				(exportRequestCounts.get(exportKind) ?? 0) + 1,
+			);
+		}
+	});
+
 	// Create a grid and land on its overview.
 	await page.goto("/grids");
 	await page.getByLabel("Grid name").fill(GRID_NAME);
@@ -248,6 +267,21 @@ test("grading workflow: import, grade, persist, and export a computed total", as
 	for (const expected of EXPECTED_GRADE_MATRIX) {
 		await expectGradeMatrixRow(page, expected);
 	}
+
+	// Every grid page visited above rendered the drawer with both download
+	// links in view, so an empty map here is the regression check for
+	// prefetch-triggered exports.
+	expect(exportRequestCounts.size).toBe(0);
+
+	// Click the actual download links and confirm each explicit click, and
+	// only the click, requests its export route. Polling the request count
+	// rather than awaiting Playwright's `download` event keeps this a check on
+	// the request firing, not on the browser's download machinery completing.
+	await page.getByRole("link", { name: "Download Grades" }).click();
+	await expect.poll(() => exportRequestCounts.get("grades")).toBe(1);
+
+	await page.getByRole("link", { name: "Download Rubrics" }).click();
+	await expect.poll(() => exportRequestCounts.get("rubrics")).toBe(1);
 
 	// Export the grades CSV via the GET route (request context avoids
 	// browser download flakiness) and assert the computed final totals. The
