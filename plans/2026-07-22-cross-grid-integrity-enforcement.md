@@ -1,9 +1,10 @@
 # Enforce cross-grid integrity with composite foreign keys
 
-- **Status:** Active
+- **Status:** Completed
 - **Created:** 2026-07-22
 - **Origin:** [cross-grid integrity investigation](../docs/investigations/2026-07-22-cross-grid-integrity-enforcement.md) (Option A accepted)
 - **Tracked by:** [#144](https://github.com/QuentinRoy/tardigrade/issues/144)
+- **Implemented by:** [ADR 0015](../docs/adr/0015-enforce-cross-grid-integrity-with-composite-foreign-keys.md), `claude/tardigrade-issue-144-02677b`
 
 ## Purpose
 

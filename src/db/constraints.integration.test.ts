@@ -335,6 +335,53 @@ async function createSubtypeConstraintFixture(
 	};
 }
 
+// A criterion in one grid and a grade target in another — the shared setup
+// for the criterion_grade composite FK tests below, which differ only in
+// which grid they claim as the cell's grid_row_id.
+async function createCrossGridCellFixture(
+	db: Kysely<Database>,
+	params: { criterionGridRowId: number; targetGridRowId: number },
+): Promise<{ criterionRowId: number; targetRowId: number }> {
+	const rubric = await db
+		.insertInto("rubric")
+		.values({
+			gridRowId: params.criterionGridRowId,
+			id: buildTestId("rubric"),
+			label: "Cell rubric",
+			position: 0,
+		})
+		.returning("rowId")
+		.executeTakeFirstOrThrow();
+
+	const criterion = await db
+		.insertInto("criterion")
+		.values({
+			gridRowId: params.criterionGridRowId,
+			id: buildTestId("criterion-cell"),
+			rubricId: rubric.rowId,
+			kind: "check",
+			position: 0,
+			label: "Cell criterion",
+		})
+		.returning("rowId")
+		.executeTakeFirstOrThrow();
+
+	const [targetId] = await nextGradeTargetIds(db, {
+		gridRowId: params.targetGridRowId,
+		count: 1,
+	});
+	if (targetId == null) {
+		throw new Error("Expected generated grade target id.");
+	}
+	const target = await db
+		.insertInto("gradeTarget")
+		.values({ gridRowId: params.targetGridRowId, id: targetId })
+		.returning("rowId")
+		.executeTakeFirstOrThrow();
+
+	return { criterionRowId: criterion.rowId, targetRowId: target.rowId };
+}
+
 test("criterion/rubric composite FK rejects a criterion referencing a rubric in another grid and rolls back transactional writes", async () => {
 	await using db = await createTestDb();
 	await using gridA = await createGrid(db, "Constraint Criterion Grid A");
@@ -383,44 +430,10 @@ test("criterion_grade composite FK rejects a cell whose criterion and grade targ
 	await using gridA = await createGrid(db, "Constraint Cell Grid A");
 	await using gridB = await createGrid(db, "Constraint Cell Grid B");
 
-	const rubricId = buildTestId("rubric");
-	const rubric = await db
-		.insertInto("rubric")
-		.values({
-			gridRowId: gridA.rowId,
-			id: rubricId,
-			label: "Cell rubric",
-			position: 0,
-		})
-		.returning("rowId")
-		.executeTakeFirstOrThrow();
-
-	const criterionId = buildTestId("criterion-cell");
-	const criterion = await db
-		.insertInto("criterion")
-		.values({
-			gridRowId: gridA.rowId,
-			id: criterionId,
-			rubricId: rubric.rowId,
-			kind: "check",
-			position: 0,
-			label: "Cell criterion",
-		})
-		.returning("rowId")
-		.executeTakeFirstOrThrow();
-
-	const [targetId] = await nextGradeTargetIds(db, {
-		gridRowId: gridB.rowId,
-		count: 1,
+	const { criterionRowId, targetRowId } = await createCrossGridCellFixture(db, {
+		criterionGridRowId: gridA.rowId,
+		targetGridRowId: gridB.rowId,
 	});
-	if (targetId == null) {
-		throw new Error("Expected generated grade target id.");
-	}
-	const target = await db
-		.insertInto("gradeTarget")
-		.values({ gridRowId: gridB.rowId, id: targetId })
-		.returning("rowId")
-		.executeTakeFirstOrThrow();
 
 	await expect(
 		db.transaction().execute(async (trx) => {
@@ -430,8 +443,8 @@ test("criterion_grade composite FK rejects a cell whose criterion and grade targ
 					// grid_row_id is backfilled from the criterion side (grid A), so
 					// this cell only mismatches the grade target's side (grid B).
 					gridRowId: gridA.rowId,
-					criterionId: criterion.rowId,
-					gradeTargetRowId: target.rowId,
+					criterionId: criterionRowId,
+					gradeTargetRowId: targetRowId,
 				})
 				.execute();
 		}),
@@ -440,7 +453,7 @@ test("criterion_grade composite FK rejects a cell whose criterion and grade targ
 	const persisted = await db
 		.selectFrom("criterionGrade")
 		.select("id")
-		.where("criterionId", "=", criterion.rowId)
+		.where("criterionId", "=", criterionRowId)
 		.execute();
 	expect(persisted).toHaveLength(0);
 });
@@ -450,44 +463,10 @@ test("criterion_grade composite FK rejects a cell whose grid_row_id lies about i
 	await using gridA = await createGrid(db, "Constraint Cell Lie Grid A");
 	await using gridB = await createGrid(db, "Constraint Cell Lie Grid B");
 
-	const rubricId = buildTestId("rubric");
-	const rubric = await db
-		.insertInto("rubric")
-		.values({
-			gridRowId: gridA.rowId,
-			id: rubricId,
-			label: "Cell lie rubric",
-			position: 0,
-		})
-		.returning("rowId")
-		.executeTakeFirstOrThrow();
-
-	const criterionId = buildTestId("criterion-cell-lie");
-	const criterion = await db
-		.insertInto("criterion")
-		.values({
-			gridRowId: gridA.rowId,
-			id: criterionId,
-			rubricId: rubric.rowId,
-			kind: "check",
-			position: 0,
-			label: "Cell lie criterion",
-		})
-		.returning("rowId")
-		.executeTakeFirstOrThrow();
-
-	const [targetId] = await nextGradeTargetIds(db, {
-		gridRowId: gridB.rowId,
-		count: 1,
+	const { criterionRowId, targetRowId } = await createCrossGridCellFixture(db, {
+		criterionGridRowId: gridA.rowId,
+		targetGridRowId: gridB.rowId,
 	});
-	if (targetId == null) {
-		throw new Error("Expected generated grade target id.");
-	}
-	const target = await db
-		.insertInto("gradeTarget")
-		.values({ gridRowId: gridB.rowId, id: targetId })
-		.returning("rowId")
-		.executeTakeFirstOrThrow();
 
 	await expect(
 		db.transaction().execute(async (trx) => {
@@ -498,8 +477,8 @@ test("criterion_grade composite FK rejects a cell whose grid_row_id lies about i
 					// grade-target-side FK is satisfied; it lies about the criterion's
 					// real grid (A), which only the criterion-side FK can catch.
 					gridRowId: gridB.rowId,
-					criterionId: criterion.rowId,
-					gradeTargetRowId: target.rowId,
+					criterionId: criterionRowId,
+					gradeTargetRowId: targetRowId,
 				})
 				.execute();
 		}),
@@ -508,7 +487,7 @@ test("criterion_grade composite FK rejects a cell whose grid_row_id lies about i
 	const persisted = await db
 		.selectFrom("criterionGrade")
 		.select("id")
-		.where("criterionId", "=", criterion.rowId)
+		.where("criterionId", "=", criterionRowId)
 		.execute();
 	expect(persisted).toHaveLength(0);
 });

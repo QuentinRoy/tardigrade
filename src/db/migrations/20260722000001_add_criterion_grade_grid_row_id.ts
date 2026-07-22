@@ -53,6 +53,10 @@ export async function up(db: Kysely<unknown>): Promise<void> {
 		.alterColumn("grid_row_id", (column) => column.setNotNull())
 		.execute();
 
+	// Intentionally no index on criterion_grade.grid_row_id: the cell is loaded
+	// per grade-target, never by grid, so there is no query to back yet. Add
+	// one only if a grid-scoped cell query appears (plan decision 6).
+
 	// Back the composite FKs below: (row_id, grid_row_id) is trivially unique
 	// since row_id alone already is, but Postgres requires the referenced
 	// column set to have a unique constraint of its own.
@@ -71,10 +75,6 @@ export async function up(db: Kysely<unknown>): Promise<void> {
 			"grid_row_id",
 		])
 		.execute();
-
-	// Intentionally no index on criterion_grade.grid_row_id: the cell is loaded
-	// per grade-target, never by grid, so there is no query to back yet. Add
-	// one only if a grid-scoped cell query appears (plan decision 6).
 
 	await db.schema
 		.alterTable("criterion_grade")
