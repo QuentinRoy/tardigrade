@@ -111,6 +111,17 @@ describe.each<{ name: string; options: ExportOptions }>([
 			rows,
 			gridId: fixture.grid.id,
 		});
+		expect(
+			context.criteriaByColumn.get(
+				`${fixture.rubricId}:${fixture.criterionIds.numberId}`,
+			),
+		).toEqual({
+			id: fixture.criterionIds.numberId,
+			kind: "number",
+			rubricId: fixture.rubricId,
+			minValue: 0,
+			maxValue: 10,
+		});
 		const plan = prepareGradeImport({ rows, context });
 
 		expect(plan.blockingDiagnostics).toEqual([]);
