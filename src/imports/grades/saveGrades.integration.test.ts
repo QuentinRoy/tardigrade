@@ -569,11 +569,18 @@ async function createIndividualTargets(
 		.where("id", "in", studentIds)
 		.execute();
 
-	const targetsToInsert = studentRows.map((row) => ({
-		studentId: row.id,
-		targetId: buildTestId("target"),
-		studentRowId: row.rowId,
-	}));
+	const targetIds = await nextGradeTargetIds(db, {
+		gridRowId,
+		count: studentRows.length,
+	});
+
+	const targetsToInsert = studentRows.map((row, index) => {
+		const targetId = targetIds[index];
+		if (targetId == null) {
+			throw new Error("Expected a reserved grade target id.");
+		}
+		return { studentId: row.id, targetId, studentRowId: row.rowId };
+	});
 
 	const targetRows = await db
 		.insertInto("gradeTarget")
