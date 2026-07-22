@@ -127,7 +127,7 @@ export async function saveRubricImportPlanInDb(
 
 		return {
 			id: criterion.id,
-			rubricId: rubricRowId,
+			rubricRowId,
 			position: criterion.position,
 			description: criterion.description,
 			label: criterion.label,
@@ -144,7 +144,7 @@ export async function saveRubricImportPlanInDb(
 				conflict
 					.columns(["gridRowId", "id"])
 					.doUpdateSet((expressionBuilder) => ({
-						rubricId: expressionBuilder.ref("excluded.rubricId"),
+						rubricRowId: expressionBuilder.ref("excluded.rubricRowId"),
 						position: expressionBuilder.ref("excluded.position"),
 						description: expressionBuilder.ref("excluded.description"),
 						label: expressionBuilder.ref("excluded.label"),

@@ -4,16 +4,12 @@
 import type { ColumnType } from "kysely";
 import type { CriterionRowId } from "./Criterion.ts";
 
-/** Identifier type for public.number_criterion */
-export type NumberCriterionId = number;
-
 /** Represents the table public.number_criterion */
 export interface NumberCriterionTable {
-	id: ColumnType<NumberCriterionId, never, never>;
+	criterionRowId: ColumnType<CriterionRowId, CriterionRowId, CriterionRowId>;
 	minValue: ColumnType<number, number, number>;
 	maxValue: ColumnType<number, number, number>;
 	minMarks: ColumnType<number, number, number>;
 	maxMarks: ColumnType<number, number, number>;
 	reversed: ColumnType<boolean, boolean | undefined, boolean>;
-	criterionId: ColumnType<CriterionRowId, CriterionRowId, CriterionRowId>;
 }

@@ -38,7 +38,7 @@ export async function upsertNumberSubtypeRowsInDb(
 		.insertInto("numberCriterion")
 		.values(
 			rows.map((row) => ({
-				criterionId: row.criterionRowId,
+				criterionRowId: row.criterionRowId,
 				minValue: row.minValue,
 				maxValue: row.maxValue,
 				minMarks: row.minMarks,
@@ -48,7 +48,7 @@ export async function upsertNumberSubtypeRowsInDb(
 		)
 		.onConflict((conflict) =>
 			conflict
-				.column("criterionId")
+				.column("criterionRowId")
 				.doUpdateSet((eb) => ({
 					minValue: eb.ref("excluded.minValue"),
 					maxValue: eb.ref("excluded.maxValue"),
@@ -101,15 +101,15 @@ export async function validateNumberGradesInDb(
 
 	const numberCriterionRows = await db
 		.selectFrom("numberCriterion")
-		.where("criterionId", "in", [
+		.where("criterionRowId", "in", [
 			...new Set(rows.map((row) => row.criterionRowId)),
 		])
-		.select(["criterionId", "minValue", "maxValue"])
+		.select(["criterionRowId", "minValue", "maxValue"])
 		.execute();
 
 	const boundsByCriterionRowId = new Map<number, NumberGradeBounds | null>(
 		numberCriterionRows.map((row) => [
-			row.criterionId,
+			row.criterionRowId,
 			row.minValue != null && row.maxValue != null
 				? { minValue: Number(row.minValue), maxValue: Number(row.maxValue) }
 				: null,
@@ -140,11 +140,15 @@ export async function validateNumberGradeInDb(
 }
 
 // Batched write of Number criterion grades' subtype rows. The coordinator
-// upserts the parent `criterionGrade` rows and passes their ids, so this never
-// runs before the parent rows exist.
+// upserts the parent `criterionGrade` rows first, so this never runs before
+// the parent rows exist.
 export async function writeNumberGradesInDb(
 	db: Transaction<Database>,
-	rows: { criterionGradeId: number; grade: NumberCriterionGradeContent }[],
+	rows: {
+		gradeTargetRowId: number;
+		criterionRowId: number;
+		grade: NumberCriterionGradeContent;
+	}[],
 ): Promise<void> {
 	if (rows.length === 0) {
 		return;
@@ -154,13 +158,14 @@ export async function writeNumberGradesInDb(
 		.insertInto("numberCriterionGrade")
 		.values(
 			rows.map((row) => ({
-				criterionGradeId: row.criterionGradeId,
+				gradeTargetRowId: row.gradeTargetRowId,
+				criterionRowId: row.criterionRowId,
 				value: row.grade.value,
 			})),
 		)
 		.onConflict((conflict) =>
 			conflict
-				.column("criterionGradeId")
+				.columns(["gradeTargetRowId", "criterionRowId"])
 				.doUpdateSet((eb) => ({ value: eb.ref("excluded.value") })),
 		)
 		.execute();

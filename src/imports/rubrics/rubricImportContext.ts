@@ -27,15 +27,21 @@ export async function loadRubricImportContextFromDb(
 
 	const criterionRows = await db
 		.selectFrom("criterion")
-		.innerJoin("rubric", "rubric.rowId", "criterion.rubricId")
-		.leftJoin("criterionGrade", "criterionGrade.criterionId", "criterion.rowId")
+		.innerJoin("rubric", "rubric.rowId", "criterion.rubricRowId")
+		.leftJoin(
+			"criterionGrade",
+			"criterionGrade.criterionRowId",
+			"criterion.rowId",
+		)
 		.where("criterion.gridRowId", "=", gridRowId)
 		.where("criterion.id", "in", criterionIds)
 		.select(({ fn }) => [
 			"criterion.id",
 			"criterion.kind",
 			"rubric.id as rubricId",
-			fn.count<number>("criterionGrade.id").as("gradedTargetCount"),
+			fn
+				.count<number>("criterionGrade.gradeTargetRowId")
+				.as("gradedTargetCount"),
 		])
 		.groupBy(["criterion.id", "criterion.kind", "rubric.id"])
 		.execute();

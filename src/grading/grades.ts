@@ -77,22 +77,46 @@ async function loadCriterionGradeQueryRows(
 			"criterionGrade.gradeTargetRowId",
 		)
 		.innerJoin("grid", "grid.rowId", "gradeTarget.gridRowId")
-		.innerJoin("criterion", "criterion.rowId", "criterionGrade.criterionId")
-		.innerJoin("rubric", "rubric.rowId", "criterion.rubricId")
-		.leftJoin(
-			"checkCriterionGrade",
-			"checkCriterionGrade.criterionGradeId",
-			"criterionGrade.id",
+		.innerJoin("criterion", "criterion.rowId", "criterionGrade.criterionRowId")
+		.innerJoin("rubric", "rubric.rowId", "criterion.rubricRowId")
+		.leftJoin("checkCriterionGrade", (join) =>
+			join
+				.onRef(
+					"checkCriterionGrade.gradeTargetRowId",
+					"=",
+					"criterionGrade.gradeTargetRowId",
+				)
+				.onRef(
+					"checkCriterionGrade.criterionRowId",
+					"=",
+					"criterionGrade.criterionRowId",
+				),
 		)
-		.leftJoin(
-			"optionsCriterionGrade",
-			"optionsCriterionGrade.criterionGradeId",
-			"criterionGrade.id",
+		.leftJoin("optionsCriterionGrade", (join) =>
+			join
+				.onRef(
+					"optionsCriterionGrade.gradeTargetRowId",
+					"=",
+					"criterionGrade.gradeTargetRowId",
+				)
+				.onRef(
+					"optionsCriterionGrade.criterionRowId",
+					"=",
+					"criterionGrade.criterionRowId",
+				),
 		)
-		.leftJoin(
-			"numberCriterionGrade",
-			"numberCriterionGrade.criterionGradeId",
-			"criterionGrade.id",
+		.leftJoin("numberCriterionGrade", (join) =>
+			join
+				.onRef(
+					"numberCriterionGrade.gradeTargetRowId",
+					"=",
+					"criterionGrade.gradeTargetRowId",
+				)
+				.onRef(
+					"numberCriterionGrade.criterionRowId",
+					"=",
+					"criterionGrade.criterionRowId",
+				),
 		)
 		.where("grid.id", "=", gridId)
 		.where("gradeTarget.id", "=", targetId)

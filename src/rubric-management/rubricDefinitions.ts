@@ -28,8 +28,8 @@ export async function loadGradeCountsByRubricFromDb(
 ): Promise<Map<string, number>> {
 	const counts = await db
 		.selectFrom("criterionGrade")
-		.innerJoin("criterion", "criterion.rowId", "criterionGrade.criterionId")
-		.innerJoin("rubric", "rubric.rowId", "criterion.rubricId")
+		.innerJoin("criterion", "criterion.rowId", "criterionGrade.criterionRowId")
+		.innerJoin("rubric", "rubric.rowId", "criterion.rubricRowId")
 		.innerJoin("grid", "grid.rowId", "rubric.gridRowId")
 		.where("grid.id", "=", gridId)
 		.select(({ fn }) => [
@@ -117,8 +117,8 @@ export async function getRubricDefinitionDeleteImpactFromDb(
 
 	const row = await db
 		.selectFrom("criterionGrade")
-		.innerJoin("criterion", "criterion.rowId", "criterionGrade.criterionId")
-		.innerJoin("rubric", "rubric.rowId", "criterion.rubricId")
+		.innerJoin("criterion", "criterion.rowId", "criterionGrade.criterionRowId")
+		.innerJoin("rubric", "rubric.rowId", "criterion.rubricRowId")
 		.select(({ fn }) => [
 			fn
 				.count<number>("criterionGrade.gradeTargetRowId")

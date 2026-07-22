@@ -61,7 +61,7 @@ export async function createMixedCriterionRubricFixtureGrid(
 			{
 				id: checkCriterionId,
 				gridRowId: grid.rowId,
-				rubricId: rubricRow.rowId,
+				rubricRowId: rubricRow.rowId,
 				kind: "check",
 				position: 0,
 				label: "Check",
@@ -69,7 +69,7 @@ export async function createMixedCriterionRubricFixtureGrid(
 			{
 				id: optionsCriterionId,
 				gridRowId: grid.rowId,
-				rubricId: rubricRow.rowId,
+				rubricRowId: rubricRow.rowId,
 				kind: "options",
 				position: 1,
 				label: "Options",
@@ -77,7 +77,7 @@ export async function createMixedCriterionRubricFixtureGrid(
 			{
 				id: numberCriterionId,
 				gridRowId: grid.rowId,
-				rubricId: rubricRow.rowId,
+				rubricRowId: rubricRow.rowId,
 				kind: "number",
 				position: 2,
 				label: "Number",
@@ -88,33 +88,34 @@ export async function createMixedCriterionRubricFixtureGrid(
 
 	const criterionRowId = new Map(insertedCriteria.map((r) => [r.id, r.rowId]));
 
+	const optionsCriterionRowId = mustGet(criterionRowId, optionsCriterionId);
+
 	await Promise.all([
 		db
 			.insertInto("checkCriterion")
 			.values({
-				criterionId: mustGet(criterionRowId, checkCriterionId),
+				criterionRowId: mustGet(criterionRowId, checkCriterionId),
 				marks: 2,
 				falseMarks: 0,
 			})
 			.execute(),
 		db
 			.insertInto("optionsCriterion")
-			.values({ criterionId: mustGet(criterionRowId, optionsCriterionId) })
-			.returning("id")
-			.executeTakeFirstOrThrow()
-			.then((optionsCriterion) =>
+			.values({ criterionRowId: optionsCriterionRowId })
+			.execute()
+			.then(() =>
 				db
 					.insertInto("optionsCriterionMark")
 					.values([
-						{ optionsCriterionId: optionsCriterion.id, label: "A", marks: 4 },
-						{ optionsCriterionId: optionsCriterion.id, label: "B", marks: 2 },
+						{ criterionRowId: optionsCriterionRowId, label: "A", marks: 4 },
+						{ criterionRowId: optionsCriterionRowId, label: "B", marks: 2 },
 					])
 					.execute(),
 			),
 		db
 			.insertInto("numberCriterion")
 			.values({
-				criterionId: mustGet(criterionRowId, numberCriterionId),
+				criterionRowId: mustGet(criterionRowId, numberCriterionId),
 				minValue: 0,
 				maxValue: 10,
 				minMarks: 0,
@@ -257,54 +258,49 @@ export async function addFullGradeFixture(
 		numberCriterionRowId: number;
 	},
 ): Promise<void> {
-	const criterionGrades = await db
+	await db
 		.insertInto("criterionGrade")
 		.values([
 			{
 				gridRowId: params.gridRowId,
 				gradeTargetRowId: params.gradeTargetRowId,
-				criterionId: params.checkCriterionRowId,
+				criterionRowId: params.checkCriterionRowId,
 			},
 			{
 				gridRowId: params.gridRowId,
 				gradeTargetRowId: params.gradeTargetRowId,
-				criterionId: params.optionsCriterionRowId,
+				criterionRowId: params.optionsCriterionRowId,
 			},
 			{
 				gridRowId: params.gridRowId,
 				gradeTargetRowId: params.gradeTargetRowId,
-				criterionId: params.numberCriterionRowId,
+				criterionRowId: params.numberCriterionRowId,
 			},
 		])
-		.returning(["id", "criterionId"])
 		.execute();
-
-	const raByCriterionId = new Map(
-		criterionGrades.map((ra) => [ra.criterionId, ra.id]),
-	);
 
 	await Promise.all([
 		db
 			.insertInto("checkCriterionGrade")
 			.values({
-				criterionGradeId: mustGet(raByCriterionId, params.checkCriterionRowId),
+				gradeTargetRowId: params.gradeTargetRowId,
+				criterionRowId: params.checkCriterionRowId,
 				passed: true,
 			})
 			.execute(),
 		db
 			.insertInto("optionsCriterionGrade")
 			.values({
-				criterionGradeId: mustGet(
-					raByCriterionId,
-					params.optionsCriterionRowId,
-				),
+				gradeTargetRowId: params.gradeTargetRowId,
+				criterionRowId: params.optionsCriterionRowId,
 				selectedLabel: "A",
 			})
 			.execute(),
 		db
 			.insertInto("numberCriterionGrade")
 			.values({
-				criterionGradeId: mustGet(raByCriterionId, params.numberCriterionRowId),
+				gradeTargetRowId: params.gradeTargetRowId,
+				criterionRowId: params.numberCriterionRowId,
 				value: 7.5,
 			})
 			.execute(),

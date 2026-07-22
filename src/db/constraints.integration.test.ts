@@ -7,9 +7,14 @@ import type { Database } from "./generated/database.ts";
 
 type CriterionRowIds = { check: number; options: number; number: number };
 
+// Two grade targets (primary/secondary) graded against the same options and
+// number criteria, so tests can exercise both cells' subtype triggers by
+// their (Grade Target, Criterion) composite key.
 type GradeConstraintFixture = {
-	optionsCriterionGradeIds: { primary: number; secondary: number };
-	numberCriterionGradeIds: { primary: number; secondary: number };
+	optionsCriterionRowId: number;
+	numberCriterionRowId: number;
+	primaryGradeTargetRowId: number;
+	secondaryGradeTargetRowId: number;
 };
 
 async function createGradeConstraintFixture(
@@ -48,7 +53,7 @@ async function createGradeConstraintFixture(
 			{
 				gridRowId: gridRowId,
 				id: buildTestId("criterion-check"),
-				rubricId: rubric.rowId,
+				rubricRowId: rubric.rowId,
 				kind: "check",
 				position: 0,
 				label: "Check criterion",
@@ -56,7 +61,7 @@ async function createGradeConstraintFixture(
 			{
 				gridRowId: gridRowId,
 				id: buildTestId("criterion-options"),
-				rubricId: rubric.rowId,
+				rubricRowId: rubric.rowId,
 				kind: "options",
 				position: 1,
 				label: "Options criterion",
@@ -64,7 +69,7 @@ async function createGradeConstraintFixture(
 			{
 				gridRowId: gridRowId,
 				id: buildTestId("criterion-number"),
-				rubricId: rubric.rowId,
+				rubricRowId: rubric.rowId,
 				kind: "number",
 				position: 2,
 				label: "Number criterion",
@@ -162,73 +167,49 @@ async function createGradeConstraintFixture(
 		])
 		.execute();
 
-	const insertedCriterionGrades = await db
+	await db
 		.insertInto("criterionGrade")
 		.values([
 			{
 				gridRowId,
 				gradeTargetRowId: primaryTarget.rowId,
-				criterionId: optionsCriterionId,
+				criterionRowId: optionsCriterionId,
 			},
 			{
 				gridRowId,
 				gradeTargetRowId: secondaryTarget.rowId,
-				criterionId: optionsCriterionId,
+				criterionRowId: optionsCriterionId,
 			},
 			{
 				gridRowId,
 				gradeTargetRowId: primaryTarget.rowId,
-				criterionId: numberCriterionId,
+				criterionRowId: numberCriterionId,
 			},
 			{
 				gridRowId,
 				gradeTargetRowId: secondaryTarget.rowId,
-				criterionId: numberCriterionId,
+				criterionRowId: numberCriterionId,
 			},
 		])
-		.returning(["id", "gradeTargetRowId", "criterionId"])
 		.execute();
 
-	const optionsCriterionGrades = insertedCriterionGrades.filter(
-		(criterionGrade) => criterionGrade.criterionId === optionsCriterionId,
-	);
-
-	const numberCriterionGrades = insertedCriterionGrades.filter(
-		(criterionGrade) => criterionGrade.criterionId === numberCriterionId,
-	);
-
-	const [optionsPrimary, optionsSecondary] = optionsCriterionGrades;
-	const [numberPrimary, numberSecondary] = numberCriterionGrades;
-
-	if (
-		optionsPrimary == null ||
-		optionsSecondary == null ||
-		numberPrimary == null ||
-		numberSecondary == null
-	) {
-		throw new Error(
-			"Expected criterion grade rows for options and number criteria.",
-		);
-	}
-
-	const optionsCriterion = await db
+	await db
 		.insertInto("optionsCriterion")
-		.values({ criterionId: optionsCriterionId })
-		.returning("id")
-		.executeTakeFirstOrThrow();
+		.values({ criterionRowId: optionsCriterionId })
+		.execute();
 
 	await db
 		.insertInto("optionsCriterionMark")
 		.values([
-			{ optionsCriterionId: optionsCriterion.id, label: "A", marks: 4 },
-			{ optionsCriterionId: optionsCriterion.id, label: "B", marks: 2 },
+			{ criterionRowId: optionsCriterionId, label: "A", marks: 4 },
+			{ criterionRowId: optionsCriterionId, label: "B", marks: 2 },
 		])
 		.execute();
 
 	await db
 		.insertInto("numberCriterion")
 		.values({
-			criterionId: numberCriterionId,
+			criterionRowId: numberCriterionId,
 			minValue: 0,
 			maxValue: 10,
 			minMarks: 0,
@@ -238,14 +219,10 @@ async function createGradeConstraintFixture(
 		.execute();
 
 	return {
-		optionsCriterionGradeIds: {
-			primary: optionsPrimary.id,
-			secondary: optionsSecondary.id,
-		},
-		numberCriterionGradeIds: {
-			primary: numberPrimary.id,
-			secondary: numberSecondary.id,
-		},
+		optionsCriterionRowId: optionsCriterionId,
+		numberCriterionRowId: numberCriterionId,
+		primaryGradeTargetRowId: primaryTarget.rowId,
+		secondaryGradeTargetRowId: secondaryTarget.rowId,
 	};
 }
 
@@ -285,7 +262,7 @@ async function createSubtypeConstraintFixture(
 			{
 				gridRowId: gridRowId,
 				id: buildTestId("subtype-criterion-check"),
-				rubricId: rubric.rowId,
+				rubricRowId: rubric.rowId,
 				kind: "check",
 				position: 0,
 				label: "Subtype check criterion",
@@ -293,7 +270,7 @@ async function createSubtypeConstraintFixture(
 			{
 				gridRowId: gridRowId,
 				id: buildTestId("subtype-criterion-options"),
-				rubricId: rubric.rowId,
+				rubricRowId: rubric.rowId,
 				kind: "options",
 				position: 1,
 				label: "Subtype options criterion",
@@ -301,7 +278,7 @@ async function createSubtypeConstraintFixture(
 			{
 				gridRowId: gridRowId,
 				id: buildTestId("subtype-criterion-number"),
-				rubricId: rubric.rowId,
+				rubricRowId: rubric.rowId,
 				kind: "number",
 				position: 2,
 				label: "Subtype number criterion",
@@ -358,7 +335,7 @@ async function createCrossGridCellFixture(
 		.values({
 			gridRowId: params.criterionGridRowId,
 			id: buildTestId("criterion-cell"),
-			rubricId: rubric.rowId,
+			rubricRowId: rubric.rowId,
 			kind: "check",
 			position: 0,
 			label: "Cell criterion",
@@ -408,14 +385,14 @@ test("criterion/rubric composite FK rejects a criterion referencing a rubric in 
 				.values({
 					gridRowId: gridA.rowId,
 					id: criterionId,
-					rubricId: rubric.rowId,
+					rubricRowId: rubric.rowId,
 					kind: "check",
 					position: 0,
 					label: "Cross-grid criterion",
 				})
 				.execute();
 		}),
-	).rejects.toThrow("criterion_rubric_id_grid_row_id_fkey");
+	).rejects.toThrow("criterion_rubric_row_id_grid_row_id_fkey");
 
 	const persisted = await db
 		.selectFrom("criterion")
@@ -443,7 +420,7 @@ test("criterion_grade composite FK rejects a cell whose criterion and grade targ
 					// grid_row_id is backfilled from the criterion side (grid A), so
 					// this cell only mismatches the grade target's side (grid B).
 					gridRowId: gridA.rowId,
-					criterionId: criterionRowId,
+					criterionRowId: criterionRowId,
 					gradeTargetRowId: targetRowId,
 				})
 				.execute();
@@ -452,8 +429,8 @@ test("criterion_grade composite FK rejects a cell whose criterion and grade targ
 
 	const persisted = await db
 		.selectFrom("criterionGrade")
-		.select("id")
-		.where("criterionId", "=", criterionRowId)
+		.select("criterionRowId")
+		.where("criterionRowId", "=", criterionRowId)
 		.execute();
 	expect(persisted).toHaveLength(0);
 });
@@ -477,17 +454,17 @@ test("criterion_grade composite FK rejects a cell whose grid_row_id lies about i
 					// grade-target-side FK is satisfied; it lies about the criterion's
 					// real grid (A), which only the criterion-side FK can catch.
 					gridRowId: gridB.rowId,
-					criterionId: criterionRowId,
+					criterionRowId: criterionRowId,
 					gradeTargetRowId: targetRowId,
 				})
 				.execute();
 		}),
-	).rejects.toThrow("criterion_grade_criterion_id_grid_row_id_fkey");
+	).rejects.toThrow("criterion_grade_criterion_row_id_grid_row_id_fkey");
 
 	const persisted = await db
 		.selectFrom("criterionGrade")
-		.select("id")
-		.where("criterionId", "=", criterionRowId)
+		.select("criterionRowId")
+		.where("criterionRowId", "=", criterionRowId)
 		.execute();
 	expect(persisted).toHaveLength(0);
 });
@@ -500,7 +477,8 @@ test("options criterion grades accept valid labels and roll back failed transact
 	await db
 		.insertInto("optionsCriterionGrade")
 		.values({
-			criterionGradeId: fixture.optionsCriterionGradeIds.primary,
+			gradeTargetRowId: fixture.primaryGradeTargetRowId,
+			criterionRowId: fixture.optionsCriterionRowId,
 			selectedLabel: "A",
 		})
 		.execute();
@@ -510,7 +488,8 @@ test("options criterion grades accept valid labels and roll back failed transact
 			await trx
 				.insertInto("optionsCriterionGrade")
 				.values({
-					criterionGradeId: fixture.optionsCriterionGradeIds.secondary,
+					gradeTargetRowId: fixture.secondaryGradeTargetRowId,
+					criterionRowId: fixture.optionsCriterionRowId,
 					selectedLabel: "B",
 				})
 				.execute();
@@ -518,7 +497,8 @@ test("options criterion grades accept valid labels and roll back failed transact
 			await trx
 				.insertInto("optionsCriterionGrade")
 				.values({
-					criterionGradeId: fixture.optionsCriterionGradeIds.primary,
+					gradeTargetRowId: fixture.primaryGradeTargetRowId,
+					criterionRowId: fixture.optionsCriterionRowId,
 					selectedLabel: "INVALID",
 				})
 				.execute();
@@ -527,19 +507,17 @@ test("options criterion grades accept valid labels and roll back failed transact
 
 	const persisted = await db
 		.selectFrom("optionsCriterionGrade")
-		.select(["criterionGradeId", "selectedLabel"])
-		.where("criterionGradeId", "in", [
-			fixture.optionsCriterionGradeIds.primary,
-			fixture.optionsCriterionGradeIds.secondary,
+		.select(["gradeTargetRowId", "selectedLabel"])
+		.where("criterionRowId", "=", fixture.optionsCriterionRowId)
+		.where("gradeTargetRowId", "in", [
+			fixture.primaryGradeTargetRowId,
+			fixture.secondaryGradeTargetRowId,
 		])
-		.orderBy("criterionGradeId", "asc")
+		.orderBy("gradeTargetRowId", "asc")
 		.execute();
 
 	expect(persisted).toEqual([
-		{
-			criterionGradeId: fixture.optionsCriterionGradeIds.primary,
-			selectedLabel: "A",
-		},
+		{ gradeTargetRowId: fixture.primaryGradeTargetRowId, selectedLabel: "A" },
 	]);
 });
 
@@ -551,7 +529,8 @@ test("number criterion grades enforce value bounds and roll back failed transact
 	await db
 		.insertInto("numberCriterionGrade")
 		.values({
-			criterionGradeId: fixture.numberCriterionGradeIds.primary,
+			gradeTargetRowId: fixture.primaryGradeTargetRowId,
+			criterionRowId: fixture.numberCriterionRowId,
 			value: 7.5,
 		})
 		.execute();
@@ -561,7 +540,8 @@ test("number criterion grades enforce value bounds and roll back failed transact
 			await trx
 				.insertInto("numberCriterionGrade")
 				.values({
-					criterionGradeId: fixture.numberCriterionGradeIds.secondary,
+					gradeTargetRowId: fixture.secondaryGradeTargetRowId,
+					criterionRowId: fixture.numberCriterionRowId,
 					value: 4,
 				})
 				.execute();
@@ -569,7 +549,8 @@ test("number criterion grades enforce value bounds and roll back failed transact
 			await trx
 				.insertInto("numberCriterionGrade")
 				.values({
-					criterionGradeId: fixture.numberCriterionGradeIds.primary,
+					gradeTargetRowId: fixture.primaryGradeTargetRowId,
+					criterionRowId: fixture.numberCriterionRowId,
 					value: 11,
 				})
 				.execute();
@@ -578,21 +559,22 @@ test("number criterion grades enforce value bounds and roll back failed transact
 
 	const persisted = await db
 		.selectFrom("numberCriterionGrade")
-		.select(["criterionGradeId", "value"])
-		.where("criterionGradeId", "in", [
-			fixture.numberCriterionGradeIds.primary,
-			fixture.numberCriterionGradeIds.secondary,
+		.select(["gradeTargetRowId", "value"])
+		.where("criterionRowId", "=", fixture.numberCriterionRowId)
+		.where("gradeTargetRowId", "in", [
+			fixture.primaryGradeTargetRowId,
+			fixture.secondaryGradeTargetRowId,
 		])
-		.orderBy("criterionGradeId", "asc")
+		.orderBy("gradeTargetRowId", "asc")
 		.execute();
 
 	const normalizedPersisted = persisted.map((row) => ({
-		criterionGradeId: row.criterionGradeId,
+		gradeTargetRowId: row.gradeTargetRowId,
 		value: Number(row.value),
 	}));
 
 	expect(normalizedPersisted).toEqual([
-		{ criterionGradeId: fixture.numberCriterionGradeIds.primary, value: 7.5 },
+		{ gradeTargetRowId: fixture.primaryGradeTargetRowId, value: 7.5 },
 	]);
 });
 
@@ -686,20 +668,20 @@ test("criterion subtype triggers reject mismatched subtype rows and roll back tr
 
 	await db
 		.insertInto("checkCriterion")
-		.values({ criterionId: criterionRowIds.check, marks: 2, falseMarks: 0 })
+		.values({ criterionRowId: criterionRowIds.check, marks: 2, falseMarks: 0 })
 		.execute();
 
 	await expect(
 		db.transaction().execute(async (trx) => {
 			await trx
 				.insertInto("optionsCriterion")
-				.values({ criterionId: criterionRowIds.options })
+				.values({ criterionRowId: criterionRowIds.options })
 				.execute();
 
 			await trx
 				.insertInto("checkCriterion")
 				.values({
-					criterionId: criterionRowIds.options,
+					criterionRowId: criterionRowIds.options,
 					marks: 2,
 					falseMarks: 0,
 				})
@@ -709,20 +691,20 @@ test("criterion subtype triggers reject mismatched subtype rows and roll back tr
 
 	const checkRows = await db
 		.selectFrom("checkCriterion")
-		.select("criterionId")
-		.where("criterionId", "=", criterionRowIds.options)
+		.select("criterionRowId")
+		.where("criterionRowId", "=", criterionRowIds.options)
 		.execute();
 
 	const optionsRows = await db
 		.selectFrom("optionsCriterion")
-		.select("criterionId")
-		.where("criterionId", "=", criterionRowIds.options)
+		.select("criterionRowId")
+		.where("criterionRowId", "=", criterionRowIds.options)
 		.execute();
 
 	const baselineCheckRows = await db
 		.selectFrom("checkCriterion")
-		.select("criterionId")
-		.where("criterionId", "=", criterionRowIds.check)
+		.select("criterionRowId")
+		.where("criterionRowId", "=", criterionRowIds.check)
 		.execute();
 
 	expect(checkRows).toHaveLength(0);
@@ -739,7 +721,7 @@ test("number criterion value range check rejects a collapsed or inverted range a
 		db
 			.insertInto("numberCriterion")
 			.values({
-				criterionId: criterionRowIds.number,
+				criterionRowId: criterionRowIds.number,
 				minValue: 5,
 				maxValue: 5,
 				minMarks: 0,
@@ -753,7 +735,7 @@ test("number criterion value range check rejects a collapsed or inverted range a
 		db
 			.insertInto("numberCriterion")
 			.values({
-				criterionId: criterionRowIds.number,
+				criterionRowId: criterionRowIds.number,
 				minValue: 10,
 				maxValue: 5,
 				minMarks: 0,
@@ -765,8 +747,8 @@ test("number criterion value range check rejects a collapsed or inverted range a
 
 	const persisted = await db
 		.selectFrom("numberCriterion")
-		.select("criterionId")
-		.where("criterionId", "=", criterionRowIds.number)
+		.select("criterionRowId")
+		.where("criterionRowId", "=", criterionRowIds.number)
 		.execute();
 
 	expect(persisted).toHaveLength(0);
@@ -781,7 +763,7 @@ test("number criterion marks range check rejects inverted marks and rolls back t
 		db
 			.insertInto("numberCriterion")
 			.values({
-				criterionId: criterionRowIds.number,
+				criterionRowId: criterionRowIds.number,
 				minValue: 0,
 				maxValue: 10,
 				minMarks: 10,
@@ -794,7 +776,7 @@ test("number criterion marks range check rejects inverted marks and rolls back t
 	await db
 		.insertInto("numberCriterion")
 		.values({
-			criterionId: criterionRowIds.number,
+			criterionRowId: criterionRowIds.number,
 			minValue: 0,
 			maxValue: 10,
 			minMarks: 5,
@@ -805,17 +787,17 @@ test("number criterion marks range check rejects inverted marks and rolls back t
 
 	const persisted = await db
 		.selectFrom("numberCriterion")
-		.select(["criterionId", "minMarks", "maxMarks"])
-		.where("criterionId", "=", criterionRowIds.number)
+		.select(["criterionRowId", "minMarks", "maxMarks"])
+		.where("criterionRowId", "=", criterionRowIds.number)
 		.execute();
 
 	const normalizedPersisted = persisted.map((row) => ({
-		criterionId: row.criterionId,
+		criterionRowId: row.criterionRowId,
 		minMarks: Number(row.minMarks),
 		maxMarks: Number(row.maxMarks),
 	}));
 
 	expect(normalizedPersisted).toEqual([
-		{ criterionId: criterionRowIds.number, minMarks: 5, maxMarks: 5 },
+		{ criterionRowId: criterionRowIds.number, minMarks: 5, maxMarks: 5 },
 	]);
 });

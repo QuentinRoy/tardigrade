@@ -84,7 +84,7 @@ async function createCheckCriterion(
 		.values({
 			id: criterionId,
 			gridRowId: gridRowId,
-			rubricId: rubricRowId,
+			rubricRowId: rubricRowId,
 			kind: "check",
 			position: 0,
 			label: "Check Criterion",
@@ -94,7 +94,7 @@ async function createCheckCriterion(
 
 	await db
 		.insertInto("checkCriterion")
-		.values({ criterionId: rubric.rowId, marks: 1, falseMarks: 0 })
+		.values({ criterionRowId: rubric.rowId, marks: 1, falseMarks: 0 })
 		.execute();
 
 	return rubric.rowId;
@@ -113,7 +113,7 @@ async function createOptionsCriterion(
 		.values({
 			id: criterionId,
 			gridRowId: gridRowId,
-			rubricId: rubricRowId,
+			rubricRowId: rubricRowId,
 			kind: "options",
 			position: 1,
 			label: "Options Criterion",
@@ -121,17 +121,16 @@ async function createOptionsCriterion(
 		.returning("rowId")
 		.executeTakeFirstOrThrow();
 
-	const optionsCriterion = await db
+	await db
 		.insertInto("optionsCriterion")
-		.values({ criterionId: rubric.rowId })
-		.returning("id")
-		.executeTakeFirstOrThrow();
+		.values({ criterionRowId: rubric.rowId })
+		.execute();
 
 	await db
 		.insertInto("optionsCriterionMark")
 		.values([
-			{ optionsCriterionId: optionsCriterion.id, label: "low", marks: 1 },
-			{ optionsCriterionId: optionsCriterion.id, label: "high", marks: 3 },
+			{ criterionRowId: rubric.rowId, label: "low", marks: 1 },
+			{ criterionRowId: rubric.rowId, label: "high", marks: 3 },
 		])
 		.execute();
 
@@ -151,7 +150,7 @@ async function createNumberCriterion(
 		.values({
 			id: criterionId,
 			gridRowId: gridRowId,
-			rubricId: rubricRowId,
+			rubricRowId: rubricRowId,
 			kind: "number",
 			position: 2,
 			label: "Number Criterion",
@@ -162,7 +161,7 @@ async function createNumberCriterion(
 	await db
 		.insertInto("numberCriterion")
 		.values({
-			criterionId: rubric.rowId,
+			criterionRowId: rubric.rowId,
 			minValue: 0,
 			maxValue: 10,
 			minMarks: 0,
@@ -187,15 +186,14 @@ async function addCheckGrade(
 		passed: boolean;
 	},
 ): Promise<void> {
-	const criterionGrade = await db
+	await db
 		.insertInto("criterionGrade")
-		.values({ gridRowId, gradeTargetRowId, criterionId: criterionRowId })
-		.returning("id")
-		.executeTakeFirstOrThrow();
+		.values({ gridRowId, gradeTargetRowId, criterionRowId })
+		.execute();
 
 	await db
 		.insertInto("checkCriterionGrade")
-		.values({ criterionGradeId: criterionGrade.id, passed })
+		.values({ gradeTargetRowId, criterionRowId, passed })
 		.execute();
 }
 
@@ -213,15 +211,14 @@ async function addOptionsGrade(
 		selectedLabel: string;
 	},
 ): Promise<void> {
-	const criterionGrade = await db
+	await db
 		.insertInto("criterionGrade")
-		.values({ gridRowId, gradeTargetRowId, criterionId: criterionRowId })
-		.returning("id")
-		.executeTakeFirstOrThrow();
+		.values({ gridRowId, gradeTargetRowId, criterionRowId })
+		.execute();
 
 	await db
 		.insertInto("optionsCriterionGrade")
-		.values({ criterionGradeId: criterionGrade.id, selectedLabel })
+		.values({ gradeTargetRowId, criterionRowId, selectedLabel })
 		.execute();
 }
 
@@ -239,15 +236,14 @@ async function addNumberGrade(
 		value: number;
 	},
 ): Promise<void> {
-	const criterionGrade = await db
+	await db
 		.insertInto("criterionGrade")
-		.values({ gridRowId, gradeTargetRowId, criterionId: criterionRowId })
-		.returning("id")
-		.executeTakeFirstOrThrow();
+		.values({ gridRowId, gradeTargetRowId, criterionRowId })
+		.execute();
 
 	await db
 		.insertInto("numberCriterionGrade")
-		.values({ criterionGradeId: criterionGrade.id, value })
+		.values({ gradeTargetRowId, criterionRowId, value })
 		.execute();
 }
 
