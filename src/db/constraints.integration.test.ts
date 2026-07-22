@@ -166,15 +166,22 @@ async function createGradeConstraintFixture(
 		.insertInto("criterionGrade")
 		.values([
 			{
+				gridRowId,
 				gradeTargetRowId: primaryTarget.rowId,
 				criterionId: optionsCriterionId,
 			},
 			{
+				gridRowId,
 				gradeTargetRowId: secondaryTarget.rowId,
 				criterionId: optionsCriterionId,
 			},
-			{ gradeTargetRowId: primaryTarget.rowId, criterionId: numberCriterionId },
 			{
+				gridRowId,
+				gradeTargetRowId: primaryTarget.rowId,
+				criterionId: numberCriterionId,
+			},
+			{
+				gridRowId,
 				gradeTargetRowId: secondaryTarget.rowId,
 				criterionId: numberCriterionId,
 			},
@@ -327,6 +334,163 @@ async function createSubtypeConstraintFixture(
 		number: numberCriterionId,
 	};
 }
+
+// A criterion in one grid and a grade target in another — the shared setup
+// for the criterion_grade composite FK tests below, which differ only in
+// which grid they claim as the cell's grid_row_id.
+async function createCrossGridCellFixture(
+	db: Kysely<Database>,
+	params: { criterionGridRowId: number; targetGridRowId: number },
+): Promise<{ criterionRowId: number; targetRowId: number }> {
+	const rubric = await db
+		.insertInto("rubric")
+		.values({
+			gridRowId: params.criterionGridRowId,
+			id: buildTestId("rubric"),
+			label: "Cell rubric",
+			position: 0,
+		})
+		.returning("rowId")
+		.executeTakeFirstOrThrow();
+
+	const criterion = await db
+		.insertInto("criterion")
+		.values({
+			gridRowId: params.criterionGridRowId,
+			id: buildTestId("criterion-cell"),
+			rubricId: rubric.rowId,
+			kind: "check",
+			position: 0,
+			label: "Cell criterion",
+		})
+		.returning("rowId")
+		.executeTakeFirstOrThrow();
+
+	const [targetId] = await nextGradeTargetIds(db, {
+		gridRowId: params.targetGridRowId,
+		count: 1,
+	});
+	if (targetId == null) {
+		throw new Error("Expected generated grade target id.");
+	}
+	const target = await db
+		.insertInto("gradeTarget")
+		.values({ gridRowId: params.targetGridRowId, id: targetId })
+		.returning("rowId")
+		.executeTakeFirstOrThrow();
+
+	return { criterionRowId: criterion.rowId, targetRowId: target.rowId };
+}
+
+test("criterion/rubric composite FK rejects a criterion referencing a rubric in another grid and rolls back transactional writes", async () => {
+	await using db = await createTestDb();
+	await using gridA = await createGrid(db, "Constraint Criterion Grid A");
+	await using gridB = await createGrid(db, "Constraint Criterion Grid B");
+
+	const rubricId = buildTestId("rubric");
+	const rubric = await db
+		.insertInto("rubric")
+		.values({
+			gridRowId: gridB.rowId,
+			id: rubricId,
+			label: "Cross-grid rubric",
+			position: 0,
+		})
+		.returning("rowId")
+		.executeTakeFirstOrThrow();
+
+	const criterionId = buildTestId("criterion-cross-grid");
+
+	await expect(
+		db.transaction().execute(async (trx) => {
+			await trx
+				.insertInto("criterion")
+				.values({
+					gridRowId: gridA.rowId,
+					id: criterionId,
+					rubricId: rubric.rowId,
+					kind: "check",
+					position: 0,
+					label: "Cross-grid criterion",
+				})
+				.execute();
+		}),
+	).rejects.toThrow("criterion_rubric_id_grid_row_id_fkey");
+
+	const persisted = await db
+		.selectFrom("criterion")
+		.select("id")
+		.where("id", "=", criterionId)
+		.execute();
+	expect(persisted).toHaveLength(0);
+});
+
+test("criterion_grade composite FK rejects a cell whose criterion and grade target are in different grids and rolls back transactional writes", async () => {
+	await using db = await createTestDb();
+	await using gridA = await createGrid(db, "Constraint Cell Grid A");
+	await using gridB = await createGrid(db, "Constraint Cell Grid B");
+
+	const { criterionRowId, targetRowId } = await createCrossGridCellFixture(db, {
+		criterionGridRowId: gridA.rowId,
+		targetGridRowId: gridB.rowId,
+	});
+
+	await expect(
+		db.transaction().execute(async (trx) => {
+			await trx
+				.insertInto("criterionGrade")
+				.values({
+					// grid_row_id is backfilled from the criterion side (grid A), so
+					// this cell only mismatches the grade target's side (grid B).
+					gridRowId: gridA.rowId,
+					criterionId: criterionRowId,
+					gradeTargetRowId: targetRowId,
+				})
+				.execute();
+		}),
+	).rejects.toThrow("criterion_grade_grade_target_row_id_grid_row_id_fkey");
+
+	const persisted = await db
+		.selectFrom("criterionGrade")
+		.select("id")
+		.where("criterionId", "=", criterionRowId)
+		.execute();
+	expect(persisted).toHaveLength(0);
+});
+
+test("criterion_grade composite FK rejects a cell whose grid_row_id lies about its criterion's grid and rolls back transactional writes", async () => {
+	await using db = await createTestDb();
+	await using gridA = await createGrid(db, "Constraint Cell Lie Grid A");
+	await using gridB = await createGrid(db, "Constraint Cell Lie Grid B");
+
+	const { criterionRowId, targetRowId } = await createCrossGridCellFixture(db, {
+		criterionGridRowId: gridA.rowId,
+		targetGridRowId: gridB.rowId,
+	});
+
+	await expect(
+		db.transaction().execute(async (trx) => {
+			await trx
+				.insertInto("criterionGrade")
+				.values({
+					// grid_row_id agrees with the grade target's real grid (B), so the
+					// grade-target-side FK is satisfied; it lies about the criterion's
+					// real grid (A), which only the criterion-side FK can catch.
+					gridRowId: gridB.rowId,
+					criterionId: criterionRowId,
+					gradeTargetRowId: targetRowId,
+				})
+				.execute();
+		}),
+	).rejects.toThrow("criterion_grade_criterion_id_grid_row_id_fkey");
+
+	const persisted = await db
+		.selectFrom("criterionGrade")
+		.select("id")
+		.where("criterionId", "=", criterionRowId)
+		.execute();
+	expect(persisted).toHaveLength(0);
+});
 
 test("options criterion grades accept valid labels and roll back failed transactional writes", async () => {
 	await using db = await createTestDb();

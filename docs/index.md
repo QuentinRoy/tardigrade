@@ -52,6 +52,7 @@ Open-ended audits and option analysis. Investigations may contain hypotheses and
 - [Commit message conventions](investigations/2026-05-20-commit-message-conventions.md)
 - [Source structure around product verticals](investigations/2026-06-28-source-structure-product-verticals.md) — direction accepted in ADR 0010; execution staged via a follow-up plan.
 - [Localising criterion-kind behavior and persistence](investigations/2026-07-16-criterion-kind-ownership-and-persistence.md) — direction accepted in ADR 0013 (criterion-kind vertical modules); execution staged in `plans/2026-07-16-criterion-kind-vertical-modules.md`.
+- [Enforcing cross-grid integrity on `criterion_grade`](investigations/2026-07-22-cross-grid-integrity-enforcement.md) — resolved: Option A (composite FKs + replicated `grid_row_id`) accepted in ADR 0015; executed via `plans/2026-07-22-cross-grid-integrity-enforcement.md`.
 
 ## ADRs
 
@@ -71,6 +72,7 @@ Short records of durable architecture decisions.
 - [0012 Converge the domain vocabulary; keep separate internal and user-facing glossaries](adr/0012-converged-domain-vocabulary-and-two-glossaries.md)
 - [0013 Organise each criterion kind as a vertical module under `src/criteria`](adr/0013-criterion-kind-vertical-modules.md)
 - [0014 A grade target is a set of students; individual vs group is presentation-only](adr/0014-unify-grade-targets-as-student-sets.md)
+- [0015 Enforce cross-grid integrity with composite foreign keys](adr/0015-enforce-cross-grid-integrity-with-composite-foreign-keys.md)
 - Add new ADRs under `docs/adr/`.
 
 ## Designs

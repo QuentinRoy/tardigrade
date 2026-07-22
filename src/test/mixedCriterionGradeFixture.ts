@@ -250,6 +250,7 @@ export async function createIndividualGradeTargetFixtures<
 export async function addFullGradeFixture(
 	db: Kysely<Database>,
 	params: {
+		gridRowId: number;
 		gradeTargetRowId: number;
 		checkCriterionRowId: number;
 		optionsCriterionRowId: number;
@@ -260,14 +261,17 @@ export async function addFullGradeFixture(
 		.insertInto("criterionGrade")
 		.values([
 			{
+				gridRowId: params.gridRowId,
 				gradeTargetRowId: params.gradeTargetRowId,
 				criterionId: params.checkCriterionRowId,
 			},
 			{
+				gridRowId: params.gridRowId,
 				gradeTargetRowId: params.gradeTargetRowId,
 				criterionId: params.optionsCriterionRowId,
 			},
 			{
+				gridRowId: params.gridRowId,
 				gradeTargetRowId: params.gradeTargetRowId,
 				criterionId: params.numberCriterionRowId,
 			},
