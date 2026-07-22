@@ -145,7 +145,7 @@ async function resolveGradeWrites(
 	const criterionById = new Map(criterionRows.map((row) => [row.id, row]));
 
 	const resolved: ResolvedGradeWrite[] = [];
-	const firstWriteIndexByTargetCriterionPair = new Map<string, number>();
+	const firstWriteIndexByGradeTargetCriterionPair = new Map<string, number>();
 
 	for (const [writeIndex, write] of grades.entries()) {
 		const gradeTargetRowId = gradeTargetRowIdById.get(write.gradeTargetId);
@@ -170,13 +170,14 @@ async function resolveGradeWrites(
 		}
 
 		const pairKey = `${gradeTargetRowId}:${criterion.rowId}`;
-		const firstWriteIndex = firstWriteIndexByTargetCriterionPair.get(pairKey);
+		const firstWriteIndex =
+			firstWriteIndexByGradeTargetCriterionPair.get(pairKey);
 		if (firstWriteIndex != null) {
 			throw new Error(
 				`Duplicate criterion Grade writes at batch indexes ${firstWriteIndex} and ${writeIndex} for Grade Target Row ID ${gradeTargetRowId} and Criterion Row ID ${criterion.rowId}.`,
 			);
 		}
-		firstWriteIndexByTargetCriterionPair.set(pairKey, writeIndex);
+		firstWriteIndexByGradeTargetCriterionPair.set(pairKey, writeIndex);
 
 		resolved.push({
 			gradeTargetRowId,
