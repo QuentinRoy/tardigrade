@@ -163,11 +163,13 @@ function** management. When raw SQL is used, keep it localized and document why
 it is necessary if the reason is not obvious.
 
 The Kysely migrator runs each migration in a transaction pinned to one database
-connection. `Promise.all` is therefore allowed for grouping independent DDL,
-but the driver queues those statements rather than running them concurrently,
-so it does not provide a parallel speedup. Keep dependent schema changes in
-explicit sequential `await`s. Treat this connection behavior as a repository
-invariant; migrations and reviews do not need to re-evaluate it.
+connection, and the Postgres driver executes one query at a time on that
+connection. Keep migration operations sequential in code rather than grouping
+query executions in `Promise.all`: it cannot provide a parallel speedup and
+makes ordering and dependencies less explicit. A single raw SQL execution may
+still contain multiple related DDL statements when keeping them together is
+clearer. Treat this connection behavior as a repository invariant; migrations
+and reviews do not need to re-evaluate it.
 
 ### No CamelCasePlugin on migration runners
 
