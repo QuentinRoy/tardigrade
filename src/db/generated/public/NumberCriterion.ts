@@ -9,24 +9,11 @@ export type NumberCriterionId = number;
 
 /** Represents the table public.number_criterion */
 export interface NumberCriterionTable {
-	/** Database type: pg_catalog.int4 */
 	id: ColumnType<NumberCriterionId, never, never>;
-
-	/** Database type: pg_catalog.numeric */
 	minValue: ColumnType<number, number, number>;
-
-	/** Database type: pg_catalog.numeric */
 	maxValue: ColumnType<number, number, number>;
-
-	/** Database type: pg_catalog.numeric */
 	minMarks: ColumnType<number, number, number>;
-
-	/** Database type: pg_catalog.numeric */
 	maxMarks: ColumnType<number, number, number>;
-
-	/** Database type: pg_catalog.bool */
 	reversed: ColumnType<boolean, boolean | undefined, boolean>;
-
-	/** Database type: pg_catalog.int4 */
 	criterionId: ColumnType<CriterionRowId, CriterionRowId, CriterionRowId>;
 }

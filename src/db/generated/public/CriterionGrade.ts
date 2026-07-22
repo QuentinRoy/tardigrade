@@ -11,25 +11,14 @@ export type CriterionGradeId = number;
 
 /** Represents the table public.criterion_grade */
 export interface CriterionGradeTable {
-	/** Database type: pg_catalog.int4 */
 	id: ColumnType<CriterionGradeId, never, never>;
-
-	/** Database type: pg_catalog.timestamp */
 	createdAt: ColumnType<Date, Date | string | undefined, Date | string>;
-
-	/** Database type: pg_catalog.timestamp */
 	updatedAt: ColumnType<Date, Date | string | undefined, Date | string>;
-
-	/** Database type: pg_catalog.int4 */
 	criterionId: ColumnType<CriterionRowId, CriterionRowId, CriterionRowId>;
-
-	/** Database type: pg_catalog.int4 */
 	gradeTargetRowId: ColumnType<
 		GradeTargetRowId,
 		GradeTargetRowId,
 		GradeTargetRowId
 	>;
-
-	/** Database type: pg_catalog.int4 */
 	gridRowId: ColumnType<GridRowId, GridRowId, GridRowId>;
 }
