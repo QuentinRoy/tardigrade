@@ -48,38 +48,47 @@ async function loadCriteriaByColumn(
 		const column = `${row.rubricId}:${row.id}`;
 		const existing = criteriaByColumn.get(column);
 
-		if (existing == null) {
-			const baseCriterion = { id: row.id, rubricId: row.rubricId };
+		if (existing != null) {
+			if (
+				existing.kind === "options" &&
+				row.label != null &&
+				!existing.optionsLabels.includes(row.label)
+			) {
+				existing.optionsLabels.push(row.label);
+			}
+			continue;
+		}
 
-			if (row.kind === "number") {
+		const baseCriterion = { id: row.id, rubricId: row.rubricId };
+		let criterion: GradeImportCriterion;
+
+		switch (row.kind) {
+			case "number":
 				if (row.minValue == null || row.maxValue == null) {
 					throw new Error(
 						`Criterion Subtype Invariant violation: missing numberCriterion row for criterion ${row.id}.`,
 					);
 				}
-
-				criteriaByColumn.set(column, {
+				criterion = {
 					...baseCriterion,
 					kind: "number",
 					minValue: row.minValue,
 					maxValue: row.maxValue,
-				});
-			} else if (row.kind === "options") {
-				criteriaByColumn.set(column, {
+				};
+				break;
+			case "options":
+				criterion = {
 					...baseCriterion,
 					kind: "options",
 					optionsLabels: row.label == null ? [] : [row.label],
-				});
-			} else {
-				criteriaByColumn.set(column, { ...baseCriterion, kind: "check" });
-			}
-		} else if (
-			existing.kind === "options" &&
-			row.label != null &&
-			!existing.optionsLabels.includes(row.label)
-		) {
-			existing.optionsLabels.push(row.label);
+				};
+				break;
+			case "check":
+				criterion = { ...baseCriterion, kind: "check" };
+				break;
 		}
+
+		criteriaByColumn.set(column, criterion);
 	}
 
 	return criteriaByColumn;
