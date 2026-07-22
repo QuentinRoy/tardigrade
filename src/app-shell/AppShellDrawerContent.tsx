@@ -207,8 +207,14 @@ export default function AppShellDrawerContent({
 						}}
 					/>
 				</Stack>
+				{/*
+					Plain anchor, not NextLink: NextLink prefetches on viewport
+					visibility, which runs the full CSV export just because this
+					button scrolls into view. If NextLink ever comes back here, it
+					needs prefetch={false}.
+				*/}
 				<Button
-					component={NextLink}
+					component="a"
 					href={exportHref}
 					fullWidth
 					{...(onDismiss && { onClick: onDismiss })}
@@ -222,8 +228,9 @@ export default function AppShellDrawerContent({
 				<Text size="xs" tt="uppercase" c="dimmed" fw={600}>
 					Export Rubrics
 				</Text>
+				{/* Plain anchor, not NextLink — see comment on the Download Grades button above. */}
 				<Button
-					component={NextLink}
+					component="a"
 					href={gridExportRubricsPath(gridRouteContext)}
 					variant="outline"
 					fullWidth
