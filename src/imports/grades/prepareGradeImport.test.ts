@@ -83,12 +83,12 @@ test("prepareGradeImport plans one write per non-empty criterion cell of a match
 
 	expect(plan.writes).toEqual([
 		{
-			targetId: "42",
+			gradeTargetId: "42",
 			rubricId: "q1",
 			grade: { criterionId: "r-bool", kind: "check", passed: true },
 		},
 		{
-			targetId: "42",
+			gradeTargetId: "42",
 			rubricId: "q1",
 			grade: { criterionId: "r-num", kind: "number", value: 7.5 },
 		},
@@ -201,7 +201,7 @@ test.each([
 		value: "0",
 		expectedWrites: [
 			{
-				targetId: "42",
+				gradeTargetId: "42",
 				rubricId: "q1",
 				grade: { criterionId: "r-num", kind: "number", value: 0 },
 			},
@@ -213,7 +213,7 @@ test.each([
 		value: "7.5",
 		expectedWrites: [
 			{
-				targetId: "42",
+				gradeTargetId: "42",
 				rubricId: "q1",
 				grade: { criterionId: "r-num", kind: "number", value: 7.5 },
 			},
@@ -225,7 +225,7 @@ test.each([
 		value: "10",
 		expectedWrites: [
 			{
-				targetId: "42",
+				gradeTargetId: "42",
 				rubricId: "q1",
 				grade: { criterionId: "r-num", kind: "number", value: 10 },
 			},
@@ -483,12 +483,12 @@ test("prepareGradeImport allows repeated target rows with disjoint non-empty cri
 	expect(plan.blockingDiagnostics).toEqual([]);
 	expect(plan.writes).toEqual([
 		{
-			targetId: "42",
+			gradeTargetId: "42",
 			rubricId: "q1",
 			grade: { criterionId: "r-first", kind: "check", passed: true },
 		},
 		{
-			targetId: "42",
+			gradeTargetId: "42",
 			rubricId: "q1",
 			grade: { criterionId: "r-second", kind: "check", passed: false },
 		},

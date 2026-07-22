@@ -47,21 +47,29 @@ export async function upsertCheckSubtypeRowsInDb(
 		.execute();
 }
 
-// Writes a Check criterion grade's subtype row. The coordinator upserts the
-// parent `criterionGrade` and passes its id, so this never runs before the
-// parent row exists.
-export async function writeCheckGradeInDb(
+// Batched write of Check criterion grades' subtype rows. The coordinator
+// upserts the parent `criterionGrade` rows and passes their ids, so this never
+// runs before the parent rows exist.
+export async function writeCheckGradesInDb(
 	db: Transaction<Database>,
-	{
-		criterionGradeId,
-		grade,
-	}: { criterionGradeId: number; grade: CheckCriterionGradeContent },
+	rows: { criterionGradeId: number; grade: CheckCriterionGradeContent }[],
 ): Promise<void> {
+	if (rows.length === 0) {
+		return;
+	}
+
 	await db
 		.insertInto("checkCriterionGrade")
-		.values({ criterionGradeId, passed: grade.passed })
+		.values(
+			rows.map((row) => ({
+				criterionGradeId: row.criterionGradeId,
+				passed: row.grade.passed,
+			})),
+		)
 		.onConflict((conflict) =>
-			conflict.column("criterionGradeId").doUpdateSet({ passed: grade.passed }),
+			conflict
+				.column("criterionGradeId")
+				.doUpdateSet((eb) => ({ passed: eb.ref("excluded.passed") })),
 		)
 		.execute();
 }

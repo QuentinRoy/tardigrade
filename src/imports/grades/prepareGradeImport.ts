@@ -33,7 +33,7 @@ export type GradeImportContext = {
 };
 
 export type GradeImportWrite = {
-	targetId: string;
+	gradeTargetId: string;
 	rubricId: string;
 	grade: CriterionGrade;
 };
@@ -144,13 +144,13 @@ export function prepareGradeImport(params: {
 
 	for (const [rowIndex, row] of rows.entries()) {
 		const csvLine = rowIndex + 2;
-		const targetIds =
+		const gradeTargetIds =
 			context.targetIdsByLookup.get(
 				targetLookupKey({ targetKind: row.kind, name: row.name }),
 			) ?? [];
-		const targetId = targetIds[0];
+		const gradeTargetId = gradeTargetIds[0];
 
-		if (targetId == null) {
+		if (gradeTargetId == null) {
 			blockingDiagnostics.push({
 				type: "unmatched-target",
 				row: csvLine,
@@ -160,7 +160,7 @@ export function prepareGradeImport(params: {
 			continue;
 		}
 
-		if (targetIds.length > 1) {
+		if (gradeTargetIds.length > 1) {
 			blockingDiagnostics.push({
 				type: "ambiguous-target",
 				row: csvLine,
@@ -177,7 +177,10 @@ export function prepareGradeImport(params: {
 				continue;
 			}
 
-			const key = gradedCriterionKey({ targetId, criterionId: criterion.id });
+			const key = gradedCriterionKey({
+				targetId: gradeTargetId,
+				criterionId: criterion.id,
+			});
 			const sourceLocation = { row: csvLine, column };
 			const previousSourceLocations =
 				sourceLocationsByGradedCriterionKey.get(key) ?? [];
@@ -207,14 +210,17 @@ export function prepareGradeImport(params: {
 				continue;
 			}
 
-			writes.push({ targetId, rubricId: criterion.rubricId, grade });
+			writes.push({ gradeTargetId, rubricId: criterion.rubricId, grade });
 
 			if (
 				context.gradedCriterionKeys.has(
-					gradedCriterionKey({ targetId, criterionId: criterion.id }),
+					gradedCriterionKey({
+						targetId: gradeTargetId,
+						criterionId: criterion.id,
+					}),
 				)
 			) {
-				overwrites.push({ targetId, criterionId: criterion.id });
+				overwrites.push({ targetId: gradeTargetId, criterionId: criterion.id });
 			}
 		}
 	}

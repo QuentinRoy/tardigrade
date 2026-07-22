@@ -128,7 +128,7 @@ describe.each<{ name: string; options: ExportOptions }>([
 		expect(plan.writes).toEqual(
 			expect.arrayContaining([
 				{
-					targetId: fixture.targetId,
+					gradeTargetId: fixture.targetId,
 					rubricId: fixture.rubricId,
 					grade: {
 						criterionId: fixture.criterionIds.checkId,
@@ -137,7 +137,7 @@ describe.each<{ name: string; options: ExportOptions }>([
 					},
 				},
 				{
-					targetId: fixture.targetId,
+					gradeTargetId: fixture.targetId,
 					rubricId: fixture.rubricId,
 					grade: {
 						criterionId: fixture.criterionIds.optionsId,
@@ -146,7 +146,7 @@ describe.each<{ name: string; options: ExportOptions }>([
 					},
 				},
 				{
-					targetId: fixture.targetId,
+					gradeTargetId: fixture.targetId,
 					rubricId: fixture.rubricId,
 					grade: {
 						criterionId: fixture.criterionIds.numberId,
