@@ -90,6 +90,7 @@ export async function createGradedCheckRubricFixture(
 		.values({
 			gradeTargetRowId: target.rowId,
 			criterionId: rubric.criterionRowId,
+			gridRowId,
 		})
 		.returning("id")
 		.executeTakeFirstOrThrow();

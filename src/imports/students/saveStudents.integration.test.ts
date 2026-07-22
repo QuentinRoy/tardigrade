@@ -127,7 +127,7 @@ async function attachCheckGrade(
 
 	const grade = await db
 		.insertInto("criterionGrade")
-		.values({ criterionId: criterion.rowId, gradeTargetRowId })
+		.values({ gridRowId, criterionId: criterion.rowId, gradeTargetRowId })
 		.returning("id")
 		.executeTakeFirstOrThrow();
 

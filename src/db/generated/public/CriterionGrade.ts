@@ -28,4 +28,7 @@ export interface CriterionGradeTable {
 		GradeTargetRowId,
 		GradeTargetRowId
 	>;
+
+	/** Database type: pg_catalog.int4 */
+	gridRowId: ColumnType<number, number, number>;
 }

@@ -119,13 +119,14 @@ async function createRubric(
 async function addGrade(
 	db: Kysely<Database>,
 	{
+		gridRowId,
 		gradeTargetRowId,
 		criterionRowId,
-	}: { gradeTargetRowId: number; criterionRowId: number },
+	}: { gridRowId: number; gradeTargetRowId: number; criterionRowId: number },
 ): Promise<void> {
 	const criterionGrade = await db
 		.insertInto("criterionGrade")
-		.values({ gradeTargetRowId, criterionId: criterionRowId })
+		.values({ gridRowId, gradeTargetRowId, criterionId: criterionRowId })
 		.returning("id")
 		.executeTakeFirstOrThrow();
 
@@ -158,6 +159,7 @@ test("loadGradedCriterionCountsByTargetFromDb counts only grades within the requ
 	// Add grade only for grid B
 	if (criterionBRowId == null) throw new Error("Expected criterion row");
 	await addGrade(db, {
+		gridRowId: gridB.rowId,
 		gradeTargetRowId: targetB.rowId,
 		criterionRowId: criterionBRowId,
 	});
@@ -208,6 +210,7 @@ test("loadGradeCompletionByTargetFromDb counts only rubrics and grades within th
 	// Add grade only for grid B
 	if (criterionBRowId == null) throw new Error("Expected criterion row");
 	await addGrade(db, {
+		gridRowId: gridB.rowId,
 		gradeTargetRowId: targetB.rowId,
 		criterionRowId: criterionBRowId,
 	});
@@ -340,7 +343,11 @@ test("loadGradeCompletionSummaryFromDb characterizes mixed completion across gra
 	);
 	if (criterionRowId == null) throw new Error("Expected criterion row");
 
-	await addGrade(db, { gradeTargetRowId: targetDone.rowId, criterionRowId });
+	await addGrade(db, {
+		gridRowId: grid.rowId,
+		gradeTargetRowId: targetDone.rowId,
+		criterionRowId,
+	});
 
 	const summary = await loadGradeCompletionSummaryFromDb(db, {
 		gridId: grid.id,

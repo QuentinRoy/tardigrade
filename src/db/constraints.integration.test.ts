@@ -166,15 +166,22 @@ async function createGradeConstraintFixture(
 		.insertInto("criterionGrade")
 		.values([
 			{
+				gridRowId,
 				gradeTargetRowId: primaryTarget.rowId,
 				criterionId: optionsCriterionId,
 			},
 			{
+				gridRowId,
 				gradeTargetRowId: secondaryTarget.rowId,
 				criterionId: optionsCriterionId,
 			},
-			{ gradeTargetRowId: primaryTarget.rowId, criterionId: numberCriterionId },
 			{
+				gridRowId,
+				gradeTargetRowId: primaryTarget.rowId,
+				criterionId: numberCriterionId,
+			},
+			{
+				gridRowId,
 				gradeTargetRowId: secondaryTarget.rowId,
 				criterionId: numberCriterionId,
 			},
@@ -327,6 +334,49 @@ async function createSubtypeConstraintFixture(
 		number: numberCriterionId,
 	};
 }
+
+test("criterion/rubric composite FK rejects a criterion referencing a rubric in another grid and rolls back transactional writes", async () => {
+	await using db = await createTestDb();
+	await using gridA = await createGrid(db, "Constraint Criterion Grid A");
+	await using gridB = await createGrid(db, "Constraint Criterion Grid B");
+
+	const rubricId = buildTestId("rubric");
+	const rubric = await db
+		.insertInto("rubric")
+		.values({
+			gridRowId: gridB.rowId,
+			id: rubricId,
+			label: "Cross-grid rubric",
+			position: 0,
+		})
+		.returning("rowId")
+		.executeTakeFirstOrThrow();
+
+	const criterionId = buildTestId("criterion-cross-grid");
+
+	await expect(
+		db.transaction().execute(async (trx) => {
+			await trx
+				.insertInto("criterion")
+				.values({
+					gridRowId: gridA.rowId,
+					id: criterionId,
+					rubricId: rubric.rowId,
+					kind: "check",
+					position: 0,
+					label: "Cross-grid criterion",
+				})
+				.execute();
+		}),
+	).rejects.toThrow("criterion_rubric_id_grid_row_id_fkey");
+
+	const persisted = await db
+		.selectFrom("criterion")
+		.select("id")
+		.where("id", "=", criterionId)
+		.execute();
+	expect(persisted).toHaveLength(0);
+});
 
 test("options criterion grades accept valid labels and roll back failed transactional writes", async () => {
 	await using db = await createTestDb();

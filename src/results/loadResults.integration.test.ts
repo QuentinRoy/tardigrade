@@ -176,14 +176,20 @@ async function createNumberCriterion(
 async function addCheckGrade(
 	db: Kysely<Database>,
 	{
+		gridRowId,
 		gradeTargetRowId,
 		criterionRowId,
 		passed,
-	}: { gradeTargetRowId: number; criterionRowId: number; passed: boolean },
+	}: {
+		gridRowId: number;
+		gradeTargetRowId: number;
+		criterionRowId: number;
+		passed: boolean;
+	},
 ): Promise<void> {
 	const criterionGrade = await db
 		.insertInto("criterionGrade")
-		.values({ gradeTargetRowId, criterionId: criterionRowId })
+		.values({ gridRowId, gradeTargetRowId, criterionId: criterionRowId })
 		.returning("id")
 		.executeTakeFirstOrThrow();
 
@@ -196,10 +202,12 @@ async function addCheckGrade(
 async function addOptionsGrade(
 	db: Kysely<Database>,
 	{
+		gridRowId,
 		gradeTargetRowId,
 		criterionRowId,
 		selectedLabel,
 	}: {
+		gridRowId: number;
 		gradeTargetRowId: number;
 		criterionRowId: number;
 		selectedLabel: string;
@@ -207,7 +215,7 @@ async function addOptionsGrade(
 ): Promise<void> {
 	const criterionGrade = await db
 		.insertInto("criterionGrade")
-		.values({ gradeTargetRowId, criterionId: criterionRowId })
+		.values({ gridRowId, gradeTargetRowId, criterionId: criterionRowId })
 		.returning("id")
 		.executeTakeFirstOrThrow();
 
@@ -220,14 +228,20 @@ async function addOptionsGrade(
 async function addNumberGrade(
 	db: Kysely<Database>,
 	{
+		gridRowId,
 		gradeTargetRowId,
 		criterionRowId,
 		value,
-	}: { gradeTargetRowId: number; criterionRowId: number; value: number },
+	}: {
+		gridRowId: number;
+		gradeTargetRowId: number;
+		criterionRowId: number;
+		value: number;
+	},
 ): Promise<void> {
 	const criterionGrade = await db
 		.insertInto("criterionGrade")
-		.values({ gradeTargetRowId, criterionId: criterionRowId })
+		.values({ gridRowId, gradeTargetRowId, criterionId: criterionRowId })
 		.returning("id")
 		.executeTakeFirstOrThrow();
 
@@ -265,16 +279,19 @@ test("loadCriterionGradeRecordsFromDb maps the per-kind value column for check, 
 	});
 
 	await addCheckGrade(db, {
+		gridRowId: grid.rowId,
 		gradeTargetRowId: target.rowId,
 		criterionRowId: checkCriterionRowId,
 		passed: true,
 	});
 	await addOptionsGrade(db, {
+		gridRowId: grid.rowId,
 		gradeTargetRowId: target.rowId,
 		criterionRowId: optionsCriterionRowId,
 		selectedLabel: "high",
 	});
 	await addNumberGrade(db, {
+		gridRowId: grid.rowId,
 		gradeTargetRowId: target.rowId,
 		criterionRowId: numberCriterionRowId,
 		value: 7,
@@ -350,11 +367,13 @@ test("loadCriterionGradeRecordsFromDb excludes grade records from other grids", 
 	});
 
 	await addCheckGrade(db, {
+		gridRowId: gridA.rowId,
 		gradeTargetRowId: targetA.rowId,
 		criterionRowId: criterionRowIdA,
 		passed: true,
 	});
 	await addCheckGrade(db, {
+		gridRowId: gridB.rowId,
 		gradeTargetRowId: targetB.rowId,
 		criterionRowId: criterionRowIdB,
 		passed: false,

@@ -30,11 +30,16 @@ async function readStream(stream: ReadableStream<Uint8Array>): Promise<string> {
 
 async function addSparseGrade(
 	db: Kysely<Database>,
-	params: { gradeTargetRowId: number; checkCriterionRowId: number },
+	params: {
+		gridRowId: number;
+		gradeTargetRowId: number;
+		checkCriterionRowId: number;
+	},
 ) {
 	const criterionGrade = await db
 		.insertInto("criterionGrade")
 		.values({
+			gridRowId: params.gridRowId,
 			gradeTargetRowId: params.gradeTargetRowId,
 			criterionId: params.checkCriterionRowId,
 		})
@@ -88,12 +93,14 @@ test("createCsvGradeTargetExport snapshots CSV for mixed criterion kinds and gra
 
 	await Promise.all([
 		addFullGradeFixture(db, {
+			gridRowId: grid.rowId,
 			gradeTargetRowId: target1.rowId,
 			checkCriterionRowId: criterionRowId.get(rubric.criteria.checkId)!,
 			optionsCriterionRowId: criterionRowId.get(rubric.criteria.optionsId)!,
 			numberCriterionRowId: criterionRowId.get(rubric.criteria.numberId)!,
 		}),
 		addSparseGrade(db, {
+			gridRowId: grid.rowId,
 			gradeTargetRowId: target2.rowId,
 			checkCriterionRowId: criterionRowId.get(rubric.criteria.checkId)!,
 		}),

@@ -53,6 +53,7 @@ async function createRoundtripFixtureGrid(db: DisposableTestDatabase) {
 		{ gridRowId: grid.rowId, studentRowId: student.rowId },
 	]);
 	await addFullGradeFixture(db, {
+		gridRowId: grid.rowId,
 		gradeTargetRowId: target.rowId,
 		checkCriterionRowId: criterionRowId.get(rubric.criteria.checkId)!,
 		optionsCriterionRowId: criterionRowId.get(rubric.criteria.optionsId)!,

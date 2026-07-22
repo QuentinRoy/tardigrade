@@ -120,6 +120,7 @@ export async function saveCriterionGradeInDb(
 
 	const criterionRowId = criterion.rowId;
 	const gradeTargetRowId = target.rowId;
+	const gridRowId = grid.rowId;
 
 	if (criterion.kind !== grade.kind) {
 		return { success: false, error: saveCriterionGradeErrors.criterionChanged };
@@ -130,9 +131,13 @@ export async function saveCriterionGradeInDb(
 	// first-time save writes nothing (previously a get-or-create ran before
 	// subtype validation, committing an empty grade that completion miscounted).
 	async function upsertCriterionGrade(): Promise<number> {
+		// gridRowId is a consistency copy backstopped by the composite FKs on
+		// criterion_id and grade_target_row_id (ADR 0015): the grid-scoped
+		// lookups above remain for id-resolution and user-facing errors, not for
+		// cross-grid integrity, which the DB now enforces.
 		await db
 			.insertInto("criterionGrade")
-			.values({ gradeTargetRowId, criterionId: criterionRowId })
+			.values({ gradeTargetRowId, criterionId: criterionRowId, gridRowId })
 			.onConflict((conflict) =>
 				conflict.columns(["gradeTargetRowId", "criterionId"]).doNothing(),
 			)
