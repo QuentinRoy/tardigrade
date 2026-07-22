@@ -5,22 +5,19 @@ import {
 	parseNumberGradeValue,
 } from "./number/numberDomain.ts";
 import { parseOptionsGradeValue } from "./options/optionsDomain.ts";
-import type { CriterionGrade, CriterionKind } from "./types.ts";
+import type { CriterionGrade } from "./types.ts";
 
 // The kind-specific grades-CSV cell parse (ADR 0013), read mirror of
 // getCriterionExportGradeValue. `imports` owns the CSV row and column shape;
 // only the per-criterion cell value is kind knowledge and dispatches here.
 
 // What parsing a cell needs to know about the criterion it belongs to.
-type ImportedGradeCriterionBase = {
-	id: string;
-	// Labels the criterion offers; only meaningful for the Options kind.
-	optionsLabels: string[];
-};
+type ImportedGradeCriterionBase = { id: string };
 
 export type ImportedGradeCriterion = ImportedGradeCriterionBase &
 	(
-		| { kind: Exclude<CriterionKind, "number"> }
+		| { kind: "check" }
+		| { kind: "options"; optionsLabels: string[] }
 		| { kind: "number"; minValue: number; maxValue: number }
 	);
 

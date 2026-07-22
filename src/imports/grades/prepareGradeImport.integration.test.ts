@@ -119,7 +119,6 @@ describe.each<{ name: string; options: ExportOptions }>([
 			id: fixture.criterionIds.numberId,
 			kind: "number",
 			rubricId: fixture.rubricId,
-			optionsLabels: [],
 			minValue: 0,
 			maxValue: 10,
 		});

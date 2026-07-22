@@ -19,6 +19,20 @@ function buildContext(
 	};
 }
 
+function buildDuplicateCheckContext(): GradeImportContext {
+	return buildContext({
+		criteriaByColumn: new Map([
+			["q1:r-bool", { id: "r-bool", kind: "check", rubricId: "q1" }],
+		]),
+		targetIdsByLookup: new Map([
+			[
+				targetLookupKey({ targetKind: "individual", name: "student-1" }),
+				["42"],
+			],
+		]),
+	});
+}
+
 test("prepareGradeImport plans one write per non-empty criterion cell of a matched target", () => {
 	const context = buildContext({
 		criteriaByColumn: new Map([
@@ -384,20 +398,7 @@ test("prepareGradeImport lists existing values of targeted pairs as overwrites",
 });
 
 test("prepareGradeImport reports duplicate cells with different values and both source locations", () => {
-	const context = buildContext({
-		criteriaByColumn: new Map([
-			[
-				"q1:r-bool",
-				{ id: "r-bool", kind: "check", rubricId: "q1", optionsLabels: [] },
-			],
-		]),
-		targetIdsByLookup: new Map([
-			[
-				targetLookupKey({ targetKind: "individual", name: "student-1" }),
-				["42"],
-			],
-		]),
-	});
+	const context = buildDuplicateCheckContext();
 	const rows: ImportedGradeRow[] = [
 		{ kind: "individual", name: "student-1", "q1:r-bool": "true" },
 		{ kind: "individual", name: "student-1", "q1:r-bool": "false" },
@@ -415,20 +416,7 @@ test("prepareGradeImport reports duplicate cells with different values and both 
 });
 
 test("prepareGradeImport reports every pair of duplicate cells with identical values", () => {
-	const context = buildContext({
-		criteriaByColumn: new Map([
-			[
-				"q1:r-bool",
-				{ id: "r-bool", kind: "check", rubricId: "q1", optionsLabels: [] },
-			],
-		]),
-		targetIdsByLookup: new Map([
-			[
-				targetLookupKey({ targetKind: "individual", name: "student-1" }),
-				["42"],
-			],
-		]),
-	});
+	const context = buildDuplicateCheckContext();
 	const rows: ImportedGradeRow[] = [
 		{ kind: "individual", name: "student-1", "q1:r-bool": "true" },
 		{ kind: "individual", name: "student-1", "q1:r-bool": "true" },

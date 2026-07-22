@@ -27,7 +27,7 @@ function formatBlockingDiagnostic(
 			return `Row ${diagnostic.row} (${diagnostic.name}): Multiple ${diagnostic.targetKind} students or groups match "${diagnostic.name}"`;
 		}
 		case "invalid-value": {
-			return `Row ${diagnostic.row} (${diagnostic.name}), column "${diagnostic.column}": ${diagnostic.message}`;
+			return `Row ${diagnostic.row} (${diagnostic.name}): ${diagnostic.message} in column "${diagnostic.column}"`;
 		}
 		case "duplicate-grade-cell": {
 			return `Rows ${diagnostic.first.row}, column "${diagnostic.first.column}" and ${diagnostic.second.row}, column "${diagnostic.second.column}" both import a grade for the same student or group and criterion. Remove one of these values`;

@@ -49,11 +49,7 @@ async function loadCriteriaByColumn(
 		const existing = criteriaByColumn.get(column);
 
 		if (existing == null) {
-			const baseCriterion = {
-				id: row.id,
-				rubricId: row.rubricId,
-				optionsLabels: row.label == null ? [] : [row.label],
-			};
+			const baseCriterion = { id: row.id, rubricId: row.rubricId };
 
 			if (row.kind === "number") {
 				if (row.minValue == null || row.maxValue == null) {
@@ -68,10 +64,17 @@ async function loadCriteriaByColumn(
 					minValue: row.minValue,
 					maxValue: row.maxValue,
 				});
+			} else if (row.kind === "options") {
+				criteriaByColumn.set(column, {
+					...baseCriterion,
+					kind: "options",
+					optionsLabels: row.label == null ? [] : [row.label],
+				});
 			} else {
-				criteriaByColumn.set(column, { ...baseCriterion, kind: row.kind });
+				criteriaByColumn.set(column, { ...baseCriterion, kind: "check" });
 			}
 		} else if (
+			existing.kind === "options" &&
 			row.label != null &&
 			!existing.optionsLabels.includes(row.label)
 		) {

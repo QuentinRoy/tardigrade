@@ -39,6 +39,8 @@ export type GradeImportWrite = {
 };
 
 // `row` is the 1-based CSV line number; the header is line 1, data starts at 2.
+type GradeImportSourceLocation = { row: number; column: string };
+
 export type GradeImportBlockingDiagnostic =
 	| {
 			type: "unmatched-target";
@@ -61,8 +63,8 @@ export type GradeImportBlockingDiagnostic =
 	  }
 	| {
 			type: "duplicate-grade-cell";
-			first: { row: number; column: string };
-			second: { row: number; column: string };
+			first: GradeImportSourceLocation;
+			second: GradeImportSourceLocation;
 	  }
 	| { type: "unknown-column"; column: string }
 	| { type: "no-grade-columns" };
@@ -103,7 +105,7 @@ export function prepareGradeImport(params: {
 	const overwrites: GradeImportOverwrite[] = [];
 	const sourceLocationsByGradedCriterionKey = new Map<
 		string,
-		Array<{ row: number; column: string }>
+		GradeImportSourceLocation[]
 	>();
 
 	const headerColumns = Object.keys(rows.at(0) ?? {});

@@ -286,7 +286,7 @@ test("saveGrades reports an out-of-range Number cell before writing any grade", 
 	await expect(
 		saveGrades({ rows, gridId: gridPublicId }, { db }),
 	).rejects.toThrow(
-		`Row 3 (${fixture.studentId}), column "${fixture.rubricId}:${fixture.numberCriterionId}": Enter a value of at most 10.`,
+		`Row 3 (${fixture.studentId}): Enter a value of at most 10. in column "${fixture.rubricId}:${fixture.numberCriterionId}"`,
 	);
 
 	const persistedGrades = await db
