@@ -63,8 +63,7 @@ function gradeImportBlockedError(
 // invalidates cache.
 export async function saveGradeImportPlanInDb(
 	db: Transaction<Database>,
-	plan: GradeImportPlan,
-	{ gridId }: { gridId: string },
+	{ plan, gridId }: { plan: GradeImportPlan; gridId: string },
 ): Promise<void> {
 	for (const writes of chunk(plan.writes, GRADE_IMPORT_WRITE_CHUNK_SIZE)) {
 		const result = await saveCriterionGradesInDb(db, {
@@ -93,7 +92,7 @@ export async function saveGrades(
 			throw gradeImportBlockedError(plan.blockingDiagnostics);
 		}
 
-		await saveGradeImportPlanInDb(tx, plan, { gridId });
+		await saveGradeImportPlanInDb(tx, { plan, gridId });
 
 		return {
 			gradeCount: plan.writes.length,
