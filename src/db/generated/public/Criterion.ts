@@ -11,33 +11,23 @@ export type CriterionRowId = number;
 
 /** Represents the table public.criterion */
 export interface CriterionTable {
-	/** Database type: pg_catalog.int4 */
 	rowId: ColumnType<CriterionRowId, never, never>;
 
-	/** Database type: pg_catalog.text */
 	id: ColumnType<string, string, string>;
 
-	/** Database type: pg_catalog.int4 */
 	position: ColumnType<number, number, number>;
 
-	/** Database type: pg_catalog.text */
 	description: ColumnType<string | null, string | null, string | null>;
 
-	/** Database type: pg_catalog.text */
 	label: ColumnType<string | null, string | null, string | null>;
 
-	/** Database type: public.criterion_kind */
 	kind: ColumnType<CriterionKind, CriterionKind, CriterionKind>;
 
-	/** Database type: pg_catalog.timestamp */
 	createdAt: ColumnType<Date, Date | string | undefined, Date | string>;
 
-	/** Database type: pg_catalog.timestamp */
 	updatedAt: ColumnType<Date, Date | string | undefined, Date | string>;
 
-	/** Database type: pg_catalog.int4 */
 	gridRowId: ColumnType<GridRowId, GridRowId, GridRowId>;
 
-	/** Database type: pg_catalog.int4 */
 	rubricId: ColumnType<RubricRowId, RubricRowId, RubricRowId>;
 }

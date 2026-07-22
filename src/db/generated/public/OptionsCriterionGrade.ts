@@ -9,16 +9,13 @@ export type OptionsCriterionGradeId = number;
 
 /** Represents the table public.options_criterion_grade */
 export interface OptionsCriterionGradeTable {
-	/** Database type: pg_catalog.int4 */
 	id: ColumnType<OptionsCriterionGradeId, never, never>;
 
-	/** Database type: pg_catalog.int4 */
 	criterionGradeId: ColumnType<
 		CriterionGradeId,
 		CriterionGradeId,
 		CriterionGradeId
 	>;
 
-	/** Database type: pg_catalog.text */
 	selectedLabel: ColumnType<string, string, string>;
 }

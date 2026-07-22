@@ -9,15 +9,11 @@ export type CheckCriterionId = number;
 
 /** Represents the table public.check_criterion */
 export interface CheckCriterionTable {
-	/** Database type: pg_catalog.int4 */
 	id: ColumnType<CheckCriterionId, never, never>;
 
-	/** Database type: pg_catalog.numeric */
 	marks: ColumnType<number, number, number>;
 
-	/** Database type: pg_catalog.numeric */
 	falseMarks: ColumnType<number, number | undefined, number>;
 
-	/** Database type: pg_catalog.int4 */
 	criterionId: ColumnType<CriterionRowId, CriterionRowId, CriterionRowId>;
 }

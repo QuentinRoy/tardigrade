@@ -9,19 +9,15 @@ export type OptionsCriterionMarkId = number;
 
 /** Represents the table public.options_criterion_mark */
 export interface OptionsCriterionMarkTable {
-	/** Database type: pg_catalog.int4 */
 	id: ColumnType<OptionsCriterionMarkId, never, never>;
 
-	/** Database type: pg_catalog.int4 */
 	optionsCriterionId: ColumnType<
 		OptionsCriterionId,
 		OptionsCriterionId,
 		OptionsCriterionId
 	>;
 
-	/** Database type: pg_catalog.text */
 	label: ColumnType<string, string, string>;
 
-	/** Database type: pg_catalog.numeric */
 	marks: ColumnType<number, number, number>;
 }

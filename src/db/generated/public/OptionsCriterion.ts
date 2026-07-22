@@ -9,9 +9,7 @@ export type OptionsCriterionId = number;
 
 /** Represents the table public.options_criterion */
 export interface OptionsCriterionTable {
-	/** Database type: pg_catalog.int4 */
 	id: ColumnType<OptionsCriterionId, never, never>;
 
-	/** Database type: pg_catalog.int4 */
 	criterionId: ColumnType<CriterionRowId, CriterionRowId, CriterionRowId>;
 }

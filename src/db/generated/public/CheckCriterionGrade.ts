@@ -9,16 +9,13 @@ export type CheckCriterionGradeId = number;
 
 /** Represents the table public.check_criterion_grade */
 export interface CheckCriterionGradeTable {
-	/** Database type: pg_catalog.int4 */
 	id: ColumnType<CheckCriterionGradeId, never, never>;
 
-	/** Database type: pg_catalog.int4 */
 	criterionGradeId: ColumnType<
 		CriterionGradeId,
 		CriterionGradeId,
 		CriterionGradeId
 	>;
 
-	/** Database type: pg_catalog.bool */
 	passed: ColumnType<boolean, boolean, boolean>;
 }

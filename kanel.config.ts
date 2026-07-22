@@ -175,18 +175,6 @@ export const generators = [
 		// numbers through `pgTypes.setTypeParser` in `kysely.ts`.
 		customTypeMap: { "pg_catalog.numeric": "number" },
 
-		// Preserve the original PostgreSQL type in a generated comment so that
-		// mapped TypeScript types remain traceable to the database schema.
-		getPropertyMetadata: (
-			property,
-			_details,
-			_generateFor,
-			builtinMetadata,
-		) => ({
-			...builtinMetadata,
-			comment: [`Database type: ${property.expandedType}`],
-		}),
-
 		// Plain, unbranded identifier types (see `plainIdentifierType`).
 		generateIdentifierType: plainIdentifierType,
 

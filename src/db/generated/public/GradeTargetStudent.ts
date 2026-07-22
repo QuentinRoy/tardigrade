@@ -7,10 +7,8 @@ import type { StudentRowId } from "./Student.ts";
 
 /** Represents the table public.grade_target_student */
 export interface GradeTargetStudentTable {
-	/** Database type: pg_catalog.int4 */
 	studentRowId: ColumnType<StudentRowId, StudentRowId, StudentRowId>;
 
-	/** Database type: pg_catalog.int4 */
 	gradeTargetRowId: ColumnType<
 		GradeTargetRowId,
 		GradeTargetRowId,

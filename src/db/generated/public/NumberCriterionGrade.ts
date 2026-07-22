@@ -9,16 +9,13 @@ export type NumberCriterionGradeId = number;
 
 /** Represents the table public.number_criterion_grade */
 export interface NumberCriterionGradeTable {
-	/** Database type: pg_catalog.int4 */
 	id: ColumnType<NumberCriterionGradeId, never, never>;
 
-	/** Database type: pg_catalog.int4 */
 	criterionGradeId: ColumnType<
 		CriterionGradeId,
 		CriterionGradeId,
 		CriterionGradeId
 	>;
 
-	/** Database type: pg_catalog.numeric */
 	value: ColumnType<number, number, number>;
 }

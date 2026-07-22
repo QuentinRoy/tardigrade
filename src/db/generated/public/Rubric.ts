@@ -9,24 +9,17 @@ export type RubricRowId = number;
 
 /** Represents the table public.rubric */
 export interface RubricTable {
-	/** Database type: pg_catalog.int4 */
 	rowId: ColumnType<RubricRowId, never, never>;
 
-	/** Database type: pg_catalog.text */
 	id: ColumnType<string, string, string>;
 
-	/** Database type: pg_catalog.text */
 	label: ColumnType<string | null, string | null, string | null>;
 
-	/** Database type: pg_catalog.int4 */
 	position: ColumnType<number, number | undefined, number>;
 
-	/** Database type: pg_catalog.timestamp */
 	createdAt: ColumnType<Date, Date | string | undefined, Date | string>;
 
-	/** Database type: pg_catalog.timestamp */
 	updatedAt: ColumnType<Date, Date | string | undefined, Date | string>;
 
-	/** Database type: pg_catalog.int4 */
 	gridRowId: ColumnType<GridRowId, GridRowId, GridRowId>;
 }

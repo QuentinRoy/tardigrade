@@ -9,24 +9,17 @@ export type StudentRowId = number;
 
 /** Represents the table public.student */
 export interface StudentTable {
-	/** Database type: pg_catalog.int4 */
 	rowId: ColumnType<StudentRowId, never, never>;
 
-	/** Database type: pg_catalog.text */
 	id: ColumnType<string, string, string>;
 
-	/** Database type: pg_catalog.text */
 	lastName: ColumnType<string, string, string>;
 
-	/** Database type: pg_catalog.text */
 	firstName: ColumnType<string, string, string>;
 
-	/** Database type: pg_catalog.timestamp */
 	createdAt: ColumnType<Date, Date | string | undefined, Date | string>;
 
-	/** Database type: pg_catalog.timestamp */
 	updatedAt: ColumnType<Date, Date | string | undefined, Date | string>;
 
-	/** Database type: pg_catalog.int4 */
 	gridRowId: ColumnType<GridRowId, GridRowId, GridRowId>;
 }

@@ -9,21 +9,15 @@ export type GradeTargetRowId = number;
 
 /** Represents the table public.grade_target */
 export interface GradeTargetTable {
-	/** Database type: pg_catalog.int4 */
 	rowId: ColumnType<GradeTargetRowId, never, never>;
 
-	/** Database type: pg_catalog.timestamp */
 	createdAt: ColumnType<Date, Date | string | undefined, Date | string>;
 
-	/** Database type: pg_catalog.timestamp */
 	updatedAt: ColumnType<Date, Date | string | undefined, Date | string>;
 
-	/** Database type: pg_catalog.int4 */
 	gridRowId: ColumnType<GridRowId, GridRowId, GridRowId>;
 
-	/** Database type: pg_catalog.text */
 	id: ColumnType<string, string, string>;
 
-	/** Database type: pg_catalog.text */
 	name: ColumnType<string | null, string | null, string | null>;
 }

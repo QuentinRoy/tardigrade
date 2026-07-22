@@ -8,18 +8,13 @@ export type GridRowId = number;
 
 /** Represents the table public.grid */
 export interface GridTable {
-	/** Database type: pg_catalog.int4 */
 	rowId: ColumnType<GridRowId, never, never>;
 
-	/** Database type: pg_catalog.text */
 	id: ColumnType<string, string, string>;
 
-	/** Database type: pg_catalog.text */
 	name: ColumnType<string, string, string>;
 
-	/** Database type: pg_catalog.timestamp */
 	createdAt: ColumnType<Date, Date | string | undefined, Date | string>;
 
-	/** Database type: pg_catalog.timestamp */
 	updatedAt: ColumnType<Date, Date | string | undefined, Date | string>;
 }
