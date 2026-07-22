@@ -157,7 +157,9 @@ export async function up(db: Kysely<MigrationDB>): Promise<void> {
       RETURN NEW;
     END;
     $$;
+  `.execute(db);
 
+	await sql`
     CREATE OR REPLACE FUNCTION enforce_options_criterion_kind_match()
     RETURNS trigger
     LANGUAGE plpgsql
@@ -180,7 +182,9 @@ export async function up(db: Kysely<MigrationDB>): Promise<void> {
       RETURN NEW;
     END;
     $$;
+  `.execute(db);
 
+	await sql`
     CREATE OR REPLACE FUNCTION enforce_number_criterion_kind_match()
     RETURNS trigger
     LANGUAGE plpgsql
@@ -273,12 +277,16 @@ export async function up(db: Kysely<MigrationDB>): Promise<void> {
       RETURN NEW;
     END;
     $$;
+  `.execute(db);
 
+	await sql`
     CREATE OR REPLACE TRIGGER trg_number_criterion_value_bounds
     BEFORE INSERT OR UPDATE OF value, criterion_row_id ON "number_criterion_grade"
     FOR EACH ROW
     EXECUTE FUNCTION enforce_number_criterion_value_bounds();
+  `.execute(db);
 
+	await sql`
     CREATE OR REPLACE FUNCTION enforce_options_criterion_label_valid()
     RETURNS trigger
     LANGUAGE plpgsql
@@ -300,7 +308,9 @@ export async function up(db: Kysely<MigrationDB>): Promise<void> {
       RETURN NEW;
     END;
     $$;
+  `.execute(db);
 
+	await sql`
     CREATE OR REPLACE TRIGGER trg_options_criterion_label_valid
     BEFORE INSERT OR UPDATE OF selected_label, criterion_row_id ON "options_criterion_grade"
     FOR EACH ROW
@@ -680,12 +690,16 @@ export async function down(db: Kysely<MigrationDB>): Promise<void> {
       RETURN NEW;
     END;
     $$;
+  `.execute(db);
 
+	await sql`
     CREATE OR REPLACE TRIGGER trg_number_criterion_value_bounds
     BEFORE INSERT OR UPDATE OF value, criterion_grade_id ON "number_criterion_grade"
     FOR EACH ROW
     EXECUTE FUNCTION enforce_number_criterion_value_bounds();
+  `.execute(db);
 
+	await sql`
     CREATE OR REPLACE FUNCTION enforce_options_criterion_label_valid()
     RETURNS trigger
     LANGUAGE plpgsql
@@ -709,7 +723,9 @@ export async function down(db: Kysely<MigrationDB>): Promise<void> {
       RETURN NEW;
     END;
     $$;
+  `.execute(db);
 
+	await sql`
     CREATE OR REPLACE TRIGGER trg_options_criterion_label_valid
     BEFORE INSERT OR UPDATE OF selected_label, criterion_grade_id ON "options_criterion_grade"
     FOR EACH ROW
@@ -746,7 +762,9 @@ export async function down(db: Kysely<MigrationDB>): Promise<void> {
       RETURN NEW;
     END;
     $$;
+  `.execute(db);
 
+	await sql`
     CREATE OR REPLACE FUNCTION enforce_options_criterion_kind_match()
     RETURNS trigger
     LANGUAGE plpgsql
@@ -769,7 +787,9 @@ export async function down(db: Kysely<MigrationDB>): Promise<void> {
       RETURN NEW;
     END;
     $$;
+  `.execute(db);
 
+	await sql`
     CREATE OR REPLACE FUNCTION enforce_number_criterion_kind_match()
     RETURNS trigger
     LANGUAGE plpgsql
