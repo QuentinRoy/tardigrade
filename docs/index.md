@@ -38,6 +38,7 @@ Open-ended audits and option analysis. Investigations may contain hypotheses and
 ### Technical architecture investigations
 
 - [Offline support and local assessment storage](investigations/2026-05-19-offline-support.md)
+- [Enforcing cross-grid integrity on `criterion_grade`](investigations/2026-07-22-cross-grid-integrity-enforcement.md) — #144; recommends a replicated `grid_row_id` + composite FKs on the grade cell (Option A).
 
 ### Completed investigations
 
