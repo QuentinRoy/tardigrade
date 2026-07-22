@@ -11,7 +11,10 @@ import {
 	createMixedCriterionRubricFixtureGrid,
 	createStudentFixtures,
 } from "#test/mixedCriterionGradeFixture.ts";
-import { createCsvGradeTargetExport } from "./gradeTargetExport.ts";
+import {
+	createCsvGradeTargetExport,
+	createGradeTargetExport,
+} from "./gradeTargetExport.ts";
 
 async function readStream(stream: ReadableStream<Uint8Array>): Promise<string> {
 	const reader = stream.getReader();
@@ -114,4 +117,54 @@ test("createCsvGradeTargetExport snapshots CSV for mixed criterion kinds and gra
 	const csv = await readStream(stream);
 
 	expect(csv).toMatchSnapshot();
+});
+
+// The export snapshots identities eagerly but runs the grade stream lazily,
+// when `rows` is consumed. A concurrent import can commit a new grade target
+// between the two reads — the stream then yields a target the identity
+// snapshot never saw. This reproduces that interleaving deterministically:
+// snapshot first (empty), commit a graded target, then consume the stream.
+test("createGradeTargetExport resolves identities for targets committed after the export snapshot", async () => {
+	const { grid, rubric } = await createMixedCriterionRubricFixtureGrid(db, {
+		gridName: "Export Late Target Grid",
+		rubricId: "q-export-late-target",
+		checkCriterionId: "r-bool-export-late-target",
+		optionsCriterionId: "r-ord-export-late-target",
+		numberCriterionId: "r-num-export-late-target",
+	});
+
+	const exportData = await createGradeTargetExport(grid.id, { db });
+
+	const [student] = await createStudentFixtures(db, [
+		{ gridRowId: grid.rowId, id: "student-export-late" },
+	]);
+	const [target] = await createIndividualGradeTargetFixtures(db, [
+		{ gridRowId: grid.rowId, studentRowId: student.rowId },
+	]);
+
+	const criterionRowIds = await db
+		.selectFrom("criterion")
+		.where("gridRowId", "=", grid.rowId)
+		.select(["id", "rowId"])
+		.execute();
+	const criterionRowId = new Map(criterionRowIds.map((r) => [r.id, r.rowId]));
+
+	await addFullGradeFixture(db, {
+		gridRowId: grid.rowId,
+		gradeTargetRowId: target.rowId,
+		checkCriterionRowId: criterionRowId.get(rubric.criteria.checkId)!,
+		optionsCriterionRowId: criterionRowId.get(rubric.criteria.optionsId)!,
+		numberCriterionRowId: criterionRowId.get(rubric.criteria.numberId)!,
+	});
+
+	const rows = [];
+	for await (const row of exportData.rows) {
+		rows.push(row);
+	}
+
+	expect(rows).toHaveLength(1);
+	expect(rows[0]?.target).toMatchObject({
+		kind: "individual",
+		studentId: "student-export-late",
+	});
 });

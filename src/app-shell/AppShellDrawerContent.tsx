@@ -210,6 +210,9 @@ export default function AppShellDrawerContent({
 				<Button
 					component={NextLink}
 					href={exportHref}
+					// Download link to a route handler: prefetching would run a
+					// full CSV export on every page navigation.
+					prefetch={false}
 					fullWidth
 					{...(onDismiss && { onClick: onDismiss })}
 				>
@@ -225,6 +228,9 @@ export default function AppShellDrawerContent({
 				<Button
 					component={NextLink}
 					href={gridExportRubricsPath(gridRouteContext)}
+					// Download link to a route handler: prefetching would run a
+					// full export on every page navigation.
+					prefetch={false}
 					variant="outline"
 					fullWidth
 					{...(onDismiss && { onClick: onDismiss })}

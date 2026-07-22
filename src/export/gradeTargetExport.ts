@@ -210,22 +210,48 @@ export async function createGradeTargetExport(
 		}));
 	}
 
-	function buildGroupExportRow(
-		group: GroupedGradeTargetRow,
-	): GradeTargetExportDataRow {
-		const target = identitiesByTargetId.get(group.gradeTargetId);
+	// The identity snapshot above is eager, but the grade stream below only
+	// runs when `rows` is consumed: a grade target committed between the two
+	// reads (a concurrent import) is missing from the snapshot. Targets are
+	// append-only — no deletion path exists, see `nextGradeTargetIds` — so a
+	// reload always resolves such a late target. A still-missing id after the
+	// reload is genuinely corrupted data and fails loudly.
+	async function resolveIdentity(
+		gradeTargetId: string,
+	): Promise<GradeTargetIdentity> {
+		const snapshot = identitiesByTargetId.get(gradeTargetId);
+		if (snapshot != null) {
+			return snapshot;
+		}
+
+		const reloaded = await loadGradeTargetIdentitiesFromDb(db, { gridId });
+		for (const [id, identity] of reloaded) {
+			identitiesByTargetId.set(id, identity);
+		}
+
+		const target = identitiesByTargetId.get(gradeTargetId);
 		if (target == null) {
 			throw new Error(
-				`Grade target ${group.gradeTargetId} has grades but no resolved identity.`,
+				`Grade target ${gradeTargetId} has grades but no resolved identity.`,
 			);
 		}
+		return target;
+	}
+
+	function buildGroupExportRow(
+		target: GradeTargetIdentity,
+		group: GroupedGradeTargetRow,
+	): GradeTargetExportDataRow {
 		return { target, rubrics: buildRubricData(group.valuesByKey) };
 	}
 
 	async function* rows(): AsyncGenerator<GradeTargetExportDataRow> {
 		const stream = streamGradeTargetExportRowsFromDb(db, { gridId });
 		for await (const group of groupGradeTargetRows(stream)) {
-			yield buildGroupExportRow(group);
+			yield buildGroupExportRow(
+				await resolveIdentity(group.gradeTargetId),
+				group,
+			);
 		}
 	}
 
