@@ -42,21 +42,24 @@ export type SaveCriterionGradeResult =
 	| { success: true }
 	| { success: false; error: string };
 
-// One item of a Grid-scoped batch write: the grade plus the target/rubric
+// One item of a Grid-scoped batch write: the grade plus the Grade Target/Rubric
 // context needed to resolve it (CONTEXT Grid Resolution Strategy — the grid
 // itself is supplied once for the whole batch, not repeated per item).
 export type CriterionGradeWrite = {
-	targetId: string;
+	gradeTargetId: string;
 	rubricId: string;
 	grade: CriterionGrade;
 };
 
-export type SaveCriterionGradeParams = CriterionGradeWrite & {
+export type SaveCriterionGradeParams = {
 	// The grade target's public id is only unique within its grid (unlike
 	// the old globally-unique numeric submission id), so the grid must be
-	// supplied explicitly rather than resolved from the target id alone
+	// supplied explicitly rather than resolved from the Grade Target ID alone
 	// (CONTEXT Grid Resolution Strategy).
 	gridId: string;
+	targetId: string;
+	rubricId: string;
+	grade: CriterionGrade;
 };
 
 export type SaveCriterionGradesParams = {
@@ -76,7 +79,7 @@ export const saveCriterionGradeErrors = {
 };
 
 // One resolved batch entry: the grade plus its internal row ids, once the
-// public (target, rubric, criterion) ids have been matched against the grid.
+// public (Grade Target, Rubric, Criterion) IDs have been matched against the Grid.
 type ResolvedGradeWrite = {
 	gradeTargetRowId: number;
 	criterionRowId: number;
@@ -98,8 +101,8 @@ type NumberGradeWriteRow = {
 	grade: NumberCriterionGradeContent;
 };
 
-// Resolves every write's (grade target, rubric, criterion) context against the
-// grid in one set-based query per entity, instead of repeating the lookup
+// Resolves every write's (Grade Target, Rubric, Criterion) context against the
+// Grid in one set-based query per entity, instead of repeating the lookup
 // sequence per grade. Returns the first defensive domain failure found in write
 // order. A repeated Grade Target + Criterion pair is a caller invariant breach,
 // so it throws with internal identifiers rather than returning user-facing copy.
@@ -110,11 +113,13 @@ async function resolveGradeWrites(
 	| { success: true; resolved: ResolvedGradeWrite[] }
 	| { success: false; error: string }
 > {
-	const [targetRows, rubricRows, criterionRows] = await Promise.all([
+	const [gradeTargetRows, rubricRows, criterionRows] = await Promise.all([
 		db
 			.selectFrom("gradeTarget")
 			.where("gridRowId", "=", gridRowId)
-			.where("id", "in", [...new Set(grades.map((write) => write.targetId))])
+			.where("id", "in", [
+				...new Set(grades.map((write) => write.gradeTargetId)),
+			])
 			.select(["id", "rowId"])
 			.execute(),
 		db
@@ -133,7 +138,9 @@ async function resolveGradeWrites(
 			.execute(),
 	]);
 
-	const targetRowIdById = new Map(targetRows.map((row) => [row.id, row.rowId]));
+	const gradeTargetRowIdById = new Map(
+		gradeTargetRows.map((row) => [row.id, row.rowId]),
+	);
 	const rubricRowIdById = new Map(rubricRows.map((row) => [row.id, row.rowId]));
 	const criterionById = new Map(criterionRows.map((row) => [row.id, row]));
 
@@ -141,7 +148,7 @@ async function resolveGradeWrites(
 	const firstWriteIndexByTargetCriterionPair = new Map<string, number>();
 
 	for (const [writeIndex, write] of grades.entries()) {
-		const gradeTargetRowId = targetRowIdById.get(write.targetId);
+		const gradeTargetRowId = gradeTargetRowIdById.get(write.gradeTargetId);
 		const rubricRowId = rubricRowIdById.get(write.rubricId);
 		if (gradeTargetRowId == null || rubricRowId == null) {
 			return { success: false, error: saveCriterionGradeErrors.contextMissing };
@@ -418,6 +425,6 @@ export async function saveCriterionGradeInDb(
 ): Promise<SaveCriterionGradeResult> {
 	return saveCriterionGradesInDb(db, {
 		gridId,
-		grades: [{ targetId, rubricId, grade }],
+		grades: [{ gradeTargetId: targetId, rubricId, grade }],
 	});
 }

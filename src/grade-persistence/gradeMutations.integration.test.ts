@@ -12,12 +12,12 @@ import {
 	saveCriterionGradesInDb,
 } from "./gradeMutations.ts";
 
-// Bare insert of one individual grade target (a student plus its sole-member
-// target), returning the target's public id. `createMixedCriterionGradeFixture`'s
-// own target helper only returns row ids (it was built for direct-SQL grade
-// fixtures); the batch primitive under test is called through its public API,
-// so the public target id is what these tests need.
-async function addIndividualTarget(
+// Bare insert of one individual Grade Target (a Student plus its sole-member
+// Grade Target), returning the Grade Target ID. The mixed-kind fixture's helper
+// only returns row IDs because it was built for direct-SQL Grade fixtures; the
+// batch primitive under test is called through its public API, so these tests
+// need the public ID.
+async function addIndividualGradeTarget(
 	db: Kysely<Database>,
 	gridRowId: number,
 ): Promise<string> {
@@ -32,18 +32,21 @@ async function addIndividualTarget(
 		.returning("rowId")
 		.executeTakeFirstOrThrow();
 
-	const target = await db
+	const gradeTarget = await db
 		.insertInto("gradeTarget")
-		.values({ gridRowId, id: buildTestId("target") })
+		.values({ gridRowId, id: buildTestId("grade-target") })
 		.returning(["id", "rowId"])
 		.executeTakeFirstOrThrow();
 
 	await db
 		.insertInto("gradeTargetStudent")
-		.values({ gradeTargetRowId: target.rowId, studentRowId: student.rowId })
+		.values({
+			gradeTargetRowId: gradeTarget.rowId,
+			studentRowId: student.rowId,
+		})
 		.execute();
 
-	return target.id;
+	return gradeTarget.id;
 }
 
 async function countCriterionGrades(
@@ -67,15 +70,21 @@ test("saveCriterionGradesInDb persists a mixed-kind batch across multiple target
 		optionsCriterionId: buildTestId("criterion-options"),
 		numberCriterionId: buildTestId("criterion-number"),
 	});
-	const firstTargetId = await addIndividualTarget(db, fixture.grid.rowId);
-	const secondTargetId = await addIndividualTarget(db, fixture.grid.rowId);
+	const firstGradeTargetId = await addIndividualGradeTarget(
+		db,
+		fixture.grid.rowId,
+	);
+	const secondGradeTargetId = await addIndividualGradeTarget(
+		db,
+		fixture.grid.rowId,
+	);
 
 	const result = await db.transaction().execute((tx) =>
 		saveCriterionGradesInDb(tx, {
 			gridId: fixture.grid.id,
 			grades: [
 				{
-					targetId: firstTargetId,
+					gradeTargetId: firstGradeTargetId,
 					rubricId: fixture.rubric.id,
 					grade: {
 						criterionId: fixture.rubric.criteria.checkId,
@@ -84,7 +93,7 @@ test("saveCriterionGradesInDb persists a mixed-kind batch across multiple target
 					},
 				},
 				{
-					targetId: firstTargetId,
+					gradeTargetId: firstGradeTargetId,
 					rubricId: fixture.rubric.id,
 					grade: {
 						criterionId: fixture.rubric.criteria.optionsId,
@@ -93,7 +102,7 @@ test("saveCriterionGradesInDb persists a mixed-kind batch across multiple target
 					},
 				},
 				{
-					targetId: secondTargetId,
+					gradeTargetId: secondGradeTargetId,
 					rubricId: fixture.rubric.id,
 					grade: {
 						criterionId: fixture.rubric.criteria.numberId,
@@ -109,11 +118,11 @@ test("saveCriterionGradesInDb persists a mixed-kind batch across multiple target
 
 	const [firstGrades, secondGrades] = await Promise.all([
 		loadGradeTargetGradesFromDb(db, {
-			targetId: firstTargetId,
+			targetId: firstGradeTargetId,
 			gridId: fixture.grid.id,
 		}),
 		loadGradeTargetGradesFromDb(db, {
-			targetId: secondTargetId,
+			targetId: secondGradeTargetId,
 			gridId: fixture.grid.id,
 		}),
 	]);
@@ -157,15 +166,21 @@ test("saveCriterionGradesInDb writes nothing when one grade in the batch fails v
 		optionsCriterionId: buildTestId("criterion-options"),
 		numberCriterionId: buildTestId("criterion-number"),
 	});
-	const firstTargetId = await addIndividualTarget(db, fixture.grid.rowId);
-	const secondTargetId = await addIndividualTarget(db, fixture.grid.rowId);
+	const firstGradeTargetId = await addIndividualGradeTarget(
+		db,
+		fixture.grid.rowId,
+	);
+	const secondGradeTargetId = await addIndividualGradeTarget(
+		db,
+		fixture.grid.rowId,
+	);
 
 	const result = await db.transaction().execute((tx) =>
 		saveCriterionGradesInDb(tx, {
 			gridId: fixture.grid.id,
 			grades: [
 				{
-					targetId: firstTargetId,
+					gradeTargetId: firstGradeTargetId,
 					rubricId: fixture.rubric.id,
 					grade: {
 						criterionId: fixture.rubric.criteria.checkId,
@@ -174,7 +189,7 @@ test("saveCriterionGradesInDb writes nothing when one grade in the batch fails v
 					},
 				},
 				{
-					targetId: secondTargetId,
+					gradeTargetId: secondGradeTargetId,
 					rubricId: fixture.rubric.id,
 					grade: {
 						criterionId: fixture.rubric.criteria.optionsId,
@@ -207,14 +222,14 @@ test("saveCriterionGradesInDb rejects a batch referencing another grid's rubric 
 		optionsCriterionId: buildTestId("criterion-options"),
 		numberCriterionId: buildTestId("criterion-number"),
 	});
-	const targetInA = await addIndividualTarget(db, gridA.grid.rowId);
+	const gradeTargetInAId = await addIndividualGradeTarget(db, gridA.grid.rowId);
 
 	const result = await db.transaction().execute((tx) =>
 		saveCriterionGradesInDb(tx, {
 			gridId: gridA.grid.id,
 			grades: [
 				{
-					targetId: targetInA,
+					gradeTargetId: gradeTargetInAId,
 					rubricId: gridA.rubric.id,
 					grade: {
 						criterionId: gridA.rubric.criteria.checkId,
@@ -224,7 +239,7 @@ test("saveCriterionGradesInDb rejects a batch referencing another grid's rubric 
 				},
 				{
 					// Grid B's own rubric, addressed while scoped to grid A.
-					targetId: targetInA,
+					gradeTargetId: gradeTargetInAId,
 					rubricId: gridB.rubric.id,
 					grade: {
 						criterionId: gridB.rubric.criteria.checkId,
@@ -252,7 +267,7 @@ test("saveCriterionGradesInDb throws without writing when a batch repeats a Grad
 		optionsCriterionId: buildTestId("criterion-options"),
 		numberCriterionId: buildTestId("criterion-number"),
 	});
-	const targetId = await addIndividualTarget(db, fixture.grid.rowId);
+	const gradeTargetId = await addIndividualGradeTarget(db, fixture.grid.rowId);
 
 	await expect(
 		db.transaction().execute((tx) =>
@@ -260,7 +275,7 @@ test("saveCriterionGradesInDb throws without writing when a batch repeats a Grad
 				gridId: fixture.grid.id,
 				grades: [
 					{
-						targetId,
+						gradeTargetId,
 						rubricId: fixture.rubric.id,
 						grade: {
 							criterionId: fixture.rubric.criteria.checkId,
@@ -269,7 +284,7 @@ test("saveCriterionGradesInDb throws without writing when a batch repeats a Grad
 						},
 					},
 					{
-						targetId,
+						gradeTargetId,
 						rubricId: fixture.rubric.id,
 						grade: {
 							criterionId: fixture.rubric.criteria.checkId,
@@ -293,9 +308,9 @@ test("saveCriterionGradesInDb throws without writing when a batch repeats a Grad
 async function seedStaleCheckGrade(
 	db: Kysely<Database>,
 	fixture: MixedCriterionRubricFixture,
-	targetId: string,
+	gradeTargetId: string,
 ): Promise<number> {
-	const [criterion, target] = await Promise.all([
+	const [criterion, gradeTarget] = await Promise.all([
 		db
 			.selectFrom("criterion")
 			.where("id", "=", fixture.rubric.criteria.optionsId)
@@ -303,7 +318,7 @@ async function seedStaleCheckGrade(
 			.executeTakeFirstOrThrow(),
 		db
 			.selectFrom("gradeTarget")
-			.where("id", "=", targetId)
+			.where("id", "=", gradeTargetId)
 			.select("rowId")
 			.executeTakeFirstOrThrow(),
 	]);
@@ -312,7 +327,7 @@ async function seedStaleCheckGrade(
 		.insertInto("criterionGrade")
 		.values({
 			gridRowId: fixture.grid.rowId,
-			gradeTargetRowId: target.rowId,
+			gradeTargetRowId: gradeTarget.rowId,
 			criterionId: criterion.rowId,
 		})
 		.returning("id")
@@ -335,8 +350,8 @@ test("saveCriterionGradesInDb clears a stale cross-kind subtype value on the nex
 		optionsCriterionId: buildTestId("criterion-options"),
 		numberCriterionId: buildTestId("criterion-number"),
 	});
-	const targetId = await addIndividualTarget(db, fixture.grid.rowId);
-	const criterionRowId = await seedStaleCheckGrade(db, fixture, targetId);
+	const gradeTargetId = await addIndividualGradeTarget(db, fixture.grid.rowId);
+	const criterionRowId = await seedStaleCheckGrade(db, fixture, gradeTargetId);
 
 	const result = await db
 		.transaction()
@@ -345,7 +360,7 @@ test("saveCriterionGradesInDb clears a stale cross-kind subtype value on the nex
 				gridId: fixture.grid.id,
 				grades: [
 					{
-						targetId,
+						gradeTargetId,
 						rubricId: fixture.rubric.id,
 						grade: {
 							criterionId: fixture.rubric.criteria.optionsId,
