@@ -48,21 +48,18 @@ const gradeCasesByKind: Array<{
 	},
 ];
 
-describe.each(
-	gradeCasesByKind,
-)("hasSameGrade for a $criterion.kind criterion", ({
-	criterion,
-	sameGrade,
-	otherGrade,
-}) => {
-	it("matches a grade holding the same content", () => {
-		expect(hasSameGrade(criterion, sameGrade)).toBe(true);
-	});
+describe.each(gradeCasesByKind)(
+	"hasSameGrade for a $criterion.kind criterion",
+	({ criterion, sameGrade, otherGrade }) => {
+		it("matches a grade holding the same content", () => {
+			expect(hasSameGrade(criterion, sameGrade)).toBe(true);
+		});
 
-	it("does not match a grade holding different content", () => {
-		expect(hasSameGrade(criterion, otherGrade)).toBe(false);
-	});
-});
+		it("does not match a grade holding different content", () => {
+			expect(hasSameGrade(criterion, otherGrade)).toBe(false);
+		});
+	},
+);
 
 describe("attachGrade", () => {
 	const criterion: Criterion = {

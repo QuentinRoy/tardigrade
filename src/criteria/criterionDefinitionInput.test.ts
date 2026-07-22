@@ -72,12 +72,10 @@ const criterionCasesByKind: Array<{
 ];
 
 describe("toCriterionDefinitionInput", () => {
-	it.each(
-		criterionCasesByKind,
-	)("projects a $criterion.kind criterion to its authored definition", ({
-		criterion,
-		expected,
-	}) => {
-		expect(toCriterionDefinitionInput(criterion)).toEqual(expected);
-	});
+	it.each(criterionCasesByKind)(
+		"projects a $criterion.kind criterion to its authored definition",
+		({ criterion, expected }) => {
+			expect(toCriterionDefinitionInput(criterion)).toEqual(expected);
+		},
+	);
 });
