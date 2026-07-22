@@ -122,6 +122,10 @@ _Avoid_: import result, prepared import, preview (when meaning the data rather t
 An **Import Plan** diagnostic that prevents the write stage from executing. An import whose plan contains any blocking diagnostic writes nothing, consistent with the all-or-nothing import policy.
 _Avoid_: warning (when the import must not proceed), silent skip
 
+**Duplicate Grade Cell**:
+Two non-empty imported cells that resolve to the same Grade Target and Criterion within one import. A Duplicate Grade Cell is a **Blocking Diagnostic** even when both values match; the write stage never chooses between them.
+_Avoid_: last-write-wins within one import, silently deduplicating identical cells
+
 **Ignored Column**:
 A recognized import column that is intentionally not imported because it is derived export output (for example marks columns). Reported in the **Import Plan**; never a **Blocking Diagnostic**. Unknown columns are not Ignored Columns — they block.
 _Avoid_: unknown column, unrecognized column (those block)
