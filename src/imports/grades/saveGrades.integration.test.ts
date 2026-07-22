@@ -3,10 +3,13 @@ import { revalidateTag } from "next/cache";
 import { beforeEach, expect, test, vi } from "vitest";
 import type { Database } from "#db/generated/database.ts";
 import { nextGradeTargetIds } from "#grade-targets/gradeTargets.ts";
+import { loadGradeTargetGradesFromDb } from "#grading/grades.ts";
 import type { ImportedGradeRow } from "#imports/types.ts";
 import { buildTestId, createTestDb } from "#test/dbIntegration.ts";
 import { createGrid } from "#test/grids.ts";
-import { saveGrades } from "./saveGrades.ts";
+import { createMixedCriterionRubricFixtureGrid } from "#test/mixedCriterionGradeFixture.ts";
+import { withQueryCounter } from "#test/queryCounting.ts";
+import { GRADE_IMPORT_WRITE_CHUNK_SIZE, saveGrades } from "./saveGrades.ts";
 
 vi.mock("next/cache", () => ({ revalidateTag: vi.fn() }));
 
@@ -499,4 +502,289 @@ test("saveGrades does not invalidate when the import fails", async () => {
 	);
 
 	expect(revalidateTag).not.toHaveBeenCalled();
+});
+
+// A single Check criterion, so every scenario below writes exactly one kind:
+// the regression check isolates chunk-count growth from kind-count growth.
+async function createCheckCriterionFixture(
+	db: Kysely<Database>,
+	gridRowId: number,
+): Promise<{ rubricId: string; criterionId: string }> {
+	const rubricId = buildTestId("rubric");
+	const criterionId = buildTestId("criterion");
+
+	const rubric = await db
+		.insertInto("rubric")
+		.values({ gridRowId, id: rubricId, label: "Chunking rubric", position: 0 })
+		.returning("rowId")
+		.executeTakeFirstOrThrow();
+
+	const criterion = await db
+		.insertInto("criterion")
+		.values({
+			id: criterionId,
+			gridRowId,
+			rubricId: rubric.rowId,
+			kind: "check",
+			position: 0,
+			label: "Correctness",
+		})
+		.returning("rowId")
+		.executeTakeFirstOrThrow();
+
+	await db
+		.insertInto("checkCriterion")
+		.values({ criterionId: criterion.rowId, marks: 1, falseMarks: 0 })
+		.execute();
+
+	return { rubricId, criterionId };
+}
+
+// Bulk-creates `count` fresh students, each its own individual grade target,
+// in a bounded number of statements regardless of `count`.
+async function createIndividualTargets(
+	db: Kysely<Database>,
+	{ gridRowId, count }: { gridRowId: number; count: number },
+): Promise<{ studentId: string; targetId: string }[]> {
+	const studentIds = Array.from({ length: count }, () =>
+		buildTestId("student"),
+	);
+
+	await db
+		.insertInto("student")
+		.values(
+			studentIds.map((id) => ({
+				gridRowId,
+				id,
+				firstName: "Test",
+				lastName: "Student",
+			})),
+		)
+		.execute();
+
+	const studentRows = await db
+		.selectFrom("student")
+		.select(["rowId", "id"])
+		.where("gridRowId", "=", gridRowId)
+		.where("id", "in", studentIds)
+		.execute();
+
+	const targetIds = await nextGradeTargetIds(db, {
+		gridRowId,
+		count: studentRows.length,
+	});
+
+	const targetsToInsert = studentRows.map((row, index) => {
+		const targetId = targetIds[index];
+		if (targetId == null) {
+			throw new Error("Expected a reserved grade target id.");
+		}
+		return { studentId: row.id, targetId, studentRowId: row.rowId };
+	});
+
+	const targetRows = await db
+		.insertInto("gradeTarget")
+		.values(
+			targetsToInsert.map(({ targetId }) => ({ gridRowId, id: targetId })),
+		)
+		.returning(["rowId", "id"])
+		.execute();
+
+	const targetRowIdByPublicId = new Map(
+		targetRows.map((row) => [row.id, row.rowId]),
+	);
+
+	await db
+		.insertInto("gradeTargetStudent")
+		.values(
+			targetsToInsert.map((target) => {
+				const gradeTargetRowId = targetRowIdByPublicId.get(target.targetId);
+				if (gradeTargetRowId == null) {
+					throw new Error("Expected an inserted grade target row.");
+				}
+				return { gradeTargetRowId, studentRowId: target.studentRowId };
+			}),
+		)
+		.execute();
+
+	return targetsToInsert.map(({ studentId, targetId }) => ({
+		studentId,
+		targetId,
+	}));
+}
+
+test("saveGrades keeps database statement growth bounded to write chunks, not to Grade count", async () => {
+	await using db = await createTestDb();
+	await using grid = await createGrid(db, "Chunked Import Grid");
+	const { rubricId, criterionId } = await createCheckCriterionFixture(
+		db,
+		grid.rowId,
+	);
+	const column = `${rubricId}:${criterionId}`;
+
+	// Each call targets its own fresh students/targets, so scenarios never
+	// contend over the same Grade Target + Criterion pair.
+	async function countQueriesForImport(params: {
+		rowCount: number;
+		blank: boolean;
+	}): Promise<number> {
+		const targets = await createIndividualTargets(db, {
+			gridRowId: grid.rowId,
+			count: params.rowCount,
+		});
+		const rows: ImportedGradeRow[] = targets.map(({ studentId }) => ({
+			kind: "individual",
+			name: studentId,
+			[column]: params.blank ? "" : "true",
+		}));
+		const { db: countingDb, counter } = withQueryCounter(db);
+
+		await saveGrades({ rows, gridId: grid.id }, { db: countingDb });
+
+		return counter.count;
+	}
+
+	// A blank cell writes nothing, isolating the fixed context-loading query
+	// count from any write-chunk query.
+	const zeroWriteCount = await countQueriesForImport({
+		rowCount: 1,
+		blank: true,
+	});
+	const smallChunkCount = await countQueriesForImport({
+		rowCount: 3,
+		blank: false,
+	});
+	const fullChunkCount = await countQueriesForImport({
+		rowCount: GRADE_IMPORT_WRITE_CHUNK_SIZE,
+		blank: false,
+	});
+	const overChunkCount = await countQueriesForImport({
+		rowCount: GRADE_IMPORT_WRITE_CHUNK_SIZE + 1,
+		blank: false,
+	});
+
+	// Growing the Grade count within one chunk (3 up to a full chunk) issues
+	// the exact same number of statements: the executor resolves and writes
+	// each chunk with set-based queries, not one resolution/write sequence per
+	// Grade.
+	expect(smallChunkCount).toBe(fullChunkCount);
+
+	// Crossing a chunk boundary adds exactly one more chunk's worth of
+	// statements — the same fixed amount every additional chunk costs — proving
+	// growth tracks chunk count, not Grade count.
+	expect(overChunkCount - fullChunkCount).toBe(fullChunkCount - zeroWriteCount);
+});
+
+test("saveGrades persists a mixed Check, Options, and Number import, overwriting an existing grade and skipping a blank cell", async () => {
+	await using db = await createTestDb();
+	const fixture = await createMixedCriterionRubricFixtureGrid(db, {
+		gridName: "Mixed Kind Import Grid",
+		rubricId: buildTestId("rubric"),
+		checkCriterionId: buildTestId("criterion-check"),
+		optionsCriterionId: buildTestId("criterion-options"),
+		numberCriterionId: buildTestId("criterion-number"),
+	});
+	const [firstTarget, secondTarget] = await createIndividualTargets(db, {
+		gridRowId: fixture.grid.rowId,
+		count: 2,
+	});
+	if (firstTarget == null || secondTarget == null) {
+		throw new Error("Expected two created grade targets.");
+	}
+
+	const checkColumn = `${fixture.rubric.id}:${fixture.rubric.criteria.checkId}`;
+	const optionsColumn = `${fixture.rubric.id}:${fixture.rubric.criteria.optionsId}`;
+	const numberColumn = `${fixture.rubric.id}:${fixture.rubric.criteria.numberId}`;
+
+	// Seed an existing Check grade for the first target, so the mixed import
+	// below overwrites it.
+	await saveGrades(
+		{
+			rows: [
+				{
+					kind: "individual",
+					name: firstTarget.studentId,
+					[checkColumn]: "false",
+				},
+			],
+			gridId: fixture.grid.id,
+		},
+		{ db },
+	);
+
+	const rows: ImportedGradeRow[] = [
+		{
+			kind: "individual",
+			name: firstTarget.studentId,
+			[checkColumn]: "true",
+			[optionsColumn]: "A",
+			[numberColumn]: "7",
+		},
+		{
+			// A blank Number cell alongside filled Check/Options cells: the blank
+			// cell is skipped, the others are still written.
+			kind: "individual",
+			name: secondTarget.studentId,
+			[checkColumn]: "true",
+			[optionsColumn]: "B",
+			[numberColumn]: "",
+		},
+	];
+
+	await expect(
+		saveGrades({ rows, gridId: fixture.grid.id }, { db }),
+	).resolves.toEqual({ gradeCount: 5, overwriteCount: 1 });
+
+	const [firstGrades, secondGrades] = await Promise.all([
+		loadGradeTargetGradesFromDb(db, {
+			targetId: firstTarget.targetId,
+			gridId: fixture.grid.id,
+		}),
+		loadGradeTargetGradesFromDb(db, {
+			targetId: secondTarget.targetId,
+			gridId: fixture.grid.id,
+		}),
+	]);
+
+	const firstByCriterionId = new Map(
+		(firstGrades[fixture.rubric.id] ?? []).map((grade) => [
+			grade.criterionId,
+			grade,
+		]),
+	);
+	expect(firstByCriterionId.get(fixture.rubric.criteria.checkId)).toEqual({
+		criterionId: fixture.rubric.criteria.checkId,
+		kind: "check",
+		passed: true,
+	});
+	expect(firstByCriterionId.get(fixture.rubric.criteria.optionsId)).toEqual({
+		criterionId: fixture.rubric.criteria.optionsId,
+		kind: "options",
+		selectedLabel: "A",
+	});
+	expect(firstByCriterionId.get(fixture.rubric.criteria.numberId)).toEqual({
+		criterionId: fixture.rubric.criteria.numberId,
+		kind: "number",
+		value: 7,
+	});
+
+	const secondByCriterionId = new Map(
+		(secondGrades[fixture.rubric.id] ?? []).map((grade) => [
+			grade.criterionId,
+			grade,
+		]),
+	);
+	expect(secondByCriterionId.get(fixture.rubric.criteria.checkId)).toEqual({
+		criterionId: fixture.rubric.criteria.checkId,
+		kind: "check",
+		passed: true,
+	});
+	expect(secondByCriterionId.get(fixture.rubric.criteria.optionsId)).toEqual({
+		criterionId: fixture.rubric.criteria.optionsId,
+		kind: "options",
+		selectedLabel: "B",
+	});
+	expect(
+		secondByCriterionId.get(fixture.rubric.criteria.numberId),
+	).toBeUndefined();
 });

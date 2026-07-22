@@ -3,15 +3,22 @@ import type { Kysely, Transaction } from "kysely";
 import { invalidateGradeImport } from "#db/cacheInvalidation.ts";
 import type { Database } from "#db/generated/database.ts";
 import { database as defaultDb } from "#db/kysely.ts";
-import { saveCriterionGradeInDb } from "#grade-persistence/gradeMutations.ts";
+import { saveCriterionGradesInDb } from "#grade-persistence/gradeMutations.ts";
 import { ImportBlockedError } from "#imports/importErrors.ts";
 import type { ImportedGradeRow } from "#imports/types.ts";
+import { chunk } from "#utils/utils.ts";
 import { loadGradeImportContextFromDb } from "./gradeImportContext.ts";
 import {
 	type GradeImportBlockingDiagnostic,
 	type GradeImportPlan,
 	prepareGradeImport,
 } from "./prepareGradeImport.ts";
+
+// Bounds each write statement's parameter count well under Postgres's
+// per-statement limit regardless of import size, while keeping the executor's
+// round-trip count proportional to chunks and Criterion kinds rather than to
+// the number of Grades.
+export const GRADE_IMPORT_WRITE_CHUNK_SIZE = 500;
 
 function formatBlockingDiagnostic(
 	diagnostic: GradeImportBlockingDiagnostic,
@@ -49,15 +56,20 @@ function gradeImportBlockedError(
 }
 
 // `db` is a caller-supplied transaction; this write primitive cannot run on
-// the global client. Executes a plan's writes; never opens a transaction and
-// never invalidates cache.
+// the global client. Executes a plan's writes in bounded-size batches through
+// the shared bulk persistence primitive, so an import's database work scales
+// with the number of chunks and Criterion kinds rather than with one
+// resolution/write sequence per Grade. Never opens a transaction and never
+// invalidates cache.
 export async function saveGradeImportPlanInDb(
 	db: Transaction<Database>,
-	plan: GradeImportPlan,
-	{ gridId }: { gridId: string },
+	{ plan, gridId }: { plan: GradeImportPlan; gridId: string },
 ): Promise<void> {
-	for (const write of plan.writes) {
-		const result = await saveCriterionGradeInDb(db, { ...write, gridId });
+	for (const writes of chunk(plan.writes, GRADE_IMPORT_WRITE_CHUNK_SIZE)) {
+		const result = await saveCriterionGradesInDb(db, {
+			gridId,
+			grades: writes,
+		});
 
 		if (!result.success) {
 			throw new Error(result.error);
@@ -80,7 +92,7 @@ export async function saveGrades(
 			throw gradeImportBlockedError(plan.blockingDiagnostics);
 		}
 
-		await saveGradeImportPlanInDb(tx, plan, { gridId });
+		await saveGradeImportPlanInDb(tx, { plan, gridId });
 
 		return {
 			gradeCount: plan.writes.length,
