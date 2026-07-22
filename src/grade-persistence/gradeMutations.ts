@@ -1,13 +1,13 @@
 import "server-only";
 import type { Transaction } from "kysely";
-import { writeCheckGradeInDb } from "#criteria/check/checkPersistence.ts";
+import { writeCheckGradesInDb } from "#criteria/check/checkPersistence.ts";
 import {
-	validateNumberGradeInDb,
-	writeNumberGradeInDb,
+	validateNumberGradesInDb,
+	writeNumberGradesInDb,
 } from "#criteria/number/numberPersistence.ts";
 import {
-	validateOptionsGradeInDb,
-	writeOptionsGradeInDb,
+	validateOptionsGradesInDb,
+	writeOptionsGradesInDb,
 } from "#criteria/options/optionsPersistence.ts";
 import type { CriterionGrade } from "#criteria/types.ts";
 import type { Database } from "#db/generated/database.ts";
@@ -39,15 +39,26 @@ export type SaveCriterionGradeResult =
 	| { success: true }
 	| { success: false; error: string };
 
-export type SaveCriterionGradeParams = {
+// One item of a Grid-scoped batch write: the grade plus the target/rubric
+// context needed to resolve it (CONTEXT Grid Resolution Strategy — the grid
+// itself is supplied once for the whole batch, not repeated per item).
+export type CriterionGradeWrite = {
+	targetId: string;
+	rubricId: string;
+	grade: CriterionGrade;
+};
+
+export type SaveCriterionGradeParams = CriterionGradeWrite & {
 	// The grade target's public id is only unique within its grid (unlike
 	// the old globally-unique numeric submission id), so the grid must be
 	// supplied explicitly rather than resolved from the target id alone
 	// (CONTEXT Grid Resolution Strategy).
 	gridId: string;
-	targetId: string;
-	rubricId: string;
-	grade: CriterionGrade;
+};
+
+export type SaveCriterionGradesParams = {
+	gridId: string;
+	grades: CriterionGradeWrite[];
 };
 
 export const saveCriterionGradeErrors = {
@@ -57,18 +68,189 @@ export const saveCriterionGradeErrors = {
 		"We couldn't find this grading criterion. Reload and try again. If this keeps happening, report this issue.",
 	criterionChanged:
 		"This grading criterion changed while you were grading. Reload and try again.",
+	duplicateGrade:
+		"Two grades in this save target the same student work and criterion. Reload and try again.",
 	unexpected:
 		"Something went wrong saving this grade. Reload and try again. If this keeps happening, report this issue.",
 };
 
-// Performs all validation + persistence against the given db. No cache work.
-// The db is a caller-supplied transaction; this write primitive cannot run on
-// the global client.
-export async function saveCriterionGradeInDb(
+// One resolved batch entry: the grade plus its internal row ids, once the
+// public (target, rubric, criterion) ids have been matched against the grid.
+type ResolvedGradeWrite = {
+	gradeTargetRowId: number;
+	criterionRowId: number;
+	grade: CriterionGrade;
+};
+
+// Resolves every write's (grade target, rubric, criterion) context against the
+// grid in one set-based query per entity, instead of repeating the lookup
+// sequence per grade. Returns the first defensive failure found, in write
+// order, so a batch with any missing context, cross-Grid reference, changed
+// Criterion kind, or intra-batch duplicate (same target + criterion twice)
+// resolves nothing.
+async function resolveGradeWrites(
 	db: Transaction<Database>,
-	{ gridId, targetId, rubricId, grade }: SaveCriterionGradeParams,
+	{ gridRowId, grades }: { gridRowId: number; grades: CriterionGradeWrite[] },
+): Promise<
+	| { success: true; resolved: ResolvedGradeWrite[] }
+	| { success: false; error: string }
+> {
+	const [targetRows, rubricRows, criterionRows] = await Promise.all([
+		db
+			.selectFrom("gradeTarget")
+			.where("gridRowId", "=", gridRowId)
+			.where("id", "in", [...new Set(grades.map((write) => write.targetId))])
+			.select(["id", "rowId"])
+			.execute(),
+		db
+			.selectFrom("rubric")
+			.where("gridRowId", "=", gridRowId)
+			.where("id", "in", [...new Set(grades.map((write) => write.rubricId))])
+			.select(["id", "rowId"])
+			.execute(),
+		db
+			.selectFrom("criterion")
+			.where("gridRowId", "=", gridRowId)
+			.where("id", "in", [
+				...new Set(grades.map((write) => write.grade.criterionId)),
+			])
+			.select(["id", "rowId", "kind", "rubricId"])
+			.execute(),
+	]);
+
+	const targetRowIdById = new Map(targetRows.map((row) => [row.id, row.rowId]));
+	const rubricRowIdById = new Map(rubricRows.map((row) => [row.id, row.rowId]));
+	const criterionById = new Map(criterionRows.map((row) => [row.id, row]));
+
+	const resolved: ResolvedGradeWrite[] = [];
+	const seenTargetCriterionPairs = new Set<string>();
+
+	for (const write of grades) {
+		const gradeTargetRowId = targetRowIdById.get(write.targetId);
+		const rubricRowId = rubricRowIdById.get(write.rubricId);
+		if (gradeTargetRowId == null || rubricRowId == null) {
+			return { success: false, error: saveCriterionGradeErrors.contextMissing };
+		}
+
+		const criterion = criterionById.get(write.grade.criterionId);
+		if (criterion == null || criterion.rubricId !== rubricRowId) {
+			return {
+				success: false,
+				error: saveCriterionGradeErrors.criterionMissing,
+			};
+		}
+
+		if (criterion.kind !== write.grade.kind) {
+			return {
+				success: false,
+				error: saveCriterionGradeErrors.criterionChanged,
+			};
+		}
+
+		const pairKey = `${gradeTargetRowId}:${criterion.rowId}`;
+		if (seenTargetCriterionPairs.has(pairKey)) {
+			return { success: false, error: saveCriterionGradeErrors.duplicateGrade };
+		}
+		seenTargetCriterionPairs.add(pairKey);
+
+		resolved.push({
+			gradeTargetRowId,
+			criterionRowId: criterion.rowId,
+			grade: write.grade,
+		});
+	}
+
+	return { success: true, resolved };
+}
+
+// Upserts the parent `criterionGrade` rows for every resolved write in one
+// bounded insert, then reads back their ids. Called only after every write in
+// the batch validates, so a batch containing any invalid grade writes nothing
+// (previously a get-or-create ran before subtype validation per grade,
+// committing an empty grade that completion miscounted).
+async function upsertCriterionGradeParents(
+	db: Transaction<Database>,
+	{
+		gridRowId,
+		resolved,
+	}: { gridRowId: number; resolved: ResolvedGradeWrite[] },
+): Promise<Map<string, number>> {
+	// gridRowId is a consistency copy backstopped by the composite FKs on
+	// criterion_id and grade_target_row_id (ADR 0015): the grid-scoped lookups
+	// in resolveGradeWrites remain for id-resolution and user-facing errors, not
+	// for cross-grid integrity, which the DB now enforces.
+	await db
+		.insertInto("criterionGrade")
+		.values(
+			resolved.map((entry) => ({
+				gradeTargetRowId: entry.gradeTargetRowId,
+				criterionId: entry.criterionRowId,
+				gridRowId,
+			})),
+		)
+		.onConflict((conflict) =>
+			conflict.columns(["gradeTargetRowId", "criterionId"]).doNothing(),
+		)
+		.execute();
+
+	const parentRows = await db
+		.selectFrom("criterionGrade")
+		.where("gradeTargetRowId", "in", [
+			...new Set(resolved.map((entry) => entry.gradeTargetRowId)),
+		])
+		.where("criterionId", "in", [
+			...new Set(resolved.map((entry) => entry.criterionRowId)),
+		])
+		.select(["id", "gradeTargetRowId", "criterionId"])
+		.execute();
+
+	return new Map(
+		parentRows.map((row) => [
+			`${row.gradeTargetRowId}:${row.criterionId}`,
+			row.id,
+		]),
+	);
+}
+
+// Deletes the two subtype tables a kept kind does not use, one group per kind
+// actually written, so a batch clears stale values in a handful of bounded
+// statements rather than per grade.
+function clearStaleSubtypeValues(
+	db: Transaction<Database>,
+	criterionGradeIdsByKind: Record<CriterionGrade["kind"], number[]>,
+): Promise<unknown>[] {
+	function clearKind(kind: CriterionGrade["kind"]): Promise<unknown>[] {
+		const criterionGradeIds = criterionGradeIdsByKind[kind];
+		if (criterionGradeIds.length === 0) {
+			return [];
+		}
+		return otherSubtypeTables(kind).map((table) =>
+			db
+				.deleteFrom(table)
+				.where("criterionGradeId", "in", criterionGradeIds)
+				.execute(),
+		);
+	}
+
+	return [
+		...clearKind("check"),
+		...clearKind("options"),
+		...clearKind("number"),
+	];
+}
+
+// Performs all validation + persistence for a Grid-scoped batch of Check,
+// Options, and Number grades against the given db. Resolves the Grid once,
+// then the Grade Targets, Rubrics, and Criteria in one set-based query each,
+// regardless of batch size. No cache work. The db is a caller-supplied
+// transaction; this write primitive cannot run on the global client.
+export async function saveCriterionGradesInDb(
+	db: Transaction<Database>,
+	{ gridId, grades }: SaveCriterionGradesParams,
 ): Promise<SaveCriterionGradeResult> {
-	const criterionId = grade.criterionId;
+	if (grades.length === 0) {
+		return { success: true };
+	}
 
 	const grid = await db
 		.selectFrom("grid")
@@ -79,174 +261,148 @@ export async function saveCriterionGradeInDb(
 	if (grid == null) {
 		return { success: false, error: saveCriterionGradeErrors.contextMissing };
 	}
-
-	const target = await db
-		.selectFrom("gradeTarget")
-		.where("id", "=", targetId)
-		.where("gridRowId", "=", grid.rowId)
-		.select("rowId")
-		.executeTakeFirst();
-
-	if (target == null) {
-		return { success: false, error: saveCriterionGradeErrors.contextMissing };
-	}
-
-	const rubric = await db
-		.selectFrom("rubric")
-		.where("id", "=", rubricId)
-		.where("gridRowId", "=", grid.rowId)
-		.select(["id", "rowId", "gridRowId"])
-		.executeTakeFirst();
-
-	if (rubric == null) {
-		return { success: false, error: saveCriterionGradeErrors.contextMissing };
-	}
-
-	const criterion = await db
-		.selectFrom("criterion")
-		.where("criterion.id", "=", criterionId)
-		.where("criterion.gridRowId", "=", rubric.gridRowId)
-		.select([
-			"criterion.id",
-			"criterion.rowId",
-			"criterion.kind",
-			"criterion.rubricId",
-		])
-		.executeTakeFirst();
-
-	if (criterion == null || criterion.rubricId !== rubric.rowId) {
-		return { success: false, error: saveCriterionGradeErrors.criterionMissing };
-	}
-
-	const criterionRowId = criterion.rowId;
-	const gradeTargetRowId = target.rowId;
 	const gridRowId = grid.rowId;
 
-	if (criterion.kind !== grade.kind) {
-		return { success: false, error: saveCriterionGradeErrors.criterionChanged };
+	const resolution = await resolveGradeWrites(db, { gridRowId, grades });
+	if (!resolution.success) {
+		return resolution;
+	}
+	const { resolved } = resolution;
+
+	// Kind-specific validation context (Number bounds, Options labels) is also
+	// resolved per kind in one query across every grade of that kind, not once
+	// per grade. A batch containing any invalid grade writes nothing: both
+	// validation passes run, and any failure returns before the writes below.
+	const numberEntries = resolved.filter(
+		(
+			entry,
+		): entry is ResolvedGradeWrite & {
+			grade: Extract<CriterionGrade, { kind: "number" }>;
+		} => entry.grade.kind === "number",
+	);
+	const optionsEntries = resolved.filter(
+		(
+			entry,
+		): entry is ResolvedGradeWrite & {
+			grade: Extract<CriterionGrade, { kind: "options" }>;
+		} => entry.grade.kind === "options",
+	);
+
+	const [numberValidations, optionsValidations] = await Promise.all([
+		validateNumberGradesInDb(
+			db,
+			numberEntries.map((entry) => ({
+				criterionRowId: entry.criterionRowId,
+				grade: { value: entry.grade.value },
+			})),
+		),
+		validateOptionsGradesInDb(
+			db,
+			optionsEntries.map((entry) => ({
+				criterionRowId: entry.criterionRowId,
+				grade: { selectedLabel: entry.grade.selectedLabel },
+			})),
+		),
+	]);
+
+	const failedNumberValidation = numberValidations.find(
+		(result): result is { valid: false; message: string } => !result.valid,
+	);
+	if (failedNumberValidation != null) {
+		return { success: false, error: failedNumberValidation.message };
+	}
+	const failedOptionsValidation = optionsValidations.find(
+		(result): result is { valid: false; message: string } => !result.valid,
+	);
+	if (failedOptionsValidation != null) {
+		return { success: false, error: failedOptionsValidation.message };
 	}
 
-	// Upserts the criterion grade row for this (grade target, criterion) pair and
-	// returns its id. Called only after the payload validates, so a failed
-	// first-time save writes nothing (previously a get-or-create ran before
-	// subtype validation, committing an empty grade that completion miscounted).
-	async function upsertCriterionGrade(): Promise<number> {
-		// gridRowId is a consistency copy backstopped by the composite FKs on
-		// criterion_id and grade_target_row_id (ADR 0015): the grid-scoped
-		// lookups above remain for id-resolution and user-facing errors, not for
-		// cross-grid integrity, which the DB now enforces.
-		await db
-			.insertInto("criterionGrade")
-			.values({ gradeTargetRowId, criterionId: criterionRowId, gridRowId })
-			.onConflict((conflict) =>
-				conflict.columns(["gradeTargetRowId", "criterionId"]).doNothing(),
-			)
-			.execute();
+	const parentIdByPair = await upsertCriterionGradeParents(db, {
+		gridRowId,
+		resolved,
+	});
 
-		const existing = await db
-			.selectFrom("criterionGrade")
-			.where("gradeTargetRowId", "=", gradeTargetRowId)
-			.where("criterionId", "=", criterionRowId)
-			.select("id")
-			.executeTakeFirstOrThrow();
-
-		return existing.id;
-	}
-
-	async function clearOtherSubtypeValues(
-		criterionGradeId: number,
-		keptKind: CriterionGrade["kind"],
-	): Promise<void> {
-		await Promise.all(
-			otherSubtypeTables(keptKind).map((table) =>
-				db
-					.deleteFrom(table)
-					.where("criterionGradeId", "=", criterionGradeId)
-					.execute(),
-			),
+	function resolveParentId(entry: ResolvedGradeWrite): number {
+		const parentId = parentIdByPair.get(
+			`${entry.gradeTargetRowId}:${entry.criterionRowId}`,
 		);
-	}
-
-	// Each writer validates its payload first, then persists one criterion kind's
-	// value and clears the other two kinds, so a criterion never carries stale
-	// values from a previous kind. A non-undefined return is a validation failure
-	// that aborts the save before any write.
-	async function saveCheckGrade(
-		checkGrade: Extract<CriterionGrade, { kind: "check" }>,
-	): Promise<SaveCriterionGradeResult | undefined> {
-		const criterionGradeId = await upsertCriterionGrade();
-
-		await Promise.all([
-			writeCheckGradeInDb(db, {
-				criterionGradeId,
-				grade: { passed: checkGrade.passed },
-			}),
-			clearOtherSubtypeValues(criterionGradeId, "check"),
-		]);
-
-		return undefined;
-	}
-
-	async function saveOptionsGrade(
-		optionsGrade: Extract<CriterionGrade, { kind: "options" }>,
-	): Promise<SaveCriterionGradeResult | undefined> {
-		const gradeContent = { selectedLabel: optionsGrade.selectedLabel };
-		const validationResult = await validateOptionsGradeInDb(db, {
-			criterionRowId,
-			grade: gradeContent,
-		});
-		if (!validationResult.valid) {
-			return { success: false, error: validationResult.message };
+		if (parentId == null) {
+			throw new Error(
+				"Expected a criterionGrade row to exist for every resolved grade after upsert.",
+			);
 		}
-
-		const criterionGradeId = await upsertCriterionGrade();
-
-		await Promise.all([
-			writeOptionsGradeInDb(db, { criterionGradeId, grade: gradeContent }),
-			clearOtherSubtypeValues(criterionGradeId, "options"),
-		]);
-
-		return undefined;
+		return parentId;
 	}
 
-	async function saveNumberGrade(
-		numberGrade: Extract<CriterionGrade, { kind: "number" }>,
-	): Promise<SaveCriterionGradeResult | undefined> {
-		const gradeContent = { value: numberGrade.value };
-		const validationResult = await validateNumberGradeInDb(db, {
-			criterionRowId,
-			grade: gradeContent,
-		});
-		if (!validationResult.valid) {
-			return { success: false, error: validationResult.message };
-		}
+	const checkRows: { criterionGradeId: number; grade: { passed: boolean } }[] =
+		[];
+	const numberRows: { criterionGradeId: number; grade: { value: number } }[] =
+		[];
+	const optionsRows: {
+		criterionGradeId: number;
+		grade: { selectedLabel: string };
+	}[] = [];
+	const criterionGradeIdsByKind: Record<CriterionGrade["kind"], number[]> = {
+		check: [],
+		options: [],
+		number: [],
+	};
 
-		const criterionGradeId = await upsertCriterionGrade();
+	// Each kind's writer persists that criterion kind's value; clearing the
+	// other two kinds' subtype tables (below) keeps a criterion from carrying
+	// stale values from a previous kind.
+	for (const entry of resolved) {
+		const criterionGradeId = resolveParentId(entry);
+		criterionGradeIdsByKind[entry.grade.kind].push(criterionGradeId);
 
-		await Promise.all([
-			writeNumberGradeInDb(db, { criterionGradeId, grade: gradeContent }),
-			clearOtherSubtypeValues(criterionGradeId, "number"),
-		]);
-
-		return undefined;
-	}
-
-	const result = await ((): Promise<SaveCriterionGradeResult | undefined> => {
-		switch (grade.kind) {
+		switch (entry.grade.kind) {
 			case "check":
-				return saveCheckGrade(grade);
+				checkRows.push({
+					criterionGradeId,
+					grade: { passed: entry.grade.passed },
+				});
+				break;
 			case "options":
-				return saveOptionsGrade(grade);
+				optionsRows.push({
+					criterionGradeId,
+					grade: { selectedLabel: entry.grade.selectedLabel },
+				});
+				break;
 			case "number":
-				return saveNumberGrade(grade);
+				numberRows.push({
+					criterionGradeId,
+					grade: { value: entry.grade.value },
+				});
+				break;
 			default:
-				return assertNever(grade);
+				assertNever(entry.grade);
 		}
-	})();
-
-	if (result != null) {
-		return result;
 	}
+
+	await Promise.all([
+		writeCheckGradesInDb(db, checkRows),
+		writeOptionsGradesInDb(db, optionsRows),
+		writeNumberGradesInDb(db, numberRows),
+		...clearStaleSubtypeValues(db, criterionGradeIdsByKind),
+	]);
 
 	return { success: true };
+}
+
+// Performs all validation + persistence for one Grade against the given db. No
+// cache work. The db is a caller-supplied transaction; this write primitive
+// cannot run on the global client. Adapts its one Grade into a one-item batch
+// so the interactive save path and bulk callers share the same persistence
+// mechanism (Grid/Grade Target/Rubric/Criterion resolution, kind dispatch,
+// defensive validation, and stale-subtype cleanup all live in
+// saveCriterionGradesInDb).
+export async function saveCriterionGradeInDb(
+	db: Transaction<Database>,
+	{ gridId, targetId, rubricId, grade }: SaveCriterionGradeParams,
+): Promise<SaveCriterionGradeResult> {
+	return saveCriterionGradesInDb(db, {
+		gridId,
+		grades: [{ targetId, rubricId, grade }],
+	});
 }

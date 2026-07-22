@@ -64,68 +64,117 @@ const numberInvalidValueMessage = "Enter a valid value and try again.";
 const numberInvalidValueRangeMessage =
 	"This value range is currently unavailable. Reload and try again. If it still fails, report this issue.";
 
-// Validates a Number grade against the criterion's current value range
-// (ADR 0013 pinned adapter signature: validate(db, { criterionRowId, grade })).
-// The coordinator calls this before upserting the parent `criterionGrade` row.
-export async function validateNumberGradeInDb(
-	db: Transaction<Database>,
-	{
-		criterionRowId,
-		grade,
-	}: { criterionRowId: number; grade: NumberCriterionGradeContent },
-): Promise<GradeValidationResult> {
+type NumberBounds = { minValue: number; maxValue: number };
+
+// Pure per-row rule shared by the single-row and batch validators, so both call
+// shapes enforce the exact same policy against a caller-resolved bounds context.
+function checkNumberGradeAgainstBounds({
+	grade,
+	bounds,
+}: {
+	grade: NumberCriterionGradeContent;
+	bounds: NumberBounds | null;
+}): GradeValidationResult {
 	if (!Number.isFinite(grade.value)) {
 		return { valid: false, message: numberInvalidValueMessage };
 	}
 
-	const numberCriterionRow = await db
-		.selectFrom("numberCriterion")
-		.where("criterionId", "=", criterionRowId)
-		.select(["minValue", "maxValue"])
-		.executeTakeFirst();
-
-	const minValue =
-		numberCriterionRow?.minValue != null
-			? Number(numberCriterionRow.minValue)
-			: null;
-	const maxValue =
-		numberCriterionRow?.maxValue != null
-			? Number(numberCriterionRow.maxValue)
-			: null;
-
-	if (
-		minValue == null ||
-		maxValue == null ||
-		!isNumberValueRangeValid({ minValue, maxValue })
-	) {
+	if (bounds == null || !isNumberValueRangeValid(bounds)) {
 		return { valid: false, message: numberInvalidValueRangeMessage };
 	}
 
-	if (grade.value < minValue) {
-		return { valid: false, message: `Enter a value of at least ${minValue}.` };
+	if (grade.value < bounds.minValue) {
+		return {
+			valid: false,
+			message: `Enter a value of at least ${bounds.minValue}.`,
+		};
 	}
-	if (grade.value > maxValue) {
-		return { valid: false, message: `Enter a value of at most ${maxValue}.` };
+	if (grade.value > bounds.maxValue) {
+		return {
+			valid: false,
+			message: `Enter a value of at most ${bounds.maxValue}.`,
+		};
 	}
 
 	return { valid: true };
 }
 
-// Writes a Number criterion grade's subtype row. The coordinator upserts the
-// parent `criterionGrade` and passes its id, so this never runs before the
-// parent row exists.
-export async function writeNumberGradeInDb(
+// Batch-resolves every distinct criterion's value range in one query, then
+// validates each row against its own criterion's bounds (ADR 0013 pinned
+// adapter signature, generalized to a batch). The coordinator calls this before
+// upserting any parent `criterionGrade` row, so a batch containing an invalid
+// Number grade writes nothing. Results are returned in the same order as `rows`.
+export async function validateNumberGradesInDb(
 	db: Transaction<Database>,
-	{
-		criterionGradeId,
-		grade,
-	}: { criterionGradeId: number; grade: NumberCriterionGradeContent },
+	rows: { criterionRowId: number; grade: NumberCriterionGradeContent }[],
+): Promise<GradeValidationResult[]> {
+	if (rows.length === 0) {
+		return [];
+	}
+
+	const numberCriterionRows = await db
+		.selectFrom("numberCriterion")
+		.where("criterionId", "in", [
+			...new Set(rows.map((row) => row.criterionRowId)),
+		])
+		.select(["criterionId", "minValue", "maxValue"])
+		.execute();
+
+	const boundsByCriterionRowId = new Map<number, NumberBounds | null>(
+		numberCriterionRows.map((row) => [
+			row.criterionId,
+			row.minValue != null && row.maxValue != null
+				? { minValue: Number(row.minValue), maxValue: Number(row.maxValue) }
+				: null,
+		]),
+	);
+
+	return rows.map(({ criterionRowId, grade }) =>
+		checkNumberGradeAgainstBounds({
+			grade,
+			bounds: boundsByCriterionRowId.get(criterionRowId) ?? null,
+		}),
+	);
+}
+
+// Validates a Number grade against the criterion's current value range
+// (ADR 0013 pinned adapter signature: validate(db, { criterionRowId, grade })).
+// Delegates to the batch validator with a one-row input so single- and
+// multi-grade callers share one rule.
+export async function validateNumberGradeInDb(
+	db: Transaction<Database>,
+	params: { criterionRowId: number; grade: NumberCriterionGradeContent },
+): Promise<GradeValidationResult> {
+	const [result] = await validateNumberGradesInDb(db, [params]);
+	if (result == null) {
+		throw new Error("Expected validateNumberGradesInDb to return one result.");
+	}
+	return result;
+}
+
+// Batched write of Number criterion grades' subtype rows. The coordinator
+// upserts the parent `criterionGrade` rows and passes their ids, so this never
+// runs before the parent rows exist.
+export async function writeNumberGradesInDb(
+	db: Transaction<Database>,
+	rows: { criterionGradeId: number; grade: NumberCriterionGradeContent }[],
 ): Promise<void> {
+	if (rows.length === 0) {
+		return;
+	}
+
 	await db
 		.insertInto("numberCriterionGrade")
-		.values({ criterionGradeId, value: grade.value })
+		.values(
+			rows.map((row) => ({
+				criterionGradeId: row.criterionGradeId,
+				value: row.grade.value,
+			})),
+		)
 		.onConflict((conflict) =>
-			conflict.column("criterionGradeId").doUpdateSet({ value: grade.value }),
+			conflict
+				.column("criterionGradeId")
+				.doUpdateSet((eb) => ({ value: eb.ref("excluded.value") })),
 		)
 		.execute();
 }
