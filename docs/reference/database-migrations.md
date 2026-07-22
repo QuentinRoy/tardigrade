@@ -162,10 +162,12 @@ express — in this codebase that is **index renames** (there is no
 function** management. When raw SQL is used, keep it localized and document why
 it is necessary if the reason is not obvious.
 
-Run one DDL statement at a time (`await` each). Do not `Promise.all` schema
-changes: each `ALTER TABLE`/`ALTER TYPE` takes a heavy lock, so running them
-concurrently only makes them contend (and risk deadlocks) for no benefit — a
-migration is a one-time operation, not a hot path.
+The Kysely migrator runs each migration in a transaction pinned to one database
+connection. `Promise.all` is therefore allowed for grouping independent DDL,
+but the driver queues those statements rather than running them concurrently,
+so it does not provide a parallel speedup. Keep dependent schema changes in
+explicit sequential `await`s. Treat this connection behavior as a repository
+invariant; migrations and reviews do not need to re-evaluate it.
 
 ### No CamelCasePlugin on migration runners
 
