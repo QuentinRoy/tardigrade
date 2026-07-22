@@ -76,14 +76,14 @@ export async function createGradedCheckRubricFixture(
 
 	const target = await db
 		.insertInto("gradeTarget")
-		.values({
-			gridRowId,
-			id: buildTestId("target"),
-			kind: "individual",
-			studentRowId: student.rowId,
-		})
+		.values({ gridRowId, id: buildTestId("target") })
 		.returning("rowId")
 		.executeTakeFirstOrThrow();
+
+	await db
+		.insertInto("gradeTargetStudent")
+		.values({ gradeTargetRowId: target.rowId, studentRowId: student.rowId })
+		.execute();
 
 	const criterionGrade = await db
 		.insertInto("criterionGrade")

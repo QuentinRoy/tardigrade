@@ -61,14 +61,14 @@ export async function createGradeFixture(
 
 	const target = await db
 		.insertInto("gradeTarget")
-		.values({
-			gridRowId: gridRowId,
-			id: buildTestId("target"),
-			kind: "individual",
-			studentRowId: studentRow.rowId,
-		})
+		.values({ gridRowId: gridRowId, id: buildTestId("target") })
 		.returning(["id", "rowId"])
 		.executeTakeFirstOrThrow();
+
+	await db
+		.insertInto("gradeTargetStudent")
+		.values({ gradeTargetRowId: target.rowId, studentRowId: studentRow.rowId })
+		.execute();
 
 	await db
 		.insertInto("rubric")

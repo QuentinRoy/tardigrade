@@ -26,61 +26,93 @@ import {
 	groupGradeTargetRows,
 } from "./gradeTargetExportGrouping.ts";
 
-function toGradeTargetIdentity(params: {
-	id: string;
-	kind: "group" | "individual";
-	groupName: string | null;
-	studentId: string | null;
-}): GradeTargetIdentity {
-	if (params.kind === "group") {
-		if (params.groupName == null || params.groupName.length === 0) {
+// Derives every target's export identity from name + membership (ADR 0014),
+// keyed by public id, in one bounded pass — targets are far fewer than the
+// criterion grades streamed below, so holding them in a map avoids joining
+// (and row-multiplying) membership into the grade stream. Individual: the sole
+// member's public student id. Group: the Group Name, falling back to joined
+// member names when unnamed. A memberless target is a broken invariant and
+// fails loudly rather than exporting an unlabelled row.
+async function loadGradeTargetIdentitiesFromDb(
+	db: Kysely<Database>,
+	{ gridId }: { gridId: string },
+): Promise<Map<string, GradeTargetIdentity>> {
+	const gridRowIdQuery = db
+		.selectFrom("grid")
+		.select("rowId")
+		.where("id", "=", gridId);
+
+	const [targets, memberRows] = await Promise.all([
+		db
+			.selectFrom("gradeTarget")
+			.where("gradeTarget.gridRowId", "in", gridRowIdQuery)
+			.select(["gradeTarget.id as id", "gradeTarget.name as name"])
+			.execute(),
+		db
+			.selectFrom("gradeTarget")
+			.where("gradeTarget.gridRowId", "in", gridRowIdQuery)
+			.innerJoin(
+				"gradeTargetStudent",
+				"gradeTargetStudent.gradeTargetRowId",
+				"gradeTarget.rowId",
+			)
+			.innerJoin("student", "student.rowId", "gradeTargetStudent.studentRowId")
+			.select([
+				"gradeTarget.id as targetId",
+				"student.id as studentId",
+				"student.lastName as studentLastName",
+				"student.firstName as studentFirstName",
+			])
+			.orderBy("gradeTarget.rowId", "asc")
+			.orderBy("student.lastName", "asc")
+			.orderBy("student.firstName", "asc")
+			.execute(),
+	]);
+
+	const membersByTargetId = new Map<
+		string,
+		{ studentId: string; name: string }[]
+	>();
+	for (const row of memberRows) {
+		const members = membersByTargetId.get(row.targetId) ?? [];
+		members.push({
+			studentId: row.studentId,
+			name: `${row.studentLastName} ${row.studentFirstName}`.trim(),
+		});
+		membersByTargetId.set(row.targetId, members);
+	}
+
+	const identities = new Map<string, GradeTargetIdentity>();
+	for (const target of targets) {
+		const members = membersByTargetId.get(target.id) ?? [];
+		const firstMember = members[0];
+		if (firstMember == null) {
 			throw new Error(
-				`Grade target ${params.id} has kind group but no group is linked.`,
+				`Grade target ${target.id} has no members. Every grade target must ` +
+					"have at least one student; this row indicates corrupted data.",
 			);
 		}
 
-		return { id: params.id, kind: "group", groupName: params.groupName };
+		// Name-OR-multimember rule: a target is a Group when it has a name or
+		// more than one member, and an Individual only when it has exactly one
+		// member and no name.
+		if (target.name != null || members.length > 1) {
+			identities.set(target.id, {
+				id: target.id,
+				kind: "group",
+				groupName:
+					target.name ?? members.map((member) => member.name).join(", "),
+			});
+		} else {
+			identities.set(target.id, {
+				id: target.id,
+				kind: "individual",
+				studentId: firstMember.studentId,
+			});
+		}
 	}
 
-	if (params.studentId == null || params.studentId.length === 0) {
-		throw new Error(
-			`Grade target ${params.id} has kind individual but no student is linked.`,
-		);
-	}
-
-	return { id: params.id, kind: "individual", studentId: params.studentId };
-}
-
-async function assertGradeTargetInvariantsFromDb(
-	db: Kysely<Database>,
-	{ gridId }: { gridId: string },
-) {
-	const invalidTargets = await db
-		.selectFrom("grid")
-		.where("grid.id", "=", gridId)
-		.leftJoin("gradeTarget", "grid.rowId", "gradeTarget.gridRowId")
-		.select((expressionBuilder) => expressionBuilder.fn.countAll().as("count"))
-		.where((expressionBuilder) =>
-			expressionBuilder.or([
-				expressionBuilder.and([
-					expressionBuilder("kind", "=", "group"),
-					expressionBuilder("groupRowId", "is", null),
-				]),
-				expressionBuilder.and([
-					expressionBuilder("kind", "=", "individual"),
-					expressionBuilder("studentRowId", "is", null),
-				]),
-			]),
-		)
-		.executeTakeFirstOrThrow();
-
-	const invalidCount = Number(invalidTargets.count);
-
-	if (invalidCount > 0) {
-		throw new Error(
-			`Unexpected grade target data: found ${invalidCount} grade targets without required owner.`,
-		);
-	}
+	return identities;
 }
 
 function streamGradeTargetExportRowsFromDb(
@@ -92,8 +124,6 @@ function streamGradeTargetExportRowsFromDb(
 			.selectFrom("grid")
 			.where("grid.id", "=", gridId)
 			.leftJoin("gradeTarget", "grid.rowId", "gradeTarget.gridRowId")
-			.leftJoin("group", "group.id", "gradeTarget.groupRowId")
-			.leftJoin("student", "student.rowId", "gradeTarget.studentRowId")
 			.leftJoin(
 				"criterionGrade",
 				"criterionGrade.gradeTargetRowId",
@@ -119,9 +149,6 @@ function streamGradeTargetExportRowsFromDb(
 			.select([
 				"gradeTarget.rowId as gradeTargetRowId",
 				"gradeTarget.id as gradeTargetId",
-				"gradeTarget.kind as gradeTargetKind",
-				"group.name as groupName",
-				"student.id as studentId",
 				"rubric.id as rubricId",
 				"criterion.id as criterionId",
 				"criterion.kind as kind",
@@ -144,7 +171,9 @@ export async function createGradeTargetExport(
 	rubrics: ExportRubricPlan[];
 	rows: AsyncGenerator<GradeTargetExportDataRow>;
 }> {
-	await assertGradeTargetInvariantsFromDb(db, { gridId });
+	const identitiesByTargetId = await loadGradeTargetIdentitiesFromDb(db, {
+		gridId,
+	});
 
 	const rubricRows = await loadRubricRowsFromDb(db, { gridId });
 	const rubrics: ExportRubricPlan[] = rubricRows.map((row) => ({
@@ -184,15 +213,13 @@ export async function createGradeTargetExport(
 	function buildGroupExportRow(
 		group: GroupedGradeTargetRow,
 	): GradeTargetExportDataRow {
-		return {
-			target: toGradeTargetIdentity({
-				id: group.gradeTargetId,
-				kind: group.gradeTargetKind,
-				groupName: group.groupName,
-				studentId: group.studentId,
-			}),
-			rubrics: buildRubricData(group.valuesByKey),
-		};
+		const target = identitiesByTargetId.get(group.gradeTargetId);
+		if (target == null) {
+			throw new Error(
+				`Grade target ${group.gradeTargetId} has grades but no resolved identity.`,
+			);
+		}
+		return { target, rubrics: buildRubricData(group.valuesByKey) };
 	}
 
 	async function* rows(): AsyncGenerator<GradeTargetExportDataRow> {

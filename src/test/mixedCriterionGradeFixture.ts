@@ -191,8 +191,10 @@ type GradeTargetFixtureTuple<
 	TFixtures extends readonly { studentRowId: number }[],
 > = FixtureTuple<{ rowId: number }, TFixtures, "studentRowId">;
 
-// Inserts one or more individual grade targets in a single request, one per
-// given student.
+// Inserts one or more individual grade targets, one per given student, each
+// with the student as its sole member (an unnamed single-member target renders
+// as an Individual). Targets and membership are correlated by the target's
+// public id rather than by RETURNING order.
 export async function createIndividualGradeTargetFixtures<
 	const TFixtures extends readonly {
 		gridRowId: number;
@@ -202,22 +204,40 @@ export async function createIndividualGradeTargetFixtures<
 	db: Kysely<Database>,
 	fixtures: TFixtures,
 ): Promise<GradeTargetFixtureTuple<TFixtures>> {
+	const targetsToInsert = fixtures.map((fixture) => ({
+		...fixture,
+		publicId: buildTestId("target"),
+	}));
+
 	const rows = await db
 		.insertInto("gradeTarget")
 		.values(
-			fixtures.map(({ gridRowId, studentRowId }) => ({
+			targetsToInsert.map(({ gridRowId, publicId }) => ({
 				gridRowId,
-				id: buildTestId("target"),
-				kind: "individual" as const,
+				id: publicId,
+			})),
+		)
+		.returning(["rowId", "id"])
+		.execute();
+	const rowIdByPublicId = new Map(rows.map((row) => [row.id, row.rowId]));
+
+	const rowIdByStudentRowId = new Map(
+		targetsToInsert.map((target) => [
+			target.studentRowId,
+			mustGet(rowIdByPublicId, target.publicId),
+		]),
+	);
+
+	await db
+		.insertInto("gradeTargetStudent")
+		.values(
+			Array.from(rowIdByStudentRowId, ([studentRowId, gradeTargetRowId]) => ({
+				gradeTargetRowId,
 				studentRowId,
 			})),
 		)
-		.returning(["rowId", "studentRowId"])
 		.execute();
 
-	const rowIdByStudentRowId = new Map(
-		rows.map((row) => [row.studentRowId, row.rowId]),
-	);
 	// biome-ignore lint/plugin/no-type-assertion: `.map()` preserves array length.
 	return fixtures.map(({ studentRowId }) => ({
 		studentRowId,

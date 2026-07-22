@@ -1,24 +1,13 @@
 import type { NormalizedImportedGradeTarget } from "#imports/types.ts";
 
-export type ExistingStudentImportRecord = {
-	lastName: string;
-	firstName: string;
-	groupName?: string | undefined;
-};
-
 export type StudentImportContext = {
-	// Existing students keyed by imported student id, scoped to the grid.
-	existingStudentsById: Map<string, ExistingStudentImportRecord>;
-	// Student ids that already have an individual grade target.
+	// Imported student ids that already exist in the grid.
+	existingStudentIds: Set<string>;
+	// Imported student ids that already have their own individual grade target
+	// (an unnamed, single-member target).
 	existingIndividualGradeTargetStudentIds: Set<string>;
-	// Group names that already have a grade target.
+	// Imported group names that already have a grade target in the grid.
 	existingGroupGradeTargetGroupNames: Set<string>;
-};
-
-export type StudentImportGroupMembershipChange = {
-	studentId: string;
-	fromGroup?: string | undefined;
-	toGroup?: string | undefined;
 };
 
 export type StudentImportPlan = {
@@ -27,7 +16,6 @@ export type StudentImportPlan = {
 	updatedStudentIds: string[];
 	createdGradeTargetIds: string[];
 	updatedGradeTargetIds: string[];
-	groupMembershipChanges: StudentImportGroupMembershipChange[];
 };
 
 export function prepareStudentImport(params: {
@@ -40,48 +28,31 @@ export function prepareStudentImport(params: {
 	const updatedStudentIds: string[] = [];
 	const createdGradeTargetIds: string[] = [];
 	const updatedGradeTargetIds: string[] = [];
-	const groupMembershipChanges: StudentImportGroupMembershipChange[] = [];
 
 	for (const target of targets) {
-		const newGroupName = target.kind === "group" ? target.group : undefined;
-
 		for (const student of target.students) {
-			const existing = context.existingStudentsById.get(student.id);
-
-			if (existing == null) {
-				createdStudentIds.push(student.id);
-			} else {
+			if (context.existingStudentIds.has(student.id)) {
 				updatedStudentIds.push(student.id);
-
-				if (existing.groupName !== newGroupName) {
-					groupMembershipChanges.push({
-						studentId: student.id,
-						fromGroup: existing.groupName,
-						toGroup: newGroupName,
-					});
-				}
+			} else {
+				createdStudentIds.push(student.id);
 			}
 		}
 
-		if (target.kind === "group") {
-			if (
-				newGroupName != null &&
-				context.existingGroupGradeTargetGroupNames.has(newGroupName)
-			) {
-				updatedGradeTargetIds.push(target.id);
-			} else {
-				createdGradeTargetIds.push(target.id);
-			}
+		// A group reconciles against an existing target by its name; an
+		// individual against the existing one-member target for its student.
+		const isExistingTarget =
+			target.kind === "group"
+				? target.group != null &&
+					context.existingGroupGradeTargetGroupNames.has(target.group)
+				: target.students[0] != null &&
+					context.existingIndividualGradeTargetStudentIds.has(
+						target.students[0].id,
+					);
+
+		if (isExistingTarget) {
+			updatedGradeTargetIds.push(target.id);
 		} else {
-			const studentId = target.students[0]?.id;
-			if (
-				studentId != null &&
-				context.existingIndividualGradeTargetStudentIds.has(studentId)
-			) {
-				updatedGradeTargetIds.push(target.id);
-			} else {
-				createdGradeTargetIds.push(target.id);
-			}
+			createdGradeTargetIds.push(target.id);
 		}
 	}
 
@@ -91,6 +62,5 @@ export function prepareStudentImport(params: {
 		updatedStudentIds,
 		createdGradeTargetIds,
 		updatedGradeTargetIds,
-		groupMembershipChanges,
 	};
 }
