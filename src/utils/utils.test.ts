@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { findDuplicateGroups, nonNull } from "./utils.ts";
+import { chunk, findDuplicateGroups, nonNull } from "./utils.ts";
 
 describe("nonNull", () => {
 	it("returns the value when it is not null or undefined", () => {
@@ -123,5 +123,35 @@ describe("findDuplicateGroups", () => {
 				{ key: "a@example.com", indexes: [0, 2] },
 			]);
 		});
+	});
+});
+
+describe("chunk", () => {
+	it("splits items into consecutive chunks of the given size", () => {
+		expect(chunk([1, 2, 3, 4, 5], 2)).toEqual([[1, 2], [3, 4], [5]]);
+	});
+
+	it("returns one chunk when all items fit within the size", () => {
+		expect(chunk([1, 2, 3], 5)).toEqual([[1, 2, 3]]);
+	});
+
+	it("returns exact-size chunks with no smaller remainder", () => {
+		expect(chunk([1, 2, 3, 4], 2)).toEqual([
+			[1, 2],
+			[3, 4],
+		]);
+	});
+
+	it("returns an empty array for empty input", () => {
+		expect(chunk([], 3)).toEqual([]);
+	});
+
+	it("throws for a non-positive size", () => {
+		expect(() => chunk([1, 2], 0)).toThrow(
+			"Chunk size must be positive, got 0.",
+		);
+		expect(() => chunk([1, 2], -1)).toThrow(
+			"Chunk size must be positive, got -1.",
+		);
 	});
 });
