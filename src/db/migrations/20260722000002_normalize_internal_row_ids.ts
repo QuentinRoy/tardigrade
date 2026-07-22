@@ -664,65 +664,13 @@ export async function down(db: Kysely<MigrationDB>): Promise<void> {
 			.execute();
 	}
 
-	await sql`
-    CREATE OR REPLACE FUNCTION enforce_number_criterion_value_bounds()
-    RETURNS trigger
-    LANGUAGE plpgsql
-    AS $$
-    DECLARE
-      min_value numeric;
-      max_value numeric;
-    BEGIN
-      SELECT nc.min_value, nc.max_value
-      INTO min_value, max_value
-      FROM "number_criterion" nc
-      INNER JOIN "criterion_grade" cg ON cg.criterion_row_id = nc.criterion_row_id
-      WHERE cg.id = NEW.criterion_grade_id;
-
-      IF min_value IS NULL THEN
-        RAISE EXCEPTION 'NumberCriterionGrade % references no NumberCriterion', NEW.criterion_grade_id;
-      END IF;
-
-      IF NEW.value < min_value OR NEW.value > max_value THEN
-        RAISE EXCEPTION 'NumberCriterionGrade value % is out of bounds [%, %]', NEW.value, min_value, max_value;
-      END IF;
-
-      RETURN NEW;
-    END;
-    $$;
-  `.execute(db);
-
+	// Repoint the triggers before dropping their post-migration columns. Their
+	// function bodies are restored after all reverse renames below.
 	await sql`
     CREATE OR REPLACE TRIGGER trg_number_criterion_value_bounds
     BEFORE INSERT OR UPDATE OF value, criterion_grade_id ON "number_criterion_grade"
     FOR EACH ROW
     EXECUTE FUNCTION enforce_number_criterion_value_bounds();
-  `.execute(db);
-
-	await sql`
-    CREATE OR REPLACE FUNCTION enforce_options_criterion_label_valid()
-    RETURNS trigger
-    LANGUAGE plpgsql
-    AS $$
-    DECLARE
-      label_exists boolean;
-    BEGIN
-      SELECT EXISTS (
-        SELECT 1
-        FROM "criterion_grade" cg
-        INNER JOIN "options_criterion" oc ON oc.criterion_row_id = cg.criterion_row_id
-        INNER JOIN "options_criterion_mark" ocm ON ocm.criterion_row_id = oc.criterion_row_id
-        WHERE cg.id = NEW.criterion_grade_id
-          AND ocm.label = NEW.selected_label
-      ) INTO label_exists;
-
-      IF NOT label_exists THEN
-        RAISE EXCEPTION 'OptionsCriterionGrade selected_label "%" is not a valid label for criterion_grade %', NEW.selected_label, NEW.criterion_grade_id;
-      END IF;
-
-      RETURN NEW;
-    END;
-    $$;
   `.execute(db);
 
 	await sql`
@@ -859,4 +807,58 @@ export async function down(db: Kysely<MigrationDB>): Promise<void> {
 		.alterTable("criterion")
 		.renameColumn("rubric_row_id", "rubric_id")
 		.execute();
+
+	await sql`
+    CREATE OR REPLACE FUNCTION enforce_number_criterion_value_bounds()
+    RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+    DECLARE
+      min_value numeric;
+      max_value numeric;
+    BEGIN
+      SELECT nc.min_value, nc.max_value
+      INTO min_value, max_value
+      FROM "number_criterion" nc
+      INNER JOIN "criterion_grade" cg ON cg.criterion_id = nc.criterion_id
+      WHERE cg.id = NEW.criterion_grade_id;
+
+      IF min_value IS NULL THEN
+        RAISE EXCEPTION 'NumberCriterionGrade % references no NumberCriterion', NEW.criterion_grade_id;
+      END IF;
+
+      IF NEW.value < min_value OR NEW.value > max_value THEN
+        RAISE EXCEPTION 'NumberCriterionGrade value % is out of bounds [%, %]', NEW.value, min_value, max_value;
+      END IF;
+
+      RETURN NEW;
+    END;
+    $$;
+  `.execute(db);
+
+	await sql`
+    CREATE OR REPLACE FUNCTION enforce_options_criterion_label_valid()
+    RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+    DECLARE
+      label_exists boolean;
+    BEGIN
+      SELECT EXISTS (
+        SELECT 1
+        FROM "criterion_grade" cg
+        INNER JOIN "options_criterion" oc ON oc.criterion_id = cg.criterion_id
+        INNER JOIN "options_criterion_mark" ocm ON ocm.options_criterion_id = oc.id
+        WHERE cg.id = NEW.criterion_grade_id
+          AND ocm.label = NEW.selected_label
+      ) INTO label_exists;
+
+      IF NOT label_exists THEN
+        RAISE EXCEPTION 'OptionsCriterionGrade selected_label "%" is not a valid label for criterion_grade %', NEW.selected_label, NEW.criterion_grade_id;
+      END IF;
+
+      RETURN NEW;
+    END;
+    $$;
+  `.execute(db);
 }
