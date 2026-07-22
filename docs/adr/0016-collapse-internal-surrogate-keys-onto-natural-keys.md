@@ -114,6 +114,10 @@ stays structurally unrepresentable.
 - Every DB-facing call-site that read or wrote the removed `id`/`_id` columns
   was updated in the same change (persistence, import contexts, results and
   export loaders, grade completion, rubric management) plus their integration
-  tests and fixtures; the constraint-name literals in
-  `src/db/constraints.integration.test.ts` were updated to match the renamed
-  constraints, with no assertion-logic changes.
+  tests and fixtures. `src/db/constraints.integration.test.ts` renamed its
+  constraint-name literals to match, plus rebuilt the fixtures and assertions
+  that previously keyed off `criterion_grade.id` / `criterion_grade_id` — that
+  surrogate no longer exists, so those spots had to move onto the
+  `(grade_target_row_id, criterion_row_id)` composite key. Every rebuilt
+  assertion still checks the same behavior (bounds/label rejection, cascade
+  delete, rollback-on-failure); none of the tested invariants changed.
