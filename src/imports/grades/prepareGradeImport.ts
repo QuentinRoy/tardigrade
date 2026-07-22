@@ -59,6 +59,11 @@ export type GradeImportBlockingDiagnostic =
 			column: string;
 			message: string;
 	  }
+	| {
+			type: "duplicate-grade-cell";
+			first: { row: number; column: string };
+			second: { row: number; column: string };
+	  }
 	| { type: "unknown-column"; column: string }
 	| { type: "no-grade-columns" };
 
@@ -96,6 +101,10 @@ export function prepareGradeImport(params: {
 	const blockingDiagnostics: GradeImportBlockingDiagnostic[] = [];
 	const ignoredColumns: string[] = [];
 	const overwrites: GradeImportOverwrite[] = [];
+	const sourceLocationsByGradedCriterionKey = new Map<
+		string,
+		Array<{ row: number; column: string }>
+	>();
 
 	const headerColumns = Object.keys(rows.at(0) ?? {});
 	for (const column of headerColumns) {
@@ -165,6 +174,22 @@ export function prepareGradeImport(params: {
 			if (!value) {
 				continue;
 			}
+
+			const key = gradedCriterionKey({ targetId, criterionId: criterion.id });
+			const sourceLocation = { row: csvLine, column };
+			const previousSourceLocations =
+				sourceLocationsByGradedCriterionKey.get(key) ?? [];
+
+			for (const first of previousSourceLocations) {
+				blockingDiagnostics.push({
+					type: "duplicate-grade-cell",
+					first,
+					second: sourceLocation,
+				});
+			}
+
+			previousSourceLocations.push(sourceLocation);
+			sourceLocationsByGradedCriterionKey.set(key, previousSourceLocations);
 
 			let grade: CriterionGrade;
 			try {

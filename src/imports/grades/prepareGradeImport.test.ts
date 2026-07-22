@@ -383,6 +383,130 @@ test("prepareGradeImport lists existing values of targeted pairs as overwrites",
 	expect(plan.overwrites).toEqual([{ targetId: "42", criterionId: "r-bool" }]);
 });
 
+test("prepareGradeImport reports duplicate cells with different values and both source locations", () => {
+	const context = buildContext({
+		criteriaByColumn: new Map([
+			[
+				"q1:r-bool",
+				{ id: "r-bool", kind: "check", rubricId: "q1", optionsLabels: [] },
+			],
+		]),
+		targetIdsByLookup: new Map([
+			[
+				targetLookupKey({ targetKind: "individual", name: "student-1" }),
+				["42"],
+			],
+		]),
+	});
+	const rows: ImportedGradeRow[] = [
+		{ kind: "individual", name: "student-1", "q1:r-bool": "true" },
+		{ kind: "individual", name: "student-1", "q1:r-bool": "false" },
+	];
+
+	const plan = prepareGradeImport({ rows, context });
+
+	expect(plan.blockingDiagnostics).toEqual([
+		{
+			type: "duplicate-grade-cell",
+			first: { row: 2, column: "q1:r-bool" },
+			second: { row: 3, column: "q1:r-bool" },
+		},
+	]);
+});
+
+test("prepareGradeImport reports every pair of duplicate cells with identical values", () => {
+	const context = buildContext({
+		criteriaByColumn: new Map([
+			[
+				"q1:r-bool",
+				{ id: "r-bool", kind: "check", rubricId: "q1", optionsLabels: [] },
+			],
+		]),
+		targetIdsByLookup: new Map([
+			[
+				targetLookupKey({ targetKind: "individual", name: "student-1" }),
+				["42"],
+			],
+		]),
+	});
+	const rows: ImportedGradeRow[] = [
+		{ kind: "individual", name: "student-1", "q1:r-bool": "true" },
+		{ kind: "individual", name: "student-1", "q1:r-bool": "true" },
+		{ kind: "individual", name: "student-1", "q1:r-bool": "true" },
+	];
+
+	const plan = prepareGradeImport({ rows, context });
+
+	expect(plan.blockingDiagnostics).toEqual([
+		{
+			type: "duplicate-grade-cell",
+			first: { row: 2, column: "q1:r-bool" },
+			second: { row: 3, column: "q1:r-bool" },
+		},
+		{
+			type: "duplicate-grade-cell",
+			first: { row: 2, column: "q1:r-bool" },
+			second: { row: 4, column: "q1:r-bool" },
+		},
+		{
+			type: "duplicate-grade-cell",
+			first: { row: 3, column: "q1:r-bool" },
+			second: { row: 4, column: "q1:r-bool" },
+		},
+	]);
+});
+
+test("prepareGradeImport allows repeated target rows with disjoint non-empty criterion cells", () => {
+	const context = buildContext({
+		criteriaByColumn: new Map([
+			[
+				"q1:r-first",
+				{ id: "r-first", kind: "check", rubricId: "q1", optionsLabels: [] },
+			],
+			[
+				"q1:r-second",
+				{ id: "r-second", kind: "check", rubricId: "q1", optionsLabels: [] },
+			],
+		]),
+		targetIdsByLookup: new Map([
+			[
+				targetLookupKey({ targetKind: "individual", name: "student-1" }),
+				["42"],
+			],
+		]),
+	});
+	const rows: ImportedGradeRow[] = [
+		{
+			kind: "individual",
+			name: "student-1",
+			"q1:r-first": "true",
+			"q1:r-second": "",
+		},
+		{
+			kind: "individual",
+			name: "student-1",
+			"q1:r-first": "",
+			"q1:r-second": "false",
+		},
+	];
+
+	const plan = prepareGradeImport({ rows, context });
+
+	expect(plan.blockingDiagnostics).toEqual([]);
+	expect(plan.writes).toEqual([
+		{
+			targetId: "42",
+			rubricId: "q1",
+			grade: { criterionId: "r-first", kind: "check", passed: true },
+		},
+		{
+			targetId: "42",
+			rubricId: "q1",
+			grade: { criterionId: "r-second", kind: "check", passed: false },
+		},
+	]);
+});
+
 test("prepareGradeImport blocks with no-grade-columns when the header has only derived export columns", () => {
 	const context = buildContext({
 		criteriaByColumn: new Map([
