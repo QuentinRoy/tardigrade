@@ -264,17 +264,12 @@ test("saveGrades returns imported and overwritten counts", async () => {
 	).resolves.toEqual({ gradeCount: 2, overwriteCount: 1 });
 });
 
-test("saveGrades rolls back all writes if a later transactional write fails", async () => {
+test("saveGrades reports an out-of-range Number cell before writing any grade", async () => {
 	await using db = await createTestDb();
 	await using grid = await createGrid(db, "Transactional Rollback Grid");
 	const gridPublicId = grid.id;
 	const fixture = await createGradeFixture(db, grid.rowId);
 
-	// The first row writes a valid check grade; the second row carries a
-	// number value outside the criterion range. saveGrades parses both rows
-	// before the transaction, so the out-of-range value only fails inside
-	// saveCriterionGradeInDb — after the first write has already happened in the same
-	// transaction. A genuine in-transaction failure, no primitive mock required.
 	const rows: ImportedGradeRow[] = [
 		{
 			kind: "individual",
@@ -290,7 +285,37 @@ test("saveGrades rolls back all writes if a later transactional write fails", as
 
 	await expect(
 		saveGrades({ rows, gridId: gridPublicId }, { db }),
-	).rejects.toThrow("Enter a value of at most 10.");
+	).rejects.toThrow(
+		`Row 3 (${fixture.studentId}), column "${fixture.rubricId}:${fixture.numberCriterionId}": Enter a value of at most 10.`,
+	);
+
+	const persistedGrades = await db
+		.selectFrom("criterionGrade")
+		.innerJoin(
+			"gradeTarget",
+			"gradeTarget.rowId",
+			"criterionGrade.gradeTargetRowId",
+		)
+		.select("criterionGrade.id")
+		.where("gradeTarget.gridRowId", "=", grid.rowId)
+		.execute();
+
+	expect(persistedGrades).toHaveLength(0);
+});
+
+test("saveGrades reports both duplicate Grade Cell locations before writing", async () => {
+	await using db = await createTestDb();
+	await using grid = await createGrid(db, "Duplicate Grade Cell Grid");
+	const fixture = await createGradeFixture(db, grid.rowId);
+	const column = `${fixture.rubricId}:${fixture.criterionId}`;
+	const rows: ImportedGradeRow[] = [
+		{ kind: "individual", name: fixture.studentId, [column]: "true" },
+		{ kind: "individual", name: fixture.studentId, [column]: "false" },
+	];
+
+	await expect(saveGrades({ rows, gridId: grid.id }, { db })).rejects.toThrow(
+		`Rows 2, column "${column}" and 3, column "${column}" both import a grade for the same student or group and criterion. Remove one of these values`,
+	);
 
 	const persistedGrades = await db
 		.selectFrom("criterionGrade")
