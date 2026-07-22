@@ -162,14 +162,11 @@ express — in this codebase that is **index renames** (there is no
 function** management. When raw SQL is used, keep it localized and document why
 it is necessary if the reason is not obvious.
 
-The Kysely migrator runs each migration in a transaction pinned to one database
-connection, and the Postgres driver executes one query at a time on that
-connection. Keep migration operations sequential in code rather than grouping
-query executions in `Promise.all`: it cannot provide a parallel speedup and
-makes ordering and dependencies less explicit. A single raw SQL execution may
-still contain multiple related DDL statements when keeping them together is
-clearer. Treat this connection behavior as a repository invariant; migrations
-and reviews do not need to re-evaluate it.
+Kysely runs each migration in a transaction on one connection, where the
+Postgres driver executes one query at a time. Use sequential `await`s, not
+`Promise.all`: it adds no parallelism and hides dependencies. Related DDL may
+share one raw SQL execution when clearer. This is a repository invariant; do
+not re-check it per migration.
 
 ### No CamelCasePlugin on migration runners
 
