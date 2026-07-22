@@ -15,6 +15,16 @@
 - Read `CONTEXT.md` before changing domain terminology, public/API contracts, database boundaries, import/export formats, or code involving project identifiers.
 - Treat `CONTEXT.md` as the canonical glossary for repository-wide domain language. Prefer its terms exactly, especially `Grid ID` for public identifiers and `Grid Row ID` for internal database keys.
 
+## Agent skills
+
+### Issue tracker
+
+Issues live in GitHub Issues for `QuentinRoy/tardigrade` (uses the `gh` CLI). See `docs/agents/issue-tracker.md`.
+
+### Domain docs
+
+Single-context layout — `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.
+
 ## Agent operating protocol
 
 Before editing:

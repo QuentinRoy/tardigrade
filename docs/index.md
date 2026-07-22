@@ -13,6 +13,7 @@ When adding or moving repository guidance, use the smallest document type that f
 - Chosen implementation designs belong in `docs/design/`.
 - Open-ended audits and option analysis belong in `docs/investigations/`.
 - Temporary execution plans belong in `plans/`.
+- Per-repo agent-skill configuration (e.g. where issues live, triage label names) belongs in `docs/agents/`, referenced from `AGENTS.md`. It's skill config, not durable repository documentation, so it isn't otherwise indexed here.
 
 ## Document lifecycle
 
