@@ -18,14 +18,14 @@ import { type Kysely, sql } from "kysely";
 //    — column renames propagate through composite constraint definitions.
 // 2. Repoint the criterion-grade subtype tables (`check_criterion_grade`,
 //    `number_criterion_grade`, `options_criterion_grade`) off their surrogate
-//    `criterion_grade_id` FK onto `criterion_grade`'s natural composite key
-//    directly, before `criterion_grade.id` is dropped.
+//    `criterion_grade_id` FK, install their natural composite primary keys,
+//    and remove the legacy key columns before `criterion_grade.id` is dropped.
 // 3. Drop `criterion_grade.id`; promote its existing
 //    `UNIQUE(grade_target_row_id, criterion_row_id)` to the primary key.
 //    `grid_row_id` (the ADR 0015 consistency copy) and both composite FKs to
 //    `criterion` and `grade_target` are untouched.
-// 4. Give the criterion-grade subtype tables their final composite primary
-//    key and FK onto `criterion_grade`'s new primary key.
+// 4. Give the criterion-grade subtype tables their final composite FK onto
+//    `criterion_grade`'s new primary key.
 // 5. Repoint `options_criterion_mark` off `options_criterion.id` onto
 //    `options_criterion.criterion_row_id` directly, before
 //    `options_criterion.id` is dropped.
@@ -331,6 +331,13 @@ export async function up(db: Kysely<MigrationDB>): Promise<void> {
 		await db.schema.alterTable(table).dropConstraint(`${table}_pkey`).execute();
 		await db.schema
 			.alterTable(table)
+			.addPrimaryKeyConstraint(`${table}_pkey`, [
+				"grade_target_row_id",
+				"criterion_row_id",
+			])
+			.execute();
+		await db.schema
+			.alterTable(table)
 			.dropColumn("criterion_grade_id")
 			.execute();
 		await db.schema.alterTable(table).dropColumn("id").execute();
@@ -357,18 +364,11 @@ export async function up(db: Kysely<MigrationDB>): Promise<void> {
 	await db.schema.alterTable("criterion_grade").dropColumn("id").execute();
 
 	// --- Step 4: give the criterion-grade subtype tables their final
-	// composite primary key and FK onto criterion_grade's new primary key. ---
+	// composite FK onto criterion_grade's new primary key. ---
 
 	for (const subtype of criterionGradeSubtypes) {
 		const table = `${subtype}_criterion_grade` as const;
 
-		await db.schema
-			.alterTable(table)
-			.addPrimaryKeyConstraint(`${table}_pkey`, [
-				"grade_target_row_id",
-				"criterion_row_id",
-			])
-			.execute();
 		await db.schema
 			.alterTable(table)
 			.addForeignKeyConstraint(
