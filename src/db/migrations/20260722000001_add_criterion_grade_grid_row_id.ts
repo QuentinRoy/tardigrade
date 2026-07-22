@@ -1,4 +1,4 @@
-import { type Kysely, sql } from "kysely";
+import type { Kysely } from "kysely";
 
 // Enforces Part 2 of cross-grid integrity (#144, ADR 0015): a criterion_grade
 // (the cell) may only pair a criterion and a grade_target from the same grid.
@@ -8,25 +8,39 @@ import { type Kysely, sql } from "kysely";
 // app layer. No direct FK to `grid`: validity is guaranteed transitively by
 // the two composite FKs (decision 5 of the plan).
 
-export async function up(db: Kysely<unknown>): Promise<void> {
+type MigrationDB = {
+	criterion_grade: {
+		id: number;
+		criterion_id: number;
+		grade_target_row_id: number;
+		// Nullable across the whole file: the column does not exist until `up`
+		// adds it (nullable, then backfilled and set NOT NULL) and is dropped
+		// again by `down`.
+		grid_row_id: number | null;
+	};
+	criterion: { row_id: number; grid_row_id: number };
+	grade_target: { row_id: number; grid_row_id: number };
+};
+
+export async function up(db: Kysely<MigrationDB>): Promise<void> {
 	// Adding the composite FKs later would otherwise fail with Postgres's
 	// generic "violates foreign key constraint" error. Surface the offending
 	// cells with an actionable message instead, since the app layer could have
 	// persisted a cross-grid pairing before this migration existed.
-	const violations = await sql<{ id: number }>`
-		SELECT cg."id"
-		FROM "criterion_grade" cg
-		INNER JOIN "criterion" c ON c."row_id" = cg."criterion_id"
-		INNER JOIN "grade_target" gt ON gt."row_id" = cg."grade_target_row_id"
-		WHERE c."grid_row_id" <> gt."grid_row_id"
-	`.execute(db);
+	const violations = await db
+		.selectFrom("criterion_grade as cg")
+		.innerJoin("criterion as c", "c.row_id", "cg.criterion_id")
+		.innerJoin("grade_target as gt", "gt.row_id", "cg.grade_target_row_id")
+		.whereRef("c.grid_row_id", "<>", "gt.grid_row_id")
+		.select("cg.id")
+		.execute();
 
-	if (violations.rows.length > 0) {
-		const offendingCriterionGradeIds = violations.rows
+	if (violations.length > 0) {
+		const offendingCriterionGradeIds = violations
 			.map((row) => row.id)
 			.join(", ");
 		throw new Error(
-			`Cannot enforce criterion_grade grid consistency: ${violations.rows.length} ` +
+			`Cannot enforce criterion_grade grid consistency: ${violations.length} ` +
 				`criterion_grade row(s) pair a criterion and a grade_target from ` +
 				`different grids (criterion_grade id: ${offendingCriterionGradeIds}). ` +
 				`Fix these rows by hand before re-running the migration.`,
@@ -41,12 +55,12 @@ export async function up(db: Kysely<unknown>): Promise<void> {
 
 	// Backfilled from the criterion side; the pre-check above guarantees this
 	// agrees with the grade_target side.
-	await sql`
-		UPDATE "criterion_grade"
-		SET "grid_row_id" = c."grid_row_id"
-		FROM "criterion" c
-		WHERE c."row_id" = "criterion_grade"."criterion_id"
-	`.execute(db);
+	await db
+		.updateTable("criterion_grade")
+		.from("criterion")
+		.set((eb) => ({ grid_row_id: eb.ref("criterion.grid_row_id") }))
+		.whereRef("criterion.row_id", "=", "criterion_grade.criterion_id")
+		.execute();
 
 	await db.schema
 		.alterTable("criterion_grade")
@@ -109,7 +123,7 @@ export async function up(db: Kysely<unknown>): Promise<void> {
 		.execute();
 }
 
-export async function down(db: Kysely<unknown>): Promise<void> {
+export async function down(db: Kysely<MigrationDB>): Promise<void> {
 	await db.schema
 		.alterTable("criterion_grade")
 		.dropConstraint("criterion_grade_criterion_id_grid_row_id_fkey")
