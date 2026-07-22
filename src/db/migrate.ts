@@ -163,11 +163,9 @@ async function main() {
 }
 
 main()
+	.finally(() => db.destroy())
 	.catch((error) => {
 		const message = error instanceof Error ? error.message : String(error);
 		writeError(message);
 		process.exitCode = 1;
-	})
-	.finally(async () => {
-		await db.destroy();
 	});
