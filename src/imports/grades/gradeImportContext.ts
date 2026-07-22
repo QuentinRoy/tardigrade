@@ -26,12 +26,19 @@ async function loadCriteriaByColumn(
 			"optionsCriterionMark.optionsCriterionId",
 			"optionsCriterion.id",
 		)
+		.leftJoin(
+			"numberCriterion",
+			"numberCriterion.criterionId",
+			"criterion.rowId",
+		)
 		.where("criterion.gridRowId", "=", gridRowId)
 		.select([
 			"criterion.id",
 			"criterion.kind",
 			"rubric.id as rubricId",
 			"optionsCriterionMark.label",
+			"numberCriterion.minValue",
+			"numberCriterion.maxValue",
 		])
 		.execute();
 
@@ -41,19 +48,47 @@ async function loadCriteriaByColumn(
 		const column = `${row.rubricId}:${row.id}`;
 		const existing = criteriaByColumn.get(column);
 
-		if (existing == null) {
-			criteriaByColumn.set(column, {
-				id: row.id,
-				kind: row.kind,
-				rubricId: row.rubricId,
-				optionsLabels: row.label == null ? [] : [row.label],
-			});
-		} else if (
-			row.label != null &&
-			!existing.optionsLabels.includes(row.label)
-		) {
-			existing.optionsLabels.push(row.label);
+		if (existing != null) {
+			if (
+				existing.kind === "options" &&
+				row.label != null &&
+				!existing.optionsLabels.includes(row.label)
+			) {
+				existing.optionsLabels.push(row.label);
+			}
+			continue;
 		}
+
+		const baseCriterion = { id: row.id, rubricId: row.rubricId };
+		let criterion: GradeImportCriterion;
+
+		switch (row.kind) {
+			case "number":
+				if (row.minValue == null || row.maxValue == null) {
+					throw new Error(
+						`Criterion Subtype Invariant violation: missing numberCriterion row for criterion ${row.id}.`,
+					);
+				}
+				criterion = {
+					...baseCriterion,
+					kind: "number",
+					minValue: row.minValue,
+					maxValue: row.maxValue,
+				};
+				break;
+			case "options":
+				criterion = {
+					...baseCriterion,
+					kind: "options",
+					optionsLabels: row.label == null ? [] : [row.label],
+				};
+				break;
+			case "check":
+				criterion = { ...baseCriterion, kind: "check" };
+				break;
+		}
+
+		criteriaByColumn.set(column, criterion);
 	}
 
 	return criteriaByColumn;

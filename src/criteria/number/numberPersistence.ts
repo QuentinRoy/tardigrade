@@ -6,7 +6,9 @@ import { isNumberValueRangeValid } from "./numberBounds.ts";
 import type {
 	NumberCriterion,
 	NumberCriterionGradeContent,
+	NumberGradeBounds,
 } from "./numberDomain.ts";
+import { checkNumberGradeBounds } from "./numberDomain.ts";
 
 // Server-only persistence adapters for the Number criterion kind: batched
 // definition-subtype upsert, grade-subtype write, and row→config read mapping
@@ -64,8 +66,6 @@ const numberInvalidValueMessage = "Enter a valid value and try again.";
 const numberInvalidValueRangeMessage =
 	"This value range is currently unavailable. Reload and try again. If it still fails, report this issue.";
 
-type NumberBounds = { minValue: number; maxValue: number };
-
 // Pure per-row rule shared by the single-row and batch validators, so both call
 // shapes enforce the exact same policy against a caller-resolved bounds context.
 function checkNumberGradeAgainstBounds({
@@ -73,7 +73,7 @@ function checkNumberGradeAgainstBounds({
 	bounds,
 }: {
 	grade: NumberCriterionGradeContent;
-	bounds: NumberBounds | null;
+	bounds: NumberGradeBounds | null;
 }): GradeValidationResult {
 	if (!Number.isFinite(grade.value)) {
 		return { valid: false, message: numberInvalidValueMessage };
@@ -83,20 +83,7 @@ function checkNumberGradeAgainstBounds({
 		return { valid: false, message: numberInvalidValueRangeMessage };
 	}
 
-	if (grade.value < bounds.minValue) {
-		return {
-			valid: false,
-			message: `Enter a value of at least ${bounds.minValue}.`,
-		};
-	}
-	if (grade.value > bounds.maxValue) {
-		return {
-			valid: false,
-			message: `Enter a value of at most ${bounds.maxValue}.`,
-		};
-	}
-
-	return { valid: true };
+	return checkNumberGradeBounds({ ...grade, ...bounds });
 }
 
 // Batch-resolves every distinct criterion's value range in one query, then
@@ -120,7 +107,7 @@ export async function validateNumberGradesInDb(
 		.select(["criterionId", "minValue", "maxValue"])
 		.execute();
 
-	const boundsByCriterionRowId = new Map<number, NumberBounds | null>(
+	const boundsByCriterionRowId = new Map<number, NumberGradeBounds | null>(
 		numberCriterionRows.map((row) => [
 			row.criterionId,
 			row.minValue != null && row.maxValue != null
