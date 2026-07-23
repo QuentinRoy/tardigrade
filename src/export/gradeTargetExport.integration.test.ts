@@ -36,19 +36,22 @@ async function addSparseGrade(
 		checkCriterionRowId: number;
 	},
 ) {
-	const criterionGrade = await db
+	await db
 		.insertInto("criterionGrade")
 		.values({
 			gridRowId: params.gridRowId,
 			gradeTargetRowId: params.gradeTargetRowId,
-			criterionId: params.checkCriterionRowId,
+			criterionRowId: params.checkCriterionRowId,
 		})
-		.returning("id")
-		.executeTakeFirstOrThrow();
+		.execute();
 
 	await db
 		.insertInto("checkCriterionGrade")
-		.values({ criterionGradeId: criterionGrade.id, passed: false })
+		.values({
+			gradeTargetRowId: params.gradeTargetRowId,
+			criterionRowId: params.checkCriterionRowId,
+			passed: false,
+		})
 		.execute();
 }
 

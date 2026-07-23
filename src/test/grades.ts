@@ -93,7 +93,7 @@ export async function createGradeFixture(
 			{
 				id: checkCriterionId,
 				gridRowId: gridRowId,
-				rubricId: rubric.rowId,
+				rubricRowId: rubric.rowId,
 				kind: "check",
 				position: 0,
 				label: "Check criterion",
@@ -101,7 +101,7 @@ export async function createGradeFixture(
 			{
 				id: optionsCriterionId,
 				gridRowId: gridRowId,
-				rubricId: rubric.rowId,
+				rubricRowId: rubric.rowId,
 				kind: "options",
 				position: 1,
 				label: "Options criterion",
@@ -109,7 +109,7 @@ export async function createGradeFixture(
 			{
 				id: numberCriterionId,
 				gridRowId: gridRowId,
-				rubricId: rubric.rowId,
+				rubricRowId: rubric.rowId,
 				kind: "number",
 				position: 2,
 				label: "Number criterion",
@@ -136,27 +136,26 @@ export async function createGradeFixture(
 
 	await db
 		.insertInto("checkCriterion")
-		.values({ criterionId: checkCriterionRowId, marks: 2 })
+		.values({ criterionRowId: checkCriterionRowId, marks: 2 })
 		.execute();
 
-	const optionsCriterion = await db
+	await db
 		.insertInto("optionsCriterion")
-		.values({ criterionId: optionsCriterionRowId })
-		.returning("id")
-		.executeTakeFirstOrThrow();
+		.values({ criterionRowId: optionsCriterionRowId })
+		.execute();
 
 	await db
 		.insertInto("optionsCriterionMark")
 		.values([
-			{ optionsCriterionId: optionsCriterion.id, label: "A", marks: 3 },
-			{ optionsCriterionId: optionsCriterion.id, label: "B", marks: 1 },
+			{ criterionRowId: optionsCriterionRowId, label: "A", marks: 3 },
+			{ criterionRowId: optionsCriterionRowId, label: "B", marks: 1 },
 		])
 		.execute();
 
 	await db
 		.insertInto("numberCriterion")
 		.values({
-			criterionId: numberCriterionRowId,
+			criterionRowId: numberCriterionRowId,
 			minValue: 0,
 			maxValue: 10,
 			minMarks: 0,

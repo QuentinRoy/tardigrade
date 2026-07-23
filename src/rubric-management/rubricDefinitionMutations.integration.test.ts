@@ -122,11 +122,12 @@ test("saveRubricDefinitionInDb renames rubric id while preserving linked grades"
 	// criterion (and through it to the renamed rubric).
 	const criterionGrade = await db
 		.selectFrom("criterionGrade")
-		.select(["id", "criterionId"])
-		.where("id", "=", fixture.criterionGradeId)
+		.select(["gradeTargetRowId", "criterionRowId"])
+		.where("gradeTargetRowId", "=", fixture.gradeTargetRowId)
+		.where("criterionRowId", "=", fixture.criterionRowId)
 		.executeTakeFirstOrThrow();
 
-	expect(criterionGrade.criterionId).toBe(fixture.criterionRowId);
+	expect(criterionGrade.criterionRowId).toBe(fixture.criterionRowId);
 });
 
 test("saveRubricDefinitionInDb replaces criterion subtype data when criterion kind changes", async () => {
@@ -182,20 +183,20 @@ test("saveRubricDefinitionInDb replaces criterion subtype data when criterion ki
 
 	const checkSubtypeRows = await db
 		.selectFrom("checkCriterion")
-		.select("id")
-		.where("criterionId", "=", fixture.criterionRowId)
+		.select("criterionRowId")
+		.where("criterionRowId", "=", fixture.criterionRowId)
 		.execute();
 
 	const numberSubtypeRows = await db
 		.selectFrom("numberCriterion")
-		.select(["criterionId", "minValue", "maxValue"])
-		.where("criterionId", "=", newCriterion.rowId)
+		.select(["criterionRowId", "minValue", "maxValue"])
+		.where("criterionRowId", "=", newCriterion.rowId)
 		.execute();
 
 	const linkedCriterionGrades = await db
 		.selectFrom("criterionGrade")
-		.select("id")
-		.where("criterionId", "=", fixture.criterionRowId)
+		.select("criterionRowId")
+		.where("criterionRowId", "=", fixture.criterionRowId)
 		.execute();
 
 	expect(checkSubtypeRows).toHaveLength(0);
@@ -268,7 +269,7 @@ test("saveRubricDefinitionInDb removes stale criteria that are no longer referen
 		.selectFrom("criterion")
 		.select("id")
 		.where("gridRowId", "=", grid.rowId)
-		.where("rubricId", "=", fixture.rubricRowId)
+		.where("rubricRowId", "=", fixture.rubricRowId)
 		.execute();
 
 	expect(staleCriterionRows).toHaveLength(0);
@@ -301,8 +302,9 @@ test("deleteRubricDefinitionInDb reports deletion and cascades linked grades", a
 
 	const criterionGradeRows = await db
 		.selectFrom("criterionGrade")
-		.select("id")
-		.where("id", "=", fixture.criterionGradeId)
+		.select("criterionRowId")
+		.where("gradeTargetRowId", "=", fixture.gradeTargetRowId)
+		.where("criterionRowId", "=", fixture.criterionRowId)
 		.execute();
 
 	expect(rubricRows).toHaveLength(0);

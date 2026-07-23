@@ -338,27 +338,31 @@ test("saveCriterionGradeInDb keeps a single untorn value when two writers race t
 	const targetRowId = await gradeTargetRowId(db, fixture.gradeTargetId);
 	const criterionGradeQueryRows = await db
 		.selectFrom("criterionGrade")
-		.select("id")
+		.select("criterionRowId")
 		.where("gradeTargetRowId", "=", targetRowId)
 		.execute();
 	expect(criterionGradeQueryRows).toHaveLength(1);
 
-	const criterionGradeId = criterionGradeQueryRows[0]?.id ?? assertFound();
+	const criterionRowId =
+		criterionGradeQueryRows[0]?.criterionRowId ?? assertFound();
 	const [checkRows, optionsRows, numberRows] = await Promise.all([
 		db
 			.selectFrom("checkCriterionGrade")
 			.select("passed")
-			.where("criterionGradeId", "=", criterionGradeId)
+			.where("gradeTargetRowId", "=", targetRowId)
+			.where("criterionRowId", "=", criterionRowId)
 			.execute(),
 		db
 			.selectFrom("optionsCriterionGrade")
-			.select("id")
-			.where("criterionGradeId", "=", criterionGradeId)
+			.select("criterionRowId")
+			.where("gradeTargetRowId", "=", targetRowId)
+			.where("criterionRowId", "=", criterionRowId)
 			.execute(),
 		db
 			.selectFrom("numberCriterionGrade")
-			.select("id")
-			.where("criterionGradeId", "=", criterionGradeId)
+			.select("criterionRowId")
+			.where("gradeTargetRowId", "=", targetRowId)
+			.where("criterionRowId", "=", criterionRowId)
 			.execute(),
 	]);
 
@@ -420,7 +424,7 @@ test("saveCriterionGradeInDb keeps both criterion grades when two writers race d
 	const targetRowId = await gradeTargetRowId(db, fixture.gradeTargetId);
 	const criterionGradeQueryRows = await db
 		.selectFrom("criterionGrade")
-		.select("id")
+		.select("criterionRowId")
 		.where("gradeTargetRowId", "=", targetRowId)
 		.execute();
 	expect(criterionGradeQueryRows).toHaveLength(2);

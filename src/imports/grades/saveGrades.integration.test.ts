@@ -79,7 +79,7 @@ async function createGradeFixture(
 		.values({
 			id: criterionId,
 			gridRowId,
-			rubricId: rubric.rowId,
+			rubricRowId: rubric.rowId,
 			kind: "check",
 			position: 0,
 			label: "Correctness",
@@ -95,7 +95,7 @@ async function createGradeFixture(
 
 	await db
 		.insertInto("checkCriterion")
-		.values({ criterionId: createdCriterion.rowId, marks: 2, falseMarks: 0 })
+		.values({ criterionRowId: createdCriterion.rowId, marks: 2, falseMarks: 0 })
 		.execute();
 
 	const numberCriterion = await db
@@ -103,7 +103,7 @@ async function createGradeFixture(
 		.values({
 			id: numberCriterionId,
 			gridRowId,
-			rubricId: rubric.rowId,
+			rubricRowId: rubric.rowId,
 			kind: "number",
 			position: 1,
 			label: "Value",
@@ -114,7 +114,7 @@ async function createGradeFixture(
 	await db
 		.insertInto("numberCriterion")
 		.values({
-			criterionId: numberCriterion.rowId,
+			criterionRowId: numberCriterion.rowId,
 			minValue: 0,
 			maxValue: 10,
 			minMarks: 0,
@@ -155,7 +155,7 @@ test("saveGrades does not persist valid rows when a later row fails validation",
 			"gradeTarget.rowId",
 			"criterionGrade.gradeTargetRowId",
 		)
-		.select("criterionGrade.id")
+		.select("criterionGrade.criterionRowId")
 		.where("gradeTarget.gridRowId", "=", grid.rowId)
 		.execute();
 
@@ -188,7 +188,7 @@ test("saveGrades rejects unknown columns before writing any grade", async () => 
 			"gradeTarget.rowId",
 			"criterionGrade.gradeTargetRowId",
 		)
-		.select("criterionGrade.id")
+		.select("criterionGrade.criterionRowId")
 		.where("gradeTarget.gridRowId", "=", grid.rowId)
 		.execute();
 
@@ -228,7 +228,7 @@ test("saveGrades blocks the import when a row has no matching student or group",
 			"gradeTarget.rowId",
 			"criterionGrade.gradeTargetRowId",
 		)
-		.select("criterionGrade.id")
+		.select("criterionGrade.criterionRowId")
 		.where("gradeTarget.gridRowId", "=", grid.rowId)
 		.execute();
 
@@ -299,7 +299,7 @@ test("saveGrades reports an out-of-range Number cell before writing any grade", 
 			"gradeTarget.rowId",
 			"criterionGrade.gradeTargetRowId",
 		)
-		.select("criterionGrade.id")
+		.select("criterionGrade.criterionRowId")
 		.where("gradeTarget.gridRowId", "=", grid.rowId)
 		.execute();
 
@@ -327,7 +327,7 @@ test("saveGrades reports both duplicate Grade Cell locations before writing", as
 			"gradeTarget.rowId",
 			"criterionGrade.gradeTargetRowId",
 		)
-		.select("criterionGrade.id")
+		.select("criterionGrade.criterionRowId")
 		.where("gradeTarget.gridRowId", "=", grid.rowId)
 		.execute();
 
@@ -400,7 +400,7 @@ test("saveGrades links grades only to the target grid even when the same student
 			.values({
 				id: criterionId,
 				gridRowId,
-				rubricId: rubric.rowId,
+				rubricRowId: rubric.rowId,
 				kind: "check",
 				position: 0,
 				label: "Correct",
@@ -413,7 +413,7 @@ test("saveGrades links grades only to the target grid even when the same student
 
 		await db
 			.insertInto("checkCriterion")
-			.values({ criterionId: criterion.rowId, marks: 1, falseMarks: 0 })
+			.values({ criterionRowId: criterion.rowId, marks: 1, falseMarks: 0 })
 			.execute();
 
 		return { rubricId, criterionId };
@@ -443,7 +443,7 @@ test("saveGrades links grades only to the target grid even when the same student
 			"gradeTarget.rowId",
 			"criterionGrade.gradeTargetRowId",
 		)
-		.select("criterionGrade.id")
+		.select("criterionGrade.criterionRowId")
 		.where("gradeTarget.gridRowId", "=", gridA.rowId)
 		.execute();
 
@@ -457,7 +457,7 @@ test("saveGrades links grades only to the target grid even when the same student
 			"gradeTarget.rowId",
 			"criterionGrade.gradeTargetRowId",
 		)
-		.select("criterionGrade.id")
+		.select("criterionGrade.criterionRowId")
 		.where("gradeTarget.gridRowId", "=", gridB.rowId)
 		.execute();
 
@@ -524,7 +524,7 @@ async function createCheckCriterionFixture(
 		.values({
 			id: criterionId,
 			gridRowId,
-			rubricId: rubric.rowId,
+			rubricRowId: rubric.rowId,
 			kind: "check",
 			position: 0,
 			label: "Correctness",
@@ -534,7 +534,7 @@ async function createCheckCriterionFixture(
 
 	await db
 		.insertInto("checkCriterion")
-		.values({ criterionId: criterion.rowId, marks: 1, falseMarks: 0 })
+		.values({ criterionRowId: criterion.rowId, marks: 1, falseMarks: 0 })
 		.execute();
 
 	return { rubricId, criterionId };

@@ -161,7 +161,7 @@ export async function saveRubricDefinitionInDb(
 	let existingCriteriaQuery = db
 		.selectFrom("criterion")
 		.select(["id", "kind", "rowId"])
-		.where("rubricId", "=", persistedRubric.rowId);
+		.where("rubricRowId", "=", persistedRubric.rowId);
 
 	existingCriteriaQuery = existingCriteriaQuery.where(
 		"criterion.gridRowId",
@@ -196,7 +196,7 @@ export async function saveRubricDefinitionInDb(
 				.insertInto("criterion")
 				.values({
 					id: criterion.id,
-					rubricId: persistedRubric.rowId,
+					rubricRowId: persistedRubric.rowId,
 					position: criterion.position,
 					description: criterion.description,
 					label: criterion.label,
@@ -218,7 +218,7 @@ export async function saveRubricDefinitionInDb(
 				.insertInto("criterion")
 				.values({
 					id: criterion.id,
-					rubricId: persistedRubric.rowId,
+					rubricRowId: persistedRubric.rowId,
 					position: criterion.position,
 					description: criterion.description,
 					label: criterion.label,
@@ -233,7 +233,7 @@ export async function saveRubricDefinitionInDb(
 			.updateTable("criterion")
 			.set({
 				id: criterion.id,
-				rubricId: persistedRubric.rowId,
+				rubricRowId: persistedRubric.rowId,
 				position: criterion.position,
 				description: criterion.description,
 				label: criterion.label,

@@ -129,22 +129,46 @@ function streamGradeTargetExportRowsFromDb(
 				"criterionGrade.gradeTargetRowId",
 				"gradeTarget.rowId",
 			)
-			.leftJoin("criterion", "criterion.rowId", "criterionGrade.criterionId")
-			.leftJoin("rubric", "rubric.rowId", "criterion.rubricId")
-			.leftJoin(
-				"checkCriterionGrade",
-				"checkCriterionGrade.criterionGradeId",
-				"criterionGrade.id",
+			.leftJoin("criterion", "criterion.rowId", "criterionGrade.criterionRowId")
+			.leftJoin("rubric", "rubric.rowId", "criterion.rubricRowId")
+			.leftJoin("checkCriterionGrade", (join) =>
+				join
+					.onRef(
+						"checkCriterionGrade.gradeTargetRowId",
+						"=",
+						"criterionGrade.gradeTargetRowId",
+					)
+					.onRef(
+						"checkCriterionGrade.criterionRowId",
+						"=",
+						"criterionGrade.criterionRowId",
+					),
 			)
-			.leftJoin(
-				"optionsCriterionGrade",
-				"optionsCriterionGrade.criterionGradeId",
-				"criterionGrade.id",
+			.leftJoin("optionsCriterionGrade", (join) =>
+				join
+					.onRef(
+						"optionsCriterionGrade.gradeTargetRowId",
+						"=",
+						"criterionGrade.gradeTargetRowId",
+					)
+					.onRef(
+						"optionsCriterionGrade.criterionRowId",
+						"=",
+						"criterionGrade.criterionRowId",
+					),
 			)
-			.leftJoin(
-				"numberCriterionGrade",
-				"numberCriterionGrade.criterionGradeId",
-				"criterionGrade.id",
+			.leftJoin("numberCriterionGrade", (join) =>
+				join
+					.onRef(
+						"numberCriterionGrade.gradeTargetRowId",
+						"=",
+						"criterionGrade.gradeTargetRowId",
+					)
+					.onRef(
+						"numberCriterionGrade.criterionRowId",
+						"=",
+						"criterionGrade.criterionRowId",
+					),
 			)
 			.select([
 				"gradeTarget.rowId as gradeTargetRowId",
@@ -156,10 +180,11 @@ function streamGradeTargetExportRowsFromDb(
 				"optionsCriterionGrade.selectedLabel as optionsSelectedLabel",
 				"numberCriterionGrade.value as numberValue",
 			])
-			// Creation order, not id order — see the ordering note in
-			// gradeTargetExportGrouping.ts.
+			// Grade target creation order, not id order — see the ordering note in
+			// gradeTargetExportGrouping.ts. The secondary key only needs to be
+			// deterministic (grouping keys values by criterion, not by row order).
 			.orderBy("gradeTarget.rowId", "asc")
-			.orderBy("criterionGrade.id", "asc")
+			.orderBy("criterionGrade.criterionRowId", "asc")
 			.stream(200)
 	);
 }

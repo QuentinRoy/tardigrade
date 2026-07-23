@@ -58,7 +58,7 @@ export async function* groupGradeTargetRows(
 		if (row.rubricId == null || row.criterionId == null) continue;
 
 		// A linked criterion always has a kind: `criterion.kind` is `NOT NULL`
-		// and `criterionGrade.criterion_id` is a `NOT NULL` FK, so the criterion
+		// and `criterionGrade.criterionRowId` is a `NOT NULL` FK, so the criterion
 		// join matches whenever a grade exists. A null `kind` here means that
 		// invariant broke — fail loudly rather than silently dropping the grade.
 		if (row.kind == null) {

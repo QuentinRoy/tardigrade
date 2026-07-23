@@ -6,19 +6,15 @@ import type { CriterionRowId } from "./Criterion.ts";
 import type { GradeTargetRowId } from "./GradeTarget.ts";
 import type { GridRowId } from "./Grid.ts";
 
-/** Identifier type for public.criterion_grade */
-export type CriterionGradeId = number;
-
 /** Represents the table public.criterion_grade */
 export interface CriterionGradeTable {
-	id: ColumnType<CriterionGradeId, never, never>;
-	createdAt: ColumnType<Date, Date | string | undefined, Date | string>;
-	updatedAt: ColumnType<Date, Date | string | undefined, Date | string>;
-	criterionId: ColumnType<CriterionRowId, CriterionRowId, CriterionRowId>;
+	criterionRowId: ColumnType<CriterionRowId, CriterionRowId, CriterionRowId>;
 	gradeTargetRowId: ColumnType<
 		GradeTargetRowId,
 		GradeTargetRowId,
 		GradeTargetRowId
 	>;
+	createdAt: ColumnType<Date, Date | string | undefined, Date | string>;
+	updatedAt: ColumnType<Date, Date | string | undefined, Date | string>;
 	gridRowId: ColumnType<GridRowId, GridRowId, GridRowId>;
 }

@@ -4,7 +4,6 @@ import { buildTestId } from "./dbIntegration.ts";
 
 export type GradedCheckFixture = CheckRubricFixture & {
 	gradeTargetRowId: number;
-	criterionGradeId: number;
 };
 
 export type CheckRubricFixture = {
@@ -35,7 +34,7 @@ export async function createCheckRubricFixture(
 		.values({
 			gridRowId,
 			id: criterionId,
-			rubricId: rubric.rowId,
+			rubricRowId: rubric.rowId,
 			kind: "check",
 			position: 0,
 			label: "Correct",
@@ -45,7 +44,7 @@ export async function createCheckRubricFixture(
 
 	await db
 		.insertInto("checkCriterion")
-		.values({ criterionId: criterion.rowId, marks: 2, falseMarks: 0 })
+		.values({ criterionRowId: criterion.rowId, marks: 2, falseMarks: 0 })
 		.execute();
 
 	return {
@@ -85,26 +84,25 @@ export async function createGradedCheckRubricFixture(
 		.values({ gradeTargetRowId: target.rowId, studentRowId: student.rowId })
 		.execute();
 
-	const criterionGrade = await db
+	await db
 		.insertInto("criterionGrade")
 		.values({
 			gradeTargetRowId: target.rowId,
-			criterionId: rubric.criterionRowId,
+			criterionRowId: rubric.criterionRowId,
 			gridRowId,
 		})
-		.returning("id")
-		.executeTakeFirstOrThrow();
+		.execute();
 
 	await db
 		.insertInto("checkCriterionGrade")
-		.values({ criterionGradeId: criterionGrade.id, passed: true })
+		.values({
+			gradeTargetRowId: target.rowId,
+			criterionRowId: rubric.criterionRowId,
+			passed: true,
+		})
 		.execute();
 
-	return {
-		...rubric,
-		gradeTargetRowId: target.rowId,
-		criterionGradeId: criterionGrade.id,
-	};
+	return { ...rubric, gradeTargetRowId: target.rowId };
 }
 
 export async function createRubric(
@@ -154,7 +152,7 @@ export async function createOptionsRubricFixture(
 		.values({
 			gridRowId,
 			id: criterionId,
-			rubricId: rubric.rowId,
+			rubricRowId: rubric.rowId,
 			kind: "options",
 			position: 0,
 			label: "Options",
@@ -162,17 +160,16 @@ export async function createOptionsRubricFixture(
 		.returning("rowId")
 		.executeTakeFirstOrThrow();
 
-	const optionsCriterion = await db
+	await db
 		.insertInto("optionsCriterion")
-		.values({ criterionId: criterion.rowId })
-		.returning("id")
-		.executeTakeFirstOrThrow();
+		.values({ criterionRowId: criterion.rowId })
+		.execute();
 
 	await db
 		.insertInto("optionsCriterionMark")
 		.values([
-			{ optionsCriterionId: optionsCriterion.id, label: "A", marks: 4 },
-			{ optionsCriterionId: optionsCriterion.id, label: "B", marks: 2 },
+			{ criterionRowId: criterion.rowId, label: "A", marks: 4 },
+			{ criterionRowId: criterion.rowId, label: "B", marks: 2 },
 		])
 		.execute();
 
