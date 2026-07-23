@@ -2,7 +2,7 @@
 
 - **Status:** Accepted
 - **Created:** 2026-07-22
-- **Related:** [cross-grid integrity investigation](../investigations/2026-07-22-cross-grid-integrity-enforcement.md), [execution plan](../../plans/2026-07-22-cross-grid-integrity-enforcement.md), #144, [ADR 0016](0016-collapse-internal-surrogate-keys-onto-natural-keys.md) (renamed `rubric_id`/`criterion_id` below to `rubric_row_id`/`criterion_row_id`)
+- **Related:** [cross-grid integrity investigation](../investigations/2026-07-22-cross-grid-integrity-enforcement.md), [execution plan](../../plans/2026-07-22-cross-grid-integrity-enforcement.md), #144, [later key normalization (ADR 0016)](0016-collapse-internal-surrogate-keys-onto-natural-keys.md)
 
 ## Context
 

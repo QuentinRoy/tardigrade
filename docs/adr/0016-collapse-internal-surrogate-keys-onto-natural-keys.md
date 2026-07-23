@@ -1,123 +1,76 @@
-# Collapse internal-only surrogate keys onto natural keys
+# Use relationship keys for internal-only criterion and grade rows
 
 - **Status:** Accepted
 - **Created:** 2026-07-22
-- **Related:** [migration](../../src/db/migrations/20260722000002_normalize_internal_row_ids.ts), ADR 0015, #322, #324
+- **Related:** [ADR 0015](0015-enforce-cross-grid-integrity-with-composite-foreign-keys.md), [domain identifier glossary](../../CONTEXT.md), #322, #324
 
 ## Context
 
-Several internal-only persistence tables still carried a Prisma-era `id`
-surrogate that nothing ever addressed directly:
+The data model distinguishes stable public identifiers (`id`) from generated,
+internal database keys (`row_id`). Several internal-only tables predated that
+convention and still had generated `id` columns.
 
-- `check_criterion`, `number_criterion`, `options_criterion` — each row is
-  identified 1:1 by its owning `criterion_id`; no other row ever referenced
-  the surrogate `id`, only `criterion_id`.
-- `criterion_grade` (the grade cell) — already uniquely identified by
-  `(grade_target_row_id, criterion_id)`; its `id` existed only so the three
-  criterion-grade subtype tables (`check_criterion_grade`,
-  `number_criterion_grade`, `options_criterion_grade`) had something to point
-  at.
-- Those three subtype tables — each row is identified 1:1 by the
-  `criterion_grade_id` it belongs to.
-- `options_criterion_mark` — kept its surrogate (renamed `id` → `row_id`)
-  because label rows are a genuine 1:many child of a criterion, not a 1:1
-  config row.
+Most of those columns came from Prisma's requirement that every model have a
+single-column primary key. They did not represent independent identities:
 
-Separately, every internal foreign key still named its column `_id` rather
-than `_row_id` (`criterion.rubric_id`, `criterion_grade.criterion_id`,
-`options_criterion_mark.options_criterion_id`, …), inconsistent with the
-`row_id`/`_row_id` convention already established for `grid`, `rubric`,
-`criterion`, `grade_target`, and `student` (see CONTEXT.md's Grid Row ID
-entry) and documented as the target end-state by #322.
+- each criterion configuration row belongs one-to-one to a Criterion;
+- each Criterion Grade is uniquely identified by its Grade Target and
+  Criterion;
+- each criterion-grade subtype row belongs one-to-one to that Criterion Grade.
 
-Both problems compound: a surrogate that exists only to be pointed at by a
-column named `_id` reads as if it might carry independent meaning, when it
-doesn't. Finishing the rename without collapsing the redundant surrogates
-would still leave call-sites doing a needless two-hop lookup (insert parent,
-read back its `id`, use that `id` to insert children) purely to satisfy a key
-the schema didn't need.
+Keeping a separate surrogate for those rows obscured their actual identity and
+forced child rows to reference a generated value with no meaning outside the
+relationship. It also left foreign-key columns containing internal row keys
+named with `_id`, which made them look like public identifiers.
+
+`options_criterion_mark` is different: one options Criterion can have many mark
+rows, and its user-editable label is not a suitable primary key. A generated
+internal key remains useful there.
 
 ## Decision
 
-One migration, `20260722000002_normalize_internal_row_ids`, does both at once
-since the column renames and the surrogate collapses touch the same rows and
-splitting them would leave an intermediate schema nothing should ever run
-against:
+Use the existing relationship keys as the primary keys of these internal-only
+rows:
 
-- Rename every internal FK column from `_id` to `_row_id`: `criterion.rubric_id`
-  → `rubric_row_id`, `criterion_grade.criterion_id` → `criterion_row_id`, and
-  the equivalent column on `check_criterion` / `number_criterion` /
-  `options_criterion`. Kysely `renameColumn` propagates through the existing
-  ADR 0015 composite FKs and unique constraints without a drop/recreate.
-- Collapse `check_criterion` / `number_criterion` / `options_criterion` onto
-  their already-`UNIQUE` `criterion_row_id`: drop the surrogate `id`, promote
-  `criterion_row_id` to the primary key.
-- Collapse `criterion_grade` onto its already-`UNIQUE`
-  `(grade_target_row_id, criterion_row_id)`: drop the surrogate `id`, promote
-  that pair to the primary key. `grid_row_id` (the ADR 0015 consistency copy)
-  and both composite FKs to `criterion` and `grade_target` are untouched.
-- Repoint `check_criterion_grade` / `number_criterion_grade` /
-  `options_criterion_grade` off the (now-gone) `criterion_grade_id` onto the
-  same `(grade_target_row_id, criterion_row_id)` composite directly, with a
-  composite FK onto `criterion_grade`'s new primary key.
-- Repoint `options_criterion_mark` off `options_criterion.id` onto
-  `options_criterion.criterion_row_id` directly (its FK target after the
-  collapse above), and rename its own surrogate `id` → `row_id` — it keeps a
-  surrogate because a criterion can have many marks, unlike the 1:1 tables
-  above.
+- `check_criterion`, `number_criterion`, and `options_criterion` are keyed by
+  `criterion_row_id`;
+- `criterion_grade` is keyed by
+  `(grade_target_row_id, criterion_row_id)`;
+- `check_criterion_grade`, `number_criterion_grade`, and
+  `options_criterion_grade` use that same composite key.
 
-Application code follows the same collapse: writing a batch of criterion
-grades no longer inserts the `criterion_grade` parent, reads back its `id`,
-and threads that `id` into the subtype writes — the (Grade Target, Criterion)
-pair the caller already has is the subtype tables' key, so
-`upsertCriterionGradeParents` just upserts the parent row and the subtype
-writers use that same pair directly (`src/grade-persistence/gradeMutations.ts`).
-The two trigger functions that previously joined through `criterion_grade.id`
-(`enforce_number_criterion_value_bounds`, `enforce_options_criterion_label_valid`)
-now look up their sibling subtype-config row directly by `criterion_row_id`,
-one join shorter than before.
+`options_criterion_mark` keeps a generated `row_id` because it has independent
+one-to-many row identity and no suitable immutable natural key.
 
-#144 / ADR 0015 invariants are preserved exactly: no `grid_row_id` column is
-dropped, neither composite FK is downgraded to single-column, and neither
-`UNIQUE(row_id, grid_row_id)` on `rubric` / `criterion` / `grade_target` is
-touched — a cross-grid criterion/rubric or criterion/grade-target pairing
-stays structurally unrepresentable.
+Every foreign-key column that stores an internal row key uses the `_row_id`
+suffix. The `criterion_grade.grid_row_id` consistency copy and the composite
+foreign keys established by ADR 0015 remain part of the model; changing the
+grade cell's primary key does not weaken cross-grid integrity.
+
+This decision is scoped to these criterion and grade tables. It is not a
+general ban on surrogate keys: an internal row should keep a `row_id` when it
+has independent identity or lacks a suitable stable natural key.
 
 ## Alternatives considered
 
-- **Rename `_id` → `_row_id` without collapsing the surrogates** — the
-  narrower reading of #322. Rejected: it would leave `check_criterion.id`,
-  `criterion_grade.id`, and the three subtype-grade tables' `id` in place
-  as pure dead weight — nothing addresses them, they exist only because the
-  Prisma-era schema gave every table a surrogate by default — while the
-  column rename alone doesn't remove the two-hop insert-then-read-back
-  pattern their FKs forced on every writer.
-- **Collapse the surrogates but keep the composite FK columns named `_id`** —
-  rejected as leaving the naming half-finished for no reason; the rename is
-  free (no data transform, no extra migration step) once the column is being
-  touched for the collapse anyway.
+- **Keep every surrogate and only rename it to `row_id`** — rejected because it
+  would preserve meaningless identities and the extra indirection they impose.
+  Consistent naming alone would not make the keys useful.
+- **Key options marks by Criterion and label** — rejected because labels are
+  user-editable data. Changing a label should not change a row's identity or
+  every foreign key that may refer to it.
 
 ## Consequences
 
-- Every internal-only table's generated surrogate is now named `row_id` (or
-  removed entirely where the table collapsed onto a natural/composite key);
-  every `RowId`-holding foreign key column is suffixed `_row_id`.
-- `saveCriterionGradesInDb` no longer needs the `criterion_grade` parent's id
-  read back after insert: the subtype tables key off the same
-  `(grade_target_row_id, criterion_row_id)` pair the caller already resolved,
-  removing a lookup map and a `resolveParentId` step
-  (`src/grade-persistence/gradeMutations.ts`).
-- `upsertOptionsSubtypeRowsInDb` and the `options` grade-validation query no
-  longer hop through `options_criterion.id`: `options_criterion_mark` targets
-  `options_criterion.criterion_row_id` directly
-  (`src/criteria/options/optionsPersistence.ts`).
-- Every DB-facing call-site that read or wrote the removed `id`/`_id` columns
-  was updated in the same change (persistence, import contexts, results and
-  export loaders, grade completion, rubric management) plus their integration
-  tests and fixtures. `src/db/constraints.integration.test.ts` renamed its
-  constraint-name literals to match, plus rebuilt the fixtures and assertions
-  that previously keyed off `criterion_grade.id` / `criterion_grade_id` — that
-  surrogate no longer exists, so those spots had to move onto the
-  `(grade_target_row_id, criterion_row_id)` composite key. Every rebuilt
-  assertion still checks the same behavior (bounds/label rejection, cascade
-  delete, rollback-on-failure); none of the tested invariants changed.
+- Primary keys now express the one-to-one and association relationships already
+  present in the model, and redundant generated values disappear.
+- Criterion-grade subtype rows carry a two-column key instead of one surrogate
+  value. Foreign keys and joins are wider, but writers already know both values
+  and no longer need to retrieve an intermediate generated key.
+- Internal key names consistently communicate the public-versus-persistence
+  boundary defined in the domain glossary.
+- Tables that later gain independent identity or lose a stable natural key may
+  need a generated `row_id`; key choice remains driven by identity and
+  cardinality.
+- Public identifiers, domain concepts, and import/export contracts do not
+  change.

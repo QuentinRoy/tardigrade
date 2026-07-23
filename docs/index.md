@@ -74,7 +74,7 @@ Short records of durable architecture decisions.
 - [0013 Organise each criterion kind as a vertical module under `src/criteria`](adr/0013-criterion-kind-vertical-modules.md)
 - [0014 A grade target is a set of students; individual vs group is presentation-only](adr/0014-unify-grade-targets-as-student-sets.md)
 - [0015 Enforce cross-grid integrity with composite foreign keys](adr/0015-enforce-cross-grid-integrity-with-composite-foreign-keys.md)
-- [0016 Collapse internal-only surrogate keys onto natural keys](adr/0016-collapse-internal-surrogate-keys-onto-natural-keys.md)
+- [0016 Use relationship keys for internal-only criterion and grade rows](adr/0016-collapse-internal-surrogate-keys-onto-natural-keys.md)
 - Add new ADRs under `docs/adr/`.
 
 ## Designs
