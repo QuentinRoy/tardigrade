@@ -124,6 +124,7 @@ test("saveRubricDefinitionInDb renames rubric id while preserving linked grades"
 		.selectFrom("criterionGrade")
 		.select(["gradeTargetRowId", "criterionRowId"])
 		.where("gradeTargetRowId", "=", fixture.gradeTargetRowId)
+		.where("criterionRowId", "=", fixture.criterionRowId)
 		.executeTakeFirstOrThrow();
 
 	expect(criterionGrade.criterionRowId).toBe(fixture.criterionRowId);
