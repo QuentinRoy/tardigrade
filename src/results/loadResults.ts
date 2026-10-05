@@ -34,7 +34,7 @@ export async function loadCriterionGradeRecordsFromDb(
 ): Promise<ResultsGradeRecord[]> {
 	return db
 		.selectFrom("criterionGrade")
-		.innerJoin("criterion", "criterion.rowId", "criterionGrade.criterionId")
+		.innerJoin("criterion", "criterion.rowId", "criterionGrade.criterionRowId")
 		.innerJoin(
 			"gradeTarget",
 			"gradeTarget.rowId",
@@ -45,20 +45,44 @@ export async function loadCriterionGradeRecordsFromDb(
 			"in",
 			db.selectFrom("grid").select("rowId").where("id", "=", gridId),
 		)
-		.leftJoin(
-			"checkCriterionGrade",
-			"checkCriterionGrade.criterionGradeId",
-			"criterionGrade.id",
+		.leftJoin("checkCriterionGrade", (join) =>
+			join
+				.onRef(
+					"checkCriterionGrade.gradeTargetRowId",
+					"=",
+					"criterionGrade.gradeTargetRowId",
+				)
+				.onRef(
+					"checkCriterionGrade.criterionRowId",
+					"=",
+					"criterionGrade.criterionRowId",
+				),
 		)
-		.leftJoin(
-			"optionsCriterionGrade",
-			"optionsCriterionGrade.criterionGradeId",
-			"criterionGrade.id",
+		.leftJoin("optionsCriterionGrade", (join) =>
+			join
+				.onRef(
+					"optionsCriterionGrade.gradeTargetRowId",
+					"=",
+					"criterionGrade.gradeTargetRowId",
+				)
+				.onRef(
+					"optionsCriterionGrade.criterionRowId",
+					"=",
+					"criterionGrade.criterionRowId",
+				),
 		)
-		.leftJoin(
-			"numberCriterionGrade",
-			"numberCriterionGrade.criterionGradeId",
-			"criterionGrade.id",
+		.leftJoin("numberCriterionGrade", (join) =>
+			join
+				.onRef(
+					"numberCriterionGrade.gradeTargetRowId",
+					"=",
+					"criterionGrade.gradeTargetRowId",
+				)
+				.onRef(
+					"numberCriterionGrade.criterionRowId",
+					"=",
+					"criterionGrade.criterionRowId",
+				),
 		)
 		.select([
 			"gradeTarget.id as gradeTargetId",

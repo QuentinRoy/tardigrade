@@ -22,7 +22,8 @@ export type OptionsSubtypeRow = { criterionRowId: number; marks: OptionsMarks };
 // keyed by label, so re-saving with a label removed must delete the row that
 // label left behind. Marks are therefore reconciled, not just upserted: every
 // mark row not named by the incoming marks is stale and deleted before the
-// insert.
+// insert. `optionsCriterion` is keyed directly by `criterionRowId`, so
+// `optionsCriterionMark` targets it without an intermediate id lookup.
 export async function upsertOptionsSubtypeRowsInDb(
 	db: Transaction<Database>,
 	rows: OptionsSubtypeRow[],
@@ -33,76 +34,44 @@ export async function upsertOptionsSubtypeRowsInDb(
 
 	await db
 		.insertInto("optionsCriterion")
-		.values(rows.map((row) => ({ criterionId: row.criterionRowId })))
-		.onConflict((conflict) => conflict.column("criterionId").doNothing())
+		.values(rows.map((row) => ({ criterionRowId: row.criterionRowId })))
+		.onConflict((conflict) => conflict.column("criterionRowId").doNothing())
 		.execute();
 
-	const optionsCriterionRows = await db
-		.selectFrom("optionsCriterion")
-		.select(["id", "criterionId"])
-		.where(
-			"criterionId",
-			"in",
-			rows.map((row) => row.criterionRowId),
-		)
+	const criterionRowIds = rows.map((row) => row.criterionRowId);
+
+	const existingOptionsValues = await db
+		.selectFrom("optionsCriterionMark")
+		.select(["rowId", "criterionRowId", "label"])
+		.where("criterionRowId", "in", criterionRowIds)
 		.execute();
 
-	const optionsCriterionIdByCriterionId = new Map(
-		optionsCriterionRows.map((row) => [row.criterionId, row.id]),
-	);
-	const optionsCriterionIds = optionsCriterionRows.map((row) => row.id);
-
-	const existingOptionsValues =
-		optionsCriterionIds.length === 0
-			? []
-			: await db
-					.selectFrom("optionsCriterionMark")
-					.select(["id", "optionsCriterionId", "label"])
-					.where("optionsCriterionId", "in", optionsCriterionIds)
-					.execute();
-
-	// Rows whose `criterionRowId` didn't resolve to an `optionsCriterionId`
-	// (the just-inserted-but-not-yet-read-back case) are dropped from both the
-	// reconciliation and the insert below.
-	const resolvedRows = rows.flatMap((row) => {
-		const optionsCriterionId = optionsCriterionIdByCriterionId.get(
-			row.criterionRowId,
-		);
-		return optionsCriterionId == null
-			? []
-			: [{ optionsCriterionId, marks: row.marks }];
-	});
-
-	const validLabelsByCriterionId = new Map(
-		resolvedRows.map(({ optionsCriterionId, marks }) => [
-			optionsCriterionId,
-			new Set(Object.keys(marks)),
-		]),
+	const validLabelsByCriterionRowId = new Map(
+		rows.map((row) => [row.criterionRowId, new Set(Object.keys(row.marks))]),
 	);
 
-	const staleIds = existingOptionsValues
+	const staleRowIds = existingOptionsValues
 		.filter(
 			(value) =>
-				!validLabelsByCriterionId
-					.get(value.optionsCriterionId)
+				!validLabelsByCriterionRowId
+					.get(value.criterionRowId)
 					?.has(value.label),
 		)
-		.map((value) => value.id);
+		.map((value) => value.rowId);
 
-	if (staleIds.length > 0) {
+	if (staleRowIds.length > 0) {
 		await db
 			.deleteFrom("optionsCriterionMark")
-			.where("id", "in", staleIds)
+			.where("rowId", "in", staleRowIds)
 			.execute();
 	}
 
-	const optionsValueRows = resolvedRows.flatMap(
-		({ optionsCriterionId, marks }) =>
-			Object.entries(marks).map(([label, markValue]) => ({
-				optionsCriterionId,
-				label,
-				marks: markValue,
-			})),
+	const optionsValueRows = rows.flatMap((row) =>
+		Object.entries(row.marks).map(([label, markValue]) => ({
+			criterionRowId: row.criterionRowId,
+			label,
+			marks: markValue,
+		})),
 	);
 
 	if (optionsValueRows.length > 0) {
@@ -111,7 +80,7 @@ export async function upsertOptionsSubtypeRowsInDb(
 			.values(optionsValueRows)
 			.onConflict((conflict) =>
 				conflict
-					.columns(["optionsCriterionId", "label"])
+					.columns(["criterionRowId", "label"])
 					.doUpdateSet((eb) => ({ marks: eb.ref("excluded.marks") })),
 			)
 			.execute();
@@ -156,22 +125,20 @@ export async function validateOptionsGradesInDb(
 
 	const optionsLabelRows = await db
 		.selectFrom("optionsCriterionMark")
-		.innerJoin(
-			"optionsCriterion",
-			"optionsCriterion.id",
-			"optionsCriterionMark.optionsCriterionId",
-		)
-		.where("optionsCriterion.criterionId", "in", [
+		.where("criterionRowId", "in", [
 			...new Set(rows.map((row) => row.criterionRowId)),
 		])
-		.select(["optionsCriterion.criterionId", "optionsCriterionMark.label"])
+		.select(["criterionRowId", "label"])
 		.execute();
 
 	const allowedLabelsByCriterionRowId = new Map<number, Set<string>>();
 	for (const row of optionsLabelRows) {
-		const labels = allowedLabelsByCriterionRowId.get(row.criterionId);
+		const labels = allowedLabelsByCriterionRowId.get(row.criterionRowId);
 		if (labels == null) {
-			allowedLabelsByCriterionRowId.set(row.criterionId, new Set([row.label]));
+			allowedLabelsByCriterionRowId.set(
+				row.criterionRowId,
+				new Set([row.label]),
+			);
 		} else {
 			labels.add(row.label);
 		}
@@ -206,7 +173,11 @@ export async function validateOptionsGradeInDb(
 // rows exist.
 export async function writeOptionsGradesInDb(
 	db: Transaction<Database>,
-	rows: { criterionGradeId: number; grade: OptionsCriterionGradeContent }[],
+	rows: {
+		gradeTargetRowId: number;
+		criterionRowId: number;
+		grade: OptionsCriterionGradeContent;
+	}[],
 ): Promise<void> {
 	if (rows.length === 0) {
 		return;
@@ -216,13 +187,14 @@ export async function writeOptionsGradesInDb(
 		.insertInto("optionsCriterionGrade")
 		.values(
 			rows.map((row) => ({
-				criterionGradeId: row.criterionGradeId,
+				gradeTargetRowId: row.gradeTargetRowId,
+				criterionRowId: row.criterionRowId,
 				selectedLabel: row.grade.selectedLabel,
 			})),
 		)
 		.onConflict((conflict) =>
 			conflict
-				.column("criterionGradeId")
+				.columns(["gradeTargetRowId", "criterionRowId"])
 				.doUpdateSet((eb) => ({
 					selectedLabel: eb.ref("excluded.selectedLabel"),
 				})),

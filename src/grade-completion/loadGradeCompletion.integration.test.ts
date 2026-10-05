@@ -97,7 +97,7 @@ async function createRubric(
 		.values({
 			id: criterionId,
 			gridRowId: gridRowId,
-			rubricId: rubric.rowId,
+			rubricRowId: rubric.rowId,
 			kind: "check",
 			position: 0,
 			label: "Correct",
@@ -110,7 +110,7 @@ async function createRubric(
 
 	await db
 		.insertInto("checkCriterion")
-		.values({ criterionId: criterion.rowId, marks: 1, falseMarks: 0 })
+		.values({ criterionRowId: criterion.rowId, marks: 1, falseMarks: 0 })
 		.execute();
 
 	return { rubricRowId: rubric.rowId, criterionRowId: criterion.rowId };
@@ -124,15 +124,14 @@ async function addGrade(
 		criterionRowId,
 	}: { gridRowId: number; gradeTargetRowId: number; criterionRowId: number },
 ): Promise<void> {
-	const criterionGrade = await db
+	await db
 		.insertInto("criterionGrade")
-		.values({ gridRowId, gradeTargetRowId, criterionId: criterionRowId })
-		.returning("id")
-		.executeTakeFirstOrThrow();
+		.values({ gridRowId, gradeTargetRowId, criterionRowId })
+		.execute();
 
 	await db
 		.insertInto("checkCriterionGrade")
-		.values({ criterionGradeId: criterionGrade.id, passed: true })
+		.values({ gradeTargetRowId, criterionRowId, passed: true })
 		.execute();
 }
 

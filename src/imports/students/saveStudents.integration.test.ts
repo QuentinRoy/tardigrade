@@ -86,16 +86,16 @@ async function loadTargetForStudent(
 	};
 }
 
-// Attaches a single check-criterion grade to a target, returning the
-// criterion_grade row id so a test can assert whether deleting the target
-// cascade-removes the grade.
+// Attaches a single check-criterion grade to a target, returning its
+// (Grade Target, Criterion) composite key so a test can assert whether
+// deleting the target cascade-removes the grade.
 async function attachCheckGrade(
 	db: Kysely<Database>,
 	{
 		gridRowId,
 		gradeTargetRowId,
 	}: { gridRowId: number; gradeTargetRowId: number },
-): Promise<number> {
+): Promise<{ gradeTargetRowId: number; criterionRowId: number }> {
 	const rubric = await db
 		.insertInto("rubric")
 		.values({
@@ -112,7 +112,7 @@ async function attachCheckGrade(
 		.values({
 			gridRowId,
 			id: `criterion-${gradeTargetRowId}`,
-			rubricId: rubric.rowId,
+			rubricRowId: rubric.rowId,
 			kind: "check",
 			position: 0,
 			label: "Criterion",
@@ -122,21 +122,20 @@ async function attachCheckGrade(
 
 	await db
 		.insertInto("checkCriterion")
-		.values({ criterionId: criterion.rowId, marks: 2 })
+		.values({ criterionRowId: criterion.rowId, marks: 2 })
 		.execute();
 
-	const grade = await db
+	await db
 		.insertInto("criterionGrade")
-		.values({ gridRowId, criterionId: criterion.rowId, gradeTargetRowId })
-		.returning("id")
-		.executeTakeFirstOrThrow();
+		.values({ gridRowId, criterionRowId: criterion.rowId, gradeTargetRowId })
+		.execute();
 
 	await db
 		.insertInto("checkCriterionGrade")
-		.values({ criterionGradeId: grade.id, passed: true })
+		.values({ gradeTargetRowId, criterionRowId: criterion.rowId, passed: true })
 		.execute();
 
-	return grade.id;
+	return { gradeTargetRowId, criterionRowId: criterion.rowId };
 }
 
 test("saveStudents keeps imported student ids and group names isolated per grid", async () => {
@@ -351,7 +350,7 @@ test("saveStudents moving a solo student into a group deletes the vacated indivi
 	// Grade the solo student on their individual target. Reassignment must drop
 	// this grade along with the vacated target (ADR 0014), so the test asserts
 	// that destructive consequence rather than only the target's disappearance.
-	const gradeId = await attachCheckGrade(db, {
+	const grade = await attachCheckGrade(db, {
 		gridRowId: grid.rowId,
 		gradeTargetRowId: soloTargetRow.rowId,
 	});
@@ -391,8 +390,9 @@ test("saveStudents moving a solo student into a group deletes the vacated indivi
 	// ...and the grade attached to it was cascade-deleted with the target.
 	const remainingGrades = await db
 		.selectFrom("criterionGrade")
-		.select("id")
-		.where("id", "=", gradeId)
+		.select("criterionRowId")
+		.where("gradeTargetRowId", "=", grade.gradeTargetRowId)
+		.where("criterionRowId", "=", grade.criterionRowId)
 		.execute();
 	expect(remainingGrades).toHaveLength(0);
 });

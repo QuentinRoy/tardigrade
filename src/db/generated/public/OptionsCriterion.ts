@@ -4,11 +4,7 @@
 import type { ColumnType } from "kysely";
 import type { CriterionRowId } from "./Criterion.ts";
 
-/** Identifier type for public.options_criterion */
-export type OptionsCriterionId = number;
-
 /** Represents the table public.options_criterion */
 export interface OptionsCriterionTable {
-	id: ColumnType<OptionsCriterionId, never, never>;
-	criterionId: ColumnType<CriterionRowId, CriterionRowId, CriterionRowId>;
+	criterionRowId: ColumnType<CriterionRowId, CriterionRowId, CriterionRowId>;
 }

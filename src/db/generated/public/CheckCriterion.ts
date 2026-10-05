@@ -4,13 +4,9 @@
 import type { ColumnType } from "kysely";
 import type { CriterionRowId } from "./Criterion.ts";
 
-/** Identifier type for public.check_criterion */
-export type CheckCriterionId = number;
-
 /** Represents the table public.check_criterion */
 export interface CheckCriterionTable {
-	id: ColumnType<CheckCriterionId, never, never>;
+	criterionRowId: ColumnType<CriterionRowId, CriterionRowId, CriterionRowId>;
 	marks: ColumnType<number, number, number>;
 	falseMarks: ColumnType<number, number | undefined, number>;
-	criterionId: ColumnType<CriterionRowId, CriterionRowId, CriterionRowId>;
 }

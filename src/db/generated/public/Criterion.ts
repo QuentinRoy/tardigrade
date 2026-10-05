@@ -20,5 +20,5 @@ export interface CriterionTable {
 	createdAt: ColumnType<Date, Date | string | undefined, Date | string>;
 	updatedAt: ColumnType<Date, Date | string | undefined, Date | string>;
 	gridRowId: ColumnType<GridRowId, GridRowId, GridRowId>;
-	rubricId: ColumnType<RubricRowId, RubricRowId, RubricRowId>;
+	rubricRowId: ColumnType<RubricRowId, RubricRowId, RubricRowId>;
 }

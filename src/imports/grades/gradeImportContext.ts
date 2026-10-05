@@ -15,20 +15,20 @@ async function loadCriteriaByColumn(
 ): Promise<Map<string, GradeImportCriterion>> {
 	const criterionRows = await db
 		.selectFrom("criterion")
-		.innerJoin("rubric", "rubric.rowId", "criterion.rubricId")
+		.innerJoin("rubric", "rubric.rowId", "criterion.rubricRowId")
 		.leftJoin(
 			"optionsCriterion",
-			"optionsCriterion.criterionId",
+			"optionsCriterion.criterionRowId",
 			"criterion.rowId",
 		)
 		.leftJoin(
 			"optionsCriterionMark",
-			"optionsCriterionMark.optionsCriterionId",
-			"optionsCriterion.id",
+			"optionsCriterionMark.criterionRowId",
+			"optionsCriterion.criterionRowId",
 		)
 		.leftJoin(
 			"numberCriterion",
-			"numberCriterion.criterionId",
+			"numberCriterion.criterionRowId",
 			"criterion.rowId",
 		)
 		.where("criterion.gridRowId", "=", gridRowId)
@@ -208,7 +208,7 @@ async function loadGradedCriterionKeys(
 			"gradeTarget.rowId",
 			"criterionGrade.gradeTargetRowId",
 		)
-		.innerJoin("criterion", "criterion.rowId", "criterionGrade.criterionId")
+		.innerJoin("criterion", "criterion.rowId", "criterionGrade.criterionRowId")
 		.where("gradeTarget.gridRowId", "=", gridRowId)
 		.select(["gradeTarget.id as targetId", "criterion.id as criterionId"])
 		.execute();

@@ -96,7 +96,7 @@ export async function loadRubricRowsFromDb(
 				.execute(),
 			db
 				.selectFrom("criterion")
-				.innerJoin("rubric", "rubric.rowId", "criterion.rubricId")
+				.innerJoin("rubric", "rubric.rowId", "criterion.rubricRowId")
 				.where("criterion.gridRowId", "=", gridRowId)
 				.select([
 					"criterion.id as id",
@@ -110,7 +110,11 @@ export async function loadRubricRowsFromDb(
 				.execute(),
 			db
 				.selectFrom("checkCriterion")
-				.innerJoin("criterion", "criterion.rowId", "checkCriterion.criterionId")
+				.innerJoin(
+					"criterion",
+					"criterion.rowId",
+					"checkCriterion.criterionRowId",
+				)
 				.where("criterion.gridRowId", "=", gridRowId)
 				.select([
 					"criterion.id as criterionId",
@@ -123,7 +127,7 @@ export async function loadRubricRowsFromDb(
 				.innerJoin(
 					"criterion",
 					"criterion.rowId",
-					"numberCriterion.criterionId",
+					"numberCriterion.criterionRowId",
 				)
 				.where("criterion.gridRowId", "=", gridRowId)
 				.select([
@@ -139,13 +143,13 @@ export async function loadRubricRowsFromDb(
 				.selectFrom("optionsCriterion")
 				.leftJoin(
 					"optionsCriterionMark",
-					"optionsCriterionMark.optionsCriterionId",
-					"optionsCriterion.id",
+					"optionsCriterionMark.criterionRowId",
+					"optionsCriterion.criterionRowId",
 				)
 				.innerJoin(
 					"criterion",
 					"criterion.rowId",
-					"optionsCriterion.criterionId",
+					"optionsCriterion.criterionRowId",
 				)
 				.where("criterion.gridRowId", "=", gridRowId)
 				.select([

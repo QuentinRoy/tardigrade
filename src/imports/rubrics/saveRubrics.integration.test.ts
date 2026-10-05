@@ -317,12 +317,12 @@ test("saveRubrics blocks an imported criterion id that already belongs to anothe
 
 	const criterion = await db
 		.selectFrom("criterion")
-		.select("rubricId")
+		.select("rubricRowId")
 		.where("gridRowId", "=", grid.rowId)
 		.where("id", "=", fixture.criterionId)
 		.executeTakeFirstOrThrow();
 
-	expect(criterion.rubricId).toBe(fixture.rubricRowId);
+	expect(criterion.rubricRowId).toBe(fixture.rubricRowId);
 });
 
 test("saveRubrics wrapper invalidates rubric and grade tags after the import commits", async () => {
@@ -411,13 +411,13 @@ test("saveRubricImportPlanInDb keeps a single criterion definition when two impo
 	const [checkRows, optionsCriterionRows] = await Promise.all([
 		db
 			.selectFrom("checkCriterion")
-			.select("criterionId")
-			.where("criterionId", "=", criterionRowId ?? -1)
+			.select("criterionRowId")
+			.where("criterionRowId", "=", criterionRowId ?? -1)
 			.execute(),
 		db
 			.selectFrom("optionsCriterion")
-			.select("id")
-			.where("criterionId", "=", criterionRowId ?? -1)
+			.select("criterionRowId")
+			.where("criterionRowId", "=", criterionRowId ?? -1)
 			.execute(),
 	]);
 	expect(checkRows).toHaveLength(0);
@@ -426,7 +426,7 @@ test("saveRubricImportPlanInDb keeps a single criterion definition when two impo
 	const optionsValues = await db
 		.selectFrom("optionsCriterionMark")
 		.select("label")
-		.where("optionsCriterionId", "=", optionsCriterionRows[0]?.id ?? -1)
+		.where("criterionRowId", "=", criterionRowId ?? -1)
 		.execute();
 	const labels = optionsValues.map((value) => value.label).sort();
 

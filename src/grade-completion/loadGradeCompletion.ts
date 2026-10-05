@@ -68,7 +68,7 @@ export async function loadGradeCompletionRowsFromDb(
 		db
 			.selectFrom("rubric")
 			.where("rubric.gridRowId", "in", gridRowIdQuery)
-			.leftJoin("criterion", "criterion.rubricId", "rubric.rowId")
+			.leftJoin("criterion", "criterion.rubricRowId", "rubric.rowId")
 			.select((eb) => [
 				"rubric.id as id",
 				eb.fn.count<number>("criterion.id").as("criterionCount"),
@@ -83,12 +83,16 @@ export async function loadGradeCompletionRowsFromDb(
 				"criterionGrade.gradeTargetRowId",
 			)
 			.where("gradeTarget.gridRowId", "in", gridRowIdQuery)
-			.innerJoin("criterion", "criterion.rowId", "criterionGrade.criterionId")
-			.innerJoin("rubric", "rubric.rowId", "criterion.rubricId")
+			.innerJoin(
+				"criterion",
+				"criterion.rowId",
+				"criterionGrade.criterionRowId",
+			)
+			.innerJoin("rubric", "rubric.rowId", "criterion.rubricRowId")
 			.select((eb) => [
 				"gradeTarget.id as targetId",
 				"rubric.id as rubricId",
-				eb.fn.count<number>("criterionGrade.id").as("gradeCount"),
+				eb.fn.countAll<number>().as("gradeCount"),
 			])
 			.groupBy(["gradeTarget.id", "rubric.id"])
 			.execute(),
@@ -187,7 +191,7 @@ export async function loadGradedCriterionCountsFromDb(
 		db
 			.selectFrom("criterion")
 			.where("criterion.gridRowId", "in", gridRowIdQuery)
-			.innerJoin("rubric", "rubric.rowId", "criterion.rubricId")
+			.innerJoin("rubric", "rubric.rowId", "criterion.rubricRowId")
 			.where("rubric.id", "=", rubricId)
 			.select((eb) => eb.fn.countAll<number>().as("count"))
 			.executeTakeFirstOrThrow(),
@@ -199,12 +203,16 @@ export async function loadGradedCriterionCountsFromDb(
 				"criterionGrade.gradeTargetRowId",
 			)
 			.where("gradeTarget.gridRowId", "in", gridRowIdQuery)
-			.innerJoin("criterion", "criterion.rowId", "criterionGrade.criterionId")
-			.innerJoin("rubric", "rubric.rowId", "criterion.rubricId")
+			.innerJoin(
+				"criterion",
+				"criterion.rowId",
+				"criterionGrade.criterionRowId",
+			)
+			.innerJoin("rubric", "rubric.rowId", "criterion.rubricRowId")
 			.where("rubric.id", "=", rubricId)
 			.select((eb) => [
 				"gradeTarget.id as targetId",
-				eb.fn.count<number>("criterionGrade.id").as("completed"),
+				eb.fn.countAll<number>().as("completed"),
 			])
 			.groupBy("gradeTarget.id")
 			.execute(),

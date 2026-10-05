@@ -36,7 +36,7 @@ async function createOptionsCriterionRow(
 	const id = buildTestId("criterion-options");
 	const criterion = await db
 		.insertInto("criterion")
-		.values({ gridRowId, id, rubricId: rubricRowId, kind: "options", position })
+		.values({ gridRowId, id, rubricRowId, kind: "options", position })
 		.returning("rowId")
 		.executeTakeFirstOrThrow();
 	return { id, rowId: criterion.rowId };
@@ -49,8 +49,8 @@ async function loadOptionsMarks(
 ): Promise<OptionsMarks | undefined> {
 	const optionsCriterion = await db
 		.selectFrom("optionsCriterion")
-		.select("id")
-		.where("criterionId", "=", criterionRowId)
+		.select("criterionRowId")
+		.where("criterionRowId", "=", criterionRowId)
 		.executeTakeFirst();
 	if (optionsCriterion == null) {
 		return undefined;
@@ -59,7 +59,7 @@ async function loadOptionsMarks(
 	const marks = await db
 		.selectFrom("optionsCriterionMark")
 		.select(["label", "marks"])
-		.where("optionsCriterionId", "=", optionsCriterion.id)
+		.where("criterionRowId", "=", optionsCriterion.criterionRowId)
 		.execute();
 
 	// Postgres returns `numeric` columns as strings; coerce for value comparison.

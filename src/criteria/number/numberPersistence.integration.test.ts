@@ -35,7 +35,7 @@ async function createNumberCriterionRow(
 	const id = buildTestId("criterion-number");
 	const criterion = await db
 		.insertInto("criterion")
-		.values({ gridRowId, id, rubricId: rubricRowId, kind: "number", position })
+		.values({ gridRowId, id, rubricRowId, kind: "number", position })
 		.returning("rowId")
 		.executeTakeFirstOrThrow();
 	return { id, rowId: criterion.rowId };
@@ -45,7 +45,7 @@ async function loadNumberRow(db: Kysely<Database>, criterionRowId: number) {
 	const row = await db
 		.selectFrom("numberCriterion")
 		.select(["minValue", "maxValue", "minMarks", "maxMarks", "reversed"])
-		.where("criterionId", "=", criterionRowId)
+		.where("criterionRowId", "=", criterionRowId)
 		.executeTakeFirst();
 	if (row == null) {
 		return undefined;

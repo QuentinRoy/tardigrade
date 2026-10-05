@@ -105,17 +105,9 @@ test("loadRubricRowsFromDb returns optionsCriterion with empty marks when the op
 	await db
 		.deleteFrom("optionsCriterionMark")
 		.where(
-			"optionsCriterionId",
+			"criterionRowId",
 			"in",
-			db
-				.selectFrom("optionsCriterion")
-				.innerJoin(
-					"criterion",
-					"criterion.rowId",
-					"optionsCriterion.criterionId",
-				)
-				.where("criterion.id", "=", criterionId)
-				.select("optionsCriterion.id"),
+			db.selectFrom("criterion").where("id", "=", criterionId).select("rowId"),
 		)
 		.execute();
 

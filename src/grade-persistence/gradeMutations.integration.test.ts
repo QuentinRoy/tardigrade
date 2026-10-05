@@ -63,7 +63,7 @@ async function countCriterionGrades(
 		.selectFrom("criterionGrade")
 		.innerJoin("grid", "grid.rowId", "criterionGrade.gridRowId")
 		.where("grid.id", "=", gridId)
-		.select("criterionGrade.id")
+		.select("criterionGrade.criterionRowId")
 		.execute();
 	return rows.length;
 }
@@ -316,7 +316,7 @@ async function seedStaleCheckGrade(
 	db: Kysely<Database>,
 	fixture: MixedCriterionRubricFixture,
 	gradeTargetId: string,
-): Promise<number> {
+): Promise<{ criterionRowId: number; gradeTargetRowId: number }> {
 	const [criterion, gradeTarget] = await Promise.all([
 		db
 			.selectFrom("criterion")
@@ -330,22 +330,28 @@ async function seedStaleCheckGrade(
 			.executeTakeFirstOrThrow(),
 	]);
 
-	const criterionGrade = await db
+	await db
 		.insertInto("criterionGrade")
 		.values({
 			gridRowId: fixture.grid.rowId,
 			gradeTargetRowId: gradeTarget.rowId,
-			criterionId: criterion.rowId,
+			criterionRowId: criterion.rowId,
 		})
-		.returning("id")
-		.executeTakeFirstOrThrow();
+		.execute();
 
 	await db
 		.insertInto("checkCriterionGrade")
-		.values({ criterionGradeId: criterionGrade.id, passed: true })
+		.values({
+			gradeTargetRowId: gradeTarget.rowId,
+			criterionRowId: criterion.rowId,
+			passed: true,
+		})
 		.execute();
 
-	return criterion.rowId;
+	return {
+		criterionRowId: criterion.rowId,
+		gradeTargetRowId: gradeTarget.rowId,
+	};
 }
 
 test("saveCriterionGradesInDb clears a stale cross-kind subtype value on the next save", async () => {
@@ -358,7 +364,11 @@ test("saveCriterionGradesInDb clears a stale cross-kind subtype value on the nex
 		numberCriterionId: buildTestId("criterion-number"),
 	});
 	const gradeTargetId = await addIndividualGradeTarget(db, fixture.grid.id);
-	const criterionRowId = await seedStaleCheckGrade(db, fixture, gradeTargetId);
+	const { criterionRowId, gradeTargetRowId } = await seedStaleCheckGrade(
+		db,
+		fixture,
+		gradeTargetId,
+	);
 
 	const result = await db
 		.transaction()
@@ -380,22 +390,18 @@ test("saveCriterionGradesInDb clears a stale cross-kind subtype value on the nex
 		);
 	expect(result).toEqual({ success: true });
 
-	const criterionGrade = await db
-		.selectFrom("criterionGrade")
-		.where("criterionId", "=", criterionRowId)
-		.select("id")
-		.executeTakeFirstOrThrow();
-
 	const [checkRows, optionsRows] = await Promise.all([
 		db
 			.selectFrom("checkCriterionGrade")
-			.select("id")
-			.where("criterionGradeId", "=", criterionGrade.id)
+			.select("criterionRowId")
+			.where("gradeTargetRowId", "=", gradeTargetRowId)
+			.where("criterionRowId", "=", criterionRowId)
 			.execute(),
 		db
 			.selectFrom("optionsCriterionGrade")
 			.select("selectedLabel")
-			.where("criterionGradeId", "=", criterionGrade.id)
+			.where("gradeTargetRowId", "=", gradeTargetRowId)
+			.where("criterionRowId", "=", criterionRowId)
 			.execute(),
 	]);
 

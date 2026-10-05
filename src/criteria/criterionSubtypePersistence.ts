@@ -63,7 +63,7 @@ export async function saveCriterionSubtypesInDb(
 			criteria.map((criterion) => criterion.id),
 		);
 	if (rubricRowId != null) {
-		query = query.where("rubricId", "=", rubricRowId);
+		query = query.where("rubricRowId", "=", rubricRowId);
 	}
 	const criterionRows = await query.execute();
 	const criterionRowIdById = new Map(

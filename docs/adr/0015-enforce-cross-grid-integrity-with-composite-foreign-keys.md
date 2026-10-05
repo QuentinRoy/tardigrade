@@ -2,13 +2,13 @@
 
 - **Status:** Accepted
 - **Created:** 2026-07-22
-- **Related:** [cross-grid integrity investigation](../investigations/2026-07-22-cross-grid-integrity-enforcement.md), [execution plan](../../plans/2026-07-22-cross-grid-integrity-enforcement.md), #144
+- **Related:** [cross-grid integrity investigation](../investigations/2026-07-22-cross-grid-integrity-enforcement.md), [execution plan](../../plans/2026-07-22-cross-grid-integrity-enforcement.md), #144, [later key normalization (ADR 0016)](0016-collapse-internal-surrogate-keys-onto-natural-keys.md)
 
 ## Context
 
 Two grid-scoped relationships had no database-level guarantee that both sides of the relationship belonged to the same grid:
 
-- a `criterion` references a `rubric` through `rubric_id`, but nothing forced `criterion.grid_row_id` to equal `rubric.grid_row_id`;
+- a `criterion` references a `rubric` through `rubric_row_id`, but nothing forced `criterion.grid_row_id` to equal `rubric.grid_row_id`;
 - a `criterion_grade` (the grade cell — the busiest write table) references a `criterion` and a `grade_target` through two independent foreign keys, but nothing forced those two parents to belong to the same grid.
 
 Only the application layer (`saveCriterionGradeInDb`'s grid-scoped id resolution) and defensive read joins rejected cross-grid combinations. A raw insert, a future second writer, or an app-layer bug could silently create a cross-grid row.
@@ -19,7 +19,7 @@ Only the application layer (`saveCriterionGradeInDb`'s grid-scoped id resolution
 
 Enforce both relationships with composite foreign keys that replace the existing single-column FKs, each backed by a `UNIQUE (row_id, grid_row_id)` on the referenced parent:
 
-- **`criterion → rubric`** — a composite FK over `(rubric_id, grid_row_id)`. `criterion` already carries `grid_row_id`, so no new column.
+- **`criterion → rubric`** — a composite FK over `(rubric_row_id, grid_row_id)`. `criterion` already carries `grid_row_id`, so no new column.
 - **`criterion_grade` (the cell)** — add a `grid_row_id` column and pin it against *both* parents (`criterion` and `grade_target`) with two composite FKs, forcing all three rows to share a grid.
 
 The exact column tuples, backfill, and `NOT NULL` step live in the migrations ([`…_enforce_criterion_rubric_grid_consistency`](../../src/db/migrations/20260722000000_enforce_criterion_rubric_grid_consistency.ts), [`…_add_criterion_grade_grid_row_id`](../../src/db/migrations/20260722000001_add_criterion_grade_grid_row_id.ts)).

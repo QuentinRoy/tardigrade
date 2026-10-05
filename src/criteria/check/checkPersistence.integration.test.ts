@@ -32,7 +32,7 @@ async function createCheckCriterionRow(
 	const id = buildTestId("criterion-check");
 	const criterion = await db
 		.insertInto("criterion")
-		.values({ gridRowId, id, rubricId: rubricRowId, kind: "check", position })
+		.values({ gridRowId, id, rubricRowId, kind: "check", position })
 		.returning("rowId")
 		.executeTakeFirstOrThrow();
 	return { id, rowId: criterion.rowId };
@@ -42,7 +42,7 @@ async function loadCheckRow(db: Kysely<Database>, criterionRowId: number) {
 	const row = await db
 		.selectFrom("checkCriterion")
 		.select(["marks", "falseMarks"])
-		.where("criterionId", "=", criterionRowId)
+		.where("criterionRowId", "=", criterionRowId)
 		.executeTakeFirst();
 	if (row == null) {
 		return undefined;

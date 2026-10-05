@@ -81,18 +81,28 @@ type ResolvedGradeWrite = {
 	grade: CriterionGrade;
 };
 
-// Per-kind subtype write rows, once a resolved grade's parent `criterionGrade`
-// row id is known.
+// One resolved grade's (Grade Target, Criterion) pair, the composite key
+// shared by `criterionGrade` and its subtype tables.
+type GradeTargetCriterionPair = {
+	gradeTargetRowId: number;
+	criterionRowId: number;
+};
+
+// Per-kind subtype write rows, keyed by the same (Grade Target, Criterion)
+// composite that identifies their parent `criterionGrade` row.
 type CheckGradeWriteRow = {
-	criterionGradeId: number;
+	gradeTargetRowId: number;
+	criterionRowId: number;
 	grade: CheckCriterionGradeContent;
 };
 type OptionsGradeWriteRow = {
-	criterionGradeId: number;
+	gradeTargetRowId: number;
+	criterionRowId: number;
 	grade: OptionsCriterionGradeContent;
 };
 type NumberGradeWriteRow = {
-	criterionGradeId: number;
+	gradeTargetRowId: number;
+	criterionRowId: number;
 	grade: NumberCriterionGradeContent;
 };
 
@@ -129,7 +139,7 @@ async function resolveGradeWrites(
 			.where("id", "in", [
 				...new Set(grades.map((write) => write.grade.criterionId)),
 			])
-			.select(["id", "rowId", "kind", "rubricId"])
+			.select(["id", "rowId", "kind", "rubricRowId"])
 			.execute(),
 	]);
 
@@ -150,7 +160,7 @@ async function resolveGradeWrites(
 		}
 
 		const criterion = criterionById.get(write.grade.criterionId);
-		if (criterion == null || criterion.rubricId !== rubricRowId) {
+		if (criterion == null || criterion.rubricRowId !== rubricRowId) {
 			return {
 				success: false,
 				error: saveCriterionGradeErrors.criterionMissing,
@@ -185,52 +195,35 @@ async function resolveGradeWrites(
 }
 
 // Upserts the parent `criterionGrade` rows for every resolved write in one
-// bounded insert, then reads back their ids. Called only after every write in
-// the batch validates, so a batch containing any invalid grade writes nothing
-// (previously a get-or-create ran before subtype validation per grade,
-// committing an empty grade that completion miscounted).
+// bounded insert. Called only after every write in the batch validates, so a
+// batch containing any invalid grade writes nothing (previously a get-or-create
+// ran before subtype validation per grade, committing an empty grade that
+// completion miscounted). The subtype tables below key directly off the same
+// (Grade Target, Criterion) pair as this insert, so no id read-back is needed.
 async function upsertCriterionGradeParents(
 	db: Transaction<Database>,
 	{
 		gridRowId,
 		resolved,
 	}: { gridRowId: number; resolved: ResolvedGradeWrite[] },
-): Promise<Map<string, number>> {
+): Promise<void> {
 	// gridRowId is a consistency copy backstopped by the composite FKs on
-	// criterion_id and grade_target_row_id (ADR 0015): the grid-scoped lookups
-	// in resolveGradeWrites remain for id-resolution and user-facing errors, not
-	// for cross-grid integrity, which the DB now enforces.
+	// criterion_row_id and grade_target_row_id (ADR 0015): the grid-scoped
+	// lookups in resolveGradeWrites remain for id-resolution and user-facing
+	// errors, not for cross-grid integrity, which the DB now enforces.
 	await db
 		.insertInto("criterionGrade")
 		.values(
 			resolved.map((entry) => ({
 				gradeTargetRowId: entry.gradeTargetRowId,
-				criterionId: entry.criterionRowId,
+				criterionRowId: entry.criterionRowId,
 				gridRowId,
 			})),
 		)
 		.onConflict((conflict) =>
-			conflict.columns(["gradeTargetRowId", "criterionId"]).doNothing(),
+			conflict.columns(["gradeTargetRowId", "criterionRowId"]).doNothing(),
 		)
 		.execute();
-
-	const parentRows = await db
-		.selectFrom("criterionGrade")
-		.where("gradeTargetRowId", "in", [
-			...new Set(resolved.map((entry) => entry.gradeTargetRowId)),
-		])
-		.where("criterionId", "in", [
-			...new Set(resolved.map((entry) => entry.criterionRowId)),
-		])
-		.select(["id", "gradeTargetRowId", "criterionId"])
-		.execute();
-
-	return new Map(
-		parentRows.map((row) => [
-			`${row.gradeTargetRowId}:${row.criterionId}`,
-			row.id,
-		]),
-	);
 }
 
 // Deletes the two subtype tables a kept kind does not use, one group per kind
@@ -238,17 +231,23 @@ async function upsertCriterionGradeParents(
 // statements rather than per grade.
 function clearStaleSubtypeValues(
 	db: Transaction<Database>,
-	criterionGradeIdsByKind: Record<CriterionGrade["kind"], number[]>,
+	pairsByKind: Record<CriterionGrade["kind"], GradeTargetCriterionPair[]>,
 ): Promise<unknown>[] {
 	function clearKind(kind: CriterionGrade["kind"]): Promise<unknown>[] {
-		const criterionGradeIds = criterionGradeIdsByKind[kind];
-		if (criterionGradeIds.length === 0) {
+		const pairs = pairsByKind[kind];
+		if (pairs.length === 0) {
 			return [];
 		}
 		return otherSubtypeTables(kind).map((table) =>
 			db
 				.deleteFrom(table)
-				.where("criterionGradeId", "in", criterionGradeIds)
+				.where((eb) =>
+					eb.or(
+						pairs.map(({ gradeTargetRowId, criterionRowId }) =>
+							eb.and({ gradeTargetRowId, criterionRowId }),
+						),
+					),
+				)
 				.execute(),
 		);
 	}
@@ -341,55 +340,42 @@ export async function saveCriterionGradesInDb(
 		return { success: false, error: failedOptionsValidation.message };
 	}
 
-	const parentIdByPair = await upsertCriterionGradeParents(db, {
-		gridRowId,
-		resolved,
-	});
-
-	function resolveParentId(entry: ResolvedGradeWrite): number {
-		const parentId = parentIdByPair.get(
-			`${entry.gradeTargetRowId}:${entry.criterionRowId}`,
-		);
-		if (parentId == null) {
-			throw new Error(
-				"Expected a criterionGrade row to exist for every resolved grade after upsert.",
-			);
-		}
-		return parentId;
-	}
+	await upsertCriterionGradeParents(db, { gridRowId, resolved });
 
 	const checkRows: CheckGradeWriteRow[] = [];
 	const optionsRows: OptionsGradeWriteRow[] = [];
 	const numberRows: NumberGradeWriteRow[] = [];
-	const criterionGradeIdsByKind: Record<CriterionGrade["kind"], number[]> = {
-		check: [],
-		options: [],
-		number: [],
-	};
+	const pairsByKind: Record<
+		CriterionGrade["kind"],
+		GradeTargetCriterionPair[]
+	> = { check: [], options: [], number: [] };
 
 	// Each kind's writer persists that criterion kind's value; clearing the
 	// other two kinds' subtype tables (below) keeps a criterion from carrying
 	// stale values from a previous kind.
 	for (const entry of resolved) {
-		const criterionGradeId = resolveParentId(entry);
-		criterionGradeIdsByKind[entry.grade.kind].push(criterionGradeId);
+		const { gradeTargetRowId, criterionRowId } = entry;
+		pairsByKind[entry.grade.kind].push({ gradeTargetRowId, criterionRowId });
 
 		switch (entry.grade.kind) {
 			case "check":
 				checkRows.push({
-					criterionGradeId,
+					gradeTargetRowId,
+					criterionRowId,
 					grade: { passed: entry.grade.passed },
 				});
 				break;
 			case "options":
 				optionsRows.push({
-					criterionGradeId,
+					gradeTargetRowId,
+					criterionRowId,
 					grade: { selectedLabel: entry.grade.selectedLabel },
 				});
 				break;
 			case "number":
 				numberRows.push({
-					criterionGradeId,
+					gradeTargetRowId,
+					criterionRowId,
 					grade: { value: entry.grade.value },
 				});
 				break;
@@ -402,7 +388,7 @@ export async function saveCriterionGradesInDb(
 		writeCheckGradesInDb(db, checkRows),
 		writeOptionsGradesInDb(db, optionsRows),
 		writeNumberGradesInDb(db, numberRows),
-		...clearStaleSubtypeValues(db, criterionGradeIdsByKind),
+		...clearStaleSubtypeValues(db, pairsByKind),
 	]);
 
 	return { success: true };
